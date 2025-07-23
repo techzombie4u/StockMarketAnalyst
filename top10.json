@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-07-23T21:28:35.120672+05:30",
-  "last_updated": "2025-07-23 21:28:35 IST",
+  "timestamp": "2025-07-23T21:35:02.279383+05:30",
+  "last_updated": "2025-07-23 21:35:02 IST",
   "stocks": [
     {
       "symbol": "TCS",
@@ -177,35 +177,6 @@
       }
     },
     {
-      "symbol": "POWERGRID",
-      "score": 10,
-      "adjusted_score": 9.9,
-      "volatility": 1.33,
-      "current_price": 299.25,
-      "predicted_price": 305.24,
-      "predicted_gain": 2.0,
-      "time_horizon": 10,
-      "three_hour_price": 293.77,
-      "three_hour_gain": -1.83,
-      "risk_level": "Low",
-      "market_cap": "Small Cap",
-      "confidence": 67,
-      "pe_ratio": 0,
-      "revenue_growth": -2.0,
-      "fundamentals": {
-        "pe_ratio": 0,
-        "revenue_growth": -1.999082989454379,
-        "earnings_growth": 9.339647461194422,
-        "promoter_buying": false
-      },
-      "technical": {
-        "atr_14": 3.99285888671875,
-        "current_price": 299.25,
-        "momentum_ratio": 0.5635060150720739,
-        "volatility": 1.334288683949457
-      }
-    },
-    {
       "symbol": "BHARTIARTL",
       "score": 10,
       "adjusted_score": 9.8,
@@ -235,32 +206,61 @@
       }
     },
     {
-      "symbol": "TITAN",
+      "symbol": "BAJFINANCE",
       "score": 10,
       "adjusted_score": 9.8,
       "volatility": 1.73,
-      "current_price": 3471.4,
-      "predicted_price": 3540.83,
+      "current_price": 968.3,
+      "predicted_price": 987.67,
       "predicted_gain": 2.0,
       "time_horizon": 10,
-      "three_hour_price": 3408.64,
-      "three_hour_gain": -1.81,
+      "three_hour_price": 952.37,
+      "three_hour_gain": -1.64,
       "risk_level": "Low",
-      "market_cap": "Mid Cap",
-      "confidence": 67,
+      "market_cap": "Small Cap",
+      "confidence": 33,
       "pe_ratio": 0,
-      "revenue_growth": -17.4,
+      "revenue_growth": 0,
       "fundamentals": {
         "pe_ratio": 0,
-        "revenue_growth": -17.441491051572594,
-        "earnings_growth": -33.291139240506325,
+        "revenue_growth": 0,
+        "earnings_growth": -6.779661016949152,
         "promoter_buying": false
       },
       "technical": {
-        "atr_14": 59.930050517226746,
-        "current_price": 3471.39990234375,
-        "momentum_ratio": 0.6407453691818938,
-        "volatility": 1.7263943136244366
+        "atr_14": 16.760724748883927,
+        "current_price": 968.2999877929688,
+        "momentum_ratio": 1.184314872020035,
+        "volatility": 1.7309434018569376
+      }
+    },
+    {
+      "symbol": "SBIN",
+      "score": 0,
+      "adjusted_score": 0.0,
+      "volatility": 1.31,
+      "current_price": 820.65,
+      "predicted_price": 820.65,
+      "predicted_gain": 0,
+      "time_horizon": 100,
+      "three_hour_price": 799.32,
+      "three_hour_gain": -2.6,
+      "risk_level": "Low",
+      "market_cap": "Small Cap",
+      "confidence": 33,
+      "pe_ratio": 0,
+      "revenue_growth": 0,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": 0,
+        "earnings_growth": 30.72088250384813,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 10.710719517299108,
+        "current_price": 820.6500244140625,
+        "momentum_ratio": -0.3314425130109224,
+        "volatility": 1.3051506974543108
       }
     },
     {
