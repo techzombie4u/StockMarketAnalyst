@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-07-23T11:02:26.480629",
-  "last_updated": "2025-07-23 11:02:26",
+  "timestamp": "2025-07-23T16:45:29.254843+05:30",
+  "last_updated": "2025-07-23 16:45:29 IST",
   "stocks": [
     {
       "symbol": "TCS",
@@ -75,11 +75,11 @@
       "market_cap": "Large Cap",
       "confidence": 67,
       "pe_ratio": 0,
-      "revenue_growth": -6.4,
+      "revenue_growth": -5.7,
       "fundamentals": {
         "pe_ratio": 0,
-        "revenue_growth": -6.364955033362345,
-        "earnings_growth": 6.210369265199552,
+        "revenue_growth": -5.659860966664842,
+        "earnings_growth": -11.018918021905078,
         "promoter_buying": false
       },
       "technical": {
