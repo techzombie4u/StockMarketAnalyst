@@ -301,7 +301,7 @@
     <div class="container">
         <div class="header">
             <h1>📈 Stock Market Analyst</h1>
-            <div class="subtitle">Nifty 50 Stocks Under ₹1000 | Real-time AI Analysis | Market Hours: 9 AM - 4 PM IST</div>
+            <div class="subtitle">Top Stocks Under ₹1000 (Score ≥30) | Real-time AI Analysis | Market Hours: 9 AM - 4 PM IST</div>
         </div>
         
         <div class="controls">
@@ -322,19 +322,16 @@
                         <th>Score</th>
                         <th>Confidence %</th>
                         <th>Current Price ₹</th>
-                        <th>3Hr Gain %</th>
-                        <th>24Hr Gain %</th>
-                        <th>5Day Gain %</th>
-                        <th>4Week Gain %</th>
+                        <th>3Hr Prediction</th>
+                        <th>24Hr Prediction</th>
+                        <th>5Day Prediction</th>
                         <th>PE Ratio</th>
-                        <th>Revenue Growth %</th>
                         <th>Risk Level</th>
-                        <th>Market Cap</th>
                     </tr>
                 </thead>
                 <tbody id="stocks-table">
                     <tr>
-                        <td colspan="12" class="no-data">Loading stock data...</td>
+                        <td colspan="9" class="no-data">Loading stock data...</td>
                     </tr>
                 </tbody>
             </table>
@@ -380,12 +377,12 @@
             const lastUpdated = document.getElementById('last-updated');
             
             if (data.error) {
-                tbody.innerHTML = `<tr><td colspan="12" class="no-data">Error: ${data.error}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="no-data">Error: ${data.error}</td></tr>`;
                 return;
             }
             
             if (!data.stocks || data.stocks.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="12" class="no-data">${data.message || 'No stocks found'}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="no-data">${data.message || 'No stocks found'}</td></tr>`;
                 return;
             }
             
@@ -396,23 +393,19 @@
                     <td class="confidence ${getConfidenceClass(stock.confidence)}">${stock.confidence}%</td>
                     <td class="price">₹${stock.current_price}</td>
                     <td class="prediction ${stock.three_hour_gain > 0 ? 'positive' : 'negative'}">
-                        ${stock.three_hour_gain > 0 ? '+' : ''}${stock.three_hour_gain.toFixed(1)}%
+                        ₹${stock.three_hour_price}<br>
+                        <small style="font-size: 0.8em;">(${stock.three_hour_gain > 0 ? '+' : ''}${stock.three_hour_gain.toFixed(1)}%)</small>
                     </td>
                     <td class="prediction ${stock.daily_gain > 0 ? 'positive' : 'negative'}">
-                        ${stock.daily_gain > 0 ? '+' : ''}${stock.daily_gain.toFixed(1)}%
+                        ₹${stock.daily_price}<br>
+                        <small style="font-size: 0.8em;">(${stock.daily_gain > 0 ? '+' : ''}${stock.daily_gain.toFixed(1)}%)</small>
                     </td>
                     <td class="prediction ${stock.weekly_gain > 0 ? 'positive' : 'negative'}">
-                        ${stock.weekly_gain > 0 ? '+' : ''}${stock.weekly_gain.toFixed(1)}%
-                    </td>
-                    <td class="prediction ${stock.monthly_gain > 0 ? 'positive' : 'negative'}">
-                        ${stock.monthly_gain > 0 ? '+' : ''}${stock.monthly_gain.toFixed(1)}%
+                        ₹${stock.weekly_price}<br>
+                        <small style="font-size: 0.8em;">(${stock.weekly_gain > 0 ? '+' : ''}${stock.weekly_gain.toFixed(1)}%)</small>
                     </td>
                     <td class="pe-ratio">${stock.pe_ratio || 'N/A'}</td>
-                    <td class="growth ${stock.revenue_growth > 0 ? 'positive' : 'negative'}">
-                        ${stock.revenue_growth > 0 ? '+' : ''}${stock.revenue_growth}%
-                    </td>
                     <td class="risk-level ${getRiskClass(stock.risk_level)}">${stock.risk_level}</td>
-                    <td class="market-cap">${stock.market_cap}</td>
                 </tr>
             `).join('');
             
