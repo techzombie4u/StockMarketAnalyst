@@ -55,46 +55,73 @@ class StockScreener:
         self.technical_data = {}
     
     def get_top_20_nifty_stocks(self) -> List[str]:
-        """Get top 20 Nifty 50 stocks by market cap dynamically"""
+        """Get top 20 Nifty 50 stocks by market cap dynamically, filtered by price <= ₹1000"""
         try:
-            logger.info("Fetching top 20 Nifty 50 stocks by market cap...")
+            logger.info("Fetching Nifty 50 stocks by market cap (price <= ₹1000)...")
             
-            # Get market cap data for all Nifty 50 stocks
-            stock_market_caps = []
+            # Get market cap and price data for all Nifty 50 stocks
+            stock_data = []
             
-            for symbol in self.nifty50_symbols[:30]:  # Check first 30 to get top 20
+            for symbol in self.nifty50_symbols:  # Check all Nifty 50 stocks
                 try:
                     ticker = f"{symbol}.NS"
                     stock = yf.Ticker(ticker)
                     info = stock.info
+                    hist = stock.history(period="1d")
                     
-                    market_cap = info.get('marketCap', 0)
-                    if market_cap > 0:
-                        stock_market_caps.append((symbol, market_cap))
+                    if not hist.empty:
+                        current_price = hist['Close'].iloc[-1]
+                        market_cap = info.get('marketCap', 0)
+                        
+                        # Only include stocks with price <= ₹1000
+                        if current_price <= 1000 and market_cap > 0:
+                            stock_data.append((symbol, market_cap, current_price))
                     
                     # Small delay to avoid rate limiting
                     time.sleep(0.1)
                     
                 except Exception as e:
-                    logger.warning(f"Could not fetch market cap for {symbol}: {str(e)}")
+                    logger.warning(f"Could not fetch data for {symbol}: {str(e)}")
                     continue
             
             # Sort by market cap and get top 20
-            stock_market_caps.sort(key=lambda x: x[1], reverse=True)
-            top_20_symbols = [symbol for symbol, _ in stock_market_caps[:20]]
+            stock_data.sort(key=lambda x: x[1], reverse=True)
+            filtered_stocks = [(symbol, price) for symbol, _, price in stock_data[:20]]
             
-            if len(top_20_symbols) < 20:
-                # Fallback to predefined list if we couldn't get enough data
-                logger.warning(f"Only found {len(top_20_symbols)} stocks with market cap data. Using fallback list.")
-                top_20_symbols = self.nifty50_symbols[:20]
+            if len(filtered_stocks) < 10:
+                # If we don't have enough stocks under ₹1000, add some mid-cap stocks
+                logger.warning(f"Only found {len(filtered_stocks)} stocks under ₹1000. Adding mid-cap stocks.")
+                fallback_symbols = ['SBIN', 'ITC', 'ONGC', 'NTPC', 'POWERGRID', 'COALINDIA', 'BPCL', 
+                                  'HINDALCO', 'JSWSTEEL', 'TATASTEEL', 'GRASIM', 'UPL', 'INDUSINDBK']
+                for symbol in fallback_symbols:
+                    if len(filtered_stocks) >= 20:
+                        break
+                    if symbol not in [s[0] for s in filtered_stocks]:
+                        try:
+                            ticker = f"{symbol}.NS"
+                            hist = yf.Ticker(ticker).history(period="1d")
+                            if not hist.empty:
+                                price = hist['Close'].iloc[-1]
+                                if price <= 1000:
+                                    filtered_stocks.append((symbol, price))
+                        except:
+                            continue
             
-            logger.info(f"Selected top 20 Nifty 50 stocks: {', '.join(top_20_symbols)}")
-            return top_20_symbols
+            selected_symbols = [symbol for symbol, _ in filtered_stocks]
+            price_info = {symbol: price for symbol, price in filtered_stocks}
+            
+            logger.info(f"Selected {len(selected_symbols)} stocks under ₹1000:")
+            for symbol in selected_symbols:
+                logger.info(f"  {symbol}: ₹{price_info.get(symbol, 0):.2f}")
+            
+            return selected_symbols
             
         except Exception as e:
-            logger.error(f"Error getting top 20 Nifty stocks: {str(e)}")
-            # Return fallback list
-            return self.nifty50_symbols[:20]
+            logger.error(f"Error getting filtered Nifty stocks: {str(e)}")
+            # Return fallback list of affordable stocks
+            return ['SBIN', 'ITC', 'ONGC', 'NTPC', 'POWERGRID', 'COALINDIA', 'BPCL', 
+                    'HINDALCO', 'JSWSTEEL', 'TATASTEEL', 'GRASIM', 'UPL', 'INDUSINDBK', 
+                    'WIPRO', 'TECHM', 'M&M', 'TATAMOTORS', 'DRREDDY', 'CIPLA', 'DIVISLAB']
         
     def scrape_screener_data(self, symbol: str) -> Dict:
         """Scrape fundamental data from Screener.in"""
@@ -279,14 +306,34 @@ class StockScreener:
             current_price = technical.get('current_price', 0)
             predicted_price = current_price * (1 + predicted_gain / 100) if current_price > 0 else 0
             
-            # Calculate 3-hour prediction based on momentum and volatility
+            # Calculate multiple time horizon predictions
             momentum_ratio = technical.get('momentum_ratio', 0)
-            hourly_volatility = volatility / 24  # Convert daily volatility to hourly
+            base_score_factor = (normalized_score - 50) * 0.01  # Base momentum from score
             
-            # 3-hour prediction: momentum impact + small random walk
-            three_hour_change = momentum_ratio * 0.3 + (normalized_score - 50) * 0.05
+            # 3-hour prediction: short-term momentum
+            three_hour_change = momentum_ratio * 0.3 + base_score_factor * 0.5
             three_hour_price = current_price * (1 + three_hour_change / 100) if current_price > 0 else 0
             three_hour_gain = three_hour_change
+            
+            # 24-hour prediction: daily momentum + score impact
+            daily_change = momentum_ratio * 0.8 + base_score_factor * 1.2
+            daily_price = current_price * (1 + daily_change / 100) if current_price > 0 else 0
+            daily_gain = daily_change
+            
+            # 5-day prediction: weekly trend + fundamental strength
+            weekly_change = base_score_factor * 3.0 + (normalized_score / 20) + (momentum_ratio * 0.5)
+            weekly_price = current_price * (1 + weekly_change / 100) if current_price > 0 else 0
+            weekly_gain = weekly_change
+            
+            # 4-week prediction: monthly trend based on fundamentals
+            monthly_change = (normalized_score / 10) + base_score_factor * 8.0
+            # Add fundamental boost
+            if fundamentals.get('revenue_growth', 0) > 15:
+                monthly_change += 2.0
+            if fundamentals.get('pe_ratio', 0) > 0 and fundamentals.get('pe_ratio', 0) < 25:
+                monthly_change += 1.5
+            monthly_price = current_price * (1 + monthly_change / 100) if current_price > 0 else 0
+            monthly_gain = monthly_change
             
             # Risk assessment
             risk_level = "Low" if volatility < 3 else "Medium" if volatility < 6 else "High"
@@ -305,16 +352,22 @@ class StockScreener:
                 'symbol': symbol,
                 'score': round(normalized_score, 1),
                 'adjusted_score': round(adjusted_score, 1),
-                'volatility': round(volatility, 2),
+                'confidence': int(confidence),
                 'current_price': round(current_price, 2),
+                'three_hour_price': round(three_hour_price, 2),
+                'three_hour_gain': round(three_hour_gain, 2),
+                'daily_price': round(daily_price, 2),
+                'daily_gain': round(daily_gain, 2),
+                'weekly_price': round(weekly_price, 2),
+                'weekly_gain': round(weekly_gain, 2),
+                'monthly_price': round(monthly_price, 2),
+                'monthly_gain': round(monthly_gain, 2),
+                'volatility': round(volatility, 2),
                 'predicted_price': round(predicted_price, 2),
                 'predicted_gain': round(predicted_gain, 1),
                 'time_horizon': round(time_horizon, 0),
-                'three_hour_price': round(three_hour_price, 2),
-                'three_hour_gain': round(three_hour_gain, 2),
                 'risk_level': risk_level,
                 'market_cap': market_cap_category,
-                'confidence': int(confidence),
                 'pe_ratio': round(fundamentals.get('pe_ratio', 0), 1),
                 'revenue_growth': round(fundamentals.get('revenue_growth', 0), 1),
                 'fundamentals': fundamentals,
