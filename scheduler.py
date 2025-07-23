@@ -9,6 +9,7 @@ Stores results in JSON format and tracks alerts to avoid duplicates.
 import json
 import logging
 from datetime import datetime
+import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -34,10 +35,12 @@ def run_screening_job():
         # Run the screener
         results = screener.run_screener()
         
-        # Add timestamp
+        # Add timestamp in IST
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
         screening_data = {
-            'timestamp': datetime.now().isoformat(),
-            'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'timestamp': now_ist.isoformat(),
+            'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
             'stocks': results
         }
         
@@ -61,9 +64,11 @@ def run_screening_job():
         logger.error(f"Error in screening job: {str(e)}")
         
         # Create error response
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
         error_data = {
-            'timestamp': datetime.now().isoformat(),
-            'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'timestamp': now_ist.isoformat(),
+            'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
             'error': str(e),
             'stocks': []
         }
