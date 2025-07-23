@@ -172,6 +172,67 @@
             color: #e17055;
         }
         
+        .confidence {
+            font-weight: bold;
+        }
+        
+        .confidence.high {
+            color: #00b894;
+        }
+        
+        .confidence.medium {
+            color: #fdcb6e;
+        }
+        
+        .confidence.low {
+            color: #e17055;
+        }
+        
+        .risk-level {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        
+        .risk-level.low {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .risk-level.medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .risk-level.high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .market-cap {
+            font-weight: bold;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .pe-ratio {
+            font-family: 'Courier New', monospace;
+            color: #495057;
+        }
+        
+        .growth {
+            font-weight: bold;
+        }
+        
+        .growth.positive {
+            color: #00b894;
+        }
+        
+        .growth.negative {
+            color: #e17055;
+        }
+        
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -240,7 +301,7 @@
     <div class="container">
         <div class="header">
             <h1>📈 Stock Market Analyst</h1>
-            <div class="subtitle">AI-Powered Indian Stock Screener & Analysis Dashboard</div>
+            <div class="subtitle">Real-time AI Analysis with 3-Hour & Daily Predictions | Indian Stock Markets</div>
         </div>
         
         <div class="controls">
@@ -259,17 +320,21 @@
                     <tr>
                         <th>Symbol</th>
                         <th>Score</th>
-                        <th>Adj Score</th>
-                        <th>Volatility %</th>
+                        <th>Confidence %</th>
                         <th>Current Price ₹</th>
-                        <th>Predicted Price ₹</th>
-                        <th>Predicted Gain %</th>
-                        <th>Time Horizon (Days)</th>
+                        <th>3Hr Price ₹</th>
+                        <th>3Hr Gain %</th>
+                        <th>Daily Gain %</th>
+                        <th>PE Ratio</th>
+                        <th>Revenue Growth %</th>
+                        <th>Risk Level</th>
+                        <th>Market Cap</th>
+                        <th>Time Horizon</th>
                     </tr>
                 </thead>
                 <tbody id="stocks-table">
                     <tr>
-                        <td colspan="8" class="no-data">Loading stock data...</td>
+                        <td colspan="12" class="no-data">Loading stock data...</td>
                     </tr>
                 </tbody>
             </table>
@@ -315,12 +380,12 @@
             const lastUpdated = document.getElementById('last-updated');
             
             if (data.error) {
-                tbody.innerHTML = `<tr><td colspan="8" class="no-data">Error: ${data.error}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="12" class="no-data">Error: ${data.error}</td></tr>`;
                 return;
             }
             
             if (!data.stocks || data.stocks.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="no-data">${data.message || 'No stocks found'}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="12" class="no-data">${data.message || 'No stocks found'}</td></tr>`;
                 return;
             }
             
@@ -328,14 +393,22 @@
                 <tr>
                     <td class="symbol">${stock.symbol}</td>
                     <td class="score ${getScoreClass(stock.score)}">${stock.score}</td>
-                    <td class="score ${getScoreClass(stock.adjusted_score)}">${stock.adjusted_score}</td>
-                    <td>${stock.volatility}%</td>
+                    <td class="confidence ${getConfidenceClass(stock.confidence)}">${stock.confidence}%</td>
                     <td class="price">₹${stock.current_price}</td>
-                    <td class="price">₹${stock.predicted_price}</td>
+                    <td class="price">₹${stock.three_hour_price}</td>
+                    <td class="prediction ${stock.three_hour_gain > 0 ? 'positive' : 'negative'}">
+                        ${stock.three_hour_gain > 0 ? '+' : ''}${stock.three_hour_gain}%
+                    </td>
                     <td class="prediction ${stock.predicted_gain > 0 ? 'positive' : 'negative'}">
                         ${stock.predicted_gain > 0 ? '+' : ''}${stock.predicted_gain}%
                     </td>
-                    <td>${stock.time_horizon}</td>
+                    <td class="pe-ratio">${stock.pe_ratio || 'N/A'}</td>
+                    <td class="growth ${stock.revenue_growth > 0 ? 'positive' : 'negative'}">
+                        ${stock.revenue_growth > 0 ? '+' : ''}${stock.revenue_growth}%
+                    </td>
+                    <td class="risk-level ${getRiskClass(stock.risk_level)}">${stock.risk_level}</td>
+                    <td class="market-cap">${stock.market_cap}</td>
+                    <td>${stock.time_horizon} days</td>
                 </tr>
             `).join('');
             
@@ -348,6 +421,18 @@
             if (score >= 70) return 'high';
             if (score >= 40) return 'medium';
             return 'low';
+        }
+        
+        function getConfidenceClass(confidence) {
+            if (confidence >= 80) return 'high';
+            if (confidence >= 60) return 'medium';
+            return 'low';
+        }
+        
+        function getRiskClass(risk) {
+            if (risk === 'Low') return 'low';
+            if (risk === 'Medium') return 'medium';
+            return 'high';
         }
         
         function updateStatus(data) {

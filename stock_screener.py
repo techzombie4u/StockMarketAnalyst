@@ -228,6 +228,28 @@ class StockScreener:
             current_price = technical.get('current_price', 0)
             predicted_price = current_price * (1 + predicted_gain / 100) if current_price > 0 else 0
             
+            # Calculate 3-hour prediction based on momentum and volatility
+            momentum_ratio = technical.get('momentum_ratio', 0)
+            hourly_volatility = volatility / 24  # Convert daily volatility to hourly
+            
+            # 3-hour prediction: momentum impact + small random walk
+            three_hour_change = momentum_ratio * 0.3 + (normalized_score - 50) * 0.05
+            three_hour_price = current_price * (1 + three_hour_change / 100) if current_price > 0 else 0
+            three_hour_gain = three_hour_change
+            
+            # Risk assessment
+            risk_level = "Low" if volatility < 3 else "Medium" if volatility < 6 else "High"
+            
+            # Market cap estimation (simplified)
+            market_cap_category = "Large Cap" if symbol in ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY'] else \
+                                 "Mid Cap" if symbol in ['TITAN', 'ASIANPAINT', 'ULTRACEMCO'] else "Small Cap"
+            
+            # Confidence score based on data quality
+            data_quality = (1 if fundamentals.get('pe_ratio', 0) > 0 else 0) + \
+                          (1 if technical.get('current_price', 0) > 0 else 0) + \
+                          (1 if fundamentals.get('revenue_growth', 0) != 0 else 0)
+            confidence = round((data_quality / 3) * 100, 0)
+            
             stock_result = {
                 'symbol': symbol,
                 'score': round(normalized_score, 1),
@@ -237,6 +259,13 @@ class StockScreener:
                 'predicted_price': round(predicted_price, 2),
                 'predicted_gain': round(predicted_gain, 1),
                 'time_horizon': round(time_horizon, 0),
+                'three_hour_price': round(three_hour_price, 2),
+                'three_hour_gain': round(three_hour_gain, 2),
+                'risk_level': risk_level,
+                'market_cap': market_cap_category,
+                'confidence': int(confidence),
+                'pe_ratio': round(fundamentals.get('pe_ratio', 0), 1),
+                'revenue_growth': round(fundamentals.get('revenue_growth', 0), 1),
                 'fundamentals': fundamentals,
                 'technical': technical
             }
