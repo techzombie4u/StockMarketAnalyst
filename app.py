@@ -52,7 +52,7 @@ def get_status():
     else:
         return jsonify({'running': False, 'jobs': []})
 
-@app.route('/api/run-now')
+@app.route('/api/run-now', methods=['POST'])
 def run_now():
     """Manually trigger screening"""
     global scheduler
