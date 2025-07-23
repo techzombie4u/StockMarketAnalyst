@@ -1,0 +1,421 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Analyst</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .status-indicator {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .status-indicator.loading {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+        
+        .status-indicator.success {
+            background: #00b894;
+            color: white;
+        }
+        
+        .status-indicator.error {
+            background: #e17055;
+            color: white;
+        }
+        
+        .countdown {
+            font-weight: bold;
+            color: #0984e3;
+        }
+        
+        .refresh-btn {
+            background: #0984e3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: #0770c4;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #2d3436;
+            color: white;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .symbol {
+            font-weight: bold;
+            color: #0984e3;
+        }
+        
+        .score {
+            font-weight: bold;
+        }
+        
+        .score.high {
+            color: #00b894;
+        }
+        
+        .score.medium {
+            color: #fdcb6e;
+        }
+        
+        .score.low {
+            color: #e17055;
+        }
+        
+        .price {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .prediction {
+            font-weight: bold;
+        }
+        
+        .prediction.positive {
+            color: #00b894;
+        }
+        
+        .prediction.negative {
+            color: #e17055;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #ffe6e6;
+            color: #d63031;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #d63031;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Stock Market Analyst</h1>
+            <div class="subtitle">AI-Powered Indian Stock Screener & Analysis Dashboard</div>
+        </div>
+        
+        <div class="controls">
+            <div class="status">
+                <div id="status-indicator" class="status-indicator loading">Loading...</div>
+                <div class="countdown">Next update in: <span id="countdown">30</span>s</div>
+            </div>
+            <button id="refresh-btn" class="refresh-btn" onclick="manualRefresh()">🔄 Refresh Now</button>
+        </div>
+        
+        <div id="error-container"></div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Score</th>
+                        <th>Adj Score</th>
+                        <th>Volatility %</th>
+                        <th>Current Price ₹</th>
+                        <th>Predicted Price ₹</th>
+                        <th>Predicted Gain %</th>
+                        <th>Time Horizon (Days)</th>
+                    </tr>
+                </thead>
+                <tbody id="stocks-table">
+                    <tr>
+                        <td colspan="8" class="no-data">Loading stock data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="margin-top: 20px; text-align: center; color: #666; font-size: 0.9em;">
+            Last updated: <span id="last-updated">Never</span>
+        </div>
+    </div>
+    
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        let countdownTimer = 30;
+        let countdownInterval;
+        let refreshInterval;
+        
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStocks();
+            startCountdown();
+            startAutoRefresh();
+        });
+        
+        function loadStocks() {
+            fetch('/api/stocks')
+                .then(response => response.json())
+                .then(data => {
+                    updateStocksTable(data);
+                    updateStatus(data);
+                })
+                .catch(error => {
+                    console.error('Error loading stocks:', error);
+                    showError('Failed to load stock data: ' + error.message);
+                    updateStatusIndicator('error', 'Connection Error');
+                });
+        }
+        
+        function updateStocksTable(data) {
+            const tbody = document.getElementById('stocks-table');
+            const lastUpdated = document.getElementById('last-updated');
+            
+            if (data.error) {
+                tbody.innerHTML = `<tr><td colspan="8" class="no-data">Error: ${data.error}</td></tr>`;
+                return;
+            }
+            
+            if (!data.stocks || data.stocks.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="no-data">${data.message || 'No stocks found'}</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = data.stocks.map(stock => `
+                <tr>
+                    <td class="symbol">${stock.symbol}</td>
+                    <td class="score ${getScoreClass(stock.score)}">${stock.score}</td>
+                    <td class="score ${getScoreClass(stock.adjusted_score)}">${stock.adjusted_score}</td>
+                    <td>${stock.volatility}%</td>
+                    <td class="price">₹${stock.current_price}</td>
+                    <td class="price">₹${stock.predicted_price}</td>
+                    <td class="prediction ${stock.predicted_gain > 0 ? 'positive' : 'negative'}">
+                        ${stock.predicted_gain > 0 ? '+' : ''}${stock.predicted_gain}%
+                    </td>
+                    <td>${stock.time_horizon}</td>
+                </tr>
+            `).join('');
+            
+            if (data.last_updated) {
+                lastUpdated.textContent = data.last_updated;
+            }
+        }
+        
+        function getScoreClass(score) {
+            if (score >= 70) return 'high';
+            if (score >= 40) return 'medium';
+            return 'low';
+        }
+        
+        function updateStatus(data) {
+            if (data.error) {
+                updateStatusIndicator('error', 'Data Error');
+            } else if (data.stocks && data.stocks.length > 0) {
+                updateStatusIndicator('success', `${data.stocks.length} stocks loaded`);
+            } else {
+                updateStatusIndicator('loading', 'Waiting for data...');
+            }
+        }
+        
+        function updateStatusIndicator(type, message) {
+            const indicator = document.getElementById('status-indicator');
+            indicator.className = `status-indicator ${type}`;
+            indicator.textContent = message;
+        }
+        
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
+            setTimeout(() => {
+                errorContainer.innerHTML = '';
+            }, 5000);
+        }
+        
+        function startCountdown() {
+            countdownInterval = setInterval(() => {
+                countdownTimer--;
+                document.getElementById('countdown').textContent = countdownTimer;
+                
+                if (countdownTimer <= 0) {
+                    countdownTimer = 30;
+                }
+            }, 1000);
+        }
+        
+        function startAutoRefresh() {
+            refreshInterval = setInterval(() => {
+                loadStocks();
+                countdownTimer = 30;
+            }, 30000); // Refresh every 30 seconds
+        }
+        
+        function manualRefresh() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'flex';
+            
+            fetch('/api/run-now', { method: 'POST' })
+                .then(() => {
+                    setTimeout(() => {
+                        loadStocks();
+                        overlay.style.display = 'none';
+                        countdownTimer = 30;
+                    }, 2000);
+                })
+                .catch(error => {
+                    console.error('Error triggering refresh:', error);
+                    overlay.style.display = 'none';
+                    showError('Failed to trigger refresh');
+                });
+        }
+        
+        // Cleanup intervals when page unloads
+        window.addEventListener('beforeunload', function() {
+            clearInterval(countdownInterval);
+            clearInterval(refreshInterval);
+        });
+    </script>
+</body>
+</html>
