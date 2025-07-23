@@ -1,0 +1,226 @@
+{
+  "timestamp": "2025-07-23T10:20:42.013784",
+  "last_updated": "2025-07-23 10:20:42",
+  "stocks": [
+    {
+      "symbol": "TCS",
+      "score": 30,
+      "adjusted_score": 29.6,
+      "volatility": 1.39,
+      "current_price": 3179.1,
+      "predicted_price": 3369.85,
+      "predicted_gain": 6.0,
+      "time_horizon": 10,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": -4.612269250935652,
+        "earnings_growth": -9.039655996177736,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 44.32648362370359,
+        "current_price": 3179.10009765625,
+        "momentum_ratio": 0.47150472529697,
+        "volatility": 1.3943091523410258
+      }
+    },
+    {
+      "symbol": "RELIANCE",
+      "score": 30,
+      "adjusted_score": 29.5,
+      "volatility": 1.53,
+      "current_price": 1424.6,
+      "predicted_price": 1510.08,
+      "predicted_gain": 6.0,
+      "time_horizon": 10,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": -4.600516980589253,
+        "earnings_growth": 25.341670964414647,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 21.821437290736608,
+        "current_price": 1424.5999755859375,
+        "momentum_ratio": -0.18330598240190324,
+        "volatility": 1.5317589263443203
+      }
+    },
+    {
+      "symbol": "INFY",
+      "score": 30,
+      "adjusted_score": 29.4,
+      "volatility": 1.9,
+      "current_price": 1574.5,
+      "predicted_price": 1668.97,
+      "predicted_gain": 6.0,
+      "time_horizon": 10,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": -6.364955033362345,
+        "earnings_growth": 6.210369265199552,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 29.914289202008927,
+        "current_price": 1574.5,
+        "momentum_ratio": -0.3276042683797704,
+        "volatility": 1.8999230995242251
+      }
+    },
+    {
+      "symbol": "HDFCBANK",
+      "score": 10,
+      "adjusted_score": 9.9,
+      "volatility": 1.26,
+      "current_price": 2024.3,
+      "predicted_price": 2064.79,
+      "predicted_gain": 2.0,
+      "time_horizon": 10,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": 0,
+        "earnings_growth": -13.849323658514736,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 25.564287458147323,
+        "current_price": 2024.300048828125,
+        "momentum_ratio": 0.9309881555310058,
+        "volatility": 1.262870465914704
+      }
+    },
+    {
+      "symbol": "ICICIBANK",
+      "score": 10,
+      "adjusted_score": 9.9,
+      "volatility": 1.18,
+      "current_price": 1488.6,
+      "predicted_price": 1518.37,
+      "predicted_gain": 2.0,
+      "time_horizon": 10,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": 0,
+        "earnings_growth": -7.92967348403301,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 17.528590611049108,
+        "current_price": 1488.5999755859375,
+        "momentum_ratio": 1.300727894428695,
+        "volatility": 1.177521892955128
+      }
+    },
+    {
+      "symbol": "MARUTI",
+      "score": 10,
+      "adjusted_score": 9.9,
+      "volatility": 1.37,
+      "current_price": 12627.0,
+      "predicted_price": 12879.54,
+      "predicted_gain": 2.0,
+      "time_horizon": 10,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": 0.893934821967411,
+        "earnings_growth": 81.08108108108108,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 173.35714285714286,
+        "current_price": 12627.0,
+        "momentum_ratio": 1.280593325092707,
+        "volatility": 1.3729083935783866
+      }
+    },
+    {
+      "symbol": "POWERGRID",
+      "score": 10,
+      "adjusted_score": 9.9,
+      "volatility": 1.33,
+      "current_price": 299.25,
+      "predicted_price": 305.24,
+      "predicted_gain": 2.0,
+      "time_horizon": 10,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": -1.999082989454379,
+        "earnings_growth": 9.339647461194422,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 3.99285888671875,
+        "current_price": 299.25,
+        "momentum_ratio": 0.5635060150720739,
+        "volatility": 1.334288683949457
+      }
+    },
+    {
+      "symbol": "BHARTIARTL",
+      "score": 10,
+      "adjusted_score": 9.8,
+      "volatility": 1.61,
+      "current_price": 1943.8,
+      "predicted_price": 1982.68,
+      "predicted_gain": 2.0,
+      "time_horizon": 10,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": -3.9780521262002746,
+        "earnings_growth": 50.46577561765897,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 31.219006824134826,
+        "current_price": 1943.800048828125,
+        "momentum_ratio": 1.1083023188777843,
+        "volatility": 1.6060811832449582
+      }
+    },
+    {
+      "symbol": "TITAN",
+      "score": 10,
+      "adjusted_score": 9.8,
+      "volatility": 1.73,
+      "current_price": 3471.4,
+      "predicted_price": 3540.83,
+      "predicted_gain": 2.0,
+      "time_horizon": 10,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": -17.441491051572594,
+        "earnings_growth": -33.291139240506325,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 59.930050517226746,
+        "current_price": 3471.39990234375,
+        "momentum_ratio": 0.6407453691818938,
+        "volatility": 1.7263943136244366
+      }
+    },
+    {
+      "symbol": "HINDUNILVR",
+      "score": 0,
+      "adjusted_score": 0.0,
+      "volatility": 1.75,
+      "current_price": 2450.4,
+      "predicted_price": 2450.4,
+      "predicted_gain": 0,
+      "time_horizon": 100,
+      "fundamentals": {
+        "pe_ratio": 0,
+        "revenue_growth": -5.860229759299782,
+        "earnings_growth": -3.5131744040150563,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 42.928536551339285,
+        "current_price": 2450.39990234375,
+        "momentum_ratio": -0.3377706571166035,
+        "volatility": 1.7518992108300016
+      }
+    }
+  ]
+}
