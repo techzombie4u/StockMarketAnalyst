@@ -8,7 +8,7 @@ Stores results in JSON format and tracks alerts to avoid duplicates.
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, time
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
@@ -22,11 +22,32 @@ logger = logging.getLogger(__name__)
 # Global variables for tracking
 alerted_stocks = set()
 
+def is_market_hours() -> bool:
+    """Check if current time is within market hours (9 AM - 4 PM IST)"""
+    ist = pytz.timezone('Asia/Kolkata')
+    now_ist = datetime.now(ist)
+    current_time = now_ist.time()
+    
+    # Market hours: 9:00 AM to 4:00 PM IST
+    market_open = time(9, 0)  # 9:00 AM
+    market_close = time(16, 0)  # 4:00 PM
+    
+    # Check if current time is within market hours
+    is_weekday = now_ist.weekday() < 5  # Monday = 0, Sunday = 6
+    is_within_hours = market_open <= current_time <= market_close
+    
+    return is_weekday and is_within_hours
+
 def run_screening_job():
     """Execute stock screening and save results (standalone function)"""
     global alerted_stocks
     
     try:
+        # Check if within market hours for scheduled runs
+        if not is_market_hours():
+            logger.info("Outside market hours (9 AM - 4 PM IST). Skipping scheduled screening.")
+            return
+        
         logger.info("Starting scheduled stock screening...")
         
         # Create screener instance
@@ -87,6 +108,60 @@ def send_alerts(alerts: list):
     # TODO: Integrate with SMS/Email service
     # Example: send_sms(alerts) or send_email(alerts)
 
+def run_screening_job_manual():
+    """Execute stock screening manually (bypasses market hours check)"""
+    global alerted_stocks
+    
+    try:
+        logger.info("Starting manual stock screening...")
+        
+        # Create screener instance
+        screener = StockScreener()
+        
+        # Run the screener
+        results = screener.run_screener()
+        
+        # Add timestamp in IST
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
+        screening_data = {
+            'timestamp': now_ist.isoformat(),
+            'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+            'stocks': results
+        }
+        
+        # Save to JSON file
+        with open('top10.json', 'w') as f:
+            json.dump(screening_data, f, indent=2)
+        
+        # Check for new alerts (stocks with score > 70 that haven't been alerted)
+        new_alerts = []
+        for stock in results:
+            if stock['score'] > 70 and stock['symbol'] not in alerted_stocks:
+                new_alerts.append(stock)
+                alerted_stocks.add(stock['symbol'])
+        
+        if new_alerts:
+            send_alerts(new_alerts)
+        
+        logger.info(f"Manual screening completed. Found {len(results)} stocks, {len(new_alerts)} new alerts.")
+        
+    except Exception as e:
+        logger.error(f"Error in manual screening job: {str(e)}")
+        
+        # Create error response
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
+        error_data = {
+            'timestamp': now_ist.isoformat(),
+            'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+            'error': str(e),
+            'stocks': []
+        }
+        
+        with open('top10.json', 'w') as f:
+            json.dump(error_data, f, indent=2)
+
 class StockAnalystScheduler:
     def __init__(self):
         # Configure job store (SQLite)
@@ -114,7 +189,11 @@ class StockAnalystScheduler:
         """Wrapper method to call the standalone function"""
         run_screening_job()
     
-    def start_scheduler(self, interval_minutes: int = 30):
+    def run_screening_job_manual(self):
+        """Wrapper method to call the manual screening function"""
+        run_screening_job_manual()
+    
+    def start_scheduler(self, interval_minutes: int = 60):
         """Start the scheduler with specified interval"""
         try:
             # Remove existing jobs
@@ -139,7 +218,7 @@ class StockAnalystScheduler:
             )
             
             self.scheduler.start()
-            logger.info(f"Scheduler started. Running every {interval_minutes} minutes.")
+            logger.info(f"Scheduler started. Running every {interval_minutes} minutes during market hours (9 AM - 4 PM IST).")
             
         except Exception as e:
             logger.error(f"Error starting scheduler: {str(e)}")

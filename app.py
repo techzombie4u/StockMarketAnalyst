@@ -58,8 +58,8 @@ def run_now():
     global scheduler
     try:
         if scheduler:
-            scheduler.run_screening_job()
-            return jsonify({'success': True, 'message': 'Screening triggered'})
+            scheduler.run_screening_job_manual()
+            return jsonify({'success': True, 'message': 'Manual screening triggered'})
         else:
             return jsonify({'success': False, 'message': 'Scheduler not running'})
     except Exception as e:
@@ -71,7 +71,7 @@ def initialize_app():
     
     try:
         scheduler = StockAnalystScheduler()
-        scheduler.start_scheduler(interval_minutes=30)
+        scheduler.start_scheduler(interval_minutes=60)
         print("✅ Scheduler started successfully")
     except Exception as e:
         print(f"❌ Error starting scheduler: {str(e)}")

@@ -301,13 +301,13 @@
     <div class="container">
         <div class="header">
             <h1>📈 Stock Market Analyst</h1>
-            <div class="subtitle">Real-time AI Analysis with 3-Hour & Daily Predictions | Indian Stock Markets</div>
+            <div class="subtitle">Top 20 Nifty 50 Stocks | Real-time AI Analysis | Market Hours: 9 AM - 4 PM IST</div>
         </div>
         
         <div class="controls">
             <div class="status">
                 <div id="status-indicator" class="status-indicator loading">Loading...</div>
-                <div class="countdown">Next update in: <span id="countdown">30</span>s</div>
+                <div class="countdown">Next update in: <span id="countdown">3600</span>s</div>
             </div>
             <button id="refresh-btn" class="refresh-btn" onclick="manualRefresh()">🔄 Refresh Now</button>
         </div>
@@ -350,7 +350,7 @@
     </div>
 
     <script>
-        let countdownTimer = 30;
+        let countdownTimer = 3600; // 1 hour = 3600 seconds
         let countdownInterval;
         let refreshInterval;
         
@@ -465,7 +465,7 @@
                 document.getElementById('countdown').textContent = countdownTimer;
                 
                 if (countdownTimer <= 0) {
-                    countdownTimer = 30;
+                    countdownTimer = 3600; // Reset to 1 hour
                 }
             }, 1000);
         }
@@ -473,8 +473,8 @@
         function startAutoRefresh() {
             refreshInterval = setInterval(() => {
                 loadStocks();
-                countdownTimer = 30;
-            }, 30000); // Refresh every 30 seconds
+                countdownTimer = 3600;
+            }, 3600000); // Refresh every 1 hour (3600000 ms)
         }
         
         function manualRefresh() {
@@ -486,7 +486,7 @@
                     setTimeout(() => {
                         loadStocks();
                         overlay.style.display = 'none';
-                        countdownTimer = 30;
+                        countdownTimer = 3600;
                     }, 2000);
                 })
                 .catch(error => {

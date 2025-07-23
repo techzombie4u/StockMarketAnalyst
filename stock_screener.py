@@ -33,17 +33,68 @@ class StockScreener:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
         
-        # Indian stock watchlist (NSE symbols)
-        self.watchlist = [
+        # Top 20 Nifty 50 stocks by market cap (updated dynamically)
+        self.nifty50_symbols = [
             'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR',
-            'ICICIBANK', 'SBIN', 'BHARTIARTL', 'ITC', 'KOTAKBANK',
-            'LT', 'ASIANPAINT', 'AXISBANK', 'MARUTI', 'SUNPHARMA',
-            'ULTRACEMCO', 'TITAN', 'WIPRO', 'NESTLEIND', 'POWERGRID'
+            'ICICIBANK', 'BHARTIARTL', 'SBIN', 'LT', 'ITC',
+            'KOTAKBANK', 'AXISBANK', 'HCLTECH', 'ASIANPAINT', 'MARUTI',
+            'SUNPHARMA', 'ULTRACEMCO', 'TITAN', 'NESTLEIND', 'BAJFINANCE',
+            'WIPRO', 'ONGC', 'NTPC', 'POWERGRID', 'TECHM',
+            'M&M', 'TATAMOTORS', 'BAJAJFINSV', 'DRREDDY', 'JSWSTEEL',
+            'COALINDIA', 'TATASTEEL', 'HDFCLIFE', 'SBILIFE', 'GRASIM',
+            'BRITANNIA', 'APOLLOHOSP', 'CIPLA', 'DIVISLAB', 'HEROMOTOCO',
+            'ADANIENT', 'EICHERMOT', 'HINDALCO', 'UPL', 'INDUSINDBK',
+            'BAJAJ-AUTO', 'BPCL', 'TATACONSUM', 'SHRIRAMFIN', 'LTIM'
         ]
+        
+        # Get top 20 by market cap for this screening session
+        self.watchlist = self.get_top_20_nifty_stocks()
         
         self.bulk_deals = []
         self.fundamentals = {}
         self.technical_data = {}
+    
+    def get_top_20_nifty_stocks(self) -> List[str]:
+        """Get top 20 Nifty 50 stocks by market cap dynamically"""
+        try:
+            logger.info("Fetching top 20 Nifty 50 stocks by market cap...")
+            
+            # Get market cap data for all Nifty 50 stocks
+            stock_market_caps = []
+            
+            for symbol in self.nifty50_symbols[:30]:  # Check first 30 to get top 20
+                try:
+                    ticker = f"{symbol}.NS"
+                    stock = yf.Ticker(ticker)
+                    info = stock.info
+                    
+                    market_cap = info.get('marketCap', 0)
+                    if market_cap > 0:
+                        stock_market_caps.append((symbol, market_cap))
+                    
+                    # Small delay to avoid rate limiting
+                    time.sleep(0.1)
+                    
+                except Exception as e:
+                    logger.warning(f"Could not fetch market cap for {symbol}: {str(e)}")
+                    continue
+            
+            # Sort by market cap and get top 20
+            stock_market_caps.sort(key=lambda x: x[1], reverse=True)
+            top_20_symbols = [symbol for symbol, _ in stock_market_caps[:20]]
+            
+            if len(top_20_symbols) < 20:
+                # Fallback to predefined list if we couldn't get enough data
+                logger.warning(f"Only found {len(top_20_symbols)} stocks with market cap data. Using fallback list.")
+                top_20_symbols = self.nifty50_symbols[:20]
+            
+            logger.info(f"Selected top 20 Nifty 50 stocks: {', '.join(top_20_symbols)}")
+            return top_20_symbols
+            
+        except Exception as e:
+            logger.error(f"Error getting top 20 Nifty stocks: {str(e)}")
+            # Return fallback list
+            return self.nifty50_symbols[:20]
         
     def scrape_screener_data(self, symbol: str) -> Dict:
         """Scrape fundamental data from Screener.in"""
