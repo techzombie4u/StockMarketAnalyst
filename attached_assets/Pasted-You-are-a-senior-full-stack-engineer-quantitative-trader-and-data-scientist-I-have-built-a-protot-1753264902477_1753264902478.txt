@@ -1,0 +1,54 @@
+You are a senior full‑stack engineer, quantitative trader, and data scientist. I have built a prototype of a “StockMarketAnalyst” stock‑screener application using Python, BeautifulSoup, yfinance, SQLite job scheduling (via APScheduler), and a Flask-based dashboard. Here's a summary of the current implementation, goals, and expectations:
+
+---
+
+## ✅ What It *Already Does*
+1. **Data Collection**
+   - Scrapes fundamental metrics (PE, QoQ revenue & earnings growth, promoter purchase) from Screener.in for a predefined watchlist of Indian stocks.
+   - Scrapes recent bulk deals (FII/promoter if ≥ 0.5%) from Trendlyne.
+   - Calculates 14‑day ATR (Average True Range) via yfinance to measure volatility.
+   - Adds momentum check: compares recent 2‑day price change against ATR.
+
+2. **Scoring & Ranking**
+   - Computes a stock score: +30 for bulk deal, +20 for strong fundamentals (PE < median + YoY ≥ 20%), +20 for promoter buying, ±10 for momentum.
+   - Normalizes score between 0–100.
+   - Computes “adjusted_score” to emphasize low‑volatility & high‑score picks.
+   - Derives **predicted % gain** (score ÷ 5) and **time horizon** (~100÷score days).
+
+3. **Automation**
+   - Uses APScheduler with SQLite job store to run `run_screener()` every minute (configurable).
+   - Stores results in `top10.json` and tracks which stocks were alerted to avoid duplicates.
+
+4. **Dashboard Display**
+   - Flask app loads `top10.json` and presents: Symbol, Score, Adj Score, Volatility, Current Price, Predicted Price, Prediction.
+   - Auto-refreshes every 30 seconds with a countdown timer on the UI.
+
+---
+
+## 🎯 Build Goals: What It *Should Achieve*
+- **Deployable MVP**: One-click deploy on Replit.com (or local), running every 30 minutes with scheduling intact.
+- **Live Data**: Dashboard should show up‑to‑near‑real‑time prices (30‑minute lag allowed).
+- **Accurate Scoring**: `score_and_rank()` must produce non-zero, varying predictions that reflect real market signals.
+- **Reliability**: Handle site rate limits (backoff), timeout errors, and missing data gracefully.
+- **Code Structure**: Organize code cleanly—keep scraper, scoring, scheduler, and Flask front-end modular.
+- **Alerts**: Prepare for future SMS/email integration with placeholders available.
+- **Production Notes**: Add comments on ethics (scraping personal use), scheduler durability, and fallback data sources.
+
+---
+
+## 📌 Your Tasks & Expectations
+1. **Review** the current code for logic accuracy, error handling, and edge cases.
+2. **Improve** the scoring logic as per above description and ensure predictions vary.
+3. **Modularize** the code: e.g. `stock_screener.py`, `scheduler.py`, `app.py`, `templates/index.html`, and `static/js/refresh.js`.
+4. **Add** instructions in README for setting up scheduler, running locally or on Replit.
+5. **Validate** by showing sample `top10.json` output with mixed predictions (not all zeros).
+6. **Ensure** the Flask dashboard correctly displays all columns and the countdown timer works.
+7. **Provide** next-step recommendations: e.g., integration with a real broker API, improved sentiment analysis, or more robust trading indicators.
+
+---
+
+## 🧩 Final Expectation
+At the end of this prompt session, I should have:
+- A working, deployable stock‑screener dashboard in Replit or local environment.
+- Clear modular structure and comments so I can expand features later.
+- Confidence that predictions are meaningful and dynamic.
