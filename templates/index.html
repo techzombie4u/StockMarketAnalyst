@@ -301,13 +301,12 @@
     <div class="container">
         <div class="header">
             <h1>📈 Stock Market Analyst</h1>
-            <div class="subtitle">Top Stocks Under ₹1000 (Score ≥30) | Real-time AI Analysis | Market Hours: 9 AM - 4 PM IST</div>
+            <div class="subtitle">Top Stocks Under ₹1000 (Score ≥30) | AI Analysis | Manual Refresh Only</div>
         </div>
         
         <div class="controls">
             <div class="status">
                 <div id="status-indicator" class="status-indicator loading">Loading...</div>
-                <div class="countdown">Next update in: <span id="countdown">3600</span>s</div>
             </div>
             <button id="refresh-btn" class="refresh-btn" onclick="manualRefresh()">🔄 Refresh Now</button>
         </div>
@@ -347,15 +346,9 @@
     </div>
 
     <script>
-        let countdownTimer = 3600; // 1 hour = 3600 seconds
-        let countdownInterval;
-        let refreshInterval;
-        
         // Initialize the dashboard
         document.addEventListener('DOMContentLoaded', function() {
             loadStocks();
-            startCountdown();
-            startAutoRefresh();
         });
         
         function loadStocks() {
@@ -456,24 +449,6 @@
             }, 5000);
         }
         
-        function startCountdown() {
-            countdownInterval = setInterval(() => {
-                countdownTimer--;
-                document.getElementById('countdown').textContent = countdownTimer;
-                
-                if (countdownTimer <= 0) {
-                    countdownTimer = 3600; // Reset to 1 hour
-                }
-            }, 1000);
-        }
-        
-        function startAutoRefresh() {
-            refreshInterval = setInterval(() => {
-                loadStocks();
-                countdownTimer = 3600;
-            }, 3600000); // Refresh every 1 hour (3600000 ms)
-        }
-        
         function manualRefresh() {
             const overlay = document.getElementById('loading-overlay');
             overlay.style.display = 'flex';
@@ -483,7 +458,6 @@
                     setTimeout(() => {
                         loadStocks();
                         overlay.style.display = 'none';
-                        countdownTimer = 3600;
                     }, 2000);
                 })
                 .catch(error => {
@@ -492,12 +466,6 @@
                     showError('Failed to trigger refresh');
                 });
         }
-        
-        // Cleanup intervals when page unloads
-        window.addEventListener('beforeunload', function() {
-            clearInterval(countdownInterval);
-            clearInterval(refreshInterval);
-        });
     </script>
 </body>
 </html>
