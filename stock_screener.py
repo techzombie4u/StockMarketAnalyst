@@ -218,7 +218,7 @@ class StockScreener:
 
             # Provide fallback data even if scraping fails
             fallback_data = {
-                'pe_ratio': 15.0,  # Default PE ratio
+                'pe_ratio': None,  # No default PE ratio
                 'revenue_growth': 5.0,  # Default modest growth
                 'earnings_growth': 3.0,  # Default modest growth
                 'promoter_buying': False
@@ -232,16 +232,60 @@ class StockScreener:
 
             soup = BeautifulSoup(response.content, 'html.parser')
 
-            # Extract PE ratio
-            pe_ratio = 15.0  # Default value
-            pe_element = soup.find('span', string='Stock P/E')
-            if pe_element and pe_element.parent.find_next('span', class_='number'):
-                pe_text = pe_element.parent.find_next('span', class_='number').text.strip()
+            # Extract PE ratio - try multiple selectors
+            pe_ratio = None
+            
+            # Try different ways to find PE ratio
+            pe_selectors = [
+                'span:contains("Stock P/E")',
+                'span:contains("P/E")',
+                'td:contains("Stock P/E")',
+                'td:contains("P/E Ratio")'
+            ]
+            
+            for selector in pe_selectors:
                 try:
-                    parsed_pe = float(pe_text.replace(',', ''))
-                    if 0 < parsed_pe < 200:  # Reasonable PE range
-                        pe_ratio = parsed_pe
-                except ValueError:
+                    pe_elements = soup.select(selector)
+                    for pe_element in pe_elements:
+                        # Look for number in next sibling or parent's next sibling
+                        number_element = None
+                        if pe_element.parent:
+                            number_element = pe_element.parent.find_next('span', class_='number')
+                            if not number_element:
+                                number_element = pe_element.find_next_sibling()
+                                if number_element and 'number' in str(number_element.get('class', [])):
+                                    pass
+                                else:
+                                    # Try finding any number in the same row
+                                    row = pe_element.find_parent('tr') or pe_element.find_parent('div')
+                                    if row:
+                                        number_element = row.find('span', class_='number')
+                        
+                        if number_element:
+                            pe_text = number_element.text.strip()
+                            try:
+                                parsed_pe = float(pe_text.replace(',', '').replace('%', ''))
+                                if 0 < parsed_pe < 500:  # Reasonable PE range
+                                    pe_ratio = parsed_pe
+                                    break
+                            except ValueError:
+                                continue
+                    
+                    if pe_ratio is not None:
+                        break
+                except Exception:
+                    continue
+            
+            # If still no PE found, try yfinance as backup
+            if pe_ratio is None:
+                try:
+                    ticker = f"{symbol}.NS"
+                    stock_info = yf.Ticker(ticker).info
+                    if 'trailingPE' in stock_info and stock_info['trailingPE']:
+                        pe_ratio = float(stock_info['trailingPE'])
+                        if pe_ratio <= 0 or pe_ratio > 500:
+                            pe_ratio = None
+                except Exception:
                     pass
 
             # Extract quarterly growth data
@@ -288,11 +332,28 @@ class StockScreener:
         except Exception as e:
             logger.error(f"Error scraping {symbol}: {str(e)}, using fallback data")
             return {
-                'pe_ratio': 15.0,
+                'pe_ratio': None,
                 'revenue_growth': 5.0,
                 'earnings_growth': 3.0,
                 'promoter_buying': False
             }
+
+    def get_pe_description(self, pe_ratio: float) -> str:
+        """Convert PE ratio to user-friendly description"""
+        if pe_ratio is None or pe_ratio <= 0:
+            return "Not Available"
+        elif pe_ratio < 10:
+            return "Very Low"
+        elif pe_ratio < 15:
+            return "Below Average"
+        elif pe_ratio <= 20:
+            return "At Par"
+        elif pe_ratio <= 30:
+            return "Above Average"
+        elif pe_ratio <= 50:
+            return "High"
+        else:
+            return "Very High"
 
     def scrape_bulk_deals(self) -> List[Dict]:
         """Scrape bulk deals from Trendlyne (simplified mock implementation)"""
@@ -382,9 +443,9 @@ class StockScreener:
 
         # Calculate median PE for normalization
         pe_ratios = [
-            data.get('fundamentals', {}).get('pe_ratio', 0)
+            data.get('fundamentals', {}).get('pe_ratio')
             for data in stocks_data.values()
-            if data.get('fundamentals', {}).get('pe_ratio', 0) > 0
+            if data.get('fundamentals', {}).get('pe_ratio') is not None and data.get('fundamentals', {}).get('pe_ratio') > 0
         ]
         median_pe = np.median(pe_ratios) if pe_ratios else 20
 
@@ -402,12 +463,12 @@ class StockScreener:
                 score += 30
 
             # Strong fundamentals (+20 points)
-            pe_ratio = fundamentals.get('pe_ratio', 0)
+            pe_ratio = fundamentals.get('pe_ratio')
             revenue_growth = fundamentals.get('revenue_growth', 0)
             earnings_growth = fundamentals.get('earnings_growth', 0)
 
             # More lenient PE check or give points for having valid data
-            if pe_ratio > 0:
+            if pe_ratio is not None and pe_ratio > 0:
                 score += 10  # Give points for having PE data
                 if pe_ratio < median_pe * 1.5:  # More lenient PE threshold
                     score += 10
@@ -505,6 +566,9 @@ class StockScreener:
                           (1 if fundamentals.get('revenue_growth', 0) != 0 else 0)
             confidence = round((data_quality / 3) * 100, 0)
 
+            # Get PE description
+            pe_description = self.get_pe_description(pe_ratio)
+            
             stock_result = {
                 'symbol': symbol,
                 'score': round(normalized_score, 1),
@@ -525,9 +589,9 @@ class StockScreener:
                 'time_horizon': round(time_horizon, 0),
                 'risk_level': risk_level,
                 'market_cap': market_cap_category,
-                'pe_ratio': round(fundamentals.get('pe_ratio', 0), 1),
-                'revenue_growth': round(fundamentals.get('revenue_growth', 0),
-                                        1),
+                'pe_ratio': round(pe_ratio, 1) if pe_ratio is not None else None,
+                'pe_description': pe_description,
+                'revenue_growth': round(fundamentals.get('revenue_growth', 0), 1),
                 'fundamentals': fundamentals,
                 'technical': technical
             }
