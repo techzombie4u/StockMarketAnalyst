@@ -470,7 +470,7 @@ class StockScreener:
             # More lenient PE check or give points for having valid data
             if pe_ratio is not None and pe_ratio > 0:
                 score += 10  # Give points for having PE data
-                if pe_ratio < median_pe * 1.5:  # More lenient PE threshold
+                if median_pe is not None and pe_ratio < median_pe * 1.5:  # More lenient PE threshold
                     score += 10
             
             # Give points for any growth
@@ -637,6 +637,16 @@ class StockScreener:
 
         # Step 3: Score and rank
         top_stocks = self.score_and_rank(stocks_data)
+
+        # Step 4: Enhance with ML predictions
+        try:
+            from predictor import enrich_with_ml_predictions
+            enhanced_stocks = enrich_with_ml_predictions(top_stocks)
+            logger.info("ML predictions added successfully")
+            return enhanced_stocks
+        except Exception as e:
+            logger.warning(f"ML predictions failed, using traditional scoring: {str(e)}")
+            return top_stocks
 
         logger.info(f"Screening complete. Found {len(top_stocks)} stocks.")
 

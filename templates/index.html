@@ -294,6 +294,39 @@
                 font-size: 0.9em;
             }
         }
+
+            .market-cap {
+                font-weight: 500;
+                color: #6c757d;
+            }
+
+            .ml-price, .ml-direction, .ml-confidence {
+                font-weight: 500;
+                text-align: center;
+            }
+
+            .ml-price.positive, .ml-direction.positive {
+                color: #28a745;
+                background-color: rgba(40, 167, 69, 0.1);
+            }
+
+            .ml-price.negative, .ml-direction.negative {
+                color: #dc3545;
+                background-color: rgba(220, 53, 69, 0.1);
+            }
+
+            .ml-confidence.positive {
+                color: #28a745;
+                font-weight: 600;
+            }
+
+            .ml-confidence.neutral {
+                color: #ffc107;
+            }
+
+            .ml-confidence.negative {
+                color: #dc3545;
+            }
     </style>
 </head>
 <body>
@@ -324,7 +357,12 @@
                         <th>24Hr Prediction</th>
                         <th>5Day Prediction</th>
                         <th>PE Ratio</th>
-                        <th>Risk Level</th>
+                        <th>Rev Growth</th>
+                        <th>ML Price</th>
+                        <th>ML Direction</th>
+                        <th>ML Confidence</th>
+                        <th>Risk</th>
+                        <th>Market Cap</th>
                     </tr>
                 </thead>
                 <tbody id="stocks-table">
@@ -397,7 +435,19 @@
                         <small style="font-size: 0.8em;">(${stock.weekly_gain > 0 ? '+' : ''}${stock.weekly_gain.toFixed(1)}%)</small>
                     </td>
                     <td class="pe-ratio">${stock.pe_description || 'N/A'}</td>
-                    <td class="risk-level ${getRiskClass(stock.risk_level)}">${stock.risk_level}</td>
+                            <td class="growth ${stock.revenue_growth >= 15 ? 'positive' : stock.revenue_growth >= 5 ? 'neutral' : 'negative'}">${stock.revenue_growth}%</td>
+                            <td class="ml-price ${stock.ml_predicted_change > 0 ? 'positive' : stock.ml_predicted_change < 0 ? 'negative' : 'neutral'}">
+                                ${stock.ml_predicted_price > 0 ? '₹' + stock.ml_predicted_price.toFixed(2) : 'N/A'}
+                                ${stock.ml_predicted_change !== 0 ? '<br><small>(' + (stock.ml_predicted_change > 0 ? '+' : '') + stock.ml_predicted_change.toFixed(1) + '%)</small>' : ''}
+                            </td>
+                            <td class="ml-direction ${stock.ml_direction === 'UP' ? 'positive' : stock.ml_direction === 'DOWN' ? 'negative' : 'neutral'}">
+                                ${stock.ml_direction === 'UNKNOWN' ? 'N/A' : stock.ml_direction}
+                            </td>
+                            <td class="ml-confidence ${stock.ml_confidence >= 70 ? 'positive' : stock.ml_confidence >= 50 ? 'neutral' : 'negative'}">
+                                ${stock.ml_confidence > 0 ? stock.ml_confidence + '%' : 'N/A'}
+                            </td>
+                            <td class="risk ${getRiskClass(stock.risk_level)}">${stock.risk_level}</td>
+                            <td class="market-cap">${stock.market_cap}</td>
                 </tr>
             `).join('');
 
