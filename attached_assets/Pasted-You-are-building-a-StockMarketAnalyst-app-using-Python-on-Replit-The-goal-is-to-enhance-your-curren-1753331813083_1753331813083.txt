@@ -1,0 +1,52 @@
+You are building a StockMarketAnalyst app using Python on Replit. The goal is to enhance your current analyzer (which scrapes fundamentals, bulk deals, ATR, momentum) with machine learning models: LSTM for price regression and Random Forest for direction classification. Please implement two modules:
+
+1. **data_loader.py**  
+• Fetch historical OHLC data (Yahoo Finance / NSE) and technical indicators (ATR, momentum).  
+• Normalize and window time-series (e.g. 60-day lookback for LSTM).  
+• Prepare target variables:   
+  - For LSTM: next day price (regression).  
+  - For RF: next day price movement up/down (classification).
+
+2. **models.py**  
+• **LSTM Model**:  
+  - Use TensorFlow/Keras.  
+  - Architecture: Input → 2× LSTM layers (units 50, return_sequences=True last) → Dense(1) output.  
+  - Compile with optimizer ‘adam’, loss=‘mse’.  
+  - Train/val split; fit for ~20 epochs.  
+  - Save model to `lstm_model.h5`.
+
+• **Random Forest**:  
+  - Use scikit-learn.  
+  - Features: recent ATR, momentum ratio, PE, earnings YoY, revenue YoY.  
+  - Train a `RandomForestClassifier(n_estimators=100, random_state=42)`.  
+  - Evaluate test accuracy, and save model via `joblib`.
+
+3. **predictor.py**  
+• At runtime, load both models.  
+• For each stock in WATCHLIST:  
+  - Build recent windows; run LSTM to predict next-day price.  
+  - Run RF to predict direction.  
+  - Attach predictions into `top10.json`: add fields `predicted_price_next_day`, `direction_pred`.
+
+4. **app.py** (Flask Dashboard):  
+• Update JSON to display LSTM prediction & RF direction.  
+• Indicate model confidence (e.g., RF probability).
+
+5. **Orchestration** (`main.py` or scheduler):  
+• Integrate into existing scheduler:  
+  - After scraping & scoring, call predictor to enrich top10.  
+  - Make sure model training/training data prep happen offline.
+
+📚 **References**:  
+- LSTM for stock price tutorial :contentReference[oaicite:1]{index=1}  
+- Random Forest classifier guide :contentReference[oaicite:2]{index=2}  
+
+---
+
+**Goal & Expectations**:  
+- Add real predictive intelligence beyond heuristics.  
+- LSTM forecasts next-day price quantitatively; RF gives directional probability.  
+- Maintain modular code and stateful model files.  
+- Display results live on web (via Flask) for actionable insights.
+
+Please generate full Python code templates for each module: `data_loader.py`, `models.py`, `predictor.py`, and updated `app.py`. Ensure they work together seamlessly on Replit.
