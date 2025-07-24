@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-07-24T10:00:50.770558+05:30",
-  "last_updated": "2025-07-24 10:00:50 IST",
+  "timestamp": "2025-07-24T10:17:55.102335+05:30",
+  "last_updated": "2025-07-24 10:17:55 IST",
   "error": "'>' not supported between instances of 'NoneType' and 'int'",
   "stocks": []
 }
