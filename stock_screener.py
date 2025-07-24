@@ -37,7 +37,7 @@ class StockScreener:
 
         # Top 20 Nifty 50 stocks by market cap (updated dynamically)
         self.nifty50_symbols = [
-            'JSW INFRA', 'WIPRO', "FORCEMOT"
+            'JSW INFRA', 'WIPRO', 'FORCEMOT'
             # 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR',
             # 'ICICIBANK', 'BHARTIARTL', 'SBIN', 'LT', 'ITC',
             # 'KOTAKBANK', 'AXISBANK', 'HCLTECH', 'ASIANPAINT', 'MARUTI',
