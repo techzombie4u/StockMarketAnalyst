@@ -15,6 +15,7 @@ Run this file to start the complete application.
 import os
 import sys
 import logging
+from initialize import initialize_system
 from app import app, initialize_app
 
 # Configure logging
@@ -30,6 +31,11 @@ def main():
     logger.info("🚀 Starting Stock Market Analyst Application")
     
     try:
+        # Initialize system files and settings
+        if not initialize_system():
+            logger.error("❌ System initialization failed")
+            sys.exit(1)
+        
         # Initialize the application (starts scheduler)
         initialize_app()
         

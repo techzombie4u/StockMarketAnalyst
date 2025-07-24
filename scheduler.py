@@ -1,4 +1,3 @@
-
 """
 Stock Market Analyst - Scheduler Module
 
@@ -27,63 +26,67 @@ def is_market_hours() -> bool:
     ist = pytz.timezone('Asia/Kolkata')
     now_ist = datetime.now(ist)
     current_time = now_ist.time()
-    
+
     # Market hours: 9:00 AM to 4:00 PM IST
     market_open = time(9, 0)  # 9:00 AM
     market_close = time(16, 0)  # 4:00 PM
-    
+
     # Check if current time is within market hours
     is_weekday = now_ist.weekday() < 5  # Monday = 0, Sunday = 6
     is_within_hours = market_open <= current_time <= market_close
-    
+
     return is_weekday and is_within_hours
 
 def run_screening_job():
     """Execute stock screening and save results (standalone function)"""
     global alerted_stocks
-    
+
     try:
         # Check if within market hours for scheduled runs
         if not is_market_hours():
             logger.info("Outside market hours (9 AM - 4 PM IST). Skipping scheduled screening.")
             return
-        
+
         logger.info("Starting scheduled stock screening...")
-        
+
         # Create screener instance
         screener = StockScreener()
-        
+
         # Run the screener
         results = screener.run_screener()
-        
+
         # Add timestamp in IST
         ist = pytz.timezone('Asia/Kolkata')
         now_ist = datetime.now(ist)
         screening_data = {
             'timestamp': now_ist.isoformat(),
             'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
-            'stocks': results
+            'stocks': results,
+            'status': 'success'
         }
-        
+
         # Save to JSON file
-        with open('top10.json', 'w') as f:
-            json.dump(screening_data, f, indent=2)
-        
+        try:
+            with open('top10.json', 'w') as f:
+                json.dump(screening_data, f, indent=2)
+        except Exception as file_error:
+            logger.error(f"Failed to write screening data to file: {str(file_error)}")
+
         # Check for new alerts (stocks with score > 70 that haven't been alerted)
         new_alerts = []
         for stock in results:
             if stock['score'] > 70 and stock['symbol'] not in alerted_stocks:
                 new_alerts.append(stock)
                 alerted_stocks.add(stock['symbol'])
-        
+
         if new_alerts:
             send_alerts(new_alerts)
-        
+
         logger.info(f"Screening completed. Found {len(results)} stocks, {len(new_alerts)} new alerts.")
-        
+
     except Exception as e:
         logger.error(f"Error in screening job: {str(e)}")
-        
+
         # Create error response
         ist = pytz.timezone('Asia/Kolkata')
         now_ist = datetime.now(ist)
@@ -91,64 +94,72 @@ def run_screening_job():
             'timestamp': now_ist.isoformat(),
             'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
             'error': str(e),
-            'stocks': []
+            'stocks': [],
+            'status': 'error'
         }
-        
-        with open('top10.json', 'w') as f:
-            json.dump(error_data, f, indent=2)
+
+        try:
+            with open('top10.json', 'w') as f:
+                json.dump(error_data, f, indent=2)
+        except Exception as file_error:
+            logger.error(f"Failed to write error data to file: {str(file_error)}")
 
 def send_alerts(alerts: list):
     """Send alerts for high-scoring stocks (placeholder for future SMS/email integration)"""
     logger.info(f"🚨 ALERTS: {len(alerts)} high-scoring stocks found!")
-    
+
     for stock in alerts:
         logger.info(f"📈 {stock['symbol']}: Score {stock['score']}, "
                    f"Predicted gain {stock['predicted_gain']}% in {stock['time_horizon']} days")
-    
+
     # TODO: Integrate with SMS/Email service
     # Example: send_sms(alerts) or send_email(alerts)
 
 def run_screening_job_manual():
     """Execute stock screening manually (bypasses market hours check)"""
     global alerted_stocks
-    
+
     try:
         logger.info("Starting manual stock screening...")
-        
+
         # Create screener instance
         screener = StockScreener()
-        
+
         # Run the screener
         results = screener.run_screener()
-        
+
         # Add timestamp in IST
         ist = pytz.timezone('Asia/Kolkata')
         now_ist = datetime.now(ist)
         screening_data = {
             'timestamp': now_ist.isoformat(),
             'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
-            'stocks': results
+            'stocks': results,
+            'status': 'success'
         }
-        
+
         # Save to JSON file
-        with open('top10.json', 'w') as f:
-            json.dump(screening_data, f, indent=2)
-        
+        try:
+            with open('top10.json', 'w') as f:
+                json.dump(screening_data, f, indent=2)
+        except Exception as file_error:
+            logger.error(f"Failed to write screening data to file: {str(file_error)}")
+
         # Check for new alerts (stocks with score > 70 that haven't been alerted)
         new_alerts = []
         for stock in results:
             if stock['score'] > 70 and stock['symbol'] not in alerted_stocks:
                 new_alerts.append(stock)
                 alerted_stocks.add(stock['symbol'])
-        
+
         if new_alerts:
             send_alerts(new_alerts)
-        
+
         logger.info(f"Manual screening completed. Found {len(results)} stocks, {len(new_alerts)} new alerts.")
-        
+
     except Exception as e:
         logger.error(f"Error in manual screening job: {str(e)}")
-        
+
         # Create error response
         ist = pytz.timezone('Asia/Kolkata')
         now_ist = datetime.now(ist)
@@ -156,11 +167,15 @@ def run_screening_job_manual():
             'timestamp': now_ist.isoformat(),
             'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
             'error': str(e),
-            'stocks': []
+            'stocks': [],
+            'status': 'error'
         }
-        
-        with open('top10.json', 'w') as f:
-            json.dump(error_data, f, indent=2)
+
+        try:
+            with open('top10.json', 'w') as f:
+                json.dump(error_data, f, indent=2)
+        except Exception as file_error:
+            logger.error(f"Failed to write error data to file: {str(file_error)}")
 
 class StockAnalystScheduler:
     def __init__(self):
@@ -168,37 +183,37 @@ class StockAnalystScheduler:
         jobstores = {
             'default': SQLAlchemyJobStore(url='sqlite:///jobs.sqlite')
         }
-        
+
         executors = {
             'default': ThreadPoolExecutor(20)
         }
-        
+
         job_defaults = {
             'coalesce': False,
             'max_instances': 1
         }
-        
+
         self.scheduler = BackgroundScheduler(
             jobstores=jobstores,
             executors=executors,
             job_defaults=job_defaults,
             timezone='Asia/Kolkata'
         )
-    
+
     def run_screening_job(self):
         """Wrapper method to call the standalone function"""
         run_screening_job()
-    
+
     def run_screening_job_manual(self):
         """Wrapper method to call the manual screening function"""
         run_screening_job_manual()
-    
+
     def start_scheduler(self, interval_minutes: int = 60):
         """Start the scheduler with specified interval"""
         try:
             # Remove existing jobs
             self.scheduler.remove_all_jobs()
-            
+
             # Add screening job using standalone function
             self.scheduler.add_job(
                 func=run_screening_job,  # Use standalone function
@@ -208,7 +223,23 @@ class StockAnalystScheduler:
                 name='Stock Market Screening',
                 replace_existing=True
             )
-            
+
+            # Create initial top10.json with empty data
+            ist = pytz.timezone('Asia/Kolkata')
+            now_ist = datetime.now(ist)
+            initial_data = {
+                'timestamp': now_ist.isoformat(),
+                'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+                'stocks': [],
+                'status': 'initial'
+            }
+            try:
+                with open('top10.json', 'w') as f:
+                    json.dump(initial_data, f, indent=2)
+            except Exception as file_error:
+                logger.error(f"Failed to write initial data to file: {str(file_error)}")
+
+
             # Run once immediately
             self.scheduler.add_job(
                 func=run_screening_job,  # Use standalone function
@@ -216,19 +247,19 @@ class StockAnalystScheduler:
                 id='initial_run',
                 name='Initial Stock Screening'
             )
-            
+
             self.scheduler.start()
             logger.info(f"Scheduler started. Running every {interval_minutes} minutes during market hours (9 AM - 4 PM IST).")
-            
+
         except Exception as e:
             logger.error(f"Error starting scheduler: {str(e)}")
-    
+
     def stop_scheduler(self):
         """Stop the scheduler"""
         if self.scheduler.running:
             self.scheduler.shutdown()
             logger.info("Scheduler stopped.")
-    
+
     def get_job_status(self):
         """Get current job status"""
         jobs = self.scheduler.get_jobs()
@@ -240,18 +271,18 @@ class StockAnalystScheduler:
 def main():
     """Test scheduler"""
     scheduler = StockAnalystScheduler()
-    
+
     try:
         # Start with 1-minute interval for testing
         scheduler.start_scheduler(interval_minutes=1)
-        
+
         # Keep running
         import time
         while True:
             time.sleep(10)
             status = scheduler.get_job_status()
             print(f"Scheduler status: {status}")
-            
+
     except KeyboardInterrupt:
         logger.info("Stopping scheduler...")
         scheduler.stop_scheduler()

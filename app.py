@@ -1,4 +1,3 @@
-
 """
 Stock Market Analyst - Flask Dashboard
 
@@ -8,10 +7,15 @@ Web interface for displaying stock screening results with auto-refresh.
 import json
 import os
 from datetime import datetime
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
+from flask_cors import CORS
+import logging
 from scheduler import StockAnalystScheduler
 
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 
 # Global scheduler instance
@@ -29,19 +33,45 @@ def get_stocks():
         if os.path.exists('top10.json'):
             with open('top10.json', 'r') as f:
                 data = json.load(f)
-            return jsonify(data)
+
+            # Ensure data has required structure
+            if not isinstance(data, dict):
+                raise ValueError("Invalid data format")
+
+            # Add default values if missing
+            response_data = {
+                'timestamp': data.get('timestamp', ''),
+                'last_updated': data.get('last_updated', 'Unknown'),
+                'stocks': data.get('stocks', []),
+                'error': data.get('error', None),
+                'status': 'success' if data.get('stocks') else 'no_data'
+            }
+
+            return jsonify(response_data)
         else:
-            return jsonify({
-                'timestamp': datetime.now().isoformat(),
-                'last_updated': 'No data available',
+            # Create default empty file if it doesn't exist
+            default_data = {
+                'timestamp': '',
+                'last_updated': 'Initializing...',
                 'stocks': [],
-                'message': 'Waiting for first screening run...'
-            })
+                'status': 'initializing'
+            }
+
+            with open('top10.json', 'w') as f:
+                json.dump(default_data, f, indent=2)
+
+            return jsonify(default_data)
+
     except Exception as e:
-        return jsonify({
+        logger.error(f"Error in /api/stocks: {str(e)}")
+        error_response = {
             'error': str(e),
-            'stocks': []
-        }), 500
+            'timestamp': '',
+            'last_updated': 'Error loading data',
+            'stocks': [],
+            'status': 'error'
+        }
+        return jsonify(error_response), 500
 
 @app.route('/api/status')
 def get_status():
@@ -65,10 +95,18 @@ def run_now():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/api/health')
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Stock Market Analyst'
+    })
+
 def initialize_app():
     """Initialize the application with scheduler"""
     global scheduler
-    
+
     try:
         scheduler = StockAnalystScheduler()
         scheduler.start_scheduler(interval_minutes=60)
@@ -78,7 +116,7 @@ def initialize_app():
 
 if __name__ == '__main__':
     initialize_app()
-    
+
     # Run Flask app
     app.run(
         host='0.0.0.0',

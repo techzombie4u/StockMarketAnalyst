@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Market Analyst</title>
+    <title>📈 Stock Market Analyst - AI-Enhanced Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -15,243 +16,260 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
             padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .header h1 {
-            color: #333;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .header .subtitle {
-            color: #666;
-            font-size: 1.1em;
+            padding: 30px 20px;
         }
 
         .controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .status {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .status-indicator {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-
-        .status-indicator.loading {
-            background: #ffeaa7;
-            color: #d63031;
-        }
-
-        .status-indicator.success {
-            background: #00b894;
-            color: white;
-        }
-
-        .status-indicator.error {
-            background: #e17055;
-            color: white;
-        }
-
-        .countdown {
-            font-weight: bold;
-            color: #0984e3;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .refresh-btn {
-            background: #0984e3;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 12px 24px;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
         }
 
         .refresh-btn:hover {
-            background: #0770c4;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .refresh-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .countdown {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-weight: 500;
         }
 
         .table-container {
-            overflow-x: auto;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
         }
 
         th, td {
-            padding: 12px 15px;
+            padding: 15px 12px;
             text-align: left;
             border-bottom: 1px solid #e0e0e0;
         }
 
         th {
-            background: #2d3436;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            font-weight: bold;
+            font-weight: 600;
             position: sticky;
             top: 0;
             z-index: 10;
         }
 
-        tr:hover {
-            background: #f8f9fa;
+        tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+            transform: scale(1.01);
         }
 
         .symbol {
-            font-weight: bold;
-            color: #0984e3;
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 1.1em;
         }
 
         .score {
-            font-weight: bold;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: white;
+            text-align: center;
         }
 
-        .score.high {
-            color: #00b894;
-        }
-
-        .score.medium {
-            color: #fdcb6e;
-        }
-
-        .score.low {
-            color: #e17055;
-        }
+        .score-high { background: linear-gradient(45deg, #27ae60, #2ecc71); }
+        .score-medium { background: linear-gradient(45deg, #f39c12, #e67e22); }
+        .score-low { background: linear-gradient(45deg, #e74c3c, #c0392b); }
 
         .price {
-            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #2c3e50;
         }
 
-        .prediction {
-            font-weight: bold;
+        .gain-positive {
+            color: #27ae60;
+            font-weight: 600;
         }
 
-        .prediction.positive {
-            color: #00b894;
+        .gain-negative {
+            color: #e74c3c;
+            font-weight: 600;
         }
 
-        .prediction.negative {
-            color: #e17055;
-        }
-
-        .confidence {
-            font-weight: bold;
-        }
-
-        .confidence.high {
-            color: #00b894;
-        }
-
-        .confidence.medium {
-            color: #fdcb6e;
-        }
-
-        .confidence.low {
-            color: #e17055;
-        }
-
-        .risk-level {
-            font-weight: bold;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-        }
-
-        .risk-level.low {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .risk-level.medium {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .risk-level.high {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .market-cap {
-            font-weight: bold;
-            color: #6c757d;
-            font-size: 0.9em;
+        .gain-neutral {
+            color: #7f8c8d;
+            font-weight: 600;
         }
 
         .pe-ratio {
-            font-family: 'Courier New', monospace;
-            color: #495057;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.9em;
         }
 
-        .growth {
-            font-weight: bold;
+        .pe-very-low { background: #d4edda; color: #155724; }
+        .pe-below-average { background: #cce5ff; color: #004085; }
+        .pe-at-par { background: #fff3cd; color: #856404; }
+        .pe-above-average { background: #ffeaa7; color: #856404; }
+        .pe-high { background: #ffcccb; color: #721c24; }
+        .pe-very-high { background: #f8d7da; color: #721c24; }
+        .pe-na { background: #e2e3e5; color: #6c757d; }
+
+        .risk-level {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
         }
 
-        .growth.positive {
-            color: #00b894;
+        .risk-low { background: #d4edda; color: #155724; }
+        .risk-medium { background: #fff3cd; color: #856404; }
+        .risk-high { background: #f8d7da; color: #721c24; }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 1.2em;
         }
 
-        .growth.negative {
-            color: #e17055;
-        }
-
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .loading-spinner {
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
             width: 50px;
             height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #3498db;
-            border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
         }
 
         @keyframes spin {
@@ -260,261 +278,428 @@
         }
 
         .error-message {
-            background: #ffe6e6;
-            color: #d63031;
-            padding: 15px;
-            border-radius: 6px;
+            background: rgba(248, 215, 218, 0.9);
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
             margin: 20px 0;
-            border-left: 4px solid #d63031;
+            border: 1px solid #f5c6cb;
+            text-align: center;
         }
 
-        .no-data {
+        .empty-state {
             text-align: center;
-            padding: 40px;
-            color: #666;
-            font-size: 1.1em;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            font-size: 1.5em;
         }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 15px;
+            .header h1 {
+                font-size: 1.6em;
             }
 
-            .header h1 {
-                font-size: 2em;
+            .header-info {
+                flex-direction: column;
+                gap: 15px;
             }
 
             .controls {
                 flex-direction: column;
-                align-items: stretch;
-            }
-
-            th, td {
-                padding: 8px 10px;
-                font-size: 0.9em;
-            }
-        }
-
-            .market-cap {
-                font-weight: 500;
-                color: #6c757d;
-            }
-
-            .ml-price, .ml-direction, .ml-confidence {
-                font-weight: 500;
+                gap: 15px;
                 text-align: center;
             }
 
-            .ml-price.positive, .ml-direction.positive {
-                color: #28a745;
-                background-color: rgba(40, 167, 69, 0.1);
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             }
 
-            .ml-price.negative, .ml-direction.negative {
-                color: #dc3545;
-                background-color: rgba(220, 53, 69, 0.1);
+            table {
+                font-size: 0.9em;
             }
 
-            .ml-confidence.positive {
-                color: #28a745;
-                font-weight: 600;
+            th, td {
+                padding: 10px 8px;
             }
-
-            .ml-confidence.neutral {
-                color: #ffc107;
-            }
-
-            .ml-confidence.negative {
-                color: #dc3545;
-            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📈 Stock Market Analyst</h1>
-            <div class="subtitle">Top Stocks Under ₹1000 (Score ≥30) | AI Analysis | Manual Refresh Only</div>
-        </div>
-
-        <div class="controls">
-            <div class="status">
-                <div id="status-indicator" class="status-indicator loading">Loading...</div>
+    <div class="header">
+        <h1>📈 Stock Market Analyst</h1>
+        <p>AI-Enhanced Real-Time Indian Stock Screening Dashboard</p>
+        
+        <div class="header-info">
+            <div class="status-indicator" id="status">
+                <span>🔄</span>
+                <span>Initializing...</span>
             </div>
-            <button id="refresh-btn" class="refresh-btn" onclick="manualRefresh()">🔄 Refresh Now</button>
+            <div class="countdown" id="lastUpdated">
+                Last Updated: Checking...
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <div>
+                <h3>🎯 Top Performing Stocks</h3>
+                <p>AI-powered analysis with technical & fundamental scoring</p>
+            </div>
+            <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+                🔄 Refresh Now
+            </button>
         </div>
 
-        <div id="error-container"></div>
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="totalStocks">-</div>
+                <div class="stat-label">Stocks Analyzed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="highScoreStocks">-</div>
+                <div class="stat-label">High Score (70+)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgScore">-</div>
+                <div class="stat-label">Average Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="topGain">-</div>
+                <div class="stat-label">Top Predicted Gain %</div>
+            </div>
+        </div>
 
         <div class="table-container">
-            <table>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div>Loading stock data...</div>
+                <div style="font-size: 0.9em; margin-top: 10px;">This may take a few moments</div>
+            </div>
+
+            <div id="error" class="error-message" style="display: none;">
+                <h3>⚠️ Connection Error</h3>
+                <p id="errorMessage">Unable to load stock data. Please try refreshing.</p>
+                <button onclick="refreshData()" style="margin-top: 10px; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    🔄 Retry
+                </button>
+            </div>
+
+            <div id="empty" class="empty-state" style="display: none;">
+                <h3>📊 No Data Available</h3>
+                <p>Stock screening is in progress. Please wait or click refresh.</p>
+            </div>
+
+            <table id="stockTable" style="display: none;">
                 <thead>
                     <tr>
-                        <th>Symbol</th>
-                        <th>Score</th>
-                        <th>Confidence %</th>
-                        <th>Current Price ₹</th>
-                        <th>3Hr Prediction</th>
-                        <th>24Hr Prediction</th>
-                        <th>5Day Prediction</th>
-                        <th>PE Ratio</th>
-                        <th>Rev Growth</th>
-                        <th>ML Price</th>
-                        <th>ML Direction</th>
-                        <th>ML Confidence</th>
-                        <th>Risk</th>
-                        <th>Market Cap</th>
+                        <th>🏢 Stock</th>
+                        <th>⭐ Score</th>
+                        <th>💰 Price</th>
+                        <th>📈 24h Pred.</th>
+                        <th>📊 5d Pred.</th>
+                        <th>🎯 1mo Pred.</th>
+                        <th>📉 P/E Ratio</th>
+                        <th>🔥 Risk</th>
+                        <th>📊 Growth</th>
+                        <th>🎲 Confidence</th>
                     </tr>
                 </thead>
-                <tbody id="stocks-table">
-                    <tr>
-                        <td colspan="9" class="no-data">Loading stock data...</td>
-                    </tr>
+                <tbody id="stockTableBody">
                 </tbody>
             </table>
         </div>
-
-        <div style="margin-top: 20px; text-align: center; color: #666; font-size: 0.9em;">
-            Last updated: <span id="last-updated">Never</span>
-        </div>
-    </div>
-
-    <div id="loading-overlay" class="loading-overlay" style="display: none;">
-        <div class="loading-spinner"></div>
     </div>
 
     <script>
-        // Initialize the dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            loadStocks();
-        });
+        let refreshInterval;
+        let isLoading = false;
+        let retryCount = 0;
+        const maxRetries = 3;
 
-        function loadStocks() {
-            fetch('/api/stocks')
-                .then(response => response.json())
-                .then(data => {
-                    updateStocksTable(data);
-                    updateStatus(data);
-                })
-                .catch(error => {
-                    console.error('Error loading stocks:', error);
-                    showError('Failed to load stock data: ' + error.message);
-                    updateStatusIndicator('error', 'Connection Error');
-                });
+        function updateStatus(message, type = 'loading') {
+            const status = document.getElementById('status');
+            const icons = {
+                loading: '🔄',
+                success: '✅',
+                error: '❌',
+                initializing: '⏳'
+            };
+            
+            status.className = `status-indicator status-${type}`;
+            status.innerHTML = `<span>${icons[type] || '🔄'}</span><span>${message}</span>`;
         }
 
-        function updateStocksTable(data) {
-            const tbody = document.getElementById('stocks-table');
-            const lastUpdated = document.getElementById('last-updated');
-
-            if (data.error) {
-                tbody.innerHTML = `<tr><td colspan="9" class="no-data">Error: ${data.error}</td></tr>`;
-                return;
-            }
-
-            if (!data.stocks || data.stocks.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="no-data">${data.message || 'No stocks found'}</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = data.stocks.map(stock => `
-                <tr>
-                    <td class="symbol">${stock.symbol}</td>
-                    <td class="score ${getScoreClass(stock.score)}">${stock.score}</td>
-                    <td class="confidence ${getConfidenceClass(stock.confidence)}">${stock.confidence}%</td>
-                    <td class="price">₹${stock.current_price}</td>
-                    <td class="prediction ${stock.three_hour_gain > 0 ? 'positive' : 'negative'}">
-                        ₹${stock.three_hour_price}<br>
-                        <small style="font-size: 0.8em;">(${stock.three_hour_gain > 0 ? '+' : ''}${stock.three_hour_gain.toFixed(1)}%)</small>
-                    </td>
-                    <td class="prediction ${stock.daily_gain > 0 ? 'positive' : 'negative'}">
-                        ₹${stock.daily_price}<br>
-                        <small style="font-size: 0.8em;">(${stock.daily_gain > 0 ? '+' : ''}${stock.daily_gain.toFixed(1)}%)</small>
-                    </td>
-                    <td class="prediction ${stock.weekly_gain > 0 ? 'positive' : 'negative'}">
-                        ₹${stock.weekly_price}<br>
-                        <small style="font-size: 0.8em;">(${stock.weekly_gain > 0 ? '+' : ''}${stock.weekly_gain.toFixed(1)}%)</small>
-                    </td>
-                    <td class="pe-ratio">${stock.pe_description || 'N/A'}</td>
-                            <td class="growth ${stock.revenue_growth >= 15 ? 'positive' : stock.revenue_growth >= 5 ? 'neutral' : 'negative'}">${stock.revenue_growth}%</td>
-                            <td class="ml-price ${stock.ml_predicted_change > 0 ? 'positive' : stock.ml_predicted_change < 0 ? 'negative' : 'neutral'}">
-                                ${stock.ml_predicted_price > 0 ? '₹' + stock.ml_predicted_price.toFixed(2) : 'N/A'}
-                                ${stock.ml_predicted_change !== 0 ? '<br><small>(' + (stock.ml_predicted_change > 0 ? '+' : '') + stock.ml_predicted_change.toFixed(1) + '%)</small>' : ''}
-                            </td>
-                            <td class="ml-direction ${stock.ml_direction === 'UP' ? 'positive' : stock.ml_direction === 'DOWN' ? 'negative' : 'neutral'}">
-                                ${stock.ml_direction === 'UNKNOWN' ? 'N/A' : stock.ml_direction}
-                            </td>
-                            <td class="ml-confidence ${stock.ml_confidence >= 70 ? 'positive' : stock.ml_confidence >= 50 ? 'neutral' : 'negative'}">
-                                ${stock.ml_confidence > 0 ? stock.ml_confidence + '%' : 'N/A'}
-                            </td>
-                            <td class="risk ${getRiskClass(stock.risk_level)}">${stock.risk_level}</td>
-                            <td class="market-cap">${stock.market_cap}</td>
-                </tr>
-            `).join('');
-
-            if (data.last_updated) {
-                lastUpdated.textContent = data.last_updated;
-            }
-        }
-
-        function getScoreClass(score) {
-            if (score >= 70) return 'high';
-            if (score >= 40) return 'medium';
-            return 'low';
-        }
-
-        function getConfidenceClass(confidence) {
-            if (confidence >= 80) return 'high';
-            if (confidence >= 60) return 'medium';
-            return 'low';
-        }
-
-        function getRiskClass(risk) {
-            if (risk === 'Low') return 'low';
-            if (risk === 'Medium') return 'medium';
-            return 'high';
-        }
-
-        function updateStatus(data) {
-            if (data.error) {
-                updateStatusIndicator('error', 'Data Error');
-            } else if (data.stocks && data.stocks.length > 0) {
-                updateStatusIndicator('success', `${data.stocks.length} stocks loaded`);
+        function updateLastUpdated(timestamp) {
+            const element = document.getElementById('lastUpdated');
+            if (timestamp) {
+                const date = new Date(timestamp);
+                element.textContent = `Last Updated: ${date.toLocaleString()}`;
             } else {
-                updateStatusIndicator('loading', 'Waiting for data...');
+                element.textContent = 'Last Updated: Never';
             }
         }
 
-        function updateStatusIndicator(type, message) {
-            const indicator = document.getElementById('status-indicator');
-            indicator.className = `status-indicator ${type}`;
-            indicator.textContent = message;
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('stockTable').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('empty').style.display = 'none';
+            document.getElementById('statsGrid').style.display = 'none';
+            updateStatus('Loading stock data...', 'loading');
         }
 
         function showError(message) {
-            const errorContainer = document.getElementById('error-container');
-            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
-            setTimeout(() => {
-                errorContainer.innerHTML = '';
-            }, 5000);
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('stockTable').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('empty').style.display = 'none';
+            document.getElementById('statsGrid').style.display = 'none';
+            document.getElementById('errorMessage').textContent = message || 'Unable to load stock data. Please try refreshing.';
+            updateStatus('Connection Error', 'error');
         }
 
-        function manualRefresh() {
-            const overlay = document.getElementById('loading-overlay');
-            overlay.style.display = 'flex';
+        function showEmpty() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('stockTable').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('empty').style.display = 'block';
+            document.getElementById('statsGrid').style.display = 'none';
+            updateStatus('No data available', 'error');
+        }
 
-            fetch('/api/run-now', { method: 'POST' })
-                .then(() => {
+        function showData() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('stockTable').style.display = 'table';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('empty').style.display = 'none';
+            document.getElementById('statsGrid').style.display = 'grid';
+            updateStatus('Data loaded successfully', 'success');
+        }
+
+        function updateStats(stocks) {
+            if (!stocks || stocks.length === 0) return;
+
+            const totalStocks = stocks.length;
+            const highScoreStocks = stocks.filter(s => s.score >= 70).length;
+            const avgScore = (stocks.reduce((sum, s) => sum + s.score, 0) / totalStocks).toFixed(1);
+            const topGain = Math.max(...stocks.map(s => s.predicted_gain || 0)).toFixed(1);
+
+            document.getElementById('totalStocks').textContent = totalStocks;
+            document.getElementById('highScoreStocks').textContent = highScoreStocks;
+            document.getElementById('avgScore').textContent = avgScore;
+            document.getElementById('topGain').textContent = topGain + '%';
+        }
+
+        function getScoreClass(score) {
+            if (score >= 70) return 'score-high';
+            if (score >= 50) return 'score-medium';
+            return 'score-low';
+        }
+
+        function getGainClass(gain) {
+            if (gain > 0) return 'gain-positive';
+            if (gain < 0) return 'gain-negative';
+            return 'gain-neutral';
+        }
+
+        function getPEClass(peDesc) {
+            const peClasses = {
+                'Very Low': 'pe-very-low',
+                'Below Average': 'pe-below-average',
+                'At Par': 'pe-at-par',
+                'Above Average': 'pe-above-average',
+                'High': 'pe-high',
+                'Very High': 'pe-very-high',
+                'Not Available': 'pe-na'
+            };
+            return peClasses[peDesc] || 'pe-na';
+        }
+
+        function getRiskClass(risk) {
+            return `risk-${risk.toLowerCase()}`;
+        }
+
+        function formatGain(gain) {
+            const sign = gain > 0 ? '+' : '';
+            return `${sign}${gain.toFixed(1)}%`;
+        }
+
+        function loadStocks() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            showLoading();
+
+            // Add timeout to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+            fetch('/api/stocks', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                },
+                signal: controller.signal
+            })
+            .then(response => {
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                isLoading = false;
+                retryCount = 0; // Reset retry count on success
+                
+                console.log('API Response:', data);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                updateLastUpdated(data.timestamp || data.last_updated);
+
+                if (!data.stocks || data.stocks.length === 0) {
+                    if (data.status === 'initializing') {
+                        updateStatus('Initializing system...', 'loading');
+                        setTimeout(loadStocks, 5000); // Retry in 5 seconds
+                    } else {
+                        showEmpty();
+                    }
+                    return;
+                }
+
+                // Update statistics
+                updateStats(data.stocks);
+
+                // Update table
+                const tbody = document.getElementById('stockTableBody');
+                tbody.innerHTML = '';
+
+                data.stocks.forEach((stock, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="symbol">#${index + 1} ${stock.symbol}</td>
+                        <td><span class="score ${getScoreClass(stock.score)}">${stock.score}</span></td>
+                        <td class="price">₹${stock.current_price?.toFixed(2) || '0.00'}</td>
+                        <td class="${getGainClass(stock.daily_gain || 0)}">${formatGain(stock.daily_gain || 0)}</td>
+                        <td class="${getGainClass(stock.weekly_gain || 0)}">${formatGain(stock.weekly_gain || 0)}</td>
+                        <td class="${getGainClass(stock.monthly_gain || 0)}">${formatGain(stock.monthly_gain || 0)}</td>
+                        <td><span class="pe-ratio ${getPEClass(stock.pe_description || 'Not Available')}">${stock.pe_description || 'N/A'}</span></td>
+                        <td><span class="risk-level ${getRiskClass(stock.risk_level || 'Medium')}">${stock.risk_level || 'Medium'}</span></td>
+                        <td class="${getGainClass(stock.revenue_growth || 0)}">${formatGain(stock.revenue_growth || 0)}</td>
+                        <td>${stock.confidence || 0}%</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                showData();
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                isLoading = false;
+                
+                console.error('Error loading stocks:', error);
+                
+                let errorMessage = 'Unable to load stock data.';
+                
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Request timed out. The server may be busy processing data.';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Network connection error. Please check your internet connection.';
+                } else if (error.message.includes('HTTP')) {
+                    errorMessage = `Server error: ${error.message}`;
+                } else {
+                    errorMessage = error.message || 'Unknown error occurred.';
+                }
+                
+                // Implement retry logic
+                if (retryCount < maxRetries && !error.name === 'AbortError') {
+                    retryCount++;
+                    updateStatus(`Retrying... (${retryCount}/${maxRetries})`, 'loading');
+                    setTimeout(loadStocks, 3000 * retryCount); // Progressive delay
+                } else {
+                    showError(errorMessage);
+                }
+            });
+        }
+
+        function refreshData() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 Refreshing...';
+
+            fetch('/api/run-now', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Refresh response:', data);
+                
+                if (data.status === 'success') {
+                    updateStatus('Screening in progress...', 'loading');
+                    // Wait a bit before loading new data
                     setTimeout(() => {
                         loadStocks();
-                        overlay.style.display = 'none';
+                        btn.disabled = false;
+                        btn.textContent = '🔄 Refresh Now';
                     }, 2000);
-                })
-                .catch(error => {
-                    console.error('Error triggering refresh:', error);
-                    overlay.style.display = 'none';
-                    showError('Failed to trigger refresh');
-                });
+                } else {
+                    throw new Error(data.message || 'Failed to start screening');
+                }
+            })
+            .catch(error => {
+                console.error('Refresh error:', error);
+                updateStatus('Refresh failed', 'error');
+                btn.disabled = false;
+                btn.textContent = '🔄 Refresh Now';
+                alert('Failed to refresh data: ' + error.message);
+            });
         }
+
+        function startAutoRefresh() {
+            // Clear any existing interval
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            
+            // Refresh every 5 minutes
+            refreshInterval = setInterval(() => {
+                if (!isLoading) {
+                    loadStocks();
+                }
+            }, 300000); // 5 minutes
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard initialized');
+            
+            // Initial load with small delay to ensure server is ready
+            setTimeout(() => {
+                loadStocks();
+                startAutoRefresh();
+            }, 1000);
+        });
+
+        // Handle page visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && !isLoading) {
+                loadStocks(); // Refresh when page becomes visible
+            }
+        });
     </script>
 </body>
 </html>
