@@ -13,6 +13,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
 from stock_screener import StockScreener
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -71,6 +72,13 @@ def run_screening_job():
                 json.dump(screening_data, f, indent=2)
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
+
+        # Capture for historical analysis
+        try:
+            capture_and_analyze(screening_data)
+            logger.info("📊 Historical data captured for analysis")
+        except Exception as capture_error:
+            logger.error(f"Failed to capture historical data: {str(capture_error)}")
 
         # Check for new alerts (stocks with score > 70 that haven't been alerted)
         new_alerts = []
@@ -145,6 +153,13 @@ def run_screening_job_manual():
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
 
+        # Capture for historical analysis
+        try:
+            capture_and_analyze(screening_data)
+            logger.info("📊 Historical data captured for analysis")
+        except Exception as capture_error:
+            logger.error(f"Failed to capture historical data: {str(capture_error)}")
+
         # Check for new alerts (stocks with score > 70 that haven't been alerted)
         new_alerts = []
         for stock in results:
@@ -176,6 +191,37 @@ def run_screening_job_manual():
                 json.dump(error_data, f, indent=2)
         except Exception as file_error:
             logger.error(f"Failed to write error data to file: {str(file_error)}")
+
+def capture_and_analyze(screening_data: dict):
+    """Captures screening data and stores it for historical analysis."""
+    # Create a directory for historical data if it doesn't exist
+    historical_dir = 'historical_data'
+    if not os.path.exists(historical_dir):
+        os.makedirs(historical_dir)
+
+    # Create a timestamped filename
+    timestamp = screening_data['timestamp'].replace(":", "-")  # Replace colons for filename compatibility
+    filename = f"{historical_dir}/screening_data_{timestamp}.json"
+
+    # Save the screening data to the file
+    try:
+        with open(filename, 'w') as f:
+            json.dump(screening_data, f, indent=2)
+        logger.info(f"💾 Screening data saved to {filename}")
+    except Exception as e:
+        logger.error(f"Failed to save screening data to {filename}: {str(e)}")
+
+    # TODO: Implement comparative analysis logic here using the stored data
+    # This could involve comparing current results with previous results,
+    # identifying trends, and generating insights.  This would likely
+    # involve loading historical data, performing calculations, and
+    # potentially using machine learning models for prediction.
+    # Example:
+    # historical_data = load_historical_data()
+    # analysis_results = analyze_data(screening_data, historical_data)
+    # logger.info(f"🔍 Analysis results: {analysis_results}")
+    # print("Run the AI agent here to analyze the result and provide insights")
+    pass
 
 class StockAnalystScheduler:
     def __init__(self):

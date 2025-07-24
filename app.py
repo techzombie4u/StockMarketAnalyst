@@ -11,6 +11,7 @@ from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import logging
 from scheduler import StockAnalystScheduler
+from historical_analyzer import HistoricalAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,48 @@ def run_now():
             return jsonify({'success': False, 'message': 'Scheduler not running'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/analysis')
+def analysis_dashboard():
+    """Analysis dashboard page"""
+    return render_template('analysis.html')
+
+@app.route('/api/analysis')
+def get_analysis():
+    """API endpoint to get historical analysis data"""
+    try:
+        analyzer = HistoricalAnalyzer()
+        analysis_data = analyzer.get_analysis_summary()
+        
+        if not analysis_data:
+            return jsonify({
+                'message': 'No analysis data available yet',
+                'status': 'no_data'
+            })
+        
+        return jsonify(analysis_data)
+        
+    except Exception as e:
+        logger.error(f"Error in /api/analysis: {str(e)}")
+        return jsonify({
+            'error': str(e),
+            'status': 'error'
+        }), 500
+
+@app.route('/api/historical-trends')
+def get_historical_trends():
+    """API endpoint to get historical trends"""
+    try:
+        analyzer = HistoricalAnalyzer()
+        trends_data = analyzer.get_historical_trends()
+        return jsonify(trends_data)
+        
+    except Exception as e:
+        logger.error(f"Error in /api/historical-trends: {str(e)}")
+        return jsonify({
+            'error': str(e),
+            'status': 'error'
+        }), 500
 
 @app.route('/api/health')
 def health_check():

@@ -1,0 +1,478 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Stock Prediction Analysis - Historical Performance</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --bg-color: #ecf0f1;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+            --border-color: #bdc3c7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            margin: 20px 0;
+        }
+
+        .nav-links a {
+            background: var(--secondary-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .accuracy-high { color: var(--success-color); }
+        .accuracy-medium { color: var(--warning-color); }
+        .accuracy-low { color: var(--danger-color); }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .analysis-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .analysis-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 10px;
+        }
+
+        .stock-list {
+            list-style: none;
+        }
+
+        .stock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .stock-item:last-child {
+            border-bottom: none;
+        }
+
+        .stock-symbol {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stock-accuracy {
+            padding: 4px 12px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .insights-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .insights-list {
+            list-style: none;
+        }
+
+        .insight-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid var(--secondary-color);
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .trend-chart {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+
+        .refresh-btn {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 10px;
+        }
+
+        .refresh-btn:hover {
+            background: #219a52;
+            transform: translateY(-2px);
+        }
+
+        .timestamp {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .nav-links a {
+                display: block;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Stock Prediction Analysis</h1>
+            <p>AI-Powered Historical Performance & Accuracy Tracking</p>
+            
+            <div class="nav-links">
+                <a href="/">🏠 Main Dashboard</a>
+                <a href="/api/analysis" target="_blank">📋 Raw Data</a>
+                <button class="refresh-btn" onclick="refreshAnalysis()">🔄 Refresh Analysis</button>
+            </div>
+        </div>
+
+        <div id="loadingState" class="loading-state">
+            <h3>🔄 Loading Analysis Data...</h3>
+            <p>Analyzing historical predictions and calculating accuracy metrics...</p>
+        </div>
+
+        <div id="analysisContent" style="display: none;">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div id="accuracyRate" class="stat-value">--</div>
+                    <div class="stat-label">Prediction Accuracy</div>
+                </div>
+                <div class="stat-card">
+                    <div id="totalPredictions" class="stat-value">--</div>
+                    <div class="stat-label">Total Predictions</div>
+                </div>
+                <div class="stat-card">
+                    <div id="correctPredictions" class="stat-value">--</div>
+                    <div class="stat-label">Correct Predictions</div>
+                </div>
+                <div class="stat-card">
+                    <div id="analysisCount" class="stat-value">--</div>
+                    <div class="stat-label">Analysis Sessions</div>
+                </div>
+            </div>
+
+            <!-- Analysis Grid -->
+            <div class="analysis-grid">
+                <div class="analysis-card">
+                    <h3>🏆 Top Performing Stocks</h3>
+                    <ul id="topStocks" class="stock-list">
+                        <!-- Dynamic content -->
+                    </ul>
+                </div>
+                
+                <div class="analysis-card">
+                    <h3>⚠️ Challenging Predictions</h3>
+                    <ul id="worstStocks" class="stock-list">
+                        <!-- Dynamic content -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- AI Insights -->
+            <div class="insights-card">
+                <h3>🤖 AI-Generated Insights</h3>
+                <ul id="insights" class="insights-list">
+                    <!-- Dynamic content -->
+                </ul>
+            </div>
+
+            <!-- Historical Trends -->
+            <div class="trend-chart">
+                <h3>📈 Historical Accuracy Trend</h3>
+                <div id="trendData">
+                    <!-- Trend visualization will go here -->
+                </div>
+            </div>
+
+            <div id="lastUpdated" class="timestamp">
+                <!-- Dynamic timestamp -->
+            </div>
+        </div>
+
+        <div id="noDataState" class="no-data" style="display: none;">
+            <h3>📊 No Analysis Data Available</h3>
+            <p>Historical analysis will appear after multiple screening sessions.</p>
+            <p>Run the stock screener a few times to generate comparative data.</p>
+            <button class="refresh-btn" onclick="window.location.href='/'">Go to Main Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval;
+
+        function loadAnalysisData() {
+            fetch('/api/analysis')
+                .then(response => response.json())
+                .then(data => {
+                    displayAnalysis(data);
+                })
+                .catch(error => {
+                    console.error('Error loading analysis:', error);
+                    showNoDataState();
+                });
+        }
+
+        function displayAnalysis(data) {
+            if (!data || Object.keys(data).length === 0) {
+                showNoDataState();
+                return;
+            }
+
+            // Hide loading state
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('analysisContent').style.display = 'block';
+            document.getElementById('noDataState').style.display = 'none';
+
+            // Update stats
+            const accuracyElement = document.getElementById('accuracyRate');
+            const accuracy = data.accuracy_rate || 0;
+            accuracyElement.textContent = accuracy + '%';
+            accuracyElement.className = `stat-value ${
+                accuracy >= 70 ? 'accuracy-high' : 
+                accuracy >= 50 ? 'accuracy-medium' : 'accuracy-low'
+            }`;
+
+            document.getElementById('totalPredictions').textContent = data.total_predictions_analyzed || 0;
+            document.getElementById('correctPredictions').textContent = data.correct_predictions || 0;
+            document.getElementById('analysisCount').textContent = '1'; // Current analysis
+
+            // Update top performing stocks
+            const topStocksList = document.getElementById('topStocks');
+            topStocksList.innerHTML = '';
+            
+            if (data.top_performing_stocks && data.top_performing_stocks.length > 0) {
+                data.top_performing_stocks.forEach(stock => {
+                    const li = document.createElement('li');
+                    li.className = 'stock-item';
+                    li.innerHTML = `
+                        <span class="stock-symbol">${stock.symbol}</span>
+                        <span class="stock-accuracy" style="background: ${
+                            stock.success_rate >= 70 ? 'var(--success-color)' : 
+                            stock.success_rate >= 50 ? 'var(--warning-color)' : 'var(--danger-color)'
+                        }">${stock.success_rate}%</span>
+                    `;
+                    topStocksList.appendChild(li);
+                });
+            } else {
+                topStocksList.innerHTML = '<li class="stock-item">No data available yet</li>';
+            }
+
+            // Update worst performing stocks
+            const worstStocksList = document.getElementById('worstStocks');
+            worstStocksList.innerHTML = '';
+            
+            if (data.worst_performing_stocks && data.worst_performing_stocks.length > 0) {
+                data.worst_performing_stocks.forEach(stock => {
+                    const li = document.createElement('li');
+                    li.className = 'stock-item';
+                    li.innerHTML = `
+                        <span class="stock-symbol">${stock.symbol}</span>
+                        <span class="stock-accuracy" style="background: var(--danger-color)">${stock.success_rate}%</span>
+                    `;
+                    worstStocksList.appendChild(li);
+                });
+            } else {
+                worstStocksList.innerHTML = '<li class="stock-item">No challenging predictions identified</li>';
+            }
+
+            // Update insights
+            const insightsList = document.getElementById('insights');
+            insightsList.innerHTML = '';
+            
+            if (data.pattern_insights && data.pattern_insights.length > 0) {
+                data.pattern_insights.forEach(insight => {
+                    const li = document.createElement('li');
+                    li.className = 'insight-item';
+                    li.textContent = insight;
+                    insightsList.appendChild(li);
+                });
+            } else {
+                insightsList.innerHTML = '<li class="insight-item">🔍 Analyzing patterns... More insights will appear with additional data.</li>';
+            }
+
+            // Update trend data (simplified for now)
+            const trendElement = document.getElementById('trendData');
+            trendElement.innerHTML = `
+                <div style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 10px;">
+                    <p><strong>Current Analysis:</strong> ${accuracy}% accuracy rate</p>
+                    <p><strong>Total Predictions:</strong> ${data.total_predictions_analyzed || 0}</p>
+                    <p><strong>Performance:</strong> ${
+                        accuracy >= 70 ? '🟢 Excellent' : 
+                        accuracy >= 50 ? '🟡 Good' : '🔴 Needs Improvement'
+                    }</p>
+                </div>
+            `;
+
+            // Update timestamp
+            document.getElementById('lastUpdated').textContent = 
+                `Last Updated: ${new Date().toLocaleString()}`;
+        }
+
+        function showNoDataState() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('analysisContent').style.display = 'none';
+            document.getElementById('noDataState').style.display = 'block';
+        }
+
+        function refreshAnalysis() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('analysisContent').style.display = 'none';
+            loadAnalysisData();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnalysisData();
+            
+            // Auto-refresh every 2 minutes
+            refreshInterval = setInterval(loadAnalysisData, 120000);
+        });
+
+        // Cleanup
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
