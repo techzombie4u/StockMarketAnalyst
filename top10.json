@@ -1,60 +1,24 @@
 {
-  "timestamp": "2025-07-24T17:44:40.994937+05:30",
-  "last_updated": "2025-07-24 17:44:40 IST",
+  "timestamp": "2025-07-24T18:14:50.569903+05:30",
+  "last_updated": "2025-07-24 18:14:50 IST",
   "stocks": [
     {
-      "symbol": "RELIANCE",
-      "score": 90,
-      "adjusted_score": 88.5,
-      "confidence": 100,
-      "current_price": 1402.9,
-      "three_hour_price": 1403.89,
-      "three_hour_gain": 0.07,
-      "daily_price": 1404.79,
-      "daily_gain": 0.13,
-      "weekly_price": 1479.84,
-      "weekly_gain": 5.48,
-      "monthly_price": 1574.05,
-      "monthly_gain": 12.2,
-      "volatility": 1.64,
-      "predicted_price": 1655.42,
-      "predicted_gain": 18.0,
-      "time_horizon": 10,
-      "risk_level": "Low",
-      "market_cap": "Large Cap",
-      "pe_ratio": 25.3,
-      "pe_description": "Above Average",
-      "revenue_growth": -4.6,
-      "fundamentals": {
-        "pe_ratio": 25.3,
-        "revenue_growth": -4.600516980589253,
-        "earnings_growth": 25.341670964414647,
-        "promoter_buying": false
-      },
-      "technical": {
-        "atr_14": 22.950003487723215,
-        "current_price": 1402.9000244140625,
-        "momentum_ratio": -0.4313735472571226,
-        "volatility": 1.6358972904935654
-      }
-    },
-    {
       "symbol": "TCS",
-      "score": 80,
-      "adjusted_score": 78.9,
+      "score": 100,
+      "adjusted_score": 98.6,
       "confidence": 100,
       "current_price": 3148.0,
-      "three_hour_price": 3150.26,
-      "three_hour_gain": 0.07,
-      "daily_price": 3152.77,
-      "daily_gain": 0.15,
-      "weekly_price": 3298.15,
-      "weekly_gain": 4.77,
-      "monthly_price": 3522.61,
-      "monthly_gain": 11.9,
+      "three_hour_price": 3153.41,
+      "three_hour_gain": 0.17,
+      "daily_price": 3160.32,
+      "daily_gain": 0.39,
+      "weekly_price": 3348.52,
+      "weekly_gain": 6.37,
+      "monthly_price": 3635.94,
+      "monthly_gain": 15.5,
       "volatility": 1.41,
-      "predicted_price": 3651.68,
-      "predicted_gain": 16.0,
+      "predicted_price": 3777.6,
+      "predicted_gain": 20.0,
       "time_horizon": 10,
       "risk_level": "Low",
       "market_cap": "Large Cap",
@@ -72,6 +36,42 @@
         "current_price": 3148.0,
         "momentum_ratio": -0.26071997180606743,
         "volatility": 1.413359431036798
+      }
+    },
+    {
+      "symbol": "RELIANCE",
+      "score": 100,
+      "adjusted_score": 98.4,
+      "confidence": 100,
+      "current_price": 1402.9,
+      "three_hour_price": 1404.59,
+      "three_hour_gain": 0.12,
+      "daily_price": 1406.48,
+      "daily_gain": 0.25,
+      "weekly_price": 1491.06,
+      "weekly_gain": 6.28,
+      "monthly_price": 1599.31,
+      "monthly_gain": 14.0,
+      "volatility": 1.64,
+      "predicted_price": 1683.48,
+      "predicted_gain": 20.0,
+      "time_horizon": 10,
+      "risk_level": "Low",
+      "market_cap": "Large Cap",
+      "pe_ratio": 25.3,
+      "pe_description": "Above Average",
+      "revenue_growth": -4.6,
+      "fundamentals": {
+        "pe_ratio": 25.3,
+        "revenue_growth": -4.600516980589253,
+        "earnings_growth": 25.341670964414647,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 22.950003487723215,
+        "current_price": 1402.9000244140625,
+        "momentum_ratio": -0.4313735472571226,
+        "volatility": 1.6358972904935654
       }
     },
     {
@@ -180,42 +180,6 @@
         "current_price": 299.3500061035156,
         "momentum_ratio": 0.3790435769461009,
         "volatility": 1.3660557243144476
-      }
-    },
-    {
-      "symbol": "INFY",
-      "score": 75,
-      "adjusted_score": 73.5,
-      "confidence": 100,
-      "current_price": 1552.5,
-      "three_hour_price": 1551.59,
-      "three_hour_gain": -0.06,
-      "daily_price": 1549.57,
-      "daily_gain": -0.19,
-      "weekly_price": 1617.62,
-      "weekly_gain": 4.19,
-      "monthly_price": 1723.28,
-      "monthly_gain": 11.0,
-      "volatility": 1.94,
-      "predicted_price": 1785.37,
-      "predicted_gain": 15.0,
-      "time_horizon": 10,
-      "risk_level": "Low",
-      "market_cap": "Large Cap",
-      "pe_ratio": 23.7,
-      "pe_description": "Above Average",
-      "revenue_growth": -5.7,
-      "fundamentals": {
-        "pe_ratio": 23.7,
-        "revenue_growth": -5.659860966664842,
-        "earnings_growth": -11.018918021905078,
-        "promoter_buying": false
-      },
-      "technical": {
-        "atr_14": 30.107151576450892,
-        "current_price": 1552.5,
-        "momentum_ratio": -0.6111512863426963,
-        "volatility": 1.9392690226377387
       }
     },
     {
@@ -720,6 +684,42 @@
         "current_price": 2014.199951171875,
         "momentum_ratio": 0.2733012690346811,
         "volatility": 1.2897710540472265
+      }
+    },
+    {
+      "symbol": "CIPLA",
+      "score": 60,
+      "adjusted_score": 59.2,
+      "confidence": 100,
+      "current_price": 1487.9,
+      "three_hour_price": 1493.94,
+      "three_hour_gain": 0.41,
+      "daily_price": 1503.8,
+      "daily_gain": 1.07,
+      "weekly_price": 1545.82,
+      "weekly_gain": 3.89,
+      "monthly_price": 1611.4,
+      "monthly_gain": 8.3,
+      "volatility": 1.33,
+      "predicted_price": 1666.45,
+      "predicted_gain": 12.0,
+      "time_horizon": 10,
+      "risk_level": "Low",
+      "market_cap": "Small Cap",
+      "pe_ratio": 23.4,
+      "pe_description": "Above Average",
+      "revenue_growth": -2.1,
+      "fundamentals": {
+        "pe_ratio": 23.4,
+        "revenue_growth": -2.1395348837209305,
+        "earnings_growth": -47.45042492917847,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 19.821428571428573,
+        "current_price": 1487.9000244140625,
+        "momentum_ratio": 1.1855855855855855,
+        "volatility": 1.3321747594724507
       }
     }
   ],
