@@ -340,9 +340,14 @@
         let refreshInterval;
 
         function loadAnalysisData() {
+            console.log('Loading analysis data...');
             fetch('/api/analysis')
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Analysis response status:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Analysis data received:', data);
                     displayAnalysis(data);
                 })
                 .catch(error => {
@@ -352,7 +357,9 @@
         }
 
         function displayAnalysis(data) {
-            if (!data || Object.keys(data).length === 0) {
+            console.log('Analysis data received:', data);
+            
+            if (!data || Object.keys(data).length === 0 || data.status === 'no_data') {
                 showNoDataState();
                 return;
             }

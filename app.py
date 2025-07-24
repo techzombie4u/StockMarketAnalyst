@@ -108,11 +108,31 @@ def get_analysis():
         analyzer = HistoricalAnalyzer()
         analysis_data = analyzer.get_analysis_summary()
         
+        # If no analysis data exists, try to generate from existing historical data
         if not analysis_data:
-            return jsonify({
-                'message': 'No analysis data available yet',
-                'status': 'no_data'
-            })
+            historical_data = analyzer._load_historical_data()
+            if len(historical_data) >= 1:
+                # Force analysis generation
+                analysis_data = analyzer._analyze_predictions()
+                if analysis_data:
+                    logger.info("Generated analysis from existing historical data")
+                else:
+                    # Create minimal sample data for demonstration
+                    analysis_data = {
+                        'timestamp': datetime.now().isoformat(),
+                        'total_predictions_analyzed': 0,
+                        'correct_predictions': 0,
+                        'accuracy_rate': 0,
+                        'top_performing_stocks': [],
+                        'worst_performing_stocks': [],
+                        'pattern_insights': ['📋 Insufficient data for analysis. Run more screening sessions to generate insights.'],
+                        'status': 'insufficient_data'
+                    }
+            else:
+                return jsonify({
+                    'message': 'No analysis data available yet. Run the stock screener multiple times to generate analysis.',
+                    'status': 'no_data'
+                })
         
         return jsonify(analysis_data)
         
