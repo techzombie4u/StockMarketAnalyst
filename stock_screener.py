@@ -410,6 +410,10 @@ class StockScreener:
                                     np.maximum(high_close, low_close))
             atr_14 = true_range.rolling(
                 window=14).mean().iloc[-1] if len(true_range) >= 14 else 0
+            
+            # Ensure ATR is not NaN or None
+            if np.isnan(atr_14) or atr_14 is None:
+                atr_14 = 0
 
             # Calculate 2-day momentum
             if len(hist) >= 3:
@@ -417,8 +421,15 @@ class StockScreener:
                 momentum_ratio = recent_change / atr_14 if atr_14 > 0 else 0
             else:
                 momentum_ratio = 0
+            
+            # Ensure momentum_ratio is not NaN or None
+            if np.isnan(momentum_ratio) or momentum_ratio is None:
+                momentum_ratio = 0
 
             current_price = hist['Close'].iloc[-1]
+            # Ensure current_price is not NaN or None
+            if np.isnan(current_price) or current_price is None:
+                current_price = 0
 
             return {
                 'atr_14':
@@ -470,10 +481,13 @@ class StockScreener:
             # More lenient PE check or give points for having valid data
             if pe_ratio is not None and pe_ratio > 0:
                 score += 10  # Give points for having PE data
-                if median_pe is not None and pe_ratio < median_pe * 1.5:  # More lenient PE threshold
+                if median_pe is not None and median_pe > 0 and pe_ratio < median_pe * 1.5:  # More lenient PE threshold
                     score += 10
             
-            # Give points for any growth
+            # Give points for any growth (handle None values)
+            revenue_growth = revenue_growth if revenue_growth is not None else 0
+            earnings_growth = earnings_growth if earnings_growth is not None else 0
+            
             if revenue_growth > 10 or earnings_growth > 10:
                 score += 15
             elif revenue_growth > 0 or earnings_growth > 0:
@@ -483,8 +497,10 @@ class StockScreener:
             if fundamentals.get('promoter_buying', False):
                 score += 20
 
-            # Momentum check (±10 points)
+            # Momentum check (±10 points) - handle None values
             momentum_ratio = technical.get('momentum_ratio', 0)
+            momentum_ratio = momentum_ratio if momentum_ratio is not None else 0
+            
             if momentum_ratio > 0.3:  # More lenient threshold
                 score += 10
             elif momentum_ratio > 0:
@@ -493,7 +509,9 @@ class StockScreener:
                 score -= 5
 
             # Give bonus for having technical data
-            if technical.get('current_price', 0) > 0:
+            current_price = technical.get('current_price', 0)
+            current_price = current_price if current_price is not None else 0
+            if current_price > 0:
                 score += 5
 
             # Give bonus for popular/liquid stocks
@@ -513,12 +531,15 @@ class StockScreener:
             time_horizon = max(
                 10, 100 / normalized_score) if normalized_score > 0 else 100
 
+            # Ensure all values are not None
             current_price = technical.get('current_price', 0)
+            current_price = current_price if current_price is not None else 0
             predicted_price = current_price * (
                 1 + predicted_gain / 100) if current_price > 0 else 0
 
             # Calculate multiple time horizon predictions
             momentum_ratio = technical.get('momentum_ratio', 0)
+            momentum_ratio = momentum_ratio if momentum_ratio is not None else 0
             base_score_factor = (normalized_score -
                                  50) * 0.01  # Base momentum from score
 
@@ -543,27 +564,39 @@ class StockScreener:
 
             # 4-week prediction: monthly trend based on fundamentals
             monthly_change = (normalized_score / 10) + base_score_factor * 8.0
-            # Add fundamental boost
-            if fundamentals.get('revenue_growth', 0) > 15:
+            # Add fundamental boost (handle None values)
+            rev_growth = fundamentals.get('revenue_growth', 0)
+            rev_growth = rev_growth if rev_growth is not None else 0
+            if rev_growth > 15:
                 monthly_change += 2.0
-            if fundamentals.get('pe_ratio', 0) > 0 and fundamentals.get(
-                    'pe_ratio', 0) < 25:
+            
+            pe_val = fundamentals.get('pe_ratio', 0)
+            pe_val = pe_val if pe_val is not None else 0
+            if pe_val > 0 and pe_val < 25:
                 monthly_change += 1.5
             monthly_price = current_price * (
                 1 + monthly_change / 100) if current_price > 0 else 0
             monthly_gain = monthly_change
 
-            # Risk assessment
+            # Risk assessment (handle None volatility)
+            volatility = volatility if volatility is not None else 5
             risk_level = "Low" if volatility < 3 else "Medium" if volatility < 6 else "High"
 
             # Market cap estimation (simplified)
             market_cap_category = "Large Cap" if symbol in ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY'] else \
                                  "Mid Cap" if symbol in ['TITAN', 'ASIANPAINT', 'ULTRACEMCO'] else "Small Cap"
 
-            # Confidence score based on data quality
-            data_quality = (1 if fundamentals.get('pe_ratio', 0) > 0 else 0) + \
-                          (1 if technical.get('current_price', 0) > 0 else 0) + \
-                          (1 if fundamentals.get('revenue_growth', 0) != 0 else 0)
+            # Confidence score based on data quality (handle None values)
+            pe_check = fundamentals.get('pe_ratio', 0)
+            pe_check = pe_check if pe_check is not None else 0
+            price_check = technical.get('current_price', 0)
+            price_check = price_check if price_check is not None else 0
+            growth_check = fundamentals.get('revenue_growth', 0)
+            growth_check = growth_check if growth_check is not None else 0
+            
+            data_quality = (1 if pe_check > 0 else 0) + \
+                          (1 if price_check > 0 else 0) + \
+                          (1 if growth_check != 0 else 0)
             confidence = round((data_quality / 3) * 100, 0)
 
             # Get PE description
