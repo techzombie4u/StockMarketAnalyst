@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-07-24T20:21:07.572896+05:30",
-  "last_updated": "2025-07-24 20:21:07 IST",
+  "timestamp": "2025-07-24T19:00:41.652219+05:30",
+  "last_updated": "2025-07-24 19:00:41 IST",
   "stocks": [
     {
       "symbol": "TCS",
@@ -144,42 +144,6 @@
         "current_price": 12557.0,
         "momentum_ratio": 0.3752577319587629,
         "volatility": 1.3794241117646389
-      }
-    },
-    {
-      "symbol": "POWERGRID",
-      "score": 75,
-      "adjusted_score": 74.0,
-      "confidence": 100,
-      "current_price": 299.35,
-      "three_hour_price": 300.06,
-      "three_hour_gain": 0.24,
-      "daily_price": 301.16,
-      "daily_gain": 0.6,
-      "weekly_price": 313.39,
-      "weekly_gain": 4.69,
-      "monthly_price": 332.28,
-      "monthly_gain": 11.0,
-      "volatility": 1.37,
-      "predicted_price": 344.25,
-      "predicted_gain": 15.0,
-      "time_horizon": 10,
-      "risk_level": "Low",
-      "market_cap": "Small Cap",
-      "pe_ratio": 17.9,
-      "pe_description": "At Par",
-      "revenue_growth": -2.0,
-      "fundamentals": {
-        "pe_ratio": 17.9,
-        "revenue_growth": -1.999082989454379,
-        "earnings_growth": 9.339647461194422,
-        "promoter_buying": false
-      },
-      "technical": {
-        "atr_14": 4.089287894112723,
-        "current_price": 299.3500061035156,
-        "momentum_ratio": 0.3790435769461009,
-        "volatility": 1.3660557243144476
       }
     },
     {
@@ -327,42 +291,6 @@
       }
     },
     {
-      "symbol": "M&M",
-      "score": 70,
-      "adjusted_score": 68.6,
-      "confidence": 100,
-      "current_price": 3260.9,
-      "three_hour_price": 3264.71,
-      "three_hour_gain": 0.12,
-      "daily_price": 3270.2,
-      "daily_gain": 0.29,
-      "weekly_price": 3395.52,
-      "weekly_gain": 4.13,
-      "monthly_price": 3541.34,
-      "monthly_gain": 8.6,
-      "volatility": 2.01,
-      "predicted_price": 3717.43,
-      "predicted_gain": 14.0,
-      "time_horizon": 10,
-      "risk_level": "Low",
-      "market_cap": "Small Cap",
-      "pe_ratio": 31.4,
-      "pe_description": "High",
-      "revenue_growth": -8.7,
-      "fundamentals": {
-        "pe_ratio": 31.4,
-        "revenue_growth": -8.728091785739425,
-        "earnings_growth": 10.461668784413385,
-        "promoter_buying": false
-      },
-      "technical": {
-        "atr_14": 65.38572474888393,
-        "current_price": 3260.89990234375,
-        "momentum_ratio": 0.05658652842168205,
-        "volatility": 2.0051435710089835
-      }
-    },
-    {
       "symbol": "ICICIBANK",
       "score": 65,
       "adjusted_score": 64.3,
@@ -507,42 +435,6 @@
       }
     },
     {
-      "symbol": "DRREDDY",
-      "score": 65,
-      "adjusted_score": 63.9,
-      "confidence": 100,
-      "current_price": 1265.5,
-      "three_hour_price": 1270.88,
-      "three_hour_gain": 0.43,
-      "daily_price": 1279.59,
-      "daily_gain": 1.11,
-      "weekly_price": 1319.71,
-      "weekly_gain": 4.28,
-      "monthly_price": 1381.93,
-      "monthly_gain": 9.2,
-      "volatility": 1.73,
-      "predicted_price": 1430.01,
-      "predicted_gain": 13.0,
-      "time_horizon": 10,
-      "risk_level": "Low",
-      "market_cap": "Small Cap",
-      "pe_ratio": 18.7,
-      "pe_description": "At Par",
-      "revenue_growth": -17.4,
-      "fundamentals": {
-        "pe_ratio": 18.7,
-        "revenue_growth": -17.35628553379659,
-        "earnings_growth": 6.732495511669659,
-        "promoter_buying": false
-      },
-      "technical": {
-        "atr_14": 21.84660905829248,
-        "current_price": 1265.5,
-        "momentum_ratio": 1.1672291993672481,
-        "volatility": 1.7263223277986943
-      }
-    },
-    {
       "symbol": "BAJAJ-AUTO",
       "score": 65,
       "adjusted_score": 63.9,
@@ -576,42 +468,6 @@
         "current_price": 8288.5,
         "momentum_ratio": -0.04653541293786756,
         "volatility": 1.685209283085859
-      }
-    },
-    {
-      "symbol": "TATAMOTORS",
-      "score": 65,
-      "adjusted_score": 63.8,
-      "confidence": 100,
-      "current_price": 700.5,
-      "three_hour_price": 705.6,
-      "three_hour_gain": 0.73,
-      "daily_price": 713.96,
-      "daily_gain": 1.92,
-      "weekly_price": 734.04,
-      "weekly_gain": 4.79,
-      "monthly_price": 764.95,
-      "monthly_gain": 9.2,
-      "volatility": 1.78,
-      "predicted_price": 791.56,
-      "predicted_gain": 13.0,
-      "time_horizon": 10,
-      "risk_level": "Low",
-      "market_cap": "Small Cap",
-      "pe_ratio": 9.1,
-      "pe_description": "Very Low",
-      "revenue_growth": 9.0,
-      "fundamentals": {
-        "pe_ratio": 9.14,
-        "revenue_growth": 9.041495794814763,
-        "earnings_growth": -79.96364370834175,
-        "promoter_buying": false
-      },
-      "technical": {
-        "atr_14": 12.446437290736608,
-        "current_price": 700.5,
-        "momentum_ratio": 2.1773279335209397,
-        "volatility": 1.7767933320109361
       }
     },
     {
@@ -720,6 +576,150 @@
         "current_price": 1487.9000244140625,
         "momentum_ratio": 1.1855855855855855,
         "volatility": 1.3321747594724507
+      }
+    },
+    {
+      "symbol": "EICHERMOT",
+      "score": 60,
+      "adjusted_score": 59.2,
+      "confidence": 100,
+      "current_price": 5469.0,
+      "three_hour_price": 5478.0,
+      "three_hour_gain": 0.16,
+      "daily_price": 5492.27,
+      "daily_gain": 0.43,
+      "weekly_price": 5659.92,
+      "weekly_gain": 3.49,
+      "monthly_price": 5840.89,
+      "monthly_gain": 6.8,
+      "volatility": 1.41,
+      "predicted_price": 6125.28,
+      "predicted_gain": 12.0,
+      "time_horizon": 10,
+      "risk_level": "Low",
+      "market_cap": "Small Cap",
+      "pe_ratio": 31.7,
+      "pe_description": "High",
+      "revenue_growth": -6.0,
+      "fundamentals": {
+        "pe_ratio": 31.7,
+        "revenue_growth": -6.0052987930526935,
+        "earnings_growth": -0.16366612111292964,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 77.25,
+        "current_price": 5469.0,
+        "momentum_ratio": 0.3818770226537217,
+        "volatility": 1.4125068568294021
+      }
+    },
+    {
+      "symbol": "SUNPHARMA",
+      "score": 60,
+      "adjusted_score": 59.1,
+      "confidence": 100,
+      "current_price": 1692.0,
+      "three_hour_price": 1695.64,
+      "three_hour_gain": 0.22,
+      "daily_price": 1701.49,
+      "daily_gain": 0.56,
+      "weekly_price": 1752.5,
+      "weekly_gain": 3.58,
+      "monthly_price": 1807.06,
+      "monthly_gain": 6.8,
+      "volatility": 1.5,
+      "predicted_price": 1895.04,
+      "predicted_gain": 12.0,
+      "time_horizon": 10,
+      "risk_level": "Low",
+      "market_cap": "Small Cap",
+      "pe_ratio": 35.4,
+      "pe_description": "High",
+      "revenue_growth": -12.2,
+      "fundamentals": {
+        "pe_ratio": 35.4,
+        "revenue_growth": -12.21891841665118,
+        "earnings_growth": -206.4022933588151,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 25.40716552734375,
+        "current_price": 1692.0,
+        "momentum_ratio": 0.5510256539610013,
+        "volatility": 1.501605527620789
+      }
+    },
+    {
+      "symbol": "GRASIM",
+      "score": 60,
+      "adjusted_score": 59.0,
+      "confidence": 100,
+      "current_price": 2735.9,
+      "three_hour_price": 2739.61,
+      "three_hour_gain": 0.14,
+      "daily_price": 2745.42,
+      "daily_gain": 0.35,
+      "weekly_price": 2830.08,
+      "weekly_gain": 3.44,
+      "monthly_price": 2921.94,
+      "monthly_gain": 6.8,
+      "volatility": 1.69,
+      "predicted_price": 3064.21,
+      "predicted_gain": 12.0,
+      "time_horizon": 10,
+      "risk_level": "Low",
+      "market_cap": "Small Cap",
+      "pe_ratio": 50.6,
+      "pe_description": "Very High",
+      "revenue_growth": 2.7,
+      "fundamentals": {
+        "pe_ratio": 50.6,
+        "revenue_growth": 2.742315098780401,
+        "earnings_growth": 47.51721638274737,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 46.33571079799107,
+        "current_price": 2735.89990234375,
+        "momentum_ratio": 0.28487641485468046,
+        "volatility": 1.693618642929768
+      }
+    },
+    {
+      "symbol": "HINDALCO",
+      "score": 60,
+      "adjusted_score": 59.0,
+      "confidence": 100,
+      "current_price": 695.6,
+      "three_hour_price": 696.92,
+      "three_hour_gain": 0.19,
+      "daily_price": 699.02,
+      "daily_gain": 0.49,
+      "weekly_price": 720.17,
+      "weekly_gain": 3.53,
+      "monthly_price": 753.33,
+      "monthly_gain": 8.3,
+      "volatility": 1.72,
+      "predicted_price": 779.07,
+      "predicted_gain": 12.0,
+      "time_horizon": 10,
+      "risk_level": "Low",
+      "market_cap": "Small Cap",
+      "pe_ratio": 9.4,
+      "pe_description": "Very Low",
+      "revenue_growth": -3.9,
+      "fundamentals": {
+        "pe_ratio": 9.4,
+        "revenue_growth": -3.8850012065221136,
+        "earnings_growth": -6.506433600388443,
+        "promoter_buying": false
+      },
+      "technical": {
+        "atr_14": 11.960719517299108,
+        "current_price": 695.5999755859375,
+        "momentum_ratio": 0.4640178866281125,
+        "volatility": 1.7194824521412633
       }
     }
   ],
