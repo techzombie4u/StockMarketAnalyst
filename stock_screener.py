@@ -35,180 +35,28 @@ class StockScreener:
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
 
-        # Top 20 Nifty 50 stocks by market cap (updated dynamically)
+        # Complete Nifty 50 stocks list
         self.nifty50_symbols = [
-            'JSW INFRA', 'WIPRO', 'FORCEMOT'
-            # 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR',
-            # 'ICICIBANK', 'BHARTIARTL', 'SBIN', 'LT', 'ITC',
-            # 'KOTAKBANK', 'AXISBANK', 'HCLTECH', 'ASIANPAINT', 'MARUTI',
-            # 'SUNPHARMA', 'ULTRACEMCO', 'TITAN', 'NESTLEIND', 'BAJFINANCE',
-            # 'WIPRO', 'ONGC', 'NTPC', 'POWERGRID', 'TECHM',
-            # 'M&M', 'TATAMOTORS', 'BAJAJFINSV', 'DRREDDY', 'JSWSTEEL',
-            # 'COALINDIA', 'TATASTEEL', 'HDFCLIFE', 'SBILIFE', 'GRASIM',
-            # 'BRITANNIA', 'APOLLOHOSP', 'CIPLA', 'DIVISLAB', 'HEROMOTOCO',
-            # 'ADANIENT', 'EICHERMOT', 'HINDALCO', 'UPL', 'INDUSINDBK',
-            # 'BAJAJ-AUTO', 'BPCL', 'TATACONSUM', 'SHRIRAMFIN', 'LTIM'
+            'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR',
+            'ICICIBANK', 'BHARTIARTL', 'SBIN', 'LT', 'ITC',
+            'KOTAKBANK', 'AXISBANK', 'HCLTECH', 'ASIANPAINT', 'MARUTI',
+            'SUNPHARMA', 'ULTRACEMCO', 'TITAN', 'NESTLEIND', 'BAJFINANCE',
+            'WIPRO', 'ONGC', 'NTPC', 'POWERGRID', 'TECHM',
+            'M&M', 'TATAMOTORS', 'BAJAJFINSV', 'DRREDDY', 'JSWSTEEL',
+            'COALINDIA', 'TATASTEEL', 'HDFCLIFE', 'SBILIFE', 'GRASIM',
+            'BRITANNIA', 'APOLLOHOSP', 'CIPLA', 'DIVISLAB', 'HEROMOTOCO',
+            'ADANIENT', 'EICHERMOT', 'HINDALCO', 'UPL', 'INDUSINDBK',
+            'BAJAJ-AUTO', 'BPCL', 'TATACONSUM', 'SHRIRAMFIN', 'LTIM'
         ]
 
-        # Get top 20 by market cap for this screening session
-        # self.watchlist = self.get_top_20_nifty_stocks()
-        # Updated watchlist to use expanded stock list
-        self.watchlist = self.get_expanded_stock_list()
+        # Use all Nifty 50 stocks for comprehensive screening
+        self.watchlist = self.nifty50_symbols
 
         self.bulk_deals = []
         self.fundamentals = {}
         self.technical_data = {}
 
-    def get_expanded_stock_list(self) -> List[str]:
-        """Get expanded list of Indian stocks for broader screening, filtered by price <= ₹1000"""
-        try:
-            logger.info("Fetching expanded stock list (price <= ₹1000)...")
-
-            # Expanded list including Nifty 50, Nifty Next 50, and other popular stocks
-            expanded_symbols = [
-                # Nifty 50
-                'RELIANCE',
-                'TCS',
-                'HDFCBANK',
-                'INFY',
-                'HINDUNILVR',
-                'ICICIBANK',
-                'BHARTIARTL',
-                'SBIN',
-                'LT',
-                'ITC',
-                'KOTAKBANK',
-                'AXISBANK',
-                'HCLTECH',
-                'ASIANPAINT',
-                'MARUTI',
-                'SUNPHARMA',
-                'ULTRACEMCO',
-                'TITAN',
-                'NESTLEIND',
-                'BAJFINANCE',
-                'WIPRO',
-                'ONGC',
-                'NTPC',
-                'POWERGRID',
-                'TECHM',
-                'M&M',
-                'TATAMOTORS',
-                'BAJAJFINSV',
-                'DRREDDY',
-                'JSWSTEEL',
-                'COALINDIA',
-                'TATASTEEL',
-                'HDFCLIFE',
-                'SBILIFE',
-                'GRASIM',
-                'BRITANNIA',
-                'APOLLOHOSP',
-                'CIPLA',
-                'DIVISLAB',
-                'HEROMOTOCO',
-                'ADANIENT',
-                'EICHERMOT',
-                'HINDALCO',
-                'UPL',
-                'INDUSINDBK',
-                'BAJAJ-AUTO',
-                'BPCL',
-                'TATACONSUM',
-                'SHRIRAMFIN',
-                'LTIM',
-                # Additional popular stocks
-                'VEDL',
-                'SAIL',
-                'NMDC',
-                'BANKBARODA',
-                'PNB',
-                'CANBK',
-                'IOC',
-                'HPCL',
-                'GODREJCP',
-                'DABUR',
-                'MARICO',
-                'COLPAL',
-                'PIDILITIND',
-                'BERGEPAINT',
-                'AUROPHARMA',
-                'LUPIN',
-                'ZYDUSLIFE',
-                'TORNTPHARM',
-                'JINDALSTEL',
-                'ADANIPOWER',
-                'ADANIGREEN',
-                'ADANIPORTS',
-                'AMBUJACEM',
-                'ACC',
-                'SHREECEM',
-                'RAMCO',
-                'SIEMENS',
-                'ABB',
-                'HAVELLS',
-                'CROMPTON',
-                'VOLTAS',
-                'BLUESTARCO',
-                'WHIRLPOOL',
-                'DIXON',
-                'AMBER',
-                'FEDERALBNK',
-                'RBLBANK',
-                'BANDHANBNK',
-                'IDFCFIRSTB',
-                'PVR',
-                'JUBLFOOD',
-                'WESTLIFE',
-                'TRENT',
-                'SHOPERSTOP',
-                'ADITIYABIRLA'
-            ]
-
-            # Get price data and filter
-            stock_data = []
-
-            for symbol in expanded_symbols:
-                try:
-                    ticker = f"{symbol}.NS"
-                    hist = yf.Ticker(ticker).history(period="1d")
-
-                    if not hist.empty:
-                        current_price = hist['Close'].iloc[-1]
-
-                        # Only include stocks with price <= ₹1000
-                        if current_price <= 1000:
-                            stock_data.append((symbol, current_price))
-
-                    # Small delay to avoid rate limiting
-                    time.sleep(0.05)
-
-                except Exception as e:
-                    logger.warning(
-                        f"Could not fetch data for {symbol}: {str(e)}")
-                    continue
-
-            # Sort by price (ascending for affordable options)
-            stock_data.sort(key=lambda x: x[1])
-            selected_symbols = [symbol for symbol, _ in stock_data]
-
-            logger.info(
-                f"Selected {len(selected_symbols)} stocks under ₹1000 for screening"
-            )
-
-            return selected_symbols
-
-        except Exception as e:
-            logger.error(f"Error getting expanded stock list: {str(e)}")
-            # Return comprehensive fallback list
-            return [
-                'SBIN', 'ITC', 'ONGC', 'NTPC', 'POWERGRID', 'COALINDIA',
-                'BPCL', 'HINDALCO', 'JSWSTEEL', 'TATASTEEL', 'GRASIM', 'UPL',
-                'INDUSINDBK', 'WIPRO', 'TECHM', 'M&M', 'TATAMOTORS', 'DRREDDY',
-                'CIPLA', 'DIVISLAB', 'VEDL', 'SAIL', 'NMDC', 'BANKBARODA',
-                'PNB', 'CANBK', 'IOC', 'HPCL', 'GODREJCP', 'DABUR', 'MARICO',
-                'COLPAL', 'AUROPHARMA', 'LUPIN'
-            ]
+    
 
     def scrape_screener_data(self, symbol: str) -> Dict:
         """Scrape fundamental data from Screener.in with fallback values"""
@@ -484,13 +332,13 @@ class StockScreener:
                 if median_pe is not None and median_pe > 0 and pe_ratio < median_pe * 1.5:  # More lenient PE threshold
                     score += 10
             
-            # Give points for any growth (handle None values)
-            revenue_growth = revenue_growth if revenue_growth is not None else 0
-            earnings_growth = earnings_growth if earnings_growth is not None else 0
+            # Give points for any growth (handle None values safely)
+            safe_revenue_growth = revenue_growth if revenue_growth is not None else 0
+            safe_earnings_growth = earnings_growth if earnings_growth is not None else 0
             
-            if revenue_growth > 10 or earnings_growth > 10:
+            if safe_revenue_growth > 10 or safe_earnings_growth > 10:
                 score += 15
-            elif revenue_growth > 0 or earnings_growth > 0:
+            elif safe_revenue_growth > 0 or safe_earnings_growth > 0:
                 score += 5
 
             # Promoter buying (+20 points)
@@ -521,8 +369,9 @@ class StockScreener:
             # Normalize score to 0-100
             normalized_score = max(30, min(100, score))  # Ensure minimum score of 30
 
-            # Calculate adjusted score (emphasize low volatility)
+            # Calculate adjusted score (emphasize low volatility) - ensure safe values
             volatility = technical.get('volatility', 5)
+            volatility = volatility if volatility is not None else 5
             volatility_factor = max(0.5, 1 - (volatility / 100))
             adjusted_score = normalized_score * volatility_factor
 
@@ -565,9 +414,7 @@ class StockScreener:
             # 4-week prediction: monthly trend based on fundamentals
             monthly_change = (normalized_score / 10) + base_score_factor * 8.0
             # Add fundamental boost (handle None values)
-            rev_growth = fundamentals.get('revenue_growth', 0)
-            rev_growth = rev_growth if rev_growth is not None else 0
-            if rev_growth > 15:
+            if safe_revenue_growth > 15:
                 monthly_change += 2.0
             
             pe_val = fundamentals.get('pe_ratio', 0)
@@ -624,7 +471,7 @@ class StockScreener:
                 'market_cap': market_cap_category,
                 'pe_ratio': round(pe_ratio, 1) if pe_ratio is not None else None,
                 'pe_description': pe_description,
-                'revenue_growth': round(fundamentals.get('revenue_growth', 0), 1),
+                'revenue_growth': round(safe_revenue_growth, 1),
                 'fundamentals': fundamentals,
                 'technical': technical
             }
@@ -671,19 +518,17 @@ class StockScreener:
         # Step 3: Score and rank
         top_stocks = self.score_and_rank(stocks_data)
 
-        # Step 4: Enhance with ML predictions
+        # Step 4: Enhance with ML predictions (optional enhancement)
         try:
             from predictor import enrich_with_ml_predictions
             enhanced_stocks = enrich_with_ml_predictions(top_stocks)
-            logger.info("ML predictions added successfully")
+            logger.info("✅ ML predictions added successfully")
+            logger.info(f"Screening complete. Found {len(enhanced_stocks)} stocks.")
             return enhanced_stocks
         except Exception as e:
-            logger.warning(f"ML predictions failed, using traditional scoring: {str(e)}")
+            logger.warning(f"⚠️ ML predictions failed, using traditional scoring: {str(e)}")
+            logger.info(f"Screening complete. Found {len(top_stocks)} stocks.")
             return top_stocks
-
-        logger.info(f"Screening complete. Found {len(top_stocks)} stocks.")
-
-        return top_stocks
 
 
 def main():
