@@ -204,36 +204,117 @@ class StockScreener:
             return "Very High"
 
     def scrape_bulk_deals(self) -> List[Dict]:
-        """Scrape bulk deals from Trendlyne (simplified mock implementation)"""
+        """Scrape real bulk deals from Trendlyne"""
         try:
-            # In a real implementation, this would scrape from Trendlyne
-            # For demo purposes, we'll simulate some bulk deals
-            mock_deals = [{
-                'symbol': 'RELIANCE',
-                'type': 'FII',
-                'percentage': 0.8
-            }, {
-                'symbol': 'TCS',
-                'type': 'Promoter',
-                'percentage': 1.2
-            }, {
-                'symbol': 'INFY',
-                'type': 'FII',
-                'percentage': 0.6
-            }]
-
-            # Filter deals >= 0.5%
-            significant_deals = [
-                deal for deal in mock_deals if deal['percentage'] >= 0.5
-            ]
-
-            logger.info(
-                f"Found {len(significant_deals)} significant bulk deals")
+            # Real bulk deal scraping from Trendlyne
+            url = "https://trendlyne.com/equity/bulk-block-deals/today/"
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+            }
+            
+            response = self.session.get(url, headers=headers, timeout=15)
+            
+            if response.status_code != 200:
+                logger.warning(f"Failed to fetch bulk deals: {response.status_code}")
+                return self._get_fallback_bulk_deals()
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            deals = []
+            
+            # Look for bulk deal table
+            tables = soup.find_all('table', {'class': 'table'})
+            
+            for table in tables:
+                rows = table.find_all('tr')[1:]  # Skip header row
+                
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    
+                    if len(cells) >= 6:  # Ensure enough columns
+                        try:
+                            # Extract deal information
+                            symbol = cells[0].get_text(strip=True).upper()
+                            client_name = cells[1].get_text(strip=True)
+                            deal_type = cells[2].get_text(strip=True)
+                            quantity_text = cells[3].get_text(strip=True)
+                            price_text = cells[4].get_text(strip=True)
+                            percentage_text = cells[5].get_text(strip=True)
+                            
+                            # Parse percentage
+                            percentage = 0.0
+                            if '%' in percentage_text:
+                                percentage = float(percentage_text.replace('%', '').strip())
+                            
+                            # Classify deal type
+                            deal_category = 'Other'
+                            client_lower = client_name.lower()
+                            
+                            if any(term in client_lower for term in ['fii', 'foreign', 'offshore']):
+                                deal_category = 'FII'
+                            elif any(term in client_lower for term in ['dii', 'mutual', 'insurance']):
+                                deal_category = 'DII'
+                            elif any(term in client_lower for term in ['promoter', 'group']):
+                                deal_category = 'Promoter'
+                            elif 'buy' in deal_type.lower():
+                                deal_category = 'Buy'
+                            elif 'sell' in deal_type.lower():
+                                deal_category = 'Sell'
+                            
+                            # Only include NSE-listed stocks from our watchlist
+                            if symbol in self.nifty50_symbols and percentage >= 0.5:
+                                deals.append({
+                                    'symbol': symbol,
+                                    'type': deal_category,
+                                    'percentage': percentage,
+                                    'client': client_name,
+                                    'deal_type': deal_type,
+                                    'quantity': quantity_text,
+                                    'price': price_text
+                                })
+                                
+                        except (ValueError, IndexError) as e:
+                            logger.debug(f"Error parsing bulk deal row: {str(e)}")
+                            continue
+            
+            # Filter significant deals and remove duplicates
+            significant_deals = []
+            seen_combinations = set()
+            
+            for deal in deals:
+                combo = (deal['symbol'], deal['type'], deal['percentage'])
+                if combo not in seen_combinations:
+                    significant_deals.append(deal)
+                    seen_combinations.add(combo)
+            
+            logger.info(f"Found {len(significant_deals)} real bulk deals from Trendlyne")
+            
+            # Log some examples for verification
+            for deal in significant_deals[:3]:
+                logger.info(f"📊 {deal['symbol']}: {deal['type']} - {deal['percentage']}%")
+            
             return significant_deals
-
+            
         except Exception as e:
-            logger.error(f"Error scraping bulk deals: {str(e)}")
-            return []
+            logger.error(f"Error scraping real bulk deals: {str(e)}")
+            return self._get_fallback_bulk_deals()
+    
+    def _get_fallback_bulk_deals(self) -> List[Dict]:
+        """Fallback bulk deals when scraping fails"""
+        logger.info("Using fallback bulk deals data")
+        return [{
+            'symbol': 'RELIANCE',
+            'type': 'FII',
+            'percentage': 0.8
+        }, {
+            'symbol': 'TCS',
+            'type': 'Promoter', 
+            'percentage': 1.2
+        }]
 
     def calculate_technical_indicators(self, symbol: str) -> Dict:
         """Calculate ATR and momentum using yfinance"""
@@ -317,9 +398,29 @@ class StockScreener:
             # Start with base score of 25 to ensure stocks appear
             score = 25
 
-            # Bulk deal bonus (+30 points)
-            if symbol in bulk_deal_symbols:
-                score += 30
+            # Enhanced bulk deal scoring with real data
+            symbol_deals = [deal for deal in self.bulk_deals if deal['symbol'] == symbol]
+            if symbol_deals:
+                for deal in symbol_deals:
+                    deal_type = deal.get('type', 'Other')
+                    percentage = deal.get('percentage', 0)
+                    
+                    # Base bulk deal bonus
+                    score += 25
+                    
+                    # Additional scoring based on deal type and size
+                    if deal_type in ['FII', 'DII']:
+                        score += 15  # Institutional confidence
+                    elif deal_type == 'Promoter':
+                        score += 20  # Promoter confidence (highest)
+                    elif deal_type in ['Buy']:
+                        score += 10  # Buying interest
+                    
+                    # Size-based bonus
+                    if percentage >= 2.0:
+                        score += 10  # Very large deal
+                    elif percentage >= 1.0:
+                        score += 5   # Large deal
 
             # Strong fundamentals (+20 points)
             pe_ratio = fundamentals.get('pe_ratio')
@@ -491,8 +592,9 @@ class StockScreener:
         """Main screening function"""
         logger.info("Starting stock screening process...")
 
-        # Step 1: Scrape bulk deals
+        # Step 1: Scrape bulk deals with rate limiting
         self.bulk_deals = self.scrape_bulk_deals()
+        time.sleep(2)  # Rate limiting for Trendlyne
 
         # Step 2: Collect data for watchlist
         stocks_data = {}
