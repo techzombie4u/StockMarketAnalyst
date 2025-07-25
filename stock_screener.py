@@ -1,11 +1,12 @@
+
 """
-Stock Market Analyst - Data Collection and Scoring Module
+Stock Market Analyst - Enhanced Data Collection and Scoring Module
 
 This module handles:
-1. Data collection from Screener.in and Trendlyne
-2. Technical analysis using yfinance
-3. Stock scoring and ranking algorithm
-4. Error handling and rate limiting
+1. Enhanced technical indicators (RSI, EMA, Bollinger Bands)
+2. Rolling statistics and lagged features
+3. Multiple data sources for better reliability
+4. Improved scoring algorithm with advanced features
 
 Note: This is for personal use only. Respect website terms of service.
 """
@@ -26,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class StockScreener:
+class EnhancedStockScreener:
 
     def __init__(self):
         self.session = requests.Session()
@@ -55,136 +56,1035 @@ class StockScreener:
         self.bulk_deals = []
         self.fundamentals = {}
         self.technical_data = {}
+        
+        # Data source configurations
+        self.data_sources = {
+            'yahoo': {'priority': 1, 'timeout': 10},
+            'screener': {'priority': 2, 'timeout': 15},
+            'moneycontrol': {'priority': 3, 'timeout': 12},
+            'nse': {'priority': 4, 'timeout': 8},
+            'bse': {'priority': 5, 'timeout': 10}
+        }
 
-    
+    def calculate_enhanced_technical_indicators(self, symbol: str) -> Dict:
+        """Calculate enhanced technical indicators with multiple timeframes"""
+        try:
+            # Try multiple data sources for price data
+            hist_data = self._fetch_price_data_multiple_sources(symbol)
+            
+            if hist_data is None or hist_data.empty:
+                logger.warning(f"No price data found for {symbol}")
+                return {}
+
+            # Ensure we have enough data points
+            if len(hist_data) < 50:
+                logger.warning(f"Insufficient data for {symbol}: {len(hist_data)} days")
+                return {}
+
+            indicators = {}
+            
+            # 1. Enhanced ATR calculation (multiple periods)
+            indicators.update(self._calculate_atr_indicators(hist_data))
+            
+            # 2. RSI (Relative Strength Index)
+            indicators.update(self._calculate_rsi_indicators(hist_data))
+            
+            # 3. EMA (Exponential Moving Averages)
+            indicators.update(self._calculate_ema_indicators(hist_data))
+            
+            # 4. Bollinger Bands
+            indicators.update(self._calculate_bollinger_bands(hist_data))
+            
+            # 5. Volume indicators
+            indicators.update(self._calculate_volume_indicators(hist_data))
+            
+            # 6. Momentum and trend indicators
+            indicators.update(self._calculate_momentum_indicators(hist_data))
+            
+            # 7. Rolling statistics
+            indicators.update(self._calculate_rolling_statistics(hist_data))
+            
+            # 8. Lagged features
+            indicators.update(self._calculate_lagged_features(hist_data))
+            
+            # 9. Volatility measures
+            indicators.update(self._calculate_volatility_measures(hist_data))
+            
+            # Current price and basic info
+            indicators['current_price'] = float(hist_data['Close'].iloc[-1])
+            indicators['data_quality_score'] = self._assess_data_quality(hist_data)
+            
+            return indicators
+
+        except Exception as e:
+            logger.error(f"Error calculating enhanced indicators for {symbol}: {str(e)}")
+            return {}
+
+    def _fetch_price_data_multiple_sources(self, symbol: str) -> Optional[pd.DataFrame]:
+        """Fetch price data from multiple sources with fallback"""
+        
+        # Primary source: Yahoo Finance (most reliable)
+        try:
+            ticker = f"{symbol}.NS"
+            hist_data = yf.download(ticker, period="1y", progress=False)
+            if not hist_data.empty and len(hist_data) > 30:
+                logger.debug(f"Yahoo Finance data successful for {symbol}")
+                return hist_data
+        except Exception as e:
+            logger.warning(f"Yahoo Finance failed for {symbol}: {str(e)}")
+
+        # Fallback sources (placeholder implementations)
+        # In a real implementation, you would add NSE, BSE, Moneycontrol APIs
+        
+        # For now, try Yahoo Finance with different periods as fallback
+        fallback_periods = ["6mo", "3mo", "2mo"]
+        for period in fallback_periods:
+            try:
+                ticker = f"{symbol}.NS"
+                hist_data = yf.download(ticker, period=period, progress=False)
+                if not hist_data.empty and len(hist_data) > 20:
+                    logger.info(f"Yahoo Finance fallback ({period}) successful for {symbol}")
+                    return hist_data
+            except Exception:
+                continue
+        
+        logger.error(f"All data sources failed for {symbol}")
+        return None
+
+    def _calculate_atr_indicators(self, data: pd.DataFrame) -> Dict:
+        """Calculate ATR for multiple periods"""
+        indicators = {}
+        
+        try:
+            high_low = data['High'] - data['Low']
+            high_close = np.abs(data['High'] - data['Close'].shift())
+            low_close = np.abs(data['Low'] - data['Close'].shift())
+            true_range = np.maximum(high_low, np.maximum(high_close, low_close))
+            
+            # Multiple ATR periods
+            for period in [7, 14, 21]:
+                atr = true_range.rolling(window=period).mean()
+                indicators[f'atr_{period}'] = float(atr.iloc[-1]) if not np.isnan(atr.iloc[-1]) else 0
+            
+            # ATR-based volatility
+            current_price = data['Close'].iloc[-1]
+            indicators['atr_volatility'] = (indicators['atr_14'] / current_price * 100) if current_price > 0 else 0
+            
+        except Exception as e:
+            logger.error(f"Error calculating ATR: {str(e)}")
+            
+        return indicators
+
+    def _calculate_rsi_indicators(self, data: pd.DataFrame) -> Dict:
+        """Calculate RSI for multiple periods"""
+        indicators = {}
+        
+        try:
+            close_prices = data['Close']
+            
+            for period in [14, 21]:
+                delta = close_prices.diff()
+                gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+                rs = gain / loss
+                rsi = 100 - (100 / (1 + rs))
+                
+                indicators[f'rsi_{period}'] = float(rsi.iloc[-1]) if not np.isnan(rsi.iloc[-1]) else 50
+            
+            # RSI signal interpretation
+            rsi_14 = indicators.get('rsi_14', 50)
+            if rsi_14 < 30:
+                indicators['rsi_signal'] = 'oversold'
+            elif rsi_14 > 70:
+                indicators['rsi_signal'] = 'overbought'
+            else:
+                indicators['rsi_signal'] = 'neutral'
+                
+        except Exception as e:
+            logger.error(f"Error calculating RSI: {str(e)}")
+            
+        return indicators
+
+    def _calculate_ema_indicators(self, data: pd.DataFrame) -> Dict:
+        """Calculate Exponential Moving Averages"""
+        indicators = {}
+        
+        try:
+            close_prices = data['Close']
+            
+            # Multiple EMA periods
+            ema_periods = [5, 12, 21, 50]
+            for period in ema_periods:
+                ema = close_prices.ewm(span=period).mean()
+                indicators[f'ema_{period}'] = float(ema.iloc[-1])
+            
+            # EMA crossover signals
+            current_price = close_prices.iloc[-1]
+            indicators['price_above_ema_12'] = current_price > indicators['ema_12']
+            indicators['price_above_ema_21'] = current_price > indicators['ema_21']
+            indicators['ema_12_above_21'] = indicators['ema_12'] > indicators['ema_21']
+            
+            # EMA trend strength
+            ema_5 = indicators['ema_5']
+            ema_21 = indicators['ema_21']
+            indicators['ema_trend_strength'] = ((ema_5 - ema_21) / ema_21 * 100) if ema_21 > 0 else 0
+            
+        except Exception as e:
+            logger.error(f"Error calculating EMA: {str(e)}")
+            
+        return indicators
+
+    def _calculate_bollinger_bands(self, data: pd.DataFrame) -> Dict:
+        """Calculate Bollinger Bands"""
+        indicators = {}
+        
+        try:
+            close_prices = data['Close']
+            period = 20
+            std_dev = 2
+            
+            # Calculate Bollinger Bands
+            bb_middle = close_prices.rolling(window=period).mean()
+            bb_std = close_prices.rolling(window=period).std()
+            bb_upper = bb_middle + (bb_std * std_dev)
+            bb_lower = bb_middle - (bb_std * std_dev)
+            
+            indicators['bb_upper'] = float(bb_upper.iloc[-1])
+            indicators['bb_middle'] = float(bb_middle.iloc[-1])
+            indicators['bb_lower'] = float(bb_lower.iloc[-1])
+            
+            # Current price position in Bollinger Bands
+            current_price = close_prices.iloc[-1]
+            bb_width = bb_upper.iloc[-1] - bb_lower.iloc[-1]
+            indicators['bb_position'] = ((current_price - bb_lower.iloc[-1]) / bb_width * 100) if bb_width > 0 else 50
+            
+            # Bollinger Band squeeze indicator
+            indicators['bb_width'] = bb_width / bb_middle.iloc[-1] * 100 if bb_middle.iloc[-1] > 0 else 0
+            
+            # Signal interpretation
+            if current_price > bb_upper.iloc[-1]:
+                indicators['bb_signal'] = 'above_upper'
+            elif current_price < bb_lower.iloc[-1]:
+                indicators['bb_signal'] = 'below_lower'
+            else:
+                indicators['bb_signal'] = 'within_bands'
+                
+        except Exception as e:
+            logger.error(f"Error calculating Bollinger Bands: {str(e)}")
+            
+        return indicators
+
+    def _calculate_volume_indicators(self, data: pd.DataFrame) -> Dict:
+        """Calculate volume-based indicators"""
+        indicators = {}
+        
+        try:
+            volume = data['Volume']
+            close_prices = data['Close']
+            
+            # Volume moving averages
+            indicators['volume_ma_10'] = float(volume.rolling(window=10).mean().iloc[-1])
+            indicators['volume_ma_20'] = float(volume.rolling(window=20).mean().iloc[-1])
+            
+            # Current volume vs average
+            current_volume = volume.iloc[-1]
+            indicators['volume_ratio_10'] = current_volume / indicators['volume_ma_10'] if indicators['volume_ma_10'] > 0 else 1
+            
+            # Price-Volume trend
+            price_change = close_prices.pct_change()
+            volume_change = volume.pct_change()
+            pv_correlation = price_change.rolling(window=20).corr(volume_change)
+            indicators['price_volume_correlation'] = float(pv_correlation.iloc[-1]) if not np.isnan(pv_correlation.iloc[-1]) else 0
+            
+            # On Balance Volume (OBV)
+            obv = np.where(close_prices > close_prices.shift(1), volume, 
+                          np.where(close_prices < close_prices.shift(1), -volume, 0)).cumsum()
+            indicators['obv'] = float(obv[-1])
+            indicators['obv_trend'] = float(obv[-1] - obv[-10]) if len(obv) > 10 else 0
+            
+        except Exception as e:
+            logger.error(f"Error calculating volume indicators: {str(e)}")
+            
+        return indicators
+
+    def _calculate_momentum_indicators(self, data: pd.DataFrame) -> Dict:
+        """Calculate momentum and trend indicators"""
+        indicators = {}
+        
+        try:
+            close_prices = data['Close']
+            
+            # Multiple timeframe momentum
+            for period in [2, 5, 10, 20]:
+                momentum = close_prices.pct_change(periods=period)
+                indicators[f'momentum_{period}d'] = float(momentum.iloc[-1]) if not np.isnan(momentum.iloc[-1]) else 0
+            
+            # MACD (Moving Average Convergence Divergence)
+            ema_12 = close_prices.ewm(span=12).mean()
+            ema_26 = close_prices.ewm(span=26).mean()
+            macd_line = ema_12 - ema_26
+            signal_line = macd_line.ewm(span=9).mean()
+            macd_histogram = macd_line - signal_line
+            
+            indicators['macd'] = float(macd_line.iloc[-1])
+            indicators['macd_signal'] = float(signal_line.iloc[-1])
+            indicators['macd_histogram'] = float(macd_histogram.iloc[-1])
+            indicators['macd_bullish'] = indicators['macd'] > indicators['macd_signal']
+            
+            # Rate of Change
+            roc_10 = ((close_prices.iloc[-1] - close_prices.iloc[-11]) / close_prices.iloc[-11] * 100) if len(close_prices) > 10 else 0
+            indicators['roc_10'] = roc_10
+            
+        except Exception as e:
+            logger.error(f"Error calculating momentum indicators: {str(e)}")
+            
+        return indicators
+
+    def _calculate_rolling_statistics(self, data: pd.DataFrame) -> Dict:
+        """Calculate rolling statistical measures"""
+        indicators = {}
+        
+        try:
+            close_prices = data['Close']
+            
+            # Rolling statistics for multiple windows
+            for window in [5, 10, 20]:
+                rolling_data = close_prices.rolling(window=window)
+                
+                indicators[f'rolling_mean_{window}'] = float(rolling_data.mean().iloc[-1])
+                indicators[f'rolling_std_{window}'] = float(rolling_data.std().iloc[-1])
+                indicators[f'rolling_min_{window}'] = float(rolling_data.min().iloc[-1])
+                indicators[f'rolling_max_{window}'] = float(rolling_data.max().iloc[-1])
+                
+                # Position within rolling range
+                current_price = close_prices.iloc[-1]
+                rolling_min = indicators[f'rolling_min_{window}']
+                rolling_max = indicators[f'rolling_max_{window}']
+                range_width = rolling_max - rolling_min
+                
+                if range_width > 0:
+                    indicators[f'price_position_{window}'] = ((current_price - rolling_min) / range_width * 100)
+                else:
+                    indicators[f'price_position_{window}'] = 50
+            
+            # Coefficient of variation (volatility relative to mean)
+            for window in [10, 20]:
+                mean_val = indicators[f'rolling_mean_{window}']
+                std_val = indicators[f'rolling_std_{window}']
+                indicators[f'coeff_variation_{window}'] = (std_val / mean_val * 100) if mean_val > 0 else 0
+                
+        except Exception as e:
+            logger.error(f"Error calculating rolling statistics: {str(e)}")
+            
+        return indicators
+
+    def _calculate_lagged_features(self, data: pd.DataFrame) -> Dict:
+        """Calculate lagged price features"""
+        indicators = {}
+        
+        try:
+            close_prices = data['Close']
+            
+            # Lagged price features
+            for lag in [1, 2, 3, 5, 10]:
+                if len(close_prices) > lag:
+                    lagged_price = close_prices.iloc[-(lag+1)]
+                    current_price = close_prices.iloc[-1]
+                    
+                    indicators[f'price_lag_{lag}'] = float(lagged_price)
+                    indicators[f'return_lag_{lag}'] = ((current_price - lagged_price) / lagged_price * 100) if lagged_price > 0 else 0
+            
+            # Lagged volume features
+            volume = data['Volume']
+            for lag in [1, 2, 5]:
+                if len(volume) > lag:
+                    indicators[f'volume_lag_{lag}'] = float(volume.iloc[-(lag+1)])
+                    
+                    # Volume change from lag
+                    current_volume = volume.iloc[-1]
+                    lagged_volume = volume.iloc[-(lag+1)]
+                    indicators[f'volume_change_lag_{lag}'] = ((current_volume - lagged_volume) / lagged_volume * 100) if lagged_volume > 0 else 0
+            
+            # Sequential return patterns
+            returns = close_prices.pct_change()
+            if len(returns) >= 5:
+                recent_returns = returns.tail(5).values
+                indicators['returns_pattern'] = {
+                    'consecutive_positive': int(np.sum(recent_returns > 0)),
+                    'consecutive_negative': int(np.sum(recent_returns < 0)),
+                    'avg_return_5d': float(np.mean(recent_returns))
+                }
+                
+        except Exception as e:
+            logger.error(f"Error calculating lagged features: {str(e)}")
+            
+        return indicators
+
+    def _calculate_volatility_measures(self, data: pd.DataFrame) -> Dict:
+        """Calculate various volatility measures"""
+        indicators = {}
+        
+        try:
+            close_prices = data['Close']
+            returns = close_prices.pct_change().dropna()
+            
+            # Historical volatility (annualized)
+            for window in [10, 20, 30]:
+                if len(returns) >= window:
+                    vol = returns.rolling(window=window).std() * np.sqrt(252)  # Annualized
+                    indicators[f'hist_volatility_{window}'] = float(vol.iloc[-1]) if not np.isnan(vol.iloc[-1]) else 0
+            
+            # Parkinson's volatility (using high-low)
+            high_low_ratio = np.log(data['High'] / data['Low'])
+            parkinson_vol = np.sqrt(np.mean(high_low_ratio**2) / (4 * np.log(2))) * np.sqrt(252)
+            indicators['parkinson_volatility'] = float(parkinson_vol) if not np.isnan(parkinson_vol) else 0
+            
+            # Garman-Klass volatility (more accurate)
+            if len(data) >= 20:
+                log_hl = np.log(data['High'] / data['Low'])
+                log_co = np.log(data['Close'] / data['Open'])
+                gk_vol = np.sqrt(np.mean(0.5 * log_hl**2 - (2*np.log(2)-1) * log_co**2)) * np.sqrt(252)
+                indicators['garman_klass_volatility'] = float(gk_vol) if not np.isnan(gk_vol) else 0
+            
+            # Volatility regime detection
+            current_vol = indicators.get('hist_volatility_20', 0)
+            long_term_vol = indicators.get('hist_volatility_30', 0)
+            
+            if current_vol > long_term_vol * 1.2:
+                indicators['volatility_regime'] = 'high'
+            elif current_vol < long_term_vol * 0.8:
+                indicators['volatility_regime'] = 'low'
+            else:
+                indicators['volatility_regime'] = 'normal'
+                
+        except Exception as e:
+            logger.error(f"Error calculating volatility measures: {str(e)}")
+            
+        return indicators
+
+    def _assess_data_quality(self, data: pd.DataFrame) -> float:
+        """Assess the quality of the data"""
+        try:
+            quality_score = 0
+            
+            # Data completeness
+            if len(data) >= 100:
+                quality_score += 30
+            elif len(data) >= 50:
+                quality_score += 20
+            elif len(data) >= 20:
+                quality_score += 10
+            
+            # Volume data availability
+            if 'Volume' in data.columns and data['Volume'].sum() > 0:
+                quality_score += 20
+            
+            # Price consistency
+            price_changes = data['Close'].pct_change().dropna()
+            if len(price_changes) > 0:
+                extreme_changes = np.sum(np.abs(price_changes) > 0.20)  # More than 20% daily change
+                if extreme_changes / len(price_changes) < 0.05:  # Less than 5% extreme changes
+                    quality_score += 25
+                elif extreme_changes / len(price_changes) < 0.10:
+                    quality_score += 15
+            
+            # Data recency
+            if hasattr(data.index[-1], 'date'):
+                days_old = (datetime.now().date() - data.index[-1].date()).days
+                if days_old <= 3:
+                    quality_score += 25
+                elif days_old <= 7:
+                    quality_score += 15
+                elif days_old <= 30:
+                    quality_score += 5
+            
+            return min(quality_score, 100)
+            
+        except Exception:
+            return 50  # Default quality score
 
     def scrape_screener_data(self, symbol: str) -> Dict:
-        """Scrape fundamental data from Screener.in with fallback values"""
+        """Enhanced scrape fundamental data from Screener.in with better error handling"""
         try:
             url = f"https://www.screener.in/company/{symbol}/consolidated/"
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=15)
 
-            # Provide fallback data even if scraping fails
             fallback_data = {
-                'pe_ratio': None,  # No default PE ratio
-                'revenue_growth': 5.0,  # Default modest growth
-                'earnings_growth': 3.0,  # Default modest growth
-                'promoter_buying': False
+                'pe_ratio': None,
+                'revenue_growth': 5.0,
+                'earnings_growth': 3.0,
+                'promoter_buying': False,
+                'debt_to_equity': None,
+                'roe': None,
+                'current_ratio': None,
+                'data_source': 'fallback'
             }
 
             if response.status_code != 200:
-                logger.warning(
-                    f"Failed to fetch data for {symbol}: {response.status_code}, using fallback"
-                )
+                logger.warning(f"Failed to fetch data for {symbol}: {response.status_code}")
                 return fallback_data
 
             soup = BeautifulSoup(response.content, 'html.parser')
-
-            # Extract PE ratio - try multiple selectors
-            pe_ratio = None
             
-            # Try different ways to find PE ratio
-            pe_selectors = [
-                'span:contains("Stock P/E")',
-                'span:contains("P/E")',
-                'td:contains("Stock P/E")',
-                'td:contains("P/E Ratio")'
-            ]
+            result = fallback_data.copy()
+            result['data_source'] = 'screener'
+
+            # Enhanced PE ratio extraction
+            pe_ratio = self._extract_pe_ratio(soup, symbol)
+            if pe_ratio:
+                result['pe_ratio'] = pe_ratio
+
+            # Enhanced financial metrics extraction
+            result.update(self._extract_financial_metrics(soup))
             
-            for selector in pe_selectors:
-                try:
-                    pe_elements = soup.select(selector)
-                    for pe_element in pe_elements:
-                        # Look for number in next sibling or parent's next sibling
-                        number_element = None
-                        if pe_element.parent:
-                            number_element = pe_element.parent.find_next('span', class_='number')
-                            if not number_element:
-                                number_element = pe_element.find_next_sibling()
-                                if number_element and 'number' in str(number_element.get('class', [])):
-                                    pass
-                                else:
-                                    # Try finding any number in the same row
-                                    row = pe_element.find_parent('tr') or pe_element.find_parent('div')
-                                    if row:
-                                        number_element = row.find('span', class_='number')
-                        
-                        if number_element:
-                            pe_text = number_element.text.strip()
-                            try:
-                                parsed_pe = float(pe_text.replace(',', '').replace('%', ''))
-                                if 0 < parsed_pe < 500:  # Reasonable PE range
-                                    pe_ratio = parsed_pe
-                                    break
-                            except ValueError:
-                                continue
-                    
-                    if pe_ratio is not None:
-                        break
-                except Exception:
-                    continue
-            
-            # If still no PE found, try yfinance as backup
-            if pe_ratio is None:
-                try:
-                    ticker = f"{symbol}.NS"
-                    stock_info = yf.Ticker(ticker).info
-                    if 'trailingPE' in stock_info and stock_info['trailingPE']:
-                        pe_ratio = float(stock_info['trailingPE'])
-                        if pe_ratio <= 0 or pe_ratio > 500:
-                            pe_ratio = None
-                except Exception:
-                    pass
+            # Enhanced growth data extraction
+            result.update(self._extract_growth_data(soup))
 
-            # Extract quarterly growth data
-            revenue_growth = 5.0  # Default value
-            earnings_growth = 3.0  # Default value
-
-            # Look for quarterly results table
-            quarterly_table = soup.find('table', {'class': 'data-table'})
-            if quarterly_table:
-                rows = quarterly_table.find_all('tr')
-                for row in rows:
-                    cells = row.find_all('td')
-                    if len(cells) >= 3:
-                        if 'Sales' in cells[0].text:
-                            try:
-                                current = float(cells[1].text.replace(',', '').replace('%', ''))
-                                previous = float(cells[2].text.replace(',', '').replace('%', ''))
-                                if previous != 0:
-                                    revenue_growth = ((current - previous) / previous) * 100
-                            except (ValueError, IndexError):
-                                pass
-                        elif 'Net Profit' in cells[0].text:
-                            try:
-                                current = float(cells[1].text.replace(',', '').replace('%', ''))
-                                previous = float(cells[2].text.replace(',', '').replace('%', ''))
-                                if previous != 0:
-                                    earnings_growth = ((current - previous) / previous) * 100
-                            except (ValueError, IndexError):
-                                pass
-
-            # Check for promoter buying (simplified - look for recent announcements)
-            promoter_buying = False
-            news_section = soup.find('div', {'class': 'company-ratios'})
-            if news_section and 'promoter' in news_section.text.lower():
-                promoter_buying = True
-
-            return {
-                'pe_ratio': pe_ratio,
-                'revenue_growth': revenue_growth,
-                'earnings_growth': earnings_growth,
-                'promoter_buying': promoter_buying
-            }
+            return result
 
         except Exception as e:
-            logger.error(f"Error scraping {symbol}: {str(e)}, using fallback data")
+            logger.error(f"Error scraping {symbol}: {str(e)}")
             return {
                 'pe_ratio': None,
                 'revenue_growth': 5.0,
                 'earnings_growth': 3.0,
-                'promoter_buying': False
+                'promoter_buying': False,
+                'debt_to_equity': None,
+                'roe': None,
+                'current_ratio': None,
+                'data_source': 'error'
             }
+
+    def _extract_pe_ratio(self, soup: BeautifulSoup, symbol: str) -> Optional[float]:
+        """Enhanced PE ratio extraction"""
+        try:
+            # Multiple selectors for PE ratio
+            pe_selectors = [
+                'span:contains("Stock P/E")',
+                'span:contains("P/E")',
+                'td:contains("Stock P/E")',
+                'td:contains("P/E Ratio")',
+                '.number'
+            ]
+            
+            for selector in pe_selectors:
+                try:
+                    elements = soup.select(selector)
+                    for element in elements:
+                        # Look for number in various locations
+                        for candidate in [element, element.find_next_sibling(), 
+                                        element.parent.find_next('span', class_='number') if element.parent else None]:
+                            if candidate and candidate.text:
+                                text = candidate.text.strip()
+                                try:
+                                    pe_value = float(text.replace(',', '').replace('%', ''))
+                                    if 0 < pe_value < 500:
+                                        return pe_value
+                                except ValueError:
+                                    continue
+                except Exception:
+                    continue
+            
+            # Fallback to yfinance
+            try:
+                ticker = f"{symbol}.NS"
+                stock_info = yf.Ticker(ticker).info
+                if 'trailingPE' in stock_info and stock_info['trailingPE']:
+                    pe_value = float(stock_info['trailingPE'])
+                    if 0 < pe_value < 500:
+                        return pe_value
+            except Exception:
+                pass
+                
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error extracting PE ratio: {str(e)}")
+            return None
+
+    def _extract_financial_metrics(self, soup: BeautifulSoup) -> Dict:
+        """Extract additional financial metrics"""
+        metrics = {}
+        
+        try:
+            # Look for debt-to-equity, ROE, current ratio, etc.
+            metric_mappings = {
+                'debt_to_equity': ['Debt to equity', 'D/E', 'Debt/Equity'],
+                'roe': ['ROE', 'Return on equity', 'Return on Equity'],
+                'current_ratio': ['Current ratio', 'Current Ratio']
+            }
+            
+            for metric, search_terms in metric_mappings.items():
+                value = self._extract_metric_value(soup, search_terms)
+                if value is not None:
+                    metrics[metric] = value
+                    
+        except Exception as e:
+            logger.error(f"Error extracting financial metrics: {str(e)}")
+            
+        return metrics
+
+    def _extract_growth_data(self, soup: BeautifulSoup) -> Dict:
+        """Enhanced growth data extraction"""
+        growth_data = {
+            'revenue_growth': 5.0,
+            'earnings_growth': 3.0,
+            'promoter_buying': False
+        }
+        
+        try:
+            # Look for quarterly results table
+            tables = soup.find_all('table', {'class': 'data-table'})
+            
+            for table in tables:
+                rows = table.find_all('tr')
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) >= 3:
+                        row_text = cells[0].text.lower()
+                        
+                        # Revenue growth
+                        if any(term in row_text for term in ['sales', 'revenue', 'income']):
+                            growth = self._calculate_growth_from_cells(cells[1:3])
+                            if growth is not None:
+                                growth_data['revenue_growth'] = growth
+                        
+                        # Earnings growth
+                        elif any(term in row_text for term in ['net profit', 'earnings', 'pat']):
+                            growth = self._calculate_growth_from_cells(cells[1:3])
+                            if growth is not None:
+                                growth_data['earnings_growth'] = growth
+            
+            # Check for promoter buying
+            page_text = soup.get_text().lower()
+            if any(term in page_text for term in ['promoter', 'buying', 'increase in holding']):
+                growth_data['promoter_buying'] = True
+                
+        except Exception as e:
+            logger.error(f"Error extracting growth data: {str(e)}")
+            
+        return growth_data
+
+    def _extract_metric_value(self, soup: BeautifulSoup, search_terms: List[str]) -> Optional[float]:
+        """Extract a specific metric value from soup"""
+        try:
+            for term in search_terms:
+                elements = soup.find_all(text=lambda text: text and term.lower() in text.lower())
+                for element in elements:
+                    parent = element.parent
+                    if parent:
+                        # Look for number in the same row
+                        row = parent.find_parent('tr')
+                        if row:
+                            number_element = row.find('span', class_='number') or row.find(text=lambda t: t and any(c.isdigit() for c in t))
+                            if number_element:
+                                try:
+                                    value = float(str(number_element).replace(',', '').replace('%', ''))
+                                    return value
+                                except ValueError:
+                                    continue
+            return None
+        except Exception:
+            return None
+
+    def _calculate_growth_from_cells(self, cells: List) -> Optional[float]:
+        """Calculate growth rate from table cells"""
+        try:
+            if len(cells) >= 2:
+                current_text = cells[0].text.replace(',', '').replace('%', '').strip()
+                previous_text = cells[1].text.replace(',', '').replace('%', '').strip()
+                
+                current = float(current_text)
+                previous = float(previous_text)
+                
+                if previous != 0:
+                    growth = ((current - previous) / abs(previous)) * 100
+                    return growth
+                    
+        except (ValueError, IndexError, AttributeError):
+            pass
+            
+        return None
+
+    def enhanced_score_and_rank(self, stocks_data: Dict) -> List[Dict]:
+        """Enhanced scoring algorithm with new technical indicators"""
+        scored_stocks = []
+
+        # Calculate median PE for normalization
+        pe_ratios = [
+            data.get('fundamentals', {}).get('pe_ratio')
+            for data in stocks_data.values()
+            if data.get('fundamentals', {}).get('pe_ratio') is not None and data.get('fundamentals', {}).get('pe_ratio') > 0
+        ]
+        median_pe = np.median(pe_ratios) if pe_ratios else 20
+
+        bulk_deal_symbols = {deal['symbol'] for deal in self.bulk_deals}
+
+        for symbol, data in stocks_data.items():
+            fundamentals = data.get('fundamentals', {})
+            technical = data.get('technical', {})
+
+            # Start with base score
+            score = 30
+
+            # 1. Enhanced bulk deal scoring
+            score += self._score_bulk_deals(symbol, bulk_deal_symbols)
+            
+            # 2. Enhanced fundamental scoring
+            score += self._score_fundamentals(fundamentals, median_pe)
+            
+            # 3. Enhanced technical scoring with new indicators
+            score += self._score_technical_indicators(technical)
+            
+            # 4. Data quality bonus
+            data_quality = technical.get('data_quality_score', 50)
+            score += (data_quality - 50) / 10  # Max 5 points bonus for perfect data
+            
+            # 5. Volatility adjustment
+            volatility_score = self._score_volatility(technical)
+            score += volatility_score
+
+            # Normalize score to 0-100
+            normalized_score = max(25, min(100, score))
+
+            # Calculate enhanced predictions
+            predictions = self._calculate_enhanced_predictions(technical, normalized_score)
+            
+            # Risk assessment
+            risk_assessment = self._assess_risk(technical, fundamentals)
+
+            stock_result = {
+                'symbol': symbol,
+                'score': round(normalized_score, 1),
+                'adjusted_score': round(normalized_score * risk_assessment['risk_factor'], 1),
+                'confidence': self._calculate_confidence(technical, fundamentals),
+                'current_price': technical.get('current_price', 0),
+                'risk_level': risk_assessment['risk_level'],
+                'market_cap': self._estimate_market_cap(symbol),
+                'pe_ratio': fundamentals.get('pe_ratio'),
+                'pe_description': self.get_pe_description(fundamentals.get('pe_ratio')),
+                'revenue_growth': round(fundamentals.get('revenue_growth', 0), 1),
+                'technical_summary': self._generate_technical_summary(technical),
+                'fundamentals': fundamentals,
+                'technical': technical,
+                **predictions
+            }
+
+            scored_stocks.append(stock_result)
+
+        # Sort by adjusted score
+        scored_stocks.sort(key=lambda x: x['adjusted_score'], reverse=True)
+
+        return scored_stocks[:20]
+
+    def _score_bulk_deals(self, symbol: str, bulk_deal_symbols: set) -> float:
+        """Enhanced bulk deal scoring"""
+        score_boost = 0
+        
+        symbol_deals = [deal for deal in self.bulk_deals if deal['symbol'] == symbol]
+        if symbol_deals:
+            for deal in symbol_deals:
+                deal_type = deal.get('type', 'Other')
+                percentage = deal.get('percentage', 0)
+                
+                # Base bulk deal bonus
+                score_boost += 20
+                
+                # Type-based scoring
+                type_bonuses = {
+                    'FII': 15,
+                    'DII': 12,
+                    'Promoter': 18,
+                    'Buy': 8
+                }
+                score_boost += type_bonuses.get(deal_type, 5)
+                
+                # Size-based bonus
+                if percentage >= 2.0:
+                    score_boost += 8
+                elif percentage >= 1.0:
+                    score_boost += 4
+                    
+        return score_boost
+
+    def _score_fundamentals(self, fundamentals: Dict, median_pe: float) -> float:
+        """Enhanced fundamental scoring"""
+        score_boost = 0
+        
+        # PE ratio scoring
+        pe_ratio = fundamentals.get('pe_ratio')
+        if pe_ratio and pe_ratio > 0:
+            score_boost += 5  # Points for having PE data
+            if pe_ratio < median_pe * 1.2:
+                score_boost += 8
+            if pe_ratio < 15:
+                score_boost += 5  # Additional bonus for very low PE
+        
+        # Growth scoring
+        revenue_growth = fundamentals.get('revenue_growth', 0) or 0
+        earnings_growth = fundamentals.get('earnings_growth', 0) or 0
+        
+        if revenue_growth > 15 or earnings_growth > 15:
+            score_boost += 12
+        elif revenue_growth > 5 or earnings_growth > 5:
+            score_boost += 6
+        
+        # Additional financial metrics
+        roe = fundamentals.get('roe')
+        if roe and roe > 15:
+            score_boost += 5
+        
+        debt_to_equity = fundamentals.get('debt_to_equity')
+        if debt_to_equity and debt_to_equity < 0.5:
+            score_boost += 3
+        
+        # Promoter buying
+        if fundamentals.get('promoter_buying', False):
+            score_boost += 15
+            
+        return score_boost
+
+    def _score_technical_indicators(self, technical: Dict) -> float:
+        """Score based on enhanced technical indicators"""
+        score_boost = 0
+        
+        # RSI scoring
+        rsi_14 = technical.get('rsi_14', 50)
+        if 30 <= rsi_14 <= 70:  # Neutral zone
+            score_boost += 5
+        elif 25 <= rsi_14 <= 35:  # Oversold (good for buying)
+            score_boost += 8
+        
+        # EMA trend scoring
+        if technical.get('ema_12_above_21', False):
+            score_boost += 6
+        if technical.get('price_above_ema_12', False):
+            score_boost += 4
+        
+        # Bollinger Bands scoring
+        bb_signal = technical.get('bb_signal', 'within_bands')
+        if bb_signal == 'below_lower':  # Potential oversold
+            score_boost += 6
+        elif bb_signal == 'within_bands':
+            score_boost += 3
+        
+        # MACD scoring
+        if technical.get('macd_bullish', False):
+            score_boost += 5
+        
+        # Volume scoring
+        volume_ratio = technical.get('volume_ratio_10', 1)
+        if volume_ratio > 1.5:  # High volume
+            score_boost += 4
+        elif volume_ratio > 1.2:
+            score_boost += 2
+        
+        # Momentum scoring
+        momentum_5d = technical.get('momentum_5d', 0)
+        if momentum_5d > 0.02:  # Positive momentum
+            score_boost += 6
+        elif momentum_5d > 0:
+            score_boost += 3
+        
+        return score_boost
+
+    def _score_volatility(self, technical: Dict) -> float:
+        """Score based on volatility measures"""
+        volatility_regime = technical.get('volatility_regime', 'normal')
+        
+        if volatility_regime == 'low':
+            return 5  # Low volatility is good
+        elif volatility_regime == 'normal':
+            return 2
+        else:  # high volatility
+            return -3
+
+    def _calculate_enhanced_predictions(self, technical: Dict, score: float) -> Dict:
+        """Calculate enhanced predictions using multiple indicators"""
+        
+        current_price = technical.get('current_price', 0)
+        if current_price <= 0:
+            return {
+                'predicted_price': 0,
+                'predicted_gain': 0,
+                'confidence_level': 'low'
+            }
+        
+        # Base prediction from score
+        base_gain = score / 5
+        
+        # Technical adjustments
+        technical_adjustment = 0
+        
+        # RSI adjustment
+        rsi_14 = technical.get('rsi_14', 50)
+        if rsi_14 < 35:  # Oversold
+            technical_adjustment += 2
+        elif rsi_14 > 65:  # Overbought
+            technical_adjustment -= 1
+        
+        # EMA trend adjustment
+        ema_trend_strength = technical.get('ema_trend_strength', 0)
+        technical_adjustment += max(-2, min(3, ema_trend_strength))
+        
+        # MACD adjustment
+        if technical.get('macd_bullish', False):
+            technical_adjustment += 1
+        
+        # Volume adjustment
+        volume_ratio = technical.get('volume_ratio_10', 1)
+        if volume_ratio > 1.5:
+            technical_adjustment += 1
+        
+        # Final prediction
+        predicted_gain = base_gain + technical_adjustment
+        predicted_price = current_price * (1 + predicted_gain / 100)
+        
+        # Confidence level
+        data_quality = technical.get('data_quality_score', 50)
+        if data_quality > 80:
+            confidence_level = 'high'
+        elif data_quality > 60:
+            confidence_level = 'medium'
+        else:
+            confidence_level = 'low'
+        
+        return {
+            'predicted_price': round(predicted_price, 2),
+            'predicted_gain': round(predicted_gain, 1),
+            'confidence_level': confidence_level
+        }
+
+    def _assess_risk(self, technical: Dict, fundamentals: Dict) -> Dict:
+        """Comprehensive risk assessment"""
+        risk_score = 0
+        
+        # Volatility risk
+        volatility_regime = technical.get('volatility_regime', 'normal')
+        volatility_scores = {'low': 0, 'normal': 1, 'high': 3}
+        risk_score += volatility_scores.get(volatility_regime, 1)
+        
+        # PE ratio risk
+        pe_ratio = fundamentals.get('pe_ratio')
+        if pe_ratio:
+            if pe_ratio > 50:
+                risk_score += 2
+            elif pe_ratio > 30:
+                risk_score += 1
+        
+        # Debt risk
+        debt_to_equity = fundamentals.get('debt_to_equity')
+        if debt_to_equity:
+            if debt_to_equity > 1.0:
+                risk_score += 2
+            elif debt_to_equity > 0.5:
+                risk_score += 1
+        
+        # Technical risk
+        bb_signal = technical.get('bb_signal', 'within_bands')
+        if bb_signal == 'above_upper':
+            risk_score += 1
+        
+        # Risk level and factor
+        if risk_score <= 1:
+            risk_level = 'Low'
+            risk_factor = 1.0
+        elif risk_score <= 3:
+            risk_level = 'Medium'
+            risk_factor = 0.95
+        else:
+            risk_level = 'High'
+            risk_factor = 0.85
+        
+        return {
+            'risk_level': risk_level,
+            'risk_factor': risk_factor,
+            'risk_score': risk_score
+        }
+
+    def _calculate_confidence(self, technical: Dict, fundamentals: Dict) -> int:
+        """Calculate overall confidence score"""
+        confidence = 50  # Base confidence
+        
+        # Data quality
+        data_quality = technical.get('data_quality_score', 50)
+        confidence += (data_quality - 50) / 2
+        
+        # Fundamental data availability
+        if fundamentals.get('pe_ratio') is not None:
+            confidence += 10
+        if fundamentals.get('revenue_growth') != 5.0:  # Not default value
+            confidence += 10
+        if fundamentals.get('roe') is not None:
+            confidence += 5
+        
+        # Technical indicator consistency
+        consistency_score = 0
+        
+        # RSI and price position consistency
+        rsi_14 = technical.get('rsi_14', 50)
+        bb_position = technical.get('bb_position', 50)
+        if (rsi_14 < 40 and bb_position < 40) or (rsi_14 > 60 and bb_position > 60):
+            consistency_score += 10
+        
+        # EMA and MACD consistency
+        if technical.get('ema_12_above_21', False) and technical.get('macd_bullish', False):
+            consistency_score += 10
+        
+        confidence += consistency_score
+        
+        return int(max(0, min(100, confidence)))
+
+    def _generate_technical_summary(self, technical: Dict) -> str:
+        """Generate a summary of technical indicators"""
+        summary_parts = []
+        
+        # RSI summary
+        rsi_14 = technical.get('rsi_14', 50)
+        if rsi_14 < 30:
+            summary_parts.append("Oversold (RSI)")
+        elif rsi_14 > 70:
+            summary_parts.append("Overbought (RSI)")
+        else:
+            summary_parts.append("Neutral (RSI)")
+        
+        # Trend summary
+        if technical.get('ema_12_above_21', False):
+            summary_parts.append("Uptrend (EMA)")
+        else:
+            summary_parts.append("Downtrend (EMA)")
+        
+        # Bollinger Bands summary
+        bb_signal = technical.get('bb_signal', 'within_bands')
+        bb_summaries = {
+            'above_upper': 'Above Upper BB',
+            'below_lower': 'Below Lower BB',
+            'within_bands': 'Within BB Range'
+        }
+        summary_parts.append(bb_summaries.get(bb_signal, 'BB Neutral'))
+        
+        # Volume summary
+        volume_ratio = technical.get('volume_ratio_10', 1)
+        if volume_ratio > 1.5:
+            summary_parts.append("High Volume")
+        elif volume_ratio < 0.8:
+            summary_parts.append("Low Volume")
+        else:
+            summary_parts.append("Normal Volume")
+        
+        return " | ".join(summary_parts)
+
+    def _estimate_market_cap(self, symbol: str) -> str:
+        """Estimate market cap category"""
+        large_caps = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK']
+        mid_caps = ['TITAN', 'ASIANPAINT', 'ULTRACEMCO', 'BAJFINANCE', 'HCLTECH']
+        
+        if symbol in large_caps:
+            return "Large Cap"
+        elif symbol in mid_caps:
+            return "Mid Cap"
+        else:
+            return "Small Cap"
 
     def get_pe_description(self, pe_ratio: float) -> str:
         """Convert PE ratio to user-friendly description"""
@@ -204,9 +1104,8 @@ class StockScreener:
             return "Very High"
 
     def scrape_bulk_deals(self) -> List[Dict]:
-        """Scrape real bulk deals from Trendlyne"""
+        """Scrape bulk deals with enhanced error handling"""
         try:
-            # Real bulk deal scraping from Trendlyne
             url = "https://trendlyne.com/equity/bulk-block-deals/today/"
             
             headers = {
@@ -226,7 +1125,6 @@ class StockScreener:
             soup = BeautifulSoup(response.content, 'html.parser')
             deals = []
             
-            # Look for bulk deal table
             tables = soup.find_all('table', {'class': 'table'})
             
             for table in tables:
@@ -235,9 +1133,8 @@ class StockScreener:
                 for row in rows:
                     cells = row.find_all(['td', 'th'])
                     
-                    if len(cells) >= 6:  # Ensure enough columns
+                    if len(cells) >= 6:
                         try:
-                            # Extract deal information
                             symbol = cells[0].get_text(strip=True).upper()
                             client_name = cells[1].get_text(strip=True)
                             deal_type = cells[2].get_text(strip=True)
@@ -245,27 +1142,12 @@ class StockScreener:
                             price_text = cells[4].get_text(strip=True)
                             percentage_text = cells[5].get_text(strip=True)
                             
-                            # Parse percentage
                             percentage = 0.0
                             if '%' in percentage_text:
                                 percentage = float(percentage_text.replace('%', '').strip())
                             
-                            # Classify deal type
-                            deal_category = 'Other'
-                            client_lower = client_name.lower()
+                            deal_category = self._classify_deal_type(client_name, deal_type)
                             
-                            if any(term in client_lower for term in ['fii', 'foreign', 'offshore']):
-                                deal_category = 'FII'
-                            elif any(term in client_lower for term in ['dii', 'mutual', 'insurance']):
-                                deal_category = 'DII'
-                            elif any(term in client_lower for term in ['promoter', 'group']):
-                                deal_category = 'Promoter'
-                            elif 'buy' in deal_type.lower():
-                                deal_category = 'Buy'
-                            elif 'sell' in deal_type.lower():
-                                deal_category = 'Sell'
-                            
-                            # Only include NSE-listed stocks from our watchlist
                             if symbol in self.nifty50_symbols and percentage >= 0.5:
                                 deals.append({
                                     'symbol': symbol,
@@ -281,28 +1163,45 @@ class StockScreener:
                             logger.debug(f"Error parsing bulk deal row: {str(e)}")
                             continue
             
-            # Filter significant deals and remove duplicates
-            significant_deals = []
-            seen_combinations = set()
-            
-            for deal in deals:
-                combo = (deal['symbol'], deal['type'], deal['percentage'])
-                if combo not in seen_combinations:
-                    significant_deals.append(deal)
-                    seen_combinations.add(combo)
-            
-            logger.info(f"Found {len(significant_deals)} real bulk deals from Trendlyne")
-            
-            # Log some examples for verification
-            for deal in significant_deals[:3]:
-                logger.info(f"📊 {deal['symbol']}: {deal['type']} - {deal['percentage']}%")
+            significant_deals = self._filter_significant_deals(deals)
+            logger.info(f"Found {len(significant_deals)} significant bulk deals")
             
             return significant_deals
             
         except Exception as e:
-            logger.error(f"Error scraping real bulk deals: {str(e)}")
+            logger.error(f"Error scraping bulk deals: {str(e)}")
             return self._get_fallback_bulk_deals()
-    
+
+    def _classify_deal_type(self, client_name: str, deal_type: str) -> str:
+        """Classify deal type based on client name and deal type"""
+        client_lower = client_name.lower()
+        
+        if any(term in client_lower for term in ['fii', 'foreign', 'offshore']):
+            return 'FII'
+        elif any(term in client_lower for term in ['dii', 'mutual', 'insurance']):
+            return 'DII'
+        elif any(term in client_lower for term in ['promoter', 'group']):
+            return 'Promoter'
+        elif 'buy' in deal_type.lower():
+            return 'Buy'
+        elif 'sell' in deal_type.lower():
+            return 'Sell'
+        else:
+            return 'Other'
+
+    def _filter_significant_deals(self, deals: List[Dict]) -> List[Dict]:
+        """Filter and deduplicate significant deals"""
+        significant_deals = []
+        seen_combinations = set()
+        
+        for deal in deals:
+            combo = (deal['symbol'], deal['type'], deal['percentage'])
+            if combo not in seen_combinations:
+                significant_deals.append(deal)
+                seen_combinations.add(combo)
+        
+        return significant_deals
+
     def _get_fallback_bulk_deals(self) -> List[Dict]:
         """Fallback bulk deals when scraping fails"""
         logger.info("Using fallback bulk deals data")
@@ -316,297 +1215,25 @@ class StockScreener:
             'percentage': 1.2
         }]
 
-    def calculate_technical_indicators(self, symbol: str) -> Dict:
-        """Calculate ATR and momentum using yfinance"""
-        try:
-            # Add .NS suffix for NSE stocks
-            ticker = f"{symbol}.NS"
-            stock = yf.Ticker(ticker)
+    def run_enhanced_screener(self) -> List[Dict]:
+        """Main enhanced screening function"""
+        logger.info("Starting enhanced stock screening process...")
 
-            # Get 30 days of data for ATR calculation
-            hist = stock.history(period="1mo")
-
-            if hist.empty:
-                logger.warning(f"No data found for {symbol}")
-                return {}
-
-            # Calculate 14-day ATR
-            high_low = hist['High'] - hist['Low']
-            high_close = np.abs(hist['High'] - hist['Close'].shift())
-            low_close = np.abs(hist['Low'] - hist['Close'].shift())
-
-            true_range = np.maximum(high_low,
-                                    np.maximum(high_close, low_close))
-            atr_14 = true_range.rolling(
-                window=14).mean().iloc[-1] if len(true_range) >= 14 else 0
-            
-            # Ensure ATR is not NaN or None
-            if np.isnan(atr_14) or atr_14 is None:
-                atr_14 = 0
-
-            # Calculate 2-day momentum
-            if len(hist) >= 3:
-                recent_change = hist['Close'].iloc[-1] - hist['Close'].iloc[-3]
-                momentum_ratio = recent_change / atr_14 if atr_14 > 0 else 0
-            else:
-                momentum_ratio = 0
-            
-            # Ensure momentum_ratio is not NaN or None
-            if np.isnan(momentum_ratio) or momentum_ratio is None:
-                momentum_ratio = 0
-
-            current_price = hist['Close'].iloc[-1]
-            # Ensure current_price is not NaN or None
-            if np.isnan(current_price) or current_price is None:
-                current_price = 0
-
-            return {
-                'atr_14':
-                float(atr_14),
-                'current_price':
-                float(current_price),
-                'momentum_ratio':
-                float(momentum_ratio),
-                'volatility':
-                float(atr_14 / current_price * 100) if current_price > 0 else 0
-            }
-
-        except Exception as e:
-            logger.error(
-                f"Error calculating technical indicators for {symbol}: {str(e)}"
-            )
-            return {}
-
-    def score_and_rank(self, stocks_data: Dict) -> List[Dict]:
-        """Score and rank stocks based on multiple factors"""
-        scored_stocks = []
-
-        # Calculate median PE for normalization
-        pe_ratios = [
-            data.get('fundamentals', {}).get('pe_ratio')
-            for data in stocks_data.values()
-            if data.get('fundamentals', {}).get('pe_ratio') is not None and data.get('fundamentals', {}).get('pe_ratio') > 0
-        ]
-        median_pe = np.median(pe_ratios) if pe_ratios else 20
-
-        bulk_deal_symbols = {deal['symbol'] for deal in self.bulk_deals}
-
-        for symbol, data in stocks_data.items():
-            fundamentals = data.get('fundamentals', {})
-            technical = data.get('technical', {})
-
-            # Start with base score of 25 to ensure stocks appear
-            score = 25
-
-            # Enhanced bulk deal scoring with real data
-            symbol_deals = [deal for deal in self.bulk_deals if deal['symbol'] == symbol]
-            if symbol_deals:
-                for deal in symbol_deals:
-                    deal_type = deal.get('type', 'Other')
-                    percentage = deal.get('percentage', 0)
-                    
-                    # Base bulk deal bonus
-                    score += 25
-                    
-                    # Additional scoring based on deal type and size
-                    if deal_type in ['FII', 'DII']:
-                        score += 15  # Institutional confidence
-                    elif deal_type == 'Promoter':
-                        score += 20  # Promoter confidence (highest)
-                    elif deal_type in ['Buy']:
-                        score += 10  # Buying interest
-                    
-                    # Size-based bonus
-                    if percentage >= 2.0:
-                        score += 10  # Very large deal
-                    elif percentage >= 1.0:
-                        score += 5   # Large deal
-
-            # Strong fundamentals (+20 points)
-            pe_ratio = fundamentals.get('pe_ratio')
-            revenue_growth = fundamentals.get('revenue_growth', 0)
-            earnings_growth = fundamentals.get('earnings_growth', 0)
-
-            # More lenient PE check or give points for having valid data
-            if pe_ratio is not None and pe_ratio > 0:
-                score += 10  # Give points for having PE data
-                if median_pe is not None and median_pe > 0 and pe_ratio < median_pe * 1.5:  # More lenient PE threshold
-                    score += 10
-            
-            # Give points for any growth (handle None values safely)
-            safe_revenue_growth = revenue_growth if revenue_growth is not None else 0
-            safe_earnings_growth = earnings_growth if earnings_growth is not None else 0
-            
-            if safe_revenue_growth > 10 or safe_earnings_growth > 10:
-                score += 15
-            elif safe_revenue_growth > 0 or safe_earnings_growth > 0:
-                score += 5
-
-            # Promoter buying (+20 points)
-            if fundamentals.get('promoter_buying', False):
-                score += 20
-
-            # Momentum check (±10 points) - handle None values
-            momentum_ratio = technical.get('momentum_ratio', 0)
-            momentum_ratio = momentum_ratio if momentum_ratio is not None else 0
-            
-            if momentum_ratio > 0.3:  # More lenient threshold
-                score += 10
-            elif momentum_ratio > 0:
-                score += 5
-            elif momentum_ratio < -0.3:
-                score -= 5
-
-            # Give bonus for having technical data
-            current_price = technical.get('current_price', 0)
-            current_price = current_price if current_price is not None else 0
-            if current_price > 0:
-                score += 5
-
-            # Give bonus for popular/liquid stocks
-            if symbol in ['SBIN', 'ITC', 'ONGC', 'NTPC', 'POWERGRID', 'COALINDIA', 'BPCL', 'TATASTEEL']:
-                score += 10
-
-            # Normalize score to 0-100
-            normalized_score = max(30, min(100, score))  # Ensure minimum score of 30
-
-            # Calculate adjusted score (emphasize low volatility) - ensure safe values
-            volatility = technical.get('volatility', 5)
-            volatility = volatility if volatility is not None else 5
-            volatility_factor = max(0.5, 1 - (volatility / 100))
-            adjusted_score = normalized_score * volatility_factor
-
-            # Calculate predictions
-            predicted_gain = normalized_score / 5 if normalized_score > 0 else 0
-            time_horizon = max(
-                10, 100 / normalized_score) if normalized_score > 0 else 100
-
-            # Ensure all values are not None
-            current_price = technical.get('current_price', 0)
-            current_price = current_price if current_price is not None else 0
-            predicted_price = current_price * (
-                1 + predicted_gain / 100) if current_price > 0 else 0
-
-            # Calculate multiple time horizon predictions
-            momentum_ratio = technical.get('momentum_ratio', 0)
-            momentum_ratio = momentum_ratio if momentum_ratio is not None else 0
-            base_score_factor = (normalized_score -
-                                 50) * 0.01  # Base momentum from score
-
-            # 3-hour prediction: short-term momentum
-            three_hour_change = momentum_ratio * 0.3 + base_score_factor * 0.5
-            three_hour_price = current_price * (
-                1 + three_hour_change / 100) if current_price > 0 else 0
-            three_hour_gain = three_hour_change
-
-            # 24-hour prediction: daily momentum + score impact
-            daily_change = momentum_ratio * 0.8 + base_score_factor * 1.2
-            daily_price = current_price * (
-                1 + daily_change / 100) if current_price > 0 else 0
-            daily_gain = daily_change
-
-            # 5-day prediction: weekly trend + fundamental strength
-            weekly_change = base_score_factor * 3.0 + (
-                normalized_score / 20) + (momentum_ratio * 0.5)
-            weekly_price = current_price * (
-                1 + weekly_change / 100) if current_price > 0 else 0
-            weekly_gain = weekly_change
-
-            # 4-week prediction: monthly trend based on fundamentals
-            monthly_change = (normalized_score / 10) + base_score_factor * 8.0
-            # Add fundamental boost (handle None values)
-            if safe_revenue_growth > 15:
-                monthly_change += 2.0
-            
-            pe_val = fundamentals.get('pe_ratio', 0)
-            pe_val = pe_val if pe_val is not None else 0
-            if pe_val > 0 and pe_val < 25:
-                monthly_change += 1.5
-            monthly_price = current_price * (
-                1 + monthly_change / 100) if current_price > 0 else 0
-            monthly_gain = monthly_change
-
-            # Risk assessment (handle None volatility)
-            volatility = volatility if volatility is not None else 5
-            risk_level = "Low" if volatility < 3 else "Medium" if volatility < 6 else "High"
-
-            # Market cap estimation (simplified)
-            market_cap_category = "Large Cap" if symbol in ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY'] else \
-                                 "Mid Cap" if symbol in ['TITAN', 'ASIANPAINT', 'ULTRACEMCO'] else "Small Cap"
-
-            # Confidence score based on data quality (handle None values)
-            pe_check = fundamentals.get('pe_ratio', 0)
-            pe_check = pe_check if pe_check is not None else 0
-            price_check = technical.get('current_price', 0)
-            price_check = price_check if price_check is not None else 0
-            growth_check = fundamentals.get('revenue_growth', 0)
-            growth_check = growth_check if growth_check is not None else 0
-            
-            data_quality = (1 if pe_check > 0 else 0) + \
-                          (1 if price_check > 0 else 0) + \
-                          (1 if growth_check != 0 else 0)
-            confidence = round((data_quality / 3) * 100, 0)
-
-            # Get PE description
-            pe_description = self.get_pe_description(pe_ratio)
-            
-            stock_result = {
-                'symbol': symbol,
-                'score': round(normalized_score, 1),
-                'adjusted_score': round(adjusted_score, 1),
-                'confidence': int(confidence),
-                'current_price': round(current_price, 2),
-                'three_hour_price': round(three_hour_price, 2),
-                'three_hour_gain': round(three_hour_gain, 2),
-                'daily_price': round(daily_price, 2),
-                'daily_gain': round(daily_gain, 2),
-                'weekly_price': round(weekly_price, 2),
-                'weekly_gain': round(weekly_gain, 2),
-                'monthly_price': round(monthly_price, 2),
-                'monthly_gain': round(monthly_gain, 2),
-                'volatility': round(volatility, 2),
-                'predicted_price': round(predicted_price, 2),
-                'predicted_gain': round(predicted_gain, 1),
-                'time_horizon': round(time_horizon, 0),
-                'risk_level': risk_level,
-                'market_cap': market_cap_category,
-                'pe_ratio': round(pe_ratio, 1) if pe_ratio is not None else None,
-                'pe_description': pe_description,
-                'revenue_growth': round(safe_revenue_growth, 1),
-                'fundamentals': fundamentals,
-                'technical': technical
-            }
-
-            scored_stocks.append(stock_result)
-
-        # Sort by adjusted score
-        scored_stocks.sort(key=lambda x: x['adjusted_score'], reverse=True)
-
-        # Filter stocks with score >= 25 and return top 20
-        filtered_stocks = [
-            stock for stock in scored_stocks if stock['score'] >= 25
-        ]
-        return filtered_stocks[:20]
-
-    def run_screener(self) -> List[Dict]:
-        """Main screening function"""
-        logger.info("Starting stock screening process...")
-
-        # Step 1: Scrape bulk deals with rate limiting
+        # Step 1: Scrape bulk deals
         self.bulk_deals = self.scrape_bulk_deals()
-        time.sleep(2)  # Rate limiting for Trendlyne
+        time.sleep(2)
 
-        # Step 2: Collect data for watchlist
+        # Step 2: Collect enhanced data for watchlist
         stocks_data = {}
 
         for i, symbol in enumerate(self.watchlist):
             logger.info(f"Processing {symbol} ({i+1}/{len(self.watchlist)})")
 
-            # Scrape fundamentals
+            # Scrape enhanced fundamentals
             fundamentals = self.scrape_screener_data(symbol)
 
-            # Calculate technical indicators
-            technical = self.calculate_technical_indicators(symbol)
+            # Calculate enhanced technical indicators
+            technical = self.calculate_enhanced_technical_indicators(symbol)
 
             if fundamentals or technical:
                 stocks_data[symbol] = {
@@ -615,22 +1242,48 @@ class StockScreener:
                 }
 
             # Rate limiting
-            time.sleep(1)
+            time.sleep(1.5)
 
-        # Step 3: Score and rank
-        top_stocks = self.score_and_rank(stocks_data)
+        # Step 3: Enhanced scoring and ranking
+        top_stocks = self.enhanced_score_and_rank(stocks_data)
 
-        # Step 4: Enhance with ML predictions (optional enhancement)
+        # Step 4: Try ML predictions if available
         try:
             from predictor import enrich_with_ml_predictions
             enhanced_stocks = enrich_with_ml_predictions(top_stocks)
             logger.info("✅ ML predictions added successfully")
-            logger.info(f"Screening complete. Found {len(enhanced_stocks)} stocks.")
             return enhanced_stocks
         except Exception as e:
-            logger.warning(f"⚠️ ML predictions failed, using traditional scoring: {str(e)}")
-            logger.info(f"Screening complete. Found {len(top_stocks)} stocks.")
+            logger.warning(f"⚠️ ML predictions failed, using enhanced scoring: {str(e)}")
             return top_stocks
+
+
+# Compatibility layer - create an instance that matches the old interface
+class StockScreener(EnhancedStockScreener):
+    """Compatibility wrapper for the enhanced screener"""
+    
+    def __init__(self):
+        super().__init__()
+    
+    def run_screener(self) -> List[Dict]:
+        """Compatibility method that calls the enhanced screener"""
+        return self.run_enhanced_screener()
+    
+    def calculate_technical_indicators(self, symbol: str) -> Dict:
+        """Compatibility method for technical indicators"""
+        enhanced_indicators = self.calculate_enhanced_technical_indicators(symbol)
+        
+        # Return subset for backward compatibility
+        return {
+            'atr_14': enhanced_indicators.get('atr_14', 0),
+            'current_price': enhanced_indicators.get('current_price', 0),
+            'momentum_ratio': enhanced_indicators.get('momentum_2d', 0),
+            'volatility': enhanced_indicators.get('atr_volatility', 0)
+        }
+    
+    def score_and_rank(self, stocks_data: Dict) -> List[Dict]:
+        """Compatibility method for scoring"""
+        return self.enhanced_score_and_rank(stocks_data)
 
 
 def main():
@@ -638,7 +1291,7 @@ def main():
     screener = StockScreener()
     results = screener.run_screener()
 
-    print(json.dumps(results, indent=2))
+    print(json.dumps(results[:3], indent=2))  # Print first 3 results
 
 
 if __name__ == "__main__":
