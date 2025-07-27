@@ -14,8 +14,8 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Disable ML features in production to reduce bundle size
-os.environ['DISABLE_ML_FEATURES'] = '1'
+# Enable ML features for predictions (set to '1' to disable if needed)
+# os.environ['DISABLE_ML_FEATURES'] = '1'
 
 # Create Flask app instance
 application = create_app()

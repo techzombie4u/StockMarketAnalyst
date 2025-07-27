@@ -106,7 +106,7 @@ def force_demo_data():
     try:
         logger.info("Generating demo data")
 
-        # Create sample data structure
+        # Create sample data structure with predictions
         demo_data = {
             'timestamp': datetime.now(IST).isoformat(),
             'last_updated': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST'),
@@ -120,6 +120,9 @@ def force_demo_data():
                     'current_price': 1400.0,
                     'predicted_price': 1680.0,
                     'predicted_gain': 20.0,
+                    'pred_24h': 1.2,
+                    'pred_5d': 4.8,
+                    'pred_1mo': 18.5,
                     'volatility': 1.5,
                     'time_horizon': 12,
                     'pe_ratio': 25.0,
@@ -133,10 +136,29 @@ def force_demo_data():
                     'current_price': 3150.0,
                     'predicted_price': 3780.0,
                     'predicted_gain': 20.0,
+                    'pred_24h': 0.9,
+                    'pred_5d': 3.6,
+                    'pred_1mo': 15.2,
                     'volatility': 1.4,
                     'time_horizon': 12,
                     'pe_ratio': 23.0,
                     'revenue_growth': 6.2
+                },
+                {
+                    'symbol': 'INFY',
+                    'score': 78.0,
+                    'adjusted_score': 75.5,
+                    'confidence': 85,
+                    'current_price': 1450.0,
+                    'predicted_price': 1668.0,
+                    'predicted_gain': 15.0,
+                    'pred_24h': 0.8,
+                    'pred_5d': 3.2,
+                    'pred_1mo': 12.8,
+                    'volatility': 1.3,
+                    'time_horizon': 15,
+                    'pe_ratio': 22.0,
+                    'revenue_growth': 7.8
                 }
             ]
         }
@@ -233,23 +255,16 @@ def initialize_app():
     """Initialize the application with scheduler"""
     global scheduler
 
-    # Conditional ML import for production optimization
-    try:
-        if os.environ.get('DISABLE_ML_FEATURES') != '1':
-            from predictor import MLPredictor
-        else:
-            MLPredictor = None
-    except ImportError:
-        MLPredictor = None
-
     try:
         scheduler = StockAnalystScheduler()
-        # Initialize ML predictor only if enabled
-        ml_predictor = None
-        if MLPredictor and os.environ.get('DISABLE_ML_FEATURES') != '1':
-            ml_predictor = MLPredictor()
-            ml_predictor.initialize()
+        # Start the scheduler with proper interval
+        scheduler.start_scheduler(interval_minutes=60)
         print("✅ Scheduler started successfully")
+        
+        # Run initial screening to populate data
+        scheduler.run_screening_job_manual()
+        print("✅ Initial screening triggered")
+        
     except Exception as e:
         print(f"❌ Error starting scheduler: {str(e)}")
 

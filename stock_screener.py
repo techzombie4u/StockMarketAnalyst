@@ -113,7 +113,7 @@ class EnhancedStockScreener:
             if len(hist_data) > 0 and 'Close' in hist_data.columns:
                 current_price_val = hist_data['Close'].iloc[-1]
                 indicators['current_price'] = float(current_price_val) if not pd.isna(current_price_val) else 0
-                
+
                 # Add additional price info for better predictions
                 if len(hist_data) >= 5:
                     indicators['price_5d_ago'] = float(hist_data['Close'].iloc[-6]) if len(hist_data) > 5 else indicators['current_price']
@@ -122,7 +122,7 @@ class EnhancedStockScreener:
                     indicators['low_52w'] = float(hist_data['Low'].min())
             else:
                 indicators['current_price'] = 0
-                
+
             indicators['data_quality_score'] = self._assess_data_quality(hist_data)
 
             return indicators
@@ -141,7 +141,7 @@ class EnhancedStockScreener:
             import yfinance as yf
             stock = yf.Ticker(ticker)
             hist_data = stock.history(period="1y")
-            
+
             if hist_data is not None and not hist_data.empty and len(hist_data) > 30:
                 logger.debug(f"Yahoo Finance data successful for {symbol}: {len(hist_data)} days")
                 return hist_data
@@ -151,13 +151,13 @@ class EnhancedStockScreener:
         # Fallback: Try with different ticker formats
         ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
         fallback_periods = ["6mo", "3mo", "2mo", "1mo"]
-        
+
         for ticker_format in ticker_formats:
             for period in fallback_periods:
                 try:
                     stock = yf.Ticker(ticker_format)
                     hist_data = stock.history(period=period)
-                    
+
                     if hist_data is not None and not hist_data.empty and len(hist_data) > 10:
                         logger.info(f"Yahoo Finance fallback successful for {symbol} ({ticker_format}, {period}): {len(hist_data)} days")
                         return hist_data
@@ -988,7 +988,7 @@ class EnhancedStockScreener:
             # Try to get a reasonable estimate if current price is missing
             price_5d_ago = technical.get('price_5d_ago', 0)  
             price_1d_ago = technical.get('price_1d_ago', 0)
-            
+
             if price_1d_ago > 0:
                 current_price = price_1d_ago
             elif price_5d_ago > 0:
@@ -1409,7 +1409,42 @@ class EnhancedStockScreener:
         except Exception as e:
             logger.error(f"Error during screening: {str(e)}")
             return []
+    def calculate_predicted_price(self, current_price, score):
+        """Calculate predicted price based on score"""
+        try:
+            if current_price <= 0:
+                return 0
 
+            # Simple prediction model: higher score = higher expected return
+            expected_return = (score / 100) * 0.25  # Max 25% return for score 100
+            predicted_price = current_price * (1 + expected_return)
+
+            return predicted_price
+
+        except Exception as e:
+            self.logger.error(f"Error calculating predicted price: {str(e)}")
+            return current_price
+
+    def calculate_timeframe_prediction(self, score, days):
+        """Calculate percentage gain prediction for specific timeframe"""
+        try:
+            # Base prediction on score with time decay
+            base_return = (score / 100) * 0.20  # Max 20% base return
+
+            # Time-based scaling
+            if days == 1:  # 24h prediction
+                return base_return * 0.05  # 5% of base return in 1 day
+            elif days == 5:  # 5d prediction
+                return base_return * 0.25  # 25% of base return in 5 days
+            elif days == 30:  # 1mo prediction
+                return base_return * 1.0   # Full base return in 30 days
+            else:
+                # Linear scaling for other timeframes
+                return base_return * (days / 30)
+
+        except Exception as e:
+            self.logger.error(f"Error calculating timeframe prediction: {str(e)}")
+            return 0.0
 
 # Compatibility layer - create an instance that matches the old interface
 class StockScreener(EnhancedStockScreener):
