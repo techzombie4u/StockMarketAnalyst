@@ -233,9 +233,22 @@ def initialize_app():
     """Initialize the application with scheduler"""
     global scheduler
 
+    # Conditional ML import for production optimization
+    try:
+        if os.environ.get('DISABLE_ML_FEATURES') != '1':
+            from predictor import MLPredictor
+        else:
+            MLPredictor = None
+    except ImportError:
+        MLPredictor = None
+
     try:
         scheduler = StockAnalystScheduler()
-        scheduler.start_scheduler(interval_minutes=60)
+        # Initialize ML predictor only if enabled
+        ml_predictor = None
+        if MLPredictor and os.environ.get('DISABLE_ML_FEATURES') != '1':
+            ml_predictor = MLPredictor()
+            ml_predictor.initialize()
         print("✅ Scheduler started successfully")
     except Exception as e:
         print(f"❌ Error starting scheduler: {str(e)}")
