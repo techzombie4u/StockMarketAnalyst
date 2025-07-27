@@ -359,7 +359,7 @@
         function displayAnalysis(data) {
             console.log('Analysis data received:', data);
             
-            if (!data || Object.keys(data).length === 0 || data.status === 'no_data') {
+            if (!data || Object.keys(data).length === 0 || data.status === 'no_data' || data.status === 'error') {
                 showNoDataState();
                 return;
             }
@@ -390,17 +390,18 @@
                 data.top_performing_stocks.forEach(stock => {
                     const li = document.createElement('li');
                     li.className = 'stock-item';
+                    const successRate = stock.success_rate || 0;
                     li.innerHTML = `
-                        <span class="stock-symbol">${stock.symbol}</span>
+                        <span class="stock-symbol">${stock.symbol || 'N/A'}</span>
                         <span class="stock-accuracy" style="background: ${
-                            stock.success_rate >= 70 ? 'var(--success-color)' : 
-                            stock.success_rate >= 50 ? 'var(--warning-color)' : 'var(--danger-color)'
-                        }">${stock.success_rate}%</span>
+                            successRate >= 70 ? 'var(--success-color)' : 
+                            successRate >= 50 ? 'var(--warning-color)' : 'var(--secondary-color)'
+                        }">${successRate}%</span>
                     `;
                     topStocksList.appendChild(li);
                 });
             } else {
-                topStocksList.innerHTML = '<li class="stock-item">No data available yet</li>';
+                topStocksList.innerHTML = '<li class="stock-item">📊 Current screening data available - historical comparison pending</li>';
             }
 
             // Update worst performing stocks
