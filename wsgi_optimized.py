@@ -1,4 +1,3 @@
-
 """
 Optimized WSGI entry point for production deployment
 Removes ML dependencies for faster startup and smaller bundle
@@ -14,8 +13,8 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Enable ML features for predictions (set to '1' to disable if needed)
-# os.environ['DISABLE_ML_FEATURES'] = '1'
+# Enable basic ML features in production (lightweight predictions)
+os.environ['DISABLE_ML_FEATURES'] = '0'
 
 # Create Flask app instance
 application = create_app()

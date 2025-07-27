@@ -595,9 +595,15 @@
                         <td class="symbol">#${index + 1} ${stock.symbol}</td>
                         <td><span class="score ${getScoreClass(stock.score)}">${stock.score}</span></td>
                         <td class="price">₹${stock.current_price?.toFixed(2) || '0.00'}</td>
-                        <td class="${getGainClass(stock.daily_gain || 0)}">${formatGain(stock.daily_gain || 0)}</td>
-                        <td class="${getGainClass(stock.weekly_gain || 0)}">${formatGain(stock.weekly_gain || 0)}</td>
-                        <td class="${getGainClass(stock.monthly_gain || 0)}">${formatGain(stock.monthly_gain || 0)}</td>
+                        <td class="prediction-cell">
+                            <span class="prediction-value">${stock.pred_24h ? stock.pred_24h.toFixed(1) : '0.0'}%</span>
+                        </td>
+                        <td class="prediction-cell">
+                            <span class="prediction-value">${stock.pred_5d ? stock.pred_5d.toFixed(1) : '0.0'}%</span>
+                        </td>
+                        <td class="prediction-cell">
+                            <span class="prediction-value">${stock.pred_1mo ? stock.pred_1mo.toFixed(1) : '0.0'}%</span>
+                        </td>
                         <td><span class="pe-ratio ${getPEClass(stock.pe_description || 'Not Available')}">${stock.pe_description || 'N/A'}</span></td>
                         <td><span class="risk-level ${getRiskClass(stock.risk_level || 'Medium')}">${stock.risk_level || 'Medium'}</span></td>
                         <td class="${getGainClass(stock.revenue_growth || 0)}">${formatGain(stock.revenue_growth || 0)}</td>

@@ -314,28 +314,32 @@ class EnhancedStockScreener:
             close_prices = data['Close']
 
             # Volume moving averages
-            vol_ma_10 = volume.rolling(window=10).mean().iloc[-1]
-            vol_ma_20 = volume.rolling(window=20).mean().iloc[-1]
+            vol_ma_10_series = volume.rolling(window=10).mean()
+            vol_ma_20_series = volume.rolling(window=20).mean()
+            
+            vol_ma_10 = vol_ma_10_series.iloc[-1] if len(vol_ma_10_series) > 0 else 0
+            vol_ma_20 = vol_ma_20_series.iloc[-1] if len(vol_ma_20_series) > 0 else 0
+            
             indicators['volume_ma_10'] = float(vol_ma_10) if not pd.isna(vol_ma_10) else 0
             indicators['volume_ma_20'] = float(vol_ma_20) if not pd.isna(vol_ma_20) else 0
 
             # Current volume vs average
-            current_volume = volume.iloc[-1]
+            current_volume = volume.iloc[-1] if len(volume) > 0 else 0
             indicators['volume_ratio_10'] = current_volume / indicators['volume_ma_10'] if indicators['volume_ma_10'] > 0 else 1
 
             # Price-Volume trend
             price_change = close_prices.pct_change()
             volume_change = volume.pct_change()
             pv_correlation = price_change.rolling(window=20).corr(volume_change)
-            pv_corr_val = pv_correlation.iloc[-1]
+            pv_corr_val = pv_correlation.iloc[-1] if len(pv_correlation) > 0 else 0
             indicators['price_volume_correlation'] = float(pv_corr_val) if not pd.isna(pv_corr_val) else 0
 
             # On Balance Volume (OBV)
             close_diff = close_prices.diff()
             volume_direction = np.where(close_diff > 0, volume, 
                                       np.where(close_diff < 0, -volume, 0))
-            obv = volume_direction.cumsum()
-            indicators['obv'] = float(obv.iloc[-1]) if not pd.isna(obv.iloc[-1]) else 0
+            obv = pd.Series(volume_direction).cumsum()
+            indicators['obv'] = float(obv.iloc[-1]) if len(obv) > 0 and not pd.isna(obv.iloc[-1]) else 0
             indicators['obv_trend'] = float(obv.iloc[-1] - obv.iloc[-11]) if len(obv) > 10 and not pd.isna(obv.iloc[-1]) and not pd.isna(obv.iloc[-11]) else 0
 
         except Exception as e:
@@ -1004,43 +1008,54 @@ class EnhancedStockScreener:
                     'time_horizon': 15
                 }
 
-        # Base prediction from score (more conservative)
-        base_gain_24h = (score - 50) / 10  # 24h prediction
-        base_gain_5d = (score - 40) / 8    # 5d prediction  
-        base_gain_1mo = (score - 30) / 5   # 1mo prediction
-
-        # Technical adjustments
-        technical_adjustment = 0
-
+        # Enhanced prediction logic based on score and technical indicators
+        # Base prediction scaling with score
+        score_factor = max(0.1, min(1.0, score / 100))  # Scale 0.1 to 1.0
+        
+        # Technical momentum adjustment
+        momentum_2d = technical.get('momentum_2d', 0)
+        momentum_5d = technical.get('momentum_5d', 0)
+        momentum_10d = technical.get('momentum_10d', 0)
+        
         # RSI adjustment
         rsi_14 = technical.get('rsi_14', 50)
-        if rsi_14 < 35:  # Oversold
-            technical_adjustment += 1.5
-        elif rsi_14 > 65:  # Overbought
-            technical_adjustment -= 1
+        rsi_adjustment = 0
+        if rsi_14 < 35:  # Oversold - positive adjustment
+            rsi_adjustment = (35 - rsi_14) / 10
+        elif rsi_14 > 65:  # Overbought - negative adjustment
+            rsi_adjustment = -(rsi_14 - 65) / 10
 
         # EMA trend adjustment
         ema_trend_strength = technical.get('ema_trend_strength', 0)
-        technical_adjustment += max(-1.5, min(2, ema_trend_strength / 2))
+        trend_adjustment = max(-2, min(3, ema_trend_strength / 2))
 
         # MACD adjustment
-        if technical.get('macd_bullish', False):
-            technical_adjustment += 0.8
+        macd_adjustment = 1.0 if technical.get('macd_bullish', False) else -0.5
 
         # Volume adjustment
         volume_ratio = technical.get('volume_ratio_10', 1)
-        if volume_ratio > 1.5:
-            technical_adjustment += 0.5
+        volume_adjustment = 0.5 if volume_ratio > 1.5 else 0
 
-        # Calculate predictions for different timeframes
-        pred_24h = base_gain_24h + (technical_adjustment * 0.5)
-        pred_5d = base_gain_5d + technical_adjustment
-        pred_1mo = base_gain_1mo + (technical_adjustment * 1.5)
+        # Calculate base predictions with technical adjustments
+        base_adjustment = rsi_adjustment + trend_adjustment + macd_adjustment + volume_adjustment
+        
+        # 24h prediction (conservative)
+        pred_24h = (score_factor * 3) + (momentum_2d * 100) + (base_adjustment * 0.3)
+        pred_24h = max(-3, min(8, pred_24h))
+        
+        # 5d prediction (moderate)
+        pred_5d = (score_factor * 8) + (momentum_5d * 100) + (base_adjustment * 0.6)
+        pred_5d = max(-8, min(15, pred_5d))
+        
+        # 1mo prediction (aggressive)
+        pred_1mo = (score_factor * 20) + (momentum_10d * 100) + (base_adjustment * 1.0)
+        pred_1mo = max(-15, min(30, pred_1mo))
 
-        # Apply bounds to keep predictions reasonable
-        pred_24h = max(-5, min(8, pred_24h))   # Max 8% in 24h
-        pred_5d = max(-10, min(15, pred_5d))   # Max 15% in 5d
-        pred_1mo = max(-20, min(25, pred_1mo)) # Max 25% in 1mo
+        # Ensure predictions make sense (5d should be between 24h and 1mo)
+        if pred_5d < pred_24h:
+            pred_5d = pred_24h + (pred_1mo - pred_24h) * 0.3
+        if pred_1mo < pred_5d:
+            pred_1mo = pred_5d + 2
 
         # Calculate predicted prices
         predicted_price_24h = current_price * (1 + pred_24h / 100)
@@ -1063,9 +1078,9 @@ class EnhancedStockScreener:
 
         # Confidence level
         data_quality = technical.get('data_quality_score', 50)
-        if data_quality > 80 and current_price > 0:
+        if data_quality > 80 and current_price > 0 and score > 70:
             confidence_level = 'high'
-        elif data_quality > 60 and current_price > 0:
+        elif data_quality > 60 and current_price > 0 and score > 50:
             confidence_level = 'medium'
         else:
             confidence_level = 'low'
@@ -1073,9 +1088,9 @@ class EnhancedStockScreener:
         return {
             'predicted_price': round(predicted_price, 2),
             'predicted_gain': round(predicted_gain, 1),
-            'pred_24h': round(pred_24h, 1),
-            'pred_5d': round(pred_5d, 1),
-            'pred_1mo': round(pred_1mo, 1),
+            'pred_24h': round(pred_24h, 2),
+            'pred_5d': round(pred_5d, 2),
+            'pred_1mo': round(pred_1mo, 2),
             'confidence_level': confidence_level,
             'time_horizon': time_horizon
         }
