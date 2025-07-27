@@ -641,7 +641,13 @@
         }
 
         function refreshData() {
-            showStatus('triggering', 'Manual screening triggered');
+            const btn = document.getElementById('refreshBtn');
+            
+            // Disable button and show loading state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="refresh-icon">⏳</span> Refreshing...';
+            
+            updateStatus('Manual screening triggered...', 'loading');
 
             fetch('/api/run-now', { 
                 method: 'POST',
@@ -652,21 +658,36 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showStatus('success', 'Screening completed successfully');
-                    // Wait a moment then fetch new data
-                    setTimeout(fetchStockData, 2000);
+                    updateStatus('Screening in progress...', 'loading');
+                    // Wait a bit then fetch new data
+                    setTimeout(() => {
+                        loadStocks();
+                        // Re-enable button after loading
+                        btn.disabled = false;
+                        btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
+                    }, 3000);
                 } else {
-                    showStatus('error', data.message || 'Screening failed');
+                    updateStatus('Screening failed', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
                 }
             })
             .catch(error => {
                 console.error('Refresh error:', error);
-                showStatus('error', 'Failed to refresh data: ' + error.message);
+                updateStatus('Failed to refresh data: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
             });
         }
 
         function loadDemoData() {
-            showStatus('triggering', 'Loading demo data...');
+            const demoBtn = document.querySelector('.demo-btn');
+            
+            // Disable demo button and show loading state
+            demoBtn.disabled = true;
+            demoBtn.innerHTML = '<span class="refresh-icon">⏳</span> Loading...';
+            
+            updateStatus('Loading demo data...', 'loading');
 
             fetch('/api/force-demo', { 
                 method: 'POST',
@@ -677,16 +698,24 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showStatus('success', 'Demo data loaded successfully');
+                    updateStatus('Demo data loaded successfully', 'success');
                     // Immediately fetch and display the demo data
-                    setTimeout(fetchStockData, 1000);
+                    setTimeout(() => {
+                        loadStocks();
+                        demoBtn.disabled = false;
+                        demoBtn.innerHTML = '<span class="refresh-icon">🎯</span> Demo Data';
+                    }, 1000);
                 } else {
-                    showStatus('error', data.message || 'Demo data loading failed');
+                    updateStatus('Demo data loading failed', 'error');
+                    demoBtn.disabled = false;
+                    demoBtn.innerHTML = '<span class="refresh-icon">🎯</span> Demo Data';
                 }
             })
             .catch(error => {
                 console.error('Demo data error:', error);
-                showStatus('error', 'Failed to load demo data: ' + error.message);
+                updateStatus('Failed to load demo data: ' + error.message, 'error');
+                demoBtn.disabled = false;
+                demoBtn.innerHTML = '<span class="refresh-icon">🎯</span> Demo Data';
             });
         }
 

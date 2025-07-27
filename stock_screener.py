@@ -764,7 +764,7 @@ class EnhancedStockScreener:
                 'market_cap': self._estimate_market_cap(symbol),
                 'pe_ratio': fundamentals.get('pe_ratio'),
                 'pe_description': self.get_pe_description(fundamentals.get('pe_ratio')),
-                'revenue_growth': round(fundamentals.py', 0), 1),
+                'revenue_growth': round(fundamentals.get('revenue_growth', 0), 1),
                 'technical_summary': self._generate_technical_summary(technical),
                 'fundamentals': fundamentals,
                 'technical': technical,
