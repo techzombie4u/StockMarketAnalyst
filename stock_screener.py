@@ -110,8 +110,19 @@ class EnhancedStockScreener:
             indicators.update(self._calculate_volatility_measures(hist_data))
 
             # Current price and basic info
-            current_price_val = hist_data['Close'].iloc[-1]
-            indicators['current_price'] = float(current_price_val) if not pd.isna(current_price_val) else 0
+            if len(hist_data) > 0 and 'Close' in hist_data.columns:
+                current_price_val = hist_data['Close'].iloc[-1]
+                indicators['current_price'] = float(current_price_val) if not pd.isna(current_price_val) else 0
+                
+                # Add additional price info for better predictions
+                if len(hist_data) >= 5:
+                    indicators['price_5d_ago'] = float(hist_data['Close'].iloc[-6]) if len(hist_data) > 5 else indicators['current_price']
+                    indicators['price_1d_ago'] = float(hist_data['Close'].iloc[-2]) if len(hist_data) > 1 else indicators['current_price']
+                    indicators['high_52w'] = float(hist_data['High'].max())
+                    indicators['low_52w'] = float(hist_data['Low'].min())
+            else:
+                indicators['current_price'] = 0
+                
             indicators['data_quality_score'] = self._assess_data_quality(hist_data)
 
             return indicators
@@ -126,27 +137,33 @@ class EnhancedStockScreener:
         # Primary source: Yahoo Finance (most reliable)
         try:
             ticker = f"{symbol}.NS"
-            hist_data = yf.download(ticker, period="1y", progress=False)
+            # Add more robust error handling and retry logic
+            import yfinance as yf
+            stock = yf.Ticker(ticker)
+            hist_data = stock.history(period="1y")
+            
             if hist_data is not None and not hist_data.empty and len(hist_data) > 30:
-                logger.debug(f"Yahoo Finance data successful for {symbol}")
+                logger.debug(f"Yahoo Finance data successful for {symbol}: {len(hist_data)} days")
                 return hist_data
         except Exception as e:
-            logger.warning(f"Yahoo Finance failed for {symbol}: {str(e)}")
+            logger.warning(f"Yahoo Finance primary failed for {symbol}: {str(e)}")
 
-        # Fallback sources (placeholder implementations)
-        # In a real implementation, you would add NSE, BSE, Moneycontrol APIs
-
-        # For now, try Yahoo Finance with different periods as fallback
-        fallback_periods = ["6mo", "3mo", "2mo"]
-        for period in fallback_periods:
-            try:
-                ticker = f"{symbol}.NS"
-                hist_data = yf.download(ticker, period=period, progress=False)
-                if hist_data is not None and not hist_data.empty and len(hist_data) > 20:
-                    logger.info(f"Yahoo Finance fallback ({period}) successful for {symbol}")
-                    return hist_data
-            except Exception:
-                continue
+        # Fallback: Try with different ticker formats
+        ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
+        fallback_periods = ["6mo", "3mo", "2mo", "1mo"]
+        
+        for ticker_format in ticker_formats:
+            for period in fallback_periods:
+                try:
+                    stock = yf.Ticker(ticker_format)
+                    hist_data = stock.history(period=period)
+                    
+                    if hist_data is not None and not hist_data.empty and len(hist_data) > 10:
+                        logger.info(f"Yahoo Finance fallback successful for {symbol} ({ticker_format}, {period}): {len(hist_data)} days")
+                        return hist_data
+                except Exception as e:
+                    logger.debug(f"Fallback failed for {symbol} with {ticker_format}/{period}: {str(e)}")
+                    continue
 
         logger.error(f"All data sources failed for {symbol}")
         return None
@@ -732,7 +749,6 @@ class EnhancedStockScreener:
     def _extract_metric_value(self, soup: BeautifulSoup, search_terms: List[str]) -> Optional[float]:
         """Extract a specific metric value from soup"""
         try:
-            ```python
             for term in search_terms:
                 elements = soup.find_all(text=lambda text: text and term.lower() in text.lower())
                 for element in elements:
@@ -969,15 +985,29 @@ class EnhancedStockScreener:
 
         current_price = technical.get('current_price', 0)
         if current_price <= 0:
-            return {
-                'predicted_price': 0,
-                'predicted_gain': 0,
-                'confidence_level': 'low',
-                'time_horizon': 15
-            }
+            # Try to get a reasonable estimate if current price is missing
+            price_5d_ago = technical.get('price_5d_ago', 0)  
+            price_1d_ago = technical.get('price_1d_ago', 0)
+            
+            if price_1d_ago > 0:
+                current_price = price_1d_ago
+            elif price_5d_ago > 0:
+                current_price = price_5d_ago
+            else:
+                return {
+                    'predicted_price': 0,
+                    'predicted_gain': 0,
+                    'pred_24h': 0,
+                    'pred_5d': 0, 
+                    'pred_1mo': 0,
+                    'confidence_level': 'low',
+                    'time_horizon': 15
+                }
 
-        # Base prediction from score
-        base_gain = score / 5
+        # Base prediction from score (more conservative)
+        base_gain_24h = (score - 50) / 10  # 24h prediction
+        base_gain_5d = (score - 40) / 8    # 5d prediction  
+        base_gain_1mo = (score - 30) / 5   # 1mo prediction
 
         # Technical adjustments
         technical_adjustment = 0
@@ -985,26 +1015,41 @@ class EnhancedStockScreener:
         # RSI adjustment
         rsi_14 = technical.get('rsi_14', 50)
         if rsi_14 < 35:  # Oversold
-            technical_adjustment += 2
+            technical_adjustment += 1.5
         elif rsi_14 > 65:  # Overbought
             technical_adjustment -= 1
 
         # EMA trend adjustment
         ema_trend_strength = technical.get('ema_trend_strength', 0)
-        technical_adjustment += max(-2, min(3, ema_trend_strength))
+        technical_adjustment += max(-1.5, min(2, ema_trend_strength / 2))
 
         # MACD adjustment
         if technical.get('macd_bullish', False):
-            technical_adjustment += 1
+            technical_adjustment += 0.8
 
         # Volume adjustment
         volume_ratio = technical.get('volume_ratio_10', 1)
         if volume_ratio > 1.5:
-            technical_adjustment += 1
+            technical_adjustment += 0.5
 
-        # Final prediction
-        predicted_gain = base_gain + technical_adjustment
-        predicted_price = current_price * (1 + predicted_gain / 100)
+        # Calculate predictions for different timeframes
+        pred_24h = base_gain_24h + (technical_adjustment * 0.5)
+        pred_5d = base_gain_5d + technical_adjustment
+        pred_1mo = base_gain_1mo + (technical_adjustment * 1.5)
+
+        # Apply bounds to keep predictions reasonable
+        pred_24h = max(-5, min(8, pred_24h))   # Max 8% in 24h
+        pred_5d = max(-10, min(15, pred_5d))   # Max 15% in 5d
+        pred_1mo = max(-20, min(25, pred_1mo)) # Max 25% in 1mo
+
+        # Calculate predicted prices
+        predicted_price_24h = current_price * (1 + pred_24h / 100)
+        predicted_price_5d = current_price * (1 + pred_5d / 100)  
+        predicted_price_1mo = current_price * (1 + pred_1mo / 100)
+
+        # Overall prediction (use 1mo as primary)
+        predicted_price = predicted_price_1mo
+        predicted_gain = pred_1mo
 
         # Calculate time horizon based on score and predicted gain
         if predicted_gain > 15:
@@ -1018,9 +1063,9 @@ class EnhancedStockScreener:
 
         # Confidence level
         data_quality = technical.get('data_quality_score', 50)
-        if data_quality > 80:
+        if data_quality > 80 and current_price > 0:
             confidence_level = 'high'
-        elif data_quality > 60:
+        elif data_quality > 60 and current_price > 0:
             confidence_level = 'medium'
         else:
             confidence_level = 'low'
@@ -1028,6 +1073,9 @@ class EnhancedStockScreener:
         return {
             'predicted_price': round(predicted_price, 2),
             'predicted_gain': round(predicted_gain, 1),
+            'pred_24h': round(pred_24h, 1),
+            'pred_5d': round(pred_5d, 1),
+            'pred_1mo': round(pred_1mo, 1),
             'confidence_level': confidence_level,
             'time_horizon': time_horizon
         }
