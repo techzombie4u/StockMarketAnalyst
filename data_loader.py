@@ -31,7 +31,7 @@ class MLDataLoader:
             ticker = f"{symbol}.NS"
             data = yf.download(ticker, period=period, progress=False)
             
-            if data.empty:
+            if data is None or data.empty:
                 logger.warning(f"No historical data found for {symbol}")
                 return None
                 

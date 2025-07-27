@@ -90,7 +90,7 @@ def run_now():
     try:
         if scheduler:
             scheduler.run_screening_job_manual()
-            return jsonify({'success': True, 'message': 'Manual screening triggered'})
+            return jsonify({'success': True, 'message': 'Screening started successfully'})
         else:
             return jsonify({'success': False, 'message': 'Scheduler not running'})
     except Exception as e:

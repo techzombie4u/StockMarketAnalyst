@@ -77,8 +77,8 @@ class EnhancedStockScreener:
                 return {}
 
             # Ensure we have enough data points
-            if len(hist_data) < 50:
-                logger.warning(f"Insufficient data for {symbol}: {len(hist_data)} days")
+            if hist_data is None or hist_data.empty or len(hist_data) < 50:
+                logger.warning(f"Insufficient data for {symbol}: {len(hist_data) if hist_data is not None else 0} days")
                 return {}
 
             indicators = {}
@@ -127,7 +127,7 @@ class EnhancedStockScreener:
         try:
             ticker = f"{symbol}.NS"
             hist_data = yf.download(ticker, period="1y", progress=False)
-            if not hist_data.empty and len(hist_data) > 30:
+            if hist_data is not None and not hist_data.empty and len(hist_data) > 30:
                 logger.debug(f"Yahoo Finance data successful for {symbol}")
                 return hist_data
         except Exception as e:
@@ -142,7 +142,7 @@ class EnhancedStockScreener:
             try:
                 ticker = f"{symbol}.NS"
                 hist_data = yf.download(ticker, period=period, progress=False)
-                if not hist_data.empty and len(hist_data) > 20:
+                if hist_data is not None and not hist_data.empty and len(hist_data) > 20:
                     logger.info(f"Yahoo Finance fallback ({period}) successful for {symbol}")
                     return hist_data
             except Exception:
@@ -476,8 +476,10 @@ class EnhancedStockScreener:
                 quality_score += 10
             
             # Volume data availability
-            if 'Volume' in data.columns and data['Volume'].sum() > 0:
-                quality_score += 20
+            if 'Volume' in data.columns:
+                volume_sum = data['Volume'].sum()
+                if volume_sum > 0:
+                    quality_score += 20
             
             # Price consistency
             price_changes = data['Close'].pct_change().dropna()
