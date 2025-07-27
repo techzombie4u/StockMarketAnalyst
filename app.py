@@ -12,6 +12,7 @@ from flask_cors import CORS
 import logging
 from scheduler import StockAnalystScheduler
 from historical_analyzer import HistoricalAnalyzer
+import pytz
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,9 @@ app.config['SECRET_KEY'] = 'your-secret-key-here'
 
 # Global scheduler instance
 scheduler = None
+
+# Timezone for India
+IST = pytz.timezone('Asia/Kolkata')
 
 @app.route('/')
 def dashboard():
@@ -96,6 +100,65 @@ def run_now():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/api/force-demo', methods=['POST'])
+def force_demo_data():
+    """Generate demo data for testing when no real data available"""
+    try:
+        logger.info("Generating demo data")
+
+        # Create sample data structure
+        demo_data = {
+            'timestamp': datetime.now(IST).isoformat(),
+            'last_updated': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST'),
+            'status': 'demo',
+            'stocks': [
+                {
+                    'symbol': 'RELIANCE',
+                    'score': 85.0,
+                    'adjusted_score': 82.5,
+                    'confidence': 90,
+                    'current_price': 1400.0,
+                    'predicted_price': 1680.0,
+                    'predicted_gain': 20.0,
+                    'volatility': 1.5,
+                    'time_horizon': 12,
+                    'pe_ratio': 25.0,
+                    'revenue_growth': 8.5
+                },
+                {
+                    'symbol': 'TCS',
+                    'score': 82.0,
+                    'adjusted_score': 80.1,
+                    'confidence': 88,
+                    'current_price': 3150.0,
+                    'predicted_price': 3780.0,
+                    'predicted_gain': 20.0,
+                    'volatility': 1.4,
+                    'time_horizon': 12,
+                    'pe_ratio': 23.0,
+                    'revenue_growth': 6.2
+                }
+            ]
+        }
+
+        # Save demo data
+        with open('top10.json', 'w') as f:
+            json.dump(demo_data, f, indent=2)
+
+        logger.info("Demo data generated successfully")
+        return jsonify({
+            'success': True,
+            'message': 'Demo data generated successfully',
+            'data': demo_data
+        })
+
+    except Exception as e:
+        logger.error(f"Demo data generation failed: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Demo data error: {str(e)}'
+        }), 500
+
 @app.route('/analysis')
 def analysis_dashboard():
     """Analysis dashboard page"""
@@ -107,7 +170,7 @@ def get_analysis():
     try:
         analyzer = HistoricalAnalyzer()
         analysis_data = analyzer.get_analysis_summary()
-        
+
         # If no analysis data exists, try to generate from existing historical data
         if not analysis_data:
             historical_data = analyzer._load_historical_data()
@@ -133,9 +196,9 @@ def get_analysis():
                     'message': 'No analysis data available yet. Run the stock screener multiple times to generate analysis.',
                     'status': 'no_data'
                 })
-        
+
         return jsonify(analysis_data)
-        
+
     except Exception as e:
         logger.error(f"Error in /api/analysis: {str(e)}")
         return jsonify({
@@ -150,7 +213,7 @@ def get_historical_trends():
         analyzer = HistoricalAnalyzer()
         trends_data = analyzer.get_historical_trends()
         return jsonify(trends_data)
-        
+
     except Exception as e:
         logger.error(f"Error in /api/historical-trends: {str(e)}")
         return jsonify({

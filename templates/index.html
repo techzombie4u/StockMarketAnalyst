@@ -353,8 +353,13 @@
                 <p>AI-powered analysis with technical & fundamental scoring</p>
             </div>
             <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
-                🔄 Refresh Now
-            </button>
+                    <span class="refresh-icon">🔄</span>
+                    Refresh Now
+                </button>
+                <button class="refresh-btn demo-btn" onclick="loadDemoData()" style="background: #ff6b35; margin-left: 10px;">
+                    <span class="refresh-icon">🎯</span>
+                    Demo Data
+                </button>
         </div>
 
         <div class="stats-grid" id="statsGrid" style="display: none;">
@@ -636,106 +641,52 @@
         }
 
         function refreshData() {
-            if (isLoading) return;
+            showStatus('triggering', 'Manual screening triggered');
 
-            isLoading = true;
-            showLoading();
-
-            // Add timeout to prevent hanging
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-            fetch('/api/stocks', {
-                method: 'GET',
+            fetch('/api/run-now', { 
+                method: 'POST',
                 headers: {
-                    'Accept': 'application/json',
-                    'Cache-Control': 'no-cache'
-                },
-                signal: controller.signal
-            })
-            .then(response => {
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    'Content-Type': 'application/json'
                 }
-
-                return response.json();
             })
+            .then(response => response.json())
             .then(data => {
-                isLoading = false;
-                retryCount = 0; // Reset retry count on success
-
-                console.log('API Response:', data);
-
-                if (data.error) {
-                    throw new Error(data.error);
+                if (data.success) {
+                    showStatus('success', 'Screening completed successfully');
+                    // Wait a moment then fetch new data
+                    setTimeout(fetchStockData, 2000);
+                } else {
+                    showStatus('error', data.message || 'Screening failed');
                 }
-
-                updateLastUpdated(data.timestamp || data.last_updated);
-
-                if (!data.stocks || data.stocks.length === 0) {
-                    if (data.status === 'initializing') {
-                        updateStatus('Initializing system...', 'loading');
-                        setTimeout(loadStocks, 5000); // Retry in 5 seconds
-                    } else {
-                        showEmpty();
-                    }
-                    return;
-                }
-
-                // Update statistics
-                updateStats(data.stocks);
-
-                // Update table
-                const tbody = document.getElementById('stockTableBody');
-                tbody.innerHTML = '';
-
-                data.stocks.forEach((stock, index) => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="symbol">#${index + 1} ${stock.symbol}</td>
-                        <td><span class="score ${getScoreClass(stock.score)}">${stock.score}</span></td>
-                        <td class="price">₹${stock.current_price?.toFixed(2) || '0.00'}</td>
-                        <td class="${getGainClass(stock.daily_gain || 0)}">${formatGain(stock.daily_gain || 0)}</td>
-                        <td class="${getGainClass(stock.weekly_gain || 0)}">${formatGain(stock.weekly_gain || 0)}</td>
-                        <td class="${getGainClass(stock.monthly_gain || 0)}">${formatGain(stock.monthly_gain || 0)}</td>
-                        <td><span class="pe-ratio ${getPEClass(stock.pe_description || 'Not Available')}">${stock.pe_description || 'N/A'}</span></td>
-                        <td><span class="risk-level ${getRiskClass(stock.risk_level || 'Medium')}">${stock.risk_level || 'Medium'}</span></td>
-                        <td class="${getGainClass(stock.revenue_growth || 0)}">${formatGain(stock.revenue_growth || 0)}</td>
-                        <td>${stock.confidence || 0}%</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-
-                showData();
             })
             .catch(error => {
-                clearTimeout(timeoutId);
-                isLoading = false;
+                console.error('Refresh error:', error);
+                showStatus('error', 'Failed to refresh data: ' + error.message);
+            });
+        }
 
-                console.error('Error loading stocks:', error);
+        function loadDemoData() {
+            showStatus('triggering', 'Loading demo data...');
 
-                let errorMessage = 'Unable to load stock data.';
-
-                if (error.name === 'AbortError') {
-                    errorMessage = 'Request timed out. The server may be busy processing data.';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMessage = 'Network connection error. Please check your internet connection.';
-                } else if (error.message.includes('HTTP')) {
-                    errorMessage = `Server error: ${error.message}`;
-                } else {
-                    errorMessage = error.message || 'Unknown error occurred.';
+            fetch('/api/force-demo', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-
-                // Implement retry logic
-                if (retryCount < maxRetries && !error.name === 'AbortError') {
-                    retryCount++;
-                    updateStatus(`Retrying... (${retryCount}/${maxRetries})`, 'loading');
-                    setTimeout(loadStocks, 3000 * retryCount); // Progressive delay
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus('success', 'Demo data loaded successfully');
+                    // Immediately fetch and display the demo data
+                    setTimeout(fetchStockData, 1000);
                 } else {
-                    showError(errorMessage);
+                    showStatus('error', data.message || 'Demo data loading failed');
                 }
+            })
+            .catch(error => {
+                console.error('Demo data error:', error);
+                showStatus('error', 'Failed to load demo data: ' + error.message);
             });
         }
 
