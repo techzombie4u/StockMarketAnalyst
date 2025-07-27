@@ -160,25 +160,17 @@ class EnhancedStockScreener:
             high_close = (data['High'] - data['Close'].shift()).abs()
             low_close = (data['Low'] - data['Close'].shift()).abs()
             
-            # Calculate true range element by element
-            tr_values = []
-            for i in range(len(data)):
-                if i == 0:
-                    tr_values.append(high_low.iloc[i])
-                else:
-                    tr_val = max(high_low.iloc[i], high_close.iloc[i], low_close.iloc[i])
-                    tr_values.append(tr_val)
-            
-            true_range = pd.Series(tr_values, index=data.index)
+            # Calculate true range using numpy maximum for element-wise comparison
+            true_range = np.maximum(high_low, np.maximum(high_close, low_close))
 
             # Multiple ATR periods
             for period in [7, 14, 21]:
                 atr = true_range.rolling(window=period).mean()
-                atr_val = atr.iloc[-1]
+                atr_val = atr.iloc[-1] if len(atr) > 0 else 0
                 indicators[f'atr_{period}'] = float(atr_val) if not pd.isna(atr_val) else 0
 
             # ATR-based volatility
-            current_price = data['Close'].iloc[-1]
+            current_price = data['Close'].iloc[-1] if len(data['Close']) > 0 else 0
             indicators['atr_volatility'] = (indicators['atr_14'] / current_price * 100) if current_price > 0 else 0
 
         except Exception as e:
@@ -195,18 +187,17 @@ class EnhancedStockScreener:
 
             for period in [14, 21]:
                 delta = close_prices.diff()
-                gain = delta.copy()
-                gain[gain < 0] = 0
-                loss = -delta.copy()
-                loss[loss < 0] = 0
+                gain = delta.where(delta > 0, 0)
+                loss = (-delta).where(delta < 0, 0)
                 
                 avg_gain = gain.rolling(window=period).mean()
                 avg_loss = loss.rolling(window=period).mean()
                 
-                rs = avg_gain / avg_loss
+                # Avoid division by zero
+                rs = avg_gain / (avg_loss + 1e-10)
                 rsi = 100 - (100 / (1 + rs))
 
-                rsi_val = rsi.iloc[-1]
+                rsi_val = rsi.iloc[-1] if len(rsi) > 0 else 50
                 indicators[f'rsi_{period}'] = float(rsi_val) if not pd.isna(rsi_val) else 50
 
             # RSI signal interpretation
@@ -234,17 +225,18 @@ class EnhancedStockScreener:
             ema_periods = [5, 12, 21, 50]
             for period in ema_periods:
                 ema = close_prices.ewm(span=period).mean()
-                indicators[f'ema_{period}'] = float(ema.iloc[-1])
+                ema_val = ema.iloc[-1] if len(ema) > 0 else 0
+                indicators[f'ema_{period}'] = float(ema_val) if not pd.isna(ema_val) else 0
 
             # EMA crossover signals
-            current_price = close_prices.iloc[-1]
-            indicators['price_above_ema_12'] = current_price > indicators['ema_12']
-            indicators['price_above_ema_21'] = current_price > indicators['ema_21']
-            indicators['ema_12_above_21'] = indicators['ema_12'] > indicators['ema_21']
+            current_price = close_prices.iloc[-1] if len(close_prices) > 0 else 0
+            indicators['price_above_ema_12'] = float(current_price) > float(indicators.get('ema_12', 0))
+            indicators['price_above_ema_21'] = float(current_price) > float(indicators.get('ema_21', 0))
+            indicators['ema_12_above_21'] = float(indicators.get('ema_12', 0)) > float(indicators.get('ema_21', 0))
 
             # EMA trend strength
-            ema_5 = indicators['ema_5']
-            ema_21 = indicators['ema_21']
+            ema_5 = indicators.get('ema_5', 0)
+            ema_21 = indicators.get('ema_21', 0)
             indicators['ema_trend_strength'] = ((ema_5 - ema_21) / ema_21 * 100) if ema_21 > 0 else 0
 
         except Exception as e:
@@ -979,7 +971,8 @@ class EnhancedStockScreener:
             return {
                 'predicted_price': 0,
                 'predicted_gain': 0,
-                'confidence_level': 'low'
+                'confidence_level': 'low',
+                'time_horizon': 15
             }
 
         # Base prediction from score
@@ -1012,6 +1005,16 @@ class EnhancedStockScreener:
         predicted_gain = base_gain + technical_adjustment
         predicted_price = current_price * (1 + predicted_gain / 100)
 
+        # Calculate time horizon based on score and predicted gain
+        if predicted_gain > 15:
+            time_horizon = 8
+        elif predicted_gain > 10:
+            time_horizon = 12
+        elif predicted_gain > 5:
+            time_horizon = 18
+        else:
+            time_horizon = 25
+
         # Confidence level
         data_quality = technical.get('data_quality_score', 50)
         if data_quality > 80:
@@ -1024,7 +1027,8 @@ class EnhancedStockScreener:
         return {
             'predicted_price': round(predicted_price, 2),
             'predicted_gain': round(predicted_gain, 1),
-            'confidence_level': confidence_level
+            'confidence_level': confidence_level,
+            'time_horizon': time_horizon
         }
 
     def _assess_risk(self, technical: Dict, fundamentals: Dict) -> Dict:
