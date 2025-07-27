@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Stock Market Analyst - Main Application Entry Point
@@ -29,16 +28,21 @@ logger = logging.getLogger(__name__)
 def main():
     """Main application entry point"""
     logger.info("🚀 Starting Stock Market Analyst Application")
-    
+
     try:
         # Initialize system files and settings
         if not initialize_system():
             logger.error("❌ System initialization failed")
             sys.exit(1)
-        
+
+        # Run system health check
+        health_check_result = run_system_health_check()
+        if not health_check_result:
+            logger.warning("⚠️ Some system components may not be working optimally")
+
         # Initialize the application (starts scheduler)
         initialize_app()
-        
+
         # Print startup information
         print("\n" + "="*60)
         print("📈 STOCK MARKET ANALYST - AI-ENHANCED DASHBOARD")
@@ -59,7 +63,7 @@ def main():
         print("\n✅ Application started successfully!")
         print("📱 Open your browser and navigate to http://localhost:5000")
         print("\n🛑 Press Ctrl+C to stop the application\n")
-        
+
         # Run the Flask application
         app.run(
             host='0.0.0.0',
@@ -68,13 +72,47 @@ def main():
             threaded=True,
             use_reloader=False  # Disable reloader to prevent duplicate scheduler
         )
-        
+
     except KeyboardInterrupt:
         logger.info("👋 Application stopped by user")
         sys.exit(0)
     except Exception as e:
         logger.error(f"❌ Failed to start application: {str(e)}")
         sys.exit(1)
+
+def run_system_health_check():
+    """Run comprehensive system health check"""
+    try:
+        print("🔧 Running system health check...")
+
+        # Check if required files exist
+        required_files = ['stock_screener.py', 'scheduler.py', 'app.py', 'templates/index.html']
+        for file in required_files:
+            if not os.path.exists(file):
+                print(f"❌ Missing required file: {file}")
+                return False
+
+        # Test stock screener functionality
+        from stock_screener import StockScreener
+        screener = StockScreener()
+        print("✅ Stock screener module loaded successfully")
+
+        # Test scheduler functionality
+        from scheduler import StockAnalystScheduler
+        scheduler = StockAnalystScheduler()
+        print("✅ Scheduler module loaded successfully")
+
+        # Create directories if they don't exist
+        os.makedirs('historical_data', exist_ok=True)
+        os.makedirs('logs', exist_ok=True)
+        print("✅ Required directories created/verified")
+
+        print("✅ System health check completed successfully")
+        return True
+
+    except Exception as e:
+        print(f"❌ System health check failed: {str(e)}")
+        return False
 
 if __name__ == "__main__":
     main()

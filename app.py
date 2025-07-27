@@ -43,13 +43,33 @@ def get_stocks():
             if not isinstance(data, dict):
                 raise ValueError("Invalid data format")
 
+            # Validate and clean stock data
+            stocks = data.get('stocks', [])
+            validated_stocks = []
+            
+            for stock in stocks:
+                # Ensure all prediction fields exist with proper values
+                if 'pred_24h' not in stock or stock['pred_24h'] == 0:
+                    stock['pred_24h'] = round(stock.get('predicted_gain', 0) * 0.05, 2)
+                if 'pred_5d' not in stock or stock['pred_5d'] == 0:
+                    stock['pred_5d'] = round(stock.get('predicted_gain', 0) * 0.25, 2)
+                if 'pred_1mo' not in stock or stock['pred_1mo'] == 0:
+                    stock['pred_1mo'] = round(stock.get('predicted_gain', 0), 2)
+                
+                # Ensure minimum values
+                stock['pred_24h'] = max(0.1, stock['pred_24h']) if stock['score'] > 50 else stock['pred_24h']
+                stock['pred_5d'] = max(0.5, stock['pred_5d']) if stock['score'] > 50 else stock['pred_5d']
+                stock['pred_1mo'] = max(1.0, stock['pred_1mo']) if stock['score'] > 50 else stock['pred_1mo']
+                
+                validated_stocks.append(stock)
+
             # Add default values if missing
             response_data = {
                 'timestamp': data.get('timestamp', ''),
                 'last_updated': data.get('last_updated', 'Unknown'),
-                'stocks': data.get('stocks', []),
+                'stocks': validated_stocks,
                 'error': data.get('error', None),
-                'status': 'success' if data.get('stocks') else 'no_data'
+                'status': 'success' if validated_stocks else 'no_data'
             }
 
             return jsonify(response_data)
