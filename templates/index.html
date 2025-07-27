@@ -356,10 +356,7 @@
                     <span class="refresh-icon">🔄</span>
                     Refresh Now
                 </button>
-                <button class="refresh-btn demo-btn" onclick="loadDemoData()" style="background: #ff6b35; margin-left: 10px;">
-                    <span class="refresh-icon">🎯</span>
-                    Demo Data
-                </button>
+                
         </div>
 
         <div class="stats-grid" id="statsGrid" style="display: none;">
@@ -642,11 +639,11 @@
 
         function refreshData() {
             const btn = document.getElementById('refreshBtn');
-            
+
             // Disable button and show loading state
             btn.disabled = true;
             btn.innerHTML = '<span class="refresh-icon">⏳</span> Refreshing...';
-            
+
             updateStatus('Manual screening triggered...', 'loading');
 
             fetch('/api/run-now', { 
@@ -680,44 +677,7 @@
             });
         }
 
-        function loadDemoData() {
-            const demoBtn = document.querySelector('.demo-btn');
-            
-            // Disable demo button and show loading state
-            demoBtn.disabled = true;
-            demoBtn.innerHTML = '<span class="refresh-icon">⏳</span> Loading...';
-            
-            updateStatus('Loading demo data...', 'loading');
-
-            fetch('/api/force-demo', { 
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateStatus('Demo data loaded successfully', 'success');
-                    // Immediately fetch and display the demo data
-                    setTimeout(() => {
-                        loadStocks();
-                        demoBtn.disabled = false;
-                        demoBtn.innerHTML = '<span class="refresh-icon">🎯</span> Demo Data';
-                    }, 1000);
-                } else {
-                    updateStatus('Demo data loading failed', 'error');
-                    demoBtn.disabled = false;
-                    demoBtn.innerHTML = '<span class="refresh-icon">🎯</span> Demo Data';
-                }
-            })
-            .catch(error => {
-                console.error('Demo data error:', error);
-                updateStatus('Failed to load demo data: ' + error.message, 'error');
-                demoBtn.disabled = false;
-                demoBtn.innerHTML = '<span class="refresh-icon">🎯</span> Demo Data';
-            });
-        }
+        
 
         function manualRefresh() {
             updateStatus('🔄 Triggering manual refresh...', 'loading');
