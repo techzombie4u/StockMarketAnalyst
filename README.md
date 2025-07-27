@@ -1,4 +1,3 @@
-
 # 📈 Stock Market Analyst
 
 A comprehensive AI-powered stock screener and analysis dashboard for Indian stock markets. This application automatically screens stocks based on fundamental analysis, technical indicators, and market sentiment to identify high-potential investment opportunities.

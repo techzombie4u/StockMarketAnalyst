@@ -51,7 +51,7 @@ def main():
         print(f"📊 API Endpoint: http://localhost:5000/api/stocks")
         print(f"⚡ Auto-refresh: Every 1 hour")
         print(f"🔄 Screening: Every 1 hour (Market Hours: 9 AM - 4 PM IST)")
-        print(f"📈 Stocks: Top 38 Indian stocks under ₹1000")
+        print(f"📈 Stocks: Top 50 Indian stocks under ₹500")
         print(f"🤖 AI Features: LSTM Price Prediction + Random Forest Direction")
         print("="*60)
         print("💡 Tips:")

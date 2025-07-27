@@ -35,22 +35,22 @@ class EnhancedStockScreener:
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
 
-        # Complete Nifty 50 stocks list
-        self.nifty50_symbols = [
-            'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR',
-            'ICICIBANK', 'BHARTIARTL', 'SBIN', 'LT', 'ITC',
-            'KOTAKBANK', 'AXISBANK', 'HCLTECH', 'ASIANPAINT', 'MARUTI',
-            'SUNPHARMA', 'ULTRACEMCO', 'TITAN', 'NESTLEIND', 'BAJFINANCE',
-            'WIPRO', 'ONGC', 'NTPC', 'POWERGRID', 'TECHM',
-            'M&M', 'TATAMOTORS', 'BAJAJFINSV', 'DRREDDY', 'JSWSTEEL',
-            'COALINDIA', 'TATASTEEL', 'HDFCLIFE', 'SBILIFE', 'GRASIM',
-            'BRITANNIA', 'APOLLOHOSP', 'CIPLA', 'DIVISLAB', 'HEROMOTOCO',
-            'ADANIENT', 'EICHERMOT', 'HINDALCO', 'UPL', 'INDUSINDBK',
-            'BAJAJ-AUTO', 'BPCL', 'TATACONSUM', 'SHRIRAMFIN', 'LTIM'
+        # Quality stocks under ₹500 list
+        self.under500_symbols = [
+            'SBIN', 'BHARTIARTL', 'ITC', 'NTPC', 'POWERGRID',
+            'ONGC', 'COALINDIA', 'TATASTEEL', 'JSWSTEEL', 'HINDALCO',
+            'TATAMOTORS', 'M&M', 'BPCL', 'GAIL', 'IOC',
+            'SAIL', 'NALCO', 'VEDL', 'BANKBARODA', 'CANBK',
+            'PNB', 'UNIONBANK', 'BANKINDIA', 'CENTRALBK', 'INDIANB',
+            'RECLTD', 'PFC', 'IRFC', 'IRCTC', 'RAILTEL',
+            'HAL', 'BEL', 'BEML', 'BHEL', 'CONCOR',
+            'NBCC', 'RITES', 'KTKBANK', 'FEDERALBNK', 'IDFCFIRSTB',
+            'EQUITAS', 'RBLBANK', 'YESBANK', 'BANKINDIA', 'LICHSGFIN',
+            'MUTHOOTFIN', 'BAJAJHLDNG', 'GODREJCP', 'MARICO', 'DABUR'
         ]
 
-        # Use all Nifty 50 stocks for comprehensive screening
-        self.watchlist = self.nifty50_symbols
+        # Use stocks under ₹500 for comprehensive screening
+        self.watchlist = self.under500_symbols
 
         self.bulk_deals = []
         self.fundamentals = {}
@@ -1218,8 +1218,8 @@ class EnhancedStockScreener:
 
     def _estimate_market_cap(self, symbol: str) -> str:
         """Estimate market cap category"""
-        large_caps = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'HINDUNILVR', 'ICICIBANK']
-        mid_caps = ['TITAN', 'ASIANPAINT', 'ULTRACEMCO', 'BAJFINANCE', 'HCLTECH']
+        large_caps = ['SBIN', 'BHARTIARTL', 'ITC', 'NTPC', 'ONGC', 'COALINDIA', 'TATASTEEL', 'JSWSTEEL']
+        mid_caps = ['HINDALCO', 'TATAMOTORS', 'M&M', 'BPCL', 'GAIL', 'IOC', 'POWERGRID', 'HAL', 'BEL']
 
         if symbol in large_caps:
             return "Large Cap"
@@ -1290,7 +1290,7 @@ class EnhancedStockScreener:
 
                             deal_category = self._classify_deal_type(client_name, deal_type)
 
-                            if symbol in self.nifty50_symbols and percentage >= 0.5:
+                            if symbol in self.under500_symbols and percentage >= 0.5:
                                 deals.append({
                                     'symbol': symbol,
                                     'type': deal_category,
