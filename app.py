@@ -301,6 +301,71 @@ def get_historical_trends():
             'status': 'error'
         }), 500
 
+@app.route('/lookup')
+def stock_lookup():
+    """Stock lookup page"""
+    return render_template('lookup.html')
+
+@app.route('/api/lookup/<symbol>')
+def lookup_stock(symbol):
+    """API endpoint to analyze a specific stock"""
+    try:
+        symbol = symbol.upper().strip()
+        
+        if not symbol:
+            return jsonify({'error': 'Stock symbol is required'}), 400
+        
+        logger.info(f"Looking up stock: {symbol}")
+        
+        # Import here to avoid circular imports
+        from stock_screener import EnhancedStockScreener
+        
+        screener = EnhancedStockScreener()
+        
+        # Get fundamental data
+        fundamentals = screener.scrape_screener_data(symbol)
+        
+        # Get technical indicators
+        technical = screener.calculate_enhanced_technical_indicators(symbol)
+        
+        if not fundamentals and not technical:
+            return jsonify({'error': f'No data found for symbol {symbol}'}), 404
+        
+        # Create stock data structure
+        stocks_data = {
+            symbol: {
+                'fundamentals': fundamentals,
+                'technical': technical
+            }
+        }
+        
+        # Score and rank (returns list)
+        scored_stocks = screener.enhanced_score_and_rank(stocks_data)
+        
+        if not scored_stocks:
+            return jsonify({'error': f'Unable to analyze {symbol}'}), 404
+        
+        stock_result = scored_stocks[0]  # Get the first (and only) result
+        
+        # Try to add ML predictions if available
+        try:
+            from predictor import enrich_with_ml_predictions
+            enhanced_stocks = enrich_with_ml_predictions([stock_result])
+            if enhanced_stocks:
+                stock_result = enhanced_stocks[0]
+        except Exception as e:
+            logger.warning(f"ML predictions failed for {symbol}: {str(e)}")
+        
+        return jsonify({
+            'stock': stock_result,
+            'timestamp': datetime.now(IST).isoformat(),
+            'analyzed_at': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST')
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in stock lookup for {symbol}: {str(e)}")
+        return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+
 @app.route('/api/health')
 def health_check():
     """Health check endpoint"""
