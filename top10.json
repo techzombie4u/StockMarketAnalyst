@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-07-27T16:16:29.073721+05:30",
-  "last_updated": "2025-07-27 16:16:29 IST",
-  "error": "The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().",
+  "timestamp": "2025-07-27T16:22:58.920967+05:30",
+  "last_updated": "2025-07-27 16:22:58 IST",
+  "error": "'time_horizon'",
   "stocks": [],
   "status": "error"
 }
