@@ -110,7 +110,8 @@ class EnhancedStockScreener:
             indicators.update(self._calculate_volatility_measures(hist_data))
 
             # Current price and basic info
-            indicators['current_price'] = float(hist_data['Close'].iloc[-1])
+            current_price_val = hist_data['Close'].iloc[-1]
+            indicators['current_price'] = float(current_price_val) if not pd.isna(current_price_val) else 0
             indicators['data_quality_score'] = self._assess_data_quality(hist_data)
 
             return indicators
@@ -156,14 +157,25 @@ class EnhancedStockScreener:
 
         try:
             high_low = data['High'] - data['Low']
-            high_close = np.abs(data['High'] - data['Close'].shift())
-            low_close = np.abs(data['Low'] - data['Close'].shift())
-            true_range = np.maximum(high_low, np.maximum(high_close, low_close))
+            high_close = (data['High'] - data['Close'].shift()).abs()
+            low_close = (data['Low'] - data['Close'].shift()).abs()
+            
+            # Calculate true range element by element
+            tr_values = []
+            for i in range(len(data)):
+                if i == 0:
+                    tr_values.append(high_low.iloc[i])
+                else:
+                    tr_val = max(high_low.iloc[i], high_close.iloc[i], low_close.iloc[i])
+                    tr_values.append(tr_val)
+            
+            true_range = pd.Series(tr_values, index=data.index)
 
             # Multiple ATR periods
             for period in [7, 14, 21]:
                 atr = true_range.rolling(window=period).mean()
-                indicators[f'atr_{period}'] = float(atr.iloc[-1]) if not np.isnan(atr.iloc[-1]) else 0
+                atr_val = atr.iloc[-1]
+                indicators[f'atr_{period}'] = float(atr_val) if not pd.isna(atr_val) else 0
 
             # ATR-based volatility
             current_price = data['Close'].iloc[-1]
@@ -183,12 +195,19 @@ class EnhancedStockScreener:
 
             for period in [14, 21]:
                 delta = close_prices.diff()
-                gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-                loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-                rs = gain / loss
+                gain = delta.copy()
+                gain[gain < 0] = 0
+                loss = -delta.copy()
+                loss[loss < 0] = 0
+                
+                avg_gain = gain.rolling(window=period).mean()
+                avg_loss = loss.rolling(window=period).mean()
+                
+                rs = avg_gain / avg_loss
                 rsi = 100 - (100 / (1 + rs))
 
-                indicators[f'rsi_{period}'] = float(rsi.iloc[-1]) if not np.isnan(rsi.iloc[-1]) else 50
+                rsi_val = rsi.iloc[-1]
+                indicators[f'rsi_{period}'] = float(rsi_val) if not pd.isna(rsi_val) else 50
 
             # RSI signal interpretation
             rsi_14 = indicators.get('rsi_14', 50)
@@ -248,22 +267,26 @@ class EnhancedStockScreener:
             bb_upper = bb_middle + (bb_std * std_dev)
             bb_lower = bb_middle - (bb_std * std_dev)
 
-            indicators['bb_upper'] = float(bb_upper.iloc[-1])
-            indicators['bb_middle'] = float(bb_middle.iloc[-1])
-            indicators['bb_lower'] = float(bb_lower.iloc[-1])
+            bb_upper_val = bb_upper.iloc[-1]
+            bb_middle_val = bb_middle.iloc[-1]
+            bb_lower_val = bb_lower.iloc[-1]
+            
+            indicators['bb_upper'] = float(bb_upper_val) if not pd.isna(bb_upper_val) else 0
+            indicators['bb_middle'] = float(bb_middle_val) if not pd.isna(bb_middle_val) else 0
+            indicators['bb_lower'] = float(bb_lower_val) if not pd.isna(bb_lower_val) else 0
 
             # Current price position in Bollinger Bands
             current_price = close_prices.iloc[-1]
-            bb_width = bb_upper.iloc[-1] - bb_lower.iloc[-1]
-            indicators['bb_position'] = ((current_price - bb_lower.iloc[-1]) / bb_width * 100) if bb_width > 0 else 50
+            bb_width = indicators['bb_upper'] - indicators['bb_lower']
+            indicators['bb_position'] = ((current_price - indicators['bb_lower']) / bb_width * 100) if bb_width > 0 else 50
 
             # Bollinger Band squeeze indicator
-            indicators['bb_width'] = bb_width / bb_middle.iloc[-1] * 100 if bb_middle.iloc[-1] > 0 else 0
+            indicators['bb_width'] = bb_width / indicators['bb_middle'] * 100 if indicators['bb_middle'] > 0 else 0
 
             # Signal interpretation
-            if current_price > bb_upper.iloc[-1]:
+            if current_price > indicators['bb_upper']:
                 indicators['bb_signal'] = 'above_upper'
-            elif current_price < bb_lower.iloc[-1]:
+            elif current_price < indicators['bb_lower']:
                 indicators['bb_signal'] = 'below_lower'
             else:
                 indicators['bb_signal'] = 'within_bands'
@@ -282,8 +305,10 @@ class EnhancedStockScreener:
             close_prices = data['Close']
 
             # Volume moving averages
-            indicators['volume_ma_10'] = float(volume.rolling(window=10).mean().iloc[-1])
-            indicators['volume_ma_20'] = float(volume.rolling(window=20).mean().iloc[-1])
+            vol_ma_10 = volume.rolling(window=10).mean().iloc[-1]
+            vol_ma_20 = volume.rolling(window=20).mean().iloc[-1]
+            indicators['volume_ma_10'] = float(vol_ma_10) if not pd.isna(vol_ma_10) else 0
+            indicators['volume_ma_20'] = float(vol_ma_20) if not pd.isna(vol_ma_20) else 0
 
             # Current volume vs average
             current_volume = volume.iloc[-1]
@@ -293,13 +318,16 @@ class EnhancedStockScreener:
             price_change = close_prices.pct_change()
             volume_change = volume.pct_change()
             pv_correlation = price_change.rolling(window=20).corr(volume_change)
-            indicators['price_volume_correlation'] = float(pv_correlation.iloc[-1]) if not np.isnan(pv_correlation.iloc[-1]) else 0
+            pv_corr_val = pv_correlation.iloc[-1]
+            indicators['price_volume_correlation'] = float(pv_corr_val) if not pd.isna(pv_corr_val) else 0
 
             # On Balance Volume (OBV)
-            obv = np.where(close_prices > close_prices.shift(1), volume, 
-                          np.where(close_prices < close_prices.shift(1), -volume, 0)).cumsum()
-            indicators['obv'] = float(obv[-1])
-            indicators['obv_trend'] = float(obv[-1] - obv[-10]) if len(obv) > 10 else 0
+            close_diff = close_prices.diff()
+            volume_direction = np.where(close_diff > 0, volume, 
+                                      np.where(close_diff < 0, -volume, 0))
+            obv = volume_direction.cumsum()
+            indicators['obv'] = float(obv.iloc[-1]) if not pd.isna(obv.iloc[-1]) else 0
+            indicators['obv_trend'] = float(obv.iloc[-1] - obv.iloc[-11]) if len(obv) > 10 and not pd.isna(obv.iloc[-1]) and not pd.isna(obv.iloc[-11]) else 0
 
         except Exception as e:
             logger.error(f"Error calculating volume indicators: {str(e)}")
@@ -316,7 +344,8 @@ class EnhancedStockScreener:
             # Multiple timeframe momentum
             for period in [2, 5, 10, 20]:
                 momentum = close_prices.pct_change(periods=period)
-                indicators[f'momentum_{period}d'] = float(momentum.iloc[-1]) if not np.isnan(momentum.iloc[-1]) else 0
+                momentum_val = momentum.iloc[-1]
+                indicators[f'momentum_{period}d'] = float(momentum_val) if not pd.isna(momentum_val) else 0
 
             # MACD (Moving Average Convergence Divergence)
             ema_12 = close_prices.ewm(span=12).mean()
@@ -325,13 +354,22 @@ class EnhancedStockScreener:
             signal_line = macd_line.ewm(span=9).mean()
             macd_histogram = macd_line - signal_line
 
-            indicators['macd'] = float(macd_line.iloc[-1])
-            indicators['macd_signal'] = float(signal_line.iloc[-1])
-            indicators['macd_histogram'] = float(macd_histogram.iloc[-1])
+            macd_val = macd_line.iloc[-1]
+            signal_val = signal_line.iloc[-1]
+            histogram_val = macd_histogram.iloc[-1]
+            
+            indicators['macd'] = float(macd_val) if not pd.isna(macd_val) else 0
+            indicators['macd_signal'] = float(signal_val) if not pd.isna(signal_val) else 0
+            indicators['macd_histogram'] = float(histogram_val) if not pd.isna(histogram_val) else 0
             indicators['macd_bullish'] = indicators['macd'] > indicators['macd_signal']
 
             # Rate of Change
-            roc_10 = ((close_prices.iloc[-1] - close_prices.iloc[-11]) / close_prices.iloc[-11] * 100) if len(close_prices) > 10 else 0
+            if len(close_prices) > 10:
+                current_price = close_prices.iloc[-1]
+                past_price = close_prices.iloc[-11]
+                roc_10 = ((current_price - past_price) / past_price * 100) if past_price > 0 else 0
+            else:
+                roc_10 = 0
             indicators['roc_10'] = roc_10
 
         except Exception as e:
@@ -350,10 +388,15 @@ class EnhancedStockScreener:
             for window in [5, 10, 20]:
                 rolling_data = close_prices.rolling(window=window)
 
-                indicators[f'rolling_mean_{window}'] = float(rolling_data.mean().iloc[-1])
-                indicators[f'rolling_std_{window}'] = float(rolling_data.std().iloc[-1])
-                indicators[f'rolling_min_{window}'] = float(rolling_data.min().iloc[-1])
-                indicators[f'rolling_max_{window}'] = float(rolling_data.max().iloc[-1])
+                mean_val = rolling_data.mean().iloc[-1]
+                std_val = rolling_data.std().iloc[-1]
+                min_val = rolling_data.min().iloc[-1]
+                max_val = rolling_data.max().iloc[-1]
+                
+                indicators[f'rolling_mean_{window}'] = float(mean_val) if not pd.isna(mean_val) else 0
+                indicators[f'rolling_std_{window}'] = float(std_val) if not pd.isna(std_val) else 0
+                indicators[f'rolling_min_{window}'] = float(min_val) if not pd.isna(min_val) else 0
+                indicators[f'rolling_max_{window}'] = float(max_val) if not pd.isna(max_val) else 0
 
                 # Position within rolling range
                 current_price = close_prices.iloc[-1]
@@ -390,29 +433,34 @@ class EnhancedStockScreener:
                     lagged_price = close_prices.iloc[-(lag+1)]
                     current_price = close_prices.iloc[-1]
 
-                    indicators[f'price_lag_{lag}'] = float(lagged_price)
-                    indicators[f'return_lag_{lag}'] = ((current_price - lagged_price) / lagged_price * 100) if lagged_price > 0 else 0
+                    indicators[f'price_lag_{lag}'] = float(lagged_price) if not pd.isna(lagged_price) else 0
+                    indicators[f'return_lag_{lag}'] = ((current_price - lagged_price) / lagged_price * 100) if lagged_price > 0 and not pd.isna(lagged_price) else 0
 
             # Lagged volume features
             volume = data['Volume']
             for lag in [1, 2, 5]:
                 if len(volume) > lag:
-                    indicators[f'volume_lag_{lag}'] = float(volume.iloc[-(lag+1)])
+                    lagged_vol = volume.iloc[-(lag+1)]
+                    indicators[f'volume_lag_{lag}'] = float(lagged_vol) if not pd.isna(lagged_vol) else 0
 
                     # Volume change from lag
                     current_volume = volume.iloc[-1]
                     lagged_volume = volume.iloc[-(lag+1)]
-                    indicators[f'volume_change_lag_{lag}'] = ((current_volume - lagged_volume) / lagged_volume * 100) if lagged_volume > 0 else 0
+                    if lagged_volume > 0 and not pd.isna(lagged_volume) and not pd.isna(current_volume):
+                        indicators[f'volume_change_lag_{lag}'] = ((current_volume - lagged_volume) / lagged_volume * 100)
+                    else:
+                        indicators[f'volume_change_lag_{lag}'] = 0
 
             # Sequential return patterns
             returns = close_prices.pct_change()
             if len(returns) >= 5:
-                recent_returns = returns.tail(5).values
-                indicators['returns_pattern'] = {
-                    'consecutive_positive': int(np.sum(recent_returns > 0)),
-                    'consecutive_negative': int(np.sum(recent_returns < 0)),
-                    'avg_return_5d': float(np.mean(recent_returns))
-                }
+                recent_returns = returns.tail(5).dropna().values
+                if len(recent_returns) > 0:
+                    indicators['returns_pattern'] = {
+                        'consecutive_positive': int(np.sum(recent_returns > 0)),
+                        'consecutive_negative': int(np.sum(recent_returns < 0)),
+                        'avg_return_5d': float(np.mean(recent_returns))
+                    }
 
         except Exception as e:
             logger.error(f"Error calculating lagged features: {str(e)}")
@@ -431,28 +479,51 @@ class EnhancedStockScreener:
             for window in [10, 20, 30]:
                 if len(returns) >= window:
                     vol = returns.rolling(window=window).std() * np.sqrt(252)  # Annualized
-                    indicators[f'hist_volatility_{window}'] = float(vol.iloc[-1]) if not np.isnan(vol.iloc[-1]) else 0
+                    vol_val = vol.iloc[-1]
+                    indicators[f'hist_volatility_{window}'] = float(vol_val) if not pd.isna(vol_val) else 0
 
             # Parkinson's volatility (using high-low)
-            high_low_ratio = np.log(data['High'] / data['Low'])
-            parkinson_vol = np.sqrt(np.mean(high_low_ratio**2) / (4 * np.log(2))) * np.sqrt(252)
-            indicators['parkinson_volatility'] = float(parkinson_vol) if not np.isnan(parkinson_vol) else 0
+            try:
+                high_low_ratio = (data['High'] / data['Low']).apply(np.log)
+                high_low_clean = high_low_ratio.dropna()
+                if len(high_low_clean) > 0:
+                    parkinson_vol = np.sqrt(np.mean(high_low_clean**2) / (4 * np.log(2))) * np.sqrt(252)
+                    indicators['parkinson_volatility'] = float(parkinson_vol) if not pd.isna(parkinson_vol) else 0
+                else:
+                    indicators['parkinson_volatility'] = 0
+            except:
+                indicators['parkinson_volatility'] = 0
 
             # Garman-Klass volatility (more accurate)
-            if len(data) >= 20:
-                log_hl = np.log(data['High'] / data['Low'])
-                log_co = np.log(data['Close'] / data['Open'])
-                gk_vol = np.sqrt(np.mean(0.5 * log_hl**2 - (2*np.log(2)-1) * log_co**2)) * np.sqrt(252)
-                indicators['garman_klass_volatility'] = float(gk_vol) if not np.isnan(gk_vol) else 0
+            try:
+                if len(data) >= 20:
+                    log_hl = (data['High'] / data['Low']).apply(np.log)
+                    log_co = (data['Close'] / data['Open']).apply(np.log)
+                    log_hl_clean = log_hl.dropna()
+                    log_co_clean = log_co.dropna()
+                    
+                    if len(log_hl_clean) > 0 and len(log_co_clean) > 0:
+                        gk_component = 0.5 * log_hl_clean**2 - (2*np.log(2)-1) * log_co_clean**2
+                        gk_vol = np.sqrt(np.mean(gk_component.dropna())) * np.sqrt(252)
+                        indicators['garman_klass_volatility'] = float(gk_vol) if not pd.isna(gk_vol) else 0
+                    else:
+                        indicators['garman_klass_volatility'] = 0
+                else:
+                    indicators['garman_klass_volatility'] = 0
+            except:
+                indicators['garman_klass_volatility'] = 0
 
             # Volatility regime detection
             current_vol = indicators.get('hist_volatility_20', 0)
             long_term_vol = indicators.get('hist_volatility_30', 0)
 
-            if current_vol > long_term_vol * 1.2:
-                indicators['volatility_regime'] = 'high'
-            elif current_vol < long_term_vol * 0.8:
-                indicators['volatility_regime'] = 'low'
+            if long_term_vol > 0:
+                if current_vol > long_term_vol * 1.2:
+                    indicators['volatility_regime'] = 'high'
+                elif current_vol < long_term_vol * 0.8:
+                    indicators['volatility_regime'] = 'low'
+                else:
+                    indicators['volatility_regime'] = 'normal'
             else:
                 indicators['volatility_regime'] = 'normal'
 
