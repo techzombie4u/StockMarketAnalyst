@@ -159,7 +159,7 @@ class EnhancedStockScreener:
             high_low = data['High'] - data['Low']
             high_close = (data['High'] - data['Close'].shift()).abs()
             low_close = (data['Low'] - data['Close'].shift()).abs()
-            
+
             # Calculate true range using numpy maximum for element-wise comparison
             true_range = np.maximum(high_low, np.maximum(high_close, low_close))
 
@@ -189,10 +189,10 @@ class EnhancedStockScreener:
                 delta = close_prices.diff()
                 gain = delta.where(delta > 0, 0)
                 loss = (-delta).where(delta < 0, 0)
-                
+
                 avg_gain = gain.rolling(window=period).mean()
                 avg_loss = loss.rolling(window=period).mean()
-                
+
                 # Avoid division by zero
                 rs = avg_gain / (avg_loss + 1e-10)
                 rsi = 100 - (100 / (1 + rs))
@@ -262,7 +262,7 @@ class EnhancedStockScreener:
             bb_upper_val = bb_upper.iloc[-1]
             bb_middle_val = bb_middle.iloc[-1]
             bb_lower_val = bb_lower.iloc[-1]
-            
+
             indicators['bb_upper'] = float(bb_upper_val) if not pd.isna(bb_upper_val) else 0
             indicators['bb_middle'] = float(bb_middle_val) if not pd.isna(bb_middle_val) else 0
             indicators['bb_lower'] = float(bb_lower_val) if not pd.isna(bb_lower_val) else 0
@@ -349,7 +349,7 @@ class EnhancedStockScreener:
             macd_val = macd_line.iloc[-1]
             signal_val = signal_line.iloc[-1]
             histogram_val = macd_histogram.iloc[-1]
-            
+
             indicators['macd'] = float(macd_val) if not pd.isna(macd_val) else 0
             indicators['macd_signal'] = float(signal_val) if not pd.isna(signal_val) else 0
             indicators['macd_histogram'] = float(histogram_val) if not pd.isna(histogram_val) else 0
@@ -384,7 +384,7 @@ class EnhancedStockScreener:
                 std_val = rolling_data.std().iloc[-1]
                 min_val = rolling_data.min().iloc[-1]
                 max_val = rolling_data.max().iloc[-1]
-                
+
                 indicators[f'rolling_mean_{window}'] = float(mean_val) if not pd.isna(mean_val) else 0
                 indicators[f'rolling_std_{window}'] = float(std_val) if not pd.isna(std_val) else 0
                 indicators[f'rolling_min_{window}'] = float(min_val) if not pd.isna(min_val) else 0
@@ -493,7 +493,7 @@ class EnhancedStockScreener:
                     log_co = (data['Close'] / data['Open']).apply(np.log)
                     log_hl_clean = log_hl.dropna()
                     log_co_clean = log_co.dropna()
-                    
+
                     if len(log_hl_clean) > 0 and len(log_co_clean) > 0:
                         gk_component = 0.5 * log_hl_clean**2 - (2*np.log(2)-1) * log_co_clean**2
                         gk_vol = np.sqrt(np.mean(gk_component.dropna())) * np.sqrt(252)
@@ -732,6 +732,7 @@ class EnhancedStockScreener:
     def _extract_metric_value(self, soup: BeautifulSoup, search_terms: List[str]) -> Optional[float]:
         """Extract a specific metric value from soup"""
         try:
+            ```python
             for term in search_terms:
                 elements = soup.find_all(text=lambda text: text and term.lower() in text.lower())
                 for element in elements:
@@ -1332,16 +1333,16 @@ class EnhancedStockScreener:
         except Exception as e:
             logger.warning(f"⚠️ ML predictions failed, using enhanced scoring: {str(e)}")
             return top_stocks
-    
+
     def is_market_hours(self) -> bool:
         """Check if the current time is within market hours (9 AM - 4 PM IST)"""
         now_utc = datetime.utcnow()
         ist_offset = timedelta(hours=5, minutes=30)
         now_ist = now_utc + ist_offset
-        
+
         start_time = now_ist.replace(hour=9, minute=0, second=0, microsecond=0)
         end_time = now_ist.replace(hour=16, minute=0, second=0, microsecond=0)
-        
+
         return start_time <= now_ist <= end_time
 
     def run_screening(self, force=False):
