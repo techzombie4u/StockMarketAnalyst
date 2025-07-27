@@ -13,8 +13,9 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# Enable basic ML features in production (lightweight predictions)
-os.environ['DISABLE_ML_FEATURES'] = '0'
+# Enable ML features in production to show predictions
+if 'DISABLE_ML_FEATURES' not in os.environ:
+    os.environ['DISABLE_ML_FEATURES'] = '0'
 
 # Create Flask app instance
 application = create_app()

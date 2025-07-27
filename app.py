@@ -257,14 +257,13 @@ def initialize_app():
 
     try:
         scheduler = StockAnalystScheduler()
-        # Start the scheduler with proper interval
         scheduler.start_scheduler(interval_minutes=60)
         print("✅ Scheduler started successfully")
-        
+
         # Run initial screening to populate data
         scheduler.run_screening_job_manual()
         print("✅ Initial screening triggered")
-        
+
     except Exception as e:
         print(f"❌ Error starting scheduler: {str(e)}")
 
