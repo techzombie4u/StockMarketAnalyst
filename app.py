@@ -380,7 +380,7 @@ def initialize_app():
 
     try:
         scheduler = StockAnalystScheduler()
-        scheduler.start_scheduler(interval_minutes=60)
+        scheduler.start_scheduler(interval_minutes=30)
         print("✅ Scheduler started successfully")
 
         # Run initial screening to populate data

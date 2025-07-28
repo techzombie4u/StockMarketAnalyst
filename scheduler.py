@@ -23,14 +23,14 @@ logger = logging.getLogger(__name__)
 alerted_stocks = set()
 
 def is_market_hours() -> bool:
-    """Check if current time is within market hours (9 AM - 4 PM IST)"""
+    """Check if current time is within market hours (9 AM - 3:30 PM IST)"""
     ist = pytz.timezone('Asia/Kolkata')
     now_ist = datetime.now(ist)
     current_time = now_ist.time()
 
-    # Market hours: 9:00 AM to 4:00 PM IST
+    # Market hours: 9:00 AM to 3:30 PM IST
     market_open = time(9, 0)  # 9:00 AM
-    market_close = time(16, 0)  # 4:00 PM
+    market_close = time(15, 30)  # 3:30 PM
 
     # Check if current time is within market hours
     is_weekday = now_ist.weekday() < 5  # Monday = 0, Sunday = 6
@@ -45,7 +45,7 @@ def run_screening_job():
     try:
         # Check if within market hours for scheduled runs
         if not is_market_hours():
-            logger.info("Outside market hours (9 AM - 4 PM IST). Skipping scheduled screening.")
+            logger.info("Outside market hours (9 AM - 3:30 PM IST). Skipping scheduled screening.")
             return
 
         logger.info("Starting scheduled stock screening...")
@@ -337,7 +337,7 @@ class StockAnalystScheduler:
             )
 
             self.scheduler.start()
-            logger.info(f"Scheduler started. Running every {interval_minutes} minutes during market hours (9 AM - 4 PM IST).")
+            logger.info(f"Scheduler started. Running every {interval_minutes} minutes during market hours (9 AM - 3:30 PM IST).")
 
         except Exception as e:
             logger.error(f"Error starting scheduler: {str(e)}")
