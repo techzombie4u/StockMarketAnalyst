@@ -56,13 +56,16 @@ class EnhancedStockScreener:
         self.fundamentals = {}
         self.technical_data = {}
 
-        # Data source configurations
+        # Data source configurations with priorities and capabilities
         self.data_sources = {
-            'yahoo': {'priority': 1, 'timeout': 10},
-            'screener': {'priority': 2, 'timeout': 15},
-            'moneycontrol': {'priority': 3, 'timeout': 12},
-            'nse': {'priority': 4, 'timeout': 8},
-            'bse': {'priority': 5, 'timeout': 10}
+            'yahoo': {'priority': 1, 'timeout': 10, 'type': 'technical'},
+            'screener': {'priority': 2, 'timeout': 15, 'type': 'fundamental'},
+            'moneycontrol': {'priority': 3, 'timeout': 12, 'type': 'both'},
+            'nseindia': {'priority': 4, 'timeout': 8, 'type': 'official'},
+            'bseindia': {'priority': 5, 'timeout': 10, 'type': 'official'},
+            'investing': {'priority': 6, 'timeout': 12, 'type': 'technical'},
+            'tradingview': {'priority': 7, 'timeout': 15, 'type': 'technical'},
+            'tickertape': {'priority': 8, 'timeout': 10, 'type': 'fundamental'}
         }
 
     def calculate_enhanced_technical_indicators(self, symbol: str) -> Dict:
@@ -195,6 +198,274 @@ class EnhancedStockScreener:
 
         return indicators
 
+
+    def fetch_from_multiple_sources(self, symbol: str, data_type: str = 'both') -> Dict:
+        """Fetch data from multiple sources with intelligent fallback"""
+        aggregated_data = {
+            'price_data': None,
+            'fundamental_data': {},
+            'technical_indicators': {},
+            'source_reliability': {},
+            'last_updated': datetime.now()
+        }
+        
+        # Sort sources by priority for the requested data type
+        relevant_sources = [
+            (name, config) for name, config in self.data_sources.items()
+            if config['type'] in [data_type, 'both', 'official']
+        ]
+        relevant_sources.sort(key=lambda x: x[1]['priority'])
+        
+        for source_name, config in relevant_sources:
+            try:
+                logger.info(f"Fetching {symbol} data from {source_name}")
+                
+                if source_name == 'yahoo':
+                    data = self._fetch_yahoo_data(symbol)
+                elif source_name == 'moneycontrol':
+                    data = self._fetch_moneycontrol_data(symbol)
+                elif source_name == 'nseindia':
+                    data = self._fetch_nse_data(symbol)
+                elif source_name == 'bseindia':
+                    data = self._fetch_bse_data(symbol)
+                elif source_name == 'investing':
+                    data = self._fetch_investing_data(symbol)
+                elif source_name == 'tickertape':
+                    data = self._fetch_tickertape_data(symbol)
+                else:
+                    continue
+                
+                if data:
+                    # Merge data intelligently
+                    aggregated_data = self._merge_source_data(aggregated_data, data, source_name)
+                    aggregated_data['source_reliability'][source_name] = 'success'
+                    
+            except Exception as e:
+                logger.warning(f"Failed to fetch from {source_name}: {str(e)}")
+                aggregated_data['source_reliability'][source_name] = 'failed'
+                continue
+        
+        return aggregated_data
+
+    def _fetch_moneycontrol_data(self, symbol: str) -> Optional[Dict]:
+        """Fetch data from MoneyControl"""
+        try:
+            url = f"https://www.moneycontrol.com/india/stockpricequote/{symbol.lower()}"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            
+            response = self.session.get(url, headers=headers, timeout=12)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                
+                data = {
+                    'current_price': self._extract_mc_price(soup),
+                    'pe_ratio': self._extract_mc_pe(soup),
+                    'market_cap': self._extract_mc_market_cap(soup),
+                    'volume': self._extract_mc_volume(soup),
+                    'day_change': self._extract_mc_change(soup),
+                    'source': 'moneycontrol'
+                }
+                
+                return {k: v for k, v in data.items() if v is not None}
+            
+        except Exception as e:
+            logger.error(f"MoneyControl fetch error for {symbol}: {str(e)}")
+            return None
+
+    def _fetch_nse_data(self, symbol: str) -> Optional[Dict]:
+        """Fetch official data from NSE India"""
+        try:
+            # NSE requires specific headers and session management
+            nse_headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'DNT': '1',
+                'Pragma': 'no-cache',
+                'Cache-Control': 'no-cache'
+            }
+            
+            # Get NSE session first
+            session_url = "https://www.nseindia.com/"
+            self.session.get(session_url, headers=nse_headers, timeout=8)
+            
+            # Fetch stock data
+            quote_url = f"https://www.nseindia.com/api/quote-equity?symbol={symbol}"
+            response = self.session.get(quote_url, headers=nse_headers, timeout=8)
+            
+            if response.status_code == 200:
+                nse_data = response.json()
+                
+                if 'priceInfo' in nse_data:
+                    price_info = nse_data['priceInfo']
+                    return {
+                        'current_price': price_info.get('lastPrice'),
+                        'day_high': price_info.get('intraDayHighLow', {}).get('max'),
+                        'day_low': price_info.get('intraDayHighLow', {}).get('min'),
+                        'volume': price_info.get('totalTradedVolume'),
+                        'day_change_percent': price_info.get('pChange'),
+                        'previous_close': price_info.get('previousClose'),
+                        'source': 'nseindia'
+                    }
+                    
+        except Exception as e:
+            logger.error(f"NSE fetch error for {symbol}: {str(e)}")
+            return None
+
+    def _fetch_bse_data(self, symbol: str) -> Optional[Dict]:
+        """Fetch data from BSE India"""
+        try:
+            # BSE data fetching implementation
+            url = f"https://api.bseindia.com/BseIndiaAPI/api/StockReachGraph/w?scripcode={symbol}&flag=0"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://www.bseindia.com/'
+            }
+            
+            response = self.session.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                bse_data = response.json()
+                
+                if bse_data and 'Data' in bse_data:
+                    data = bse_data['Data'][0] if bse_data['Data'] else {}
+                    return {
+                        'current_price': data.get('CurrRate'),
+                        'day_change': data.get('PrevRate'),
+                        'volume': data.get('TotalTrdVol'),
+                        'source': 'bseindia'
+                    }
+                    
+        except Exception as e:
+            logger.error(f"BSE fetch error for {symbol}: {str(e)}")
+            return None
+
+    def _fetch_investing_data(self, symbol: str) -> Optional[Dict]:
+        """Fetch technical data from Investing.com"""
+        try:
+            # Investing.com technical indicators
+            url = f"https://in.investing.com/search/?q={symbol}"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            
+            response = self.session.get(url, headers=headers, timeout=12)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                
+                return {
+                    'technical_rating': self._extract_investing_rating(soup),
+                    'support_levels': self._extract_investing_support(soup),
+                    'resistance_levels': self._extract_investing_resistance(soup),
+                    'source': 'investing'
+                }
+                
+        except Exception as e:
+            logger.error(f"Investing.com fetch error for {symbol}: {str(e)}")
+            return None
+
+    def _fetch_tickertape_data(self, symbol: str) -> Optional[Dict]:
+        """Fetch fundamental data from TickerTape"""
+        try:
+            url = f"https://www.tickertape.in/stocks/{symbol.lower()}"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            
+            response = self.session.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                
+                return {
+                    'pe_ratio': self._extract_tt_pe(soup),
+                    'pb_ratio': self._extract_tt_pb(soup),
+                    'roe': self._extract_tt_roe(soup),
+                    'debt_to_equity': self._extract_tt_debt(soup),
+                    'dividend_yield': self._extract_tt_dividend(soup),
+                    'source': 'tickertape'
+                }
+                
+        except Exception as e:
+            logger.error(f"TickerTape fetch error for {symbol}: {str(e)}")
+            return None
+
+    def _merge_source_data(self, aggregated: Dict, new_data: Dict, source: str) -> Dict:
+        """Intelligently merge data from multiple sources"""
+        
+        # Price data - prefer official sources (NSE/BSE) then Yahoo
+        if 'current_price' in new_data and new_data['current_price']:
+            if not aggregated.get('current_price') or source in ['nseindia', 'bseindia']:
+                aggregated['current_price'] = new_data['current_price']
+        
+        # Fundamental data - prefer Screener, then TickerTape, then others
+        fundamental_fields = ['pe_ratio', 'pb_ratio', 'roe', 'debt_to_equity', 'dividend_yield']
+        for field in fundamental_fields:
+            if field in new_data and new_data[field]:
+                if (not aggregated['fundamental_data'].get(field) or 
+                    source in ['screener', 'tickertape']):
+                    aggregated['fundamental_data'][field] = new_data[field]
+        
+        # Technical indicators - aggregate from all sources
+        technical_fields = ['support_levels', 'resistance_levels', 'technical_rating']
+        for field in technical_fields:
+            if field in new_data and new_data[field]:
+                if field not in aggregated['technical_indicators']:
+                    aggregated['technical_indicators'][field] = {}
+                aggregated['technical_indicators'][field][source] = new_data[field]
+        
+        return aggregated
+
+    # Helper methods for data extraction
+    def _extract_mc_price(self, soup) -> Optional[float]:
+        """Extract current price from MoneyControl"""
+        try:
+            price_elem = soup.find('div', {'class': 'inprice1'})
+            if price_elem:
+                price_text = price_elem.get_text().replace(',', '').replace('₹', '').strip()
+                return float(price_text)
+        except:
+            pass
+        return None
+
+    def _extract_mc_pe(self, soup) -> Optional[float]:
+        """Extract PE ratio from MoneyControl"""
+        try:
+            # Look for PE ratio in the key statistics section
+            pe_elem = soup.find('td', string='P/E')
+            if pe_elem and pe_elem.find_next_sibling('td'):
+                pe_text = pe_elem.find_next_sibling('td').get_text().strip()
+                return float(pe_text.replace(',', ''))
+        except:
+            pass
+        return None
+
+    def _extract_investing_rating(self, soup) -> Optional[str]:
+        """Extract technical rating from Investing.com"""
+        try:
+            rating_elem = soup.find('span', {'class': 'technicalSummaryEmotion'})
+            if rating_elem:
+                return rating_elem.get_text().strip()
+        except:
+            pass
+        return None
+
+    def _extract_tt_pe(self, soup) -> Optional[float]:
+        """Extract PE ratio from TickerTape"""
+        try:
+            pe_elem = soup.find('span', string='PE')
+            if pe_elem:
+                pe_value = pe_elem.find_next('span')
+                if pe_value:
+                    return float(pe_value.get_text().replace(',', ''))
+        except:
+            pass
+        return None
+
+
+
     def _calculate_rsi_indicators(self, data: pd.DataFrame) -> Dict:
         """Calculate RSI for multiple periods"""
         indicators = {}
@@ -225,6 +496,60 @@ class EnhancedStockScreener:
                 indicators['rsi_signal'] = 'overbought'
             else:
                 indicators['rsi_signal'] = 'neutral'
+
+
+
+    def assess_data_quality_multi_source(self, stocks_data: Dict) -> Dict:
+        """Assess overall data quality from multiple sources"""
+        quality_report = {
+            'total_stocks': len(stocks_data),
+            'source_performance': {},
+            'data_completeness': {},
+            'recommendations': []
+        }
+        
+        all_sources = set()
+        source_success_count = {}
+        
+        for symbol, data in stocks_data.items():
+            metadata = data.get('multi_source_metadata', {})
+            sources_used = metadata.get('sources_used', [])
+            successful_sources = metadata.get('successful_sources', [])
+            
+            all_sources.update(sources_used)
+            
+            for source in sources_used:
+                if source not in source_success_count:
+                    source_success_count[source] = {'success': 0, 'total': 0}
+                source_success_count[source]['total'] += 1
+                
+                if source in successful_sources:
+                    source_success_count[source]['success'] += 1
+        
+        # Calculate source performance
+        for source in all_sources:
+            if source in source_success_count:
+                success_rate = (source_success_count[source]['success'] / 
+                              source_success_count[source]['total']) * 100
+                quality_report['source_performance'][source] = {
+                    'success_rate': round(success_rate, 2),
+                    'successful_requests': source_success_count[source]['success'],
+                    'total_requests': source_success_count[source]['total']
+                }
+        
+        # Generate recommendations
+        for source, perf in quality_report['source_performance'].items():
+            if perf['success_rate'] < 50:
+                quality_report['recommendations'].append(
+                    f"Consider reviewing {source} data source - low success rate ({perf['success_rate']}%)"
+                )
+            elif perf['success_rate'] > 90:
+                quality_report['recommendations'].append(
+                    f"{source} is performing excellently ({perf['success_rate']}% success rate)"
+                )
+        
+        return quality_report
+
 
         except Exception as e:
             logger.error(f"Error calculating RSI: {str(e)}")
@@ -1365,26 +1690,48 @@ class EnhancedStockScreener:
         self.bulk_deals = self.scrape_bulk_deals()
         time.sleep(2)
 
-        # Step 2: Collect enhanced data for watchlist
+        # Step 2: Collect enhanced data from multiple sources
         stocks_data = {}
 
         for i, symbol in enumerate(self.watchlist):
             logger.info(f"Processing {symbol} ({i+1}/{len(self.watchlist)})")
 
-            # Scrape enhanced fundamentals
+            # Fetch from multiple data sources
+            multi_source_data = self.fetch_from_multiple_sources(symbol, 'both')
+            
+            # Scrape enhanced fundamentals (keeping existing method as backup)
             fundamentals = self.scrape_screener_data(symbol)
+            
+            # Merge multi-source fundamental data
+            if multi_source_data['fundamental_data']:
+                for key, value in multi_source_data['fundamental_data'].items():
+                    if value and (not fundamentals.get(key) or fundamentals[key] in [None, 0]):
+                        fundamentals[key] = value
 
             # Calculate enhanced technical indicators
             technical = self.calculate_enhanced_technical_indicators(symbol)
+            
+            # Add multi-source price data if available
+            if multi_source_data.get('current_price') and not technical.get('current_price'):
+                technical['current_price'] = multi_source_data['current_price']
+            
+            # Add source reliability info
+            technical['data_sources'] = multi_source_data['source_reliability']
+            technical['source_count'] = len([s for s, status in multi_source_data['source_reliability'].items() if status == 'success'])
 
             if fundamentals or technical:
                 stocks_data[symbol] = {
                     'fundamentals': fundamentals,
-                    'technical': technical
+                    'technical': technical,
+                    'multi_source_metadata': {
+                        'sources_used': list(multi_source_data['source_reliability'].keys()),
+                        'successful_sources': [s for s, status in multi_source_data['source_reliability'].items() if status == 'success'],
+                        'last_updated': multi_source_data['last_updated']
+                    }
                 }
 
             # Rate limiting
-            time.sleep(1.5)
+            time.sleep(1.2)  # Slightly faster with multiple sources
 
         # Step 3: Enhanced scoring and ranking
         top_stocks = self.enhanced_score_and_rank(stocks_data)
