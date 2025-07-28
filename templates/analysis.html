@@ -261,7 +261,7 @@
                 <a href="/">🏠 Main Dashboard</a>
                 <a href="/lookup">🔍 Stock Lookup</a>
                 <a href="/api/analysis" target="_blank">📋 Raw Data</a>
-                <button class="refresh-btn" onclick="refreshAnalysis()">🔄 Refresh Analysis</button>
+                <button class="refresh-btn" id="refreshAnalysisBtn" onclick="refreshAnalysis()">🔄 Refresh Analysis</button>
             </div>
         </div>
 
@@ -339,9 +339,25 @@
 
     <script>
         let refreshInterval;
+        let isLoadingAnalysis = false;
 
         function loadAnalysisData() {
+            // Prevent multiple simultaneous requests
+            if (isLoadingAnalysis) {
+                console.log('Analysis request already in progress, skipping...');
+                return;
+            }
+            
+            isLoadingAnalysis = true;
             console.log('Loading analysis data...');
+            
+            // Update button state
+            const refreshBtn = document.getElementById('refreshAnalysisBtn');
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = '⏳ Loading...';
+            }
+            
             fetch('/api/analysis')
                 .then(response => {
                     console.log('Analysis response status:', response.status);
@@ -354,6 +370,14 @@
                 .catch(error => {
                     console.error('Error loading analysis:', error);
                     showNoDataState();
+                })
+                .finally(() => {
+                    isLoadingAnalysis = false;
+                    // Reset button state
+                    if (refreshBtn) {
+                        refreshBtn.disabled = false;
+                        refreshBtn.textContent = '🔄 Refresh Analysis';
+                    }
                 });
         }
 
@@ -463,8 +487,15 @@
         }
 
         function refreshAnalysis() {
+            // Prevent rapid clicking
+            if (isLoadingAnalysis) {
+                console.log('Analysis refresh already in progress...');
+                return;
+            }
+            
             document.getElementById('loadingState').style.display = 'block';
             document.getElementById('analysisContent').style.display = 'none';
+            document.getElementById('noDataState').style.display = 'none';
             loadAnalysisData();
         }
 
@@ -472,8 +503,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadAnalysisData();
             
-            // Auto-refresh every 2 minutes
-            refreshInterval = setInterval(loadAnalysisData, 120000);
+            // Auto-refresh every 5 minutes to reduce server load
+            refreshInterval = setInterval(loadAnalysisData, 300000);
         });
 
         // Cleanup
