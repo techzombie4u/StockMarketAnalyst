@@ -371,8 +371,14 @@ def health_check():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'service': 'Stock Market Analyst'
+        'service': 'Stock Market Analyst',
+        'port': 5000
     })
+
+@app.route('/readiness')
+def readiness_check():
+    """Readiness check for deployment"""
+    return jsonify({'ready': True})
 
 def initialize_app():
     """Initialize the application with scheduler"""
@@ -382,22 +388,31 @@ def initialize_app():
         scheduler = StockAnalystScheduler()
         scheduler.start_scheduler(interval_minutes=30)
         print("✅ Scheduler started successfully")
-
-        # Run initial screening to populate data
-        scheduler.run_screening_job_manual()
-        print("✅ Initial screening triggered")
+        # Remove blocking initial screening - let it run via scheduler
 
     except Exception as e:
         print(f"❌ Error starting scheduler: {str(e)}")
 
 def create_app():
     """Application factory function for WSGI deployment"""
-    initialize_app()
+    # Start Flask app immediately, initialize scheduler after
+    from threading import Thread
+    def delayed_init():
+        import time
+        time.sleep(2)  # Let Flask start first
+        initialize_app()
+    Thread(target=delayed_init, daemon=True).start()
     return app
 
 if __name__ == '__main__':
-    initialize_app()
-
+    # Start Flask app immediately, initialize scheduler after
+    from threading import Thread
+    def delayed_init():
+        import time
+        time.sleep(2)  # Let Flask start first
+        initialize_app()
+    Thread(target=delayed_init, daemon=True).start()
+    
     # Run Flask app
     app.run(
         host='0.0.0.0',

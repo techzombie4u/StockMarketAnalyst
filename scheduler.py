@@ -50,11 +50,15 @@ def run_screening_job():
 
         logger.info("Starting scheduled stock screening...")
 
-        # Create screener instance
-        screener = StockScreener()
+        try:
+            # Create screener instance
+            screener = StockScreener()
 
-        # Run the screener
-        results = screener.run_screener()
+            # Run the screener
+            results = screener.run_screener()
+        except Exception as e:
+            logger.error(f"Screening failed: {e}")
+            return
 
         # Add timestamp in IST
         ist = pytz.timezone('Asia/Kolkata')
