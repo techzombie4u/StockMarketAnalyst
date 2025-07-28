@@ -116,7 +116,16 @@ def run_now():
             scheduler.run_screening_job_manual()
             return jsonify({'success': True, 'message': 'Screening started successfully'})
         else:
-            return jsonify({'success': False, 'message': 'Scheduler not running'})
+            # Try to initialize scheduler if not running (production fallback)
+            try:
+                from scheduler import StockAnalystScheduler
+                scheduler = StockAnalystScheduler()
+                scheduler.start_scheduler(interval_minutes=30)
+                scheduler.run_screening_job_manual()
+                return jsonify({'success': True, 'message': 'Scheduler initialized and screening started'})
+            except Exception as init_error:
+                logger.error(f"Failed to initialize scheduler: {str(init_error)}")
+                return jsonify({'success': False, 'message': f'Scheduler initialization failed: {str(init_error)}'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 

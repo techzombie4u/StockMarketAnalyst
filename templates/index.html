@@ -633,11 +633,15 @@
                     errorMessage = error.message || 'Unknown error occurred.';
                 }
 
-                // Implement retry logic
-                if (retryCount < maxRetries && !error.name === 'AbortError') {
+                // Implement retry logic with more aggressive retries for production
+                if (retryCount < maxRetries && error.name !== 'AbortError') {
                     retryCount++;
                     updateStatus(`Retrying... (${retryCount}/${maxRetries})`, 'loading');
-                    setTimeout(loadStocks, 3000 * retryCount); // Progressive delay
+                    
+                    // Shorter delay for production environments
+                    const delay = window.location.hostname.includes('localhost') ? 
+                        3000 * retryCount : 1000 * retryCount;
+                    setTimeout(loadStocks, delay);
                 } else {
                     showError(errorMessage);
                 }
@@ -726,12 +730,12 @@
                 clearInterval(refreshInterval);
             }
 
-            // Refresh every 5 minutes
+            // Refresh every 30 seconds for better user experience
             refreshInterval = setInterval(() => {
                 if (!isLoading) {
                     loadStocks();
                 }
-            }, 300000); // 5 minutes
+            }, 30000); // 30 seconds
         }
 
         // Initialize
@@ -751,6 +755,23 @@
                 loadStocks(); // Refresh when page becomes visible
             }
         });
+
+        // Additional production optimizations
+        window.addEventListener('focus', function() {
+            if (!isLoading) {
+                loadStocks(); // Refresh when window gains focus
+            }
+        });
+
+        // Detect if we're in production (no localhost) and increase refresh frequency
+        if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+            // In production, check more frequently
+            const productionInterval = setInterval(() => {
+                if (!isLoading && document.visibilityState === 'visible') {
+                    loadStocks();
+                }
+            }, 15000); // Every 15 seconds in production
+        }
 
         function updateStockTable(stocks) {
                 const tbody = document.getElementById('stockTableBody');
