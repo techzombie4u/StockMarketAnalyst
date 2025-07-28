@@ -20,10 +20,182 @@ import time
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
+from functools import wraps
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# Define retry and graceful degradation decorators
+class RetryStrategy:
+
+    @staticmethod
+    def exponential_backoff(max_retries: int = 3):
+        """Retry with exponential backoff"""
+        def decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                retries = 0
+                while retries < max_retries:
+                    try:
+                        return func(*args, **kwargs)
+                    except Exception as e:
+                        wait_time = 2 ** retries  # Exponential backoff
+                        logger.warning(f"Retry {func.__name__} - attempt {retries + 1}/{max_retries}. Waiting {wait_time} seconds. Error: {str(e)}")
+                        time.sleep(wait_time)
+                        retries += 1
+                logger.error(f"Max retries reached for {func.__name__}")
+                raise  # Re-raise the last exception
+            return wrapper
+        return decorator
+
+
+class GracefulDegradation:
+
+    @staticmethod
+    def fallback_data(fallback_value: any):
+        """Return fallback data on failure"""
+        def decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    logger.error(f"{func.__name__} failed, returning fallback data. Error: {str(e)}")
+                    return fallback_value
+            return wrapper
+        return decorator
+
+
+class StockDataCache:
+    """Cache for stock data"""
+
+    _technical_indicators_cache: Dict[str, Dict] = {}
+
+    @classmethod
+    def get_cached_technical_indicators(cls, symbol: str) -> Optional[Dict]:
+        """Retrieve cached technical indicators"""
+        return cls._technical_indicators_cache.get(symbol)
+
+    @classmethod
+    def cache_technical_indicators(cls, symbol: str, indicators: Dict):
+        """Cache technical indicators"""
+        cls._technical_indicators_cache[symbol] = indicators
+
+
+class DataValidation:
+    """Validates stock data"""
+
+    @staticmethod
+    def validate_stock_data(stock_data: Dict) -> Dict:
+        """Validate essential stock data"""
+        errors = []
+        symbol = stock_data.get('symbol')
+        current_price = stock_data.get('current_price', 0)
+
+        if not symbol:
+            errors.append("Symbol is missing")
+        if current_price <= 0:
+            errors.append("Invalid current price")
+
+        if errors:
+            return {'is_valid': False, 'validation_errors': errors, 'symbol': symbol}
+        else:
+            return {'is_valid': True, **stock_data}
+
+
+def safe_execute(func, *args, **kwargs) -> Dict:
+    """Safely execute a function and return result or error"""
+    try:
+        data = func(*args, **kwargs)
+        return {'success': True, 'data': data, 'error': None}
+    except Exception as e:
+        return {'success': False, 'data': None, 'error': str(e)}
+
+
+def apply_advanced_filtering(stocks_data: List[Dict]) -> Dict:
+    """Apply advanced signal filtering based on multiple criteria"""
+    try:
+        filtered_signals = []
+        filter_stats = {'total_input': len(stocks_data), 'filtered_output': 0}
+
+        for stock in stocks_data:
+            # Multiple condition checks
+            if (stock.get('score', 0) > 60 and
+                stock.get('technical', {}).get('rsi_14', 50) < 70 and
+                stock.get('risk_level', 'Medium') != 'High'):
+
+                # Additional criteria
+                if stock.get('fundamentals', {}).get('revenue_growth', 0) > 5:
+                    filtered_signals.append(stock)
+
+        filter_stats['filtered_output'] = len(filtered_signals)
+
+        # Add a simplified filter score
+        for stock in filtered_signals:
+            stock['filter_score'] = stock.get('score', 0) * 1.1
+
+        return {'filtered_signals': filtered_signals, 'filter_stats': filter_stats}
+
+    except Exception as e:
+        logger.error(f"Error applying advanced signal filtering: {str(e)}")
+        return {'filtered_signals': stocks_data, 'filter_stats': {}}
+
+
+def analyze_portfolio_risk(stocks_data: List[Dict]) -> Dict:
+    """Analyze overall portfolio risk based on individual stock risk"""
+    try:
+        total_risk_score = 0
+        for stock in stocks_data:
+            risk_level = stock.get('risk_level', 'Medium')
+            if risk_level == 'High':
+                total_risk_score += 3
+            elif risk_level == 'Medium':
+                total_risk_score += 2
+            else:
+                total_risk_score += 1
+
+        average_risk = total_risk_score / len(stocks_data) if stocks_data else 0
+        portfolio_risk = 'High' if average_risk > 2.5 else 'Medium' if average_risk > 1.5 else 'Low'
+
+        return {
+            'total_stocks': len(stocks_data),
+            'average_risk': round(average_risk, 2),
+            'portfolio_risk': portfolio_risk
+        }
+
+    except Exception as e:
+        logger.error(f"Error analyzing portfolio risk: {str(e)}")
+        return {}
+
+
+def calculate_position_sizes(stocks_data: List[Dict]) -> List[Dict]:
+    """Calculate position sizes based on risk and confidence"""
+    try:
+        portfolio_value = 100000  # Example
+        for stock in stocks_data:
+            risk_level = stock.get('risk_level', 'Medium')
+            confidence = stock.get('confidence', 50)
+
+            # Risk factor
+            if risk_level == 'High':
+                risk_factor = 0.01  # 1% of portfolio
+            elif risk_level == 'Medium':
+                risk_factor = 0.02  # 2%
+            else:
+                risk_factor = 0.03  # 3%
+
+            # Confidence scaling
+            confidence_scale = confidence / 100
+            position_size = portfolio_value * risk_factor * confidence_scale
+            stock['position_size'] = round(position_size, 2)
+
+        return stocks_data
+
+    except Exception as e:
+        logger.error(f"Error calculating position sizes: {str(e)}")
+        return stocks_data
 
 
 class EnhancedStockScreener:
@@ -2017,453 +2189,4 @@ class EnhancedStockScreener:
             revenue_growth = fundamentals.get('revenue_growth', 0)
             earnings_growth = fundamentals.get('earnings_growth', 0)
 
-            # PE ratio scoring with industry context
-            if 0 < pe_ratio < 15:
-                fundamental_score += 15  # Undervalued
-                confidence += 20
-            elif 15 <= pe_ratio < 25:
-                fundamental_score += 10  # Fair value
-                confidence += 10
-            elif pe_ratio >= 40:
-                fundamental_score -= 5   # Overvalued
-                risk_factors.append("High PE ratio")
-
-            # Growth scoring with momentum consideration
-            if revenue_growth > 25:
-                fundamental_score += 15
-                confidence += 15
-            elif revenue_growth > 15:
-                fundamental_score += 10
-                confidence += 10
-            elif revenue_growth < 0:
-                fundamental_score -= 10
-                risk_factors.append("Negative revenue growth")
-
-            if earnings_growth > 25:
-                fundamental_score += 10
-                confidence += 10
-            elif earnings_growth < -10:
-                fundamental_score -= 15
-                risk_factors.append("Declining earnings")
-
-            # Technical analysis score (0-35 points)
-            technical_score = 0
-
-            # RSI-based momentum
-            rsi = technical.get('rsi_14', 50)
-            if 40 <= rsi <= 60:
-                technical_score += 8  # Neutral zone is good
-                confidence += 5
-            elif 30 <= rsi < 40:
-                technical_score += 12  # Oversold opportunity
-                confidence += 10
-            elif rsi < 30:
-                technical_score += 5   # Heavily oversold (risky)
-                risk_factors.append("Oversold condition")
-            elif rsi > 70:
-                technical_score -= 5   # Overbought (risky)
-                risk_factors.append("Overbought condition")
-
-            # MACD signal strength
-            macd = technical.get('macd', 0)
-            macd_signal = technical.get('macd_signal', 0)
-            macd_histogram = technical.get('macd_histogram', 0)
-
-            if macd > macd_signal and macd_histogram > 0:
-                technical_score += 8  # Bullish momentum
-                confidence += 10
-            elif macd < macd_signal and macd_histogram < 0:
-                technical_score -= 3  # Bearish momentum
-                risk_factors.append("Bearish MACD")
-
-            # Bollinger Bands position
-            bb_position = technical.get('bb_position', 50)
-            bb_width = technical.get('bb_width', 0)
-
-            if 20 <= bb_position <= 40:
-                technical_score += 6  # Near lower band (potential reversal)
-                confidence += 8
-            elif bb_position > 80:
-                technical_score -= 3  # Near upper band (resistance)
-                risk_factors.append("Near resistance level")
-
-            # Volatility consideration
-            atr_volatility = technical.get('atr_volatility', 2)
-            if atr_volatility < 2:
-                technical_score += 5  # Low volatility is good
-                confidence += 10
-            elif atr_volatility > 5:
-                technical_score -= 5  # High volatility is risky
-                risk_factors.append("High volatility")
-
-            # Volume analysis
-            volume_ratio = technical.get('volume_sma_ratio', 1)
-            if volume_ratio > 1.5:
-                technical_score += 5  # High volume confirms moves
-                confidence += 5
-            elif volume_ratio < 0.7:
-                technical_score -= 2  # Low volume is weak
-                risk_factors.append("Low volume")
-
-            # Advanced technical indicators
-            stoch_k = technical.get('stoch_k', 50)
-            williams_r = technical.get('williams_r', -50)
-            mfi = technical.get('mfi', 50)
-
-            # Stochastic oversold/overbought
-            if stoch_k < 25:
-                technical_score += 4  # Oversold opportunity
-            elif stoch_k > 75:
-                technical_score -= 2  # Overbought
-
-            # Money Flow Index
-            if mfi < 30:
-                technical_score += 3  # Oversold by money flow
-            elif mfi > 70:
-                technical_score -= 2  # Overbought by money flow
-
-            # Trend strength bonus
-            trend_strength = technical.get('trend_strength', 0)
-            technical_score += min(8, trend_strength * 0.2)  # Max 8 points for trend
-
-            # Sentiment and market factors (0-25 points)
-            sentiment_score = 0
-
-            # Promoter buying (strong signal)
-            if fundamentals.get('promoter_buying', False):
-                sentiment_score += 15
-                confidence += 20
-
-            # Bulk deal activity
-            bulk_deal_bonus = sentiment.get('bulk_deal_bonus', 0)
-            sentiment_score += min(10, bulk_deal_bonus)
-
-            # Market cap consideration
-            market_cap = market_data.get('market_cap', 'Mid Cap')
-            if market_cap == 'Large Cap':
-                sentiment_score += 3  # Stability bonus
-                confidence += 5
-            elif market_cap == 'Small Cap':
-                sentiment_score += 2  # Growth potential
-                risk_factors.append("Small cap volatility")
-
-            # Combine scores
-            total_score = fundamental_score + technical_score + sentiment_score
-
-            # Apply risk adjustments
-            risk_penalty = len(risk_factors) * 2
-            total_score = max(0, total_score - risk_penalty)
-
-            # Confidence adjustment based on data quality
-            if fundamentals.get('data_source') == 'screener':
-                confidence += 10  # Reliable source
-
-            # Cap confidence at 100
-            confidence = min(100, confidence)
-
-            # Risk level determination
-            risk_level = 'Low' if len(risk_factors) <= 1 else 'Medium' if len(risk_factors) <= 3 else 'High'
-
-            # Enhanced predictions using multiple timeframes
-            predictions = self.calculate_multi_timeframe_predictions(
-                total_score, technical, fundamentals, confidence
-            )
-
-            return {
-                'score': min(100, total_score),
-                'confidence': confidence,
-                'confidence_level': 'high' if confidence >= 70 else 'medium' if confidence >= 40 else 'low',
-                'risk_level': risk_level,
-                'risk_factors': risk_factors,
-                'component_scores': {
-                    'fundamental': fundamental_score,
-                    'technical': technical_score,
-                    'sentiment': sentiment_score
-                },
-                'predictions': predictions
-            }
-
-        except Exception as e:
-            logger.error(f"Error calculating enhanced score for {symbol}: {str(e)}")
-            return {
-                'score': 50,
-                'confidence': 30,
-                'confidence_level': 'low',
-                'risk_level': 'High',
-                'risk_factors': ['Calculation error'],
-                'component_scores': {'fundamental': 0, 'technical': 0, 'sentiment': 0},
-                'predictions': {'pred_24h': 0, 'pred_5d': 0, 'pred_1mo': 0}
-            }
-
-    def calculate_multi_timeframe_predictions(self, score: float, technical: Dict, 
-                                           fundamentals: Dict, confidence: float) -> Dict:
-        """Calculate predictions for multiple timeframes"""
-        try:
-            base_prediction = score / 5  # Base percentage gain
-
-            # Technical momentum adjustments
-            momentum_factor = 1.0
-
-            # RSI momentum
-            rsi = technical.get('rsi_14', 50)
-            if rsi < 40:
-                momentum_factor += 0.2  # Oversold bounce potential
-            elif rsi > 70:
-                momentum_factor -= 0.1  # Overbought resistance
-
-            # MACD momentum
-            macd_histogram = technical.get('macd_histogram', 0)
-            if macd_histogram > 0:
-                momentum_factor += 0.15  # Bullish momentum
-            elif macd_histogram < 0:
-                momentum_factor -= 0.1   # Bearish momentum
-
-            # Trend strength
-            trend_strength = technical.get('trend_strength', 0)
-            momentum_factor += (trend_strength / 100) * 0.3
-
-            # Volatility adjustment
-            volatility = technical.get('atr_volatility', 2)
-            vol_factor = max(0.8, min(1.3, 1 + (3 - volatility) * 0.1))
-
-            # Time-based adjustments
-            short_term_factor = 0.3   # 24h prediction is more conservative
-            medium_term_factor = 0.7  # 5-day prediction
-            long_term_factor = 1.0    # 1-month prediction gets full weight
-
-            # Fundamental strength for longer timeframes
-            pe_ratio = fundamentals.get('pe_ratio', 20)
-            growth_factor = 1.0
-            if pe_ratio > 0 and pe_ratio < 15:
-                growth_factor += 0.2  # Undervalued stocks have more potential
-
-            revenue_growth = fundamentals.get('revenue_growth', 0)
-            if revenue_growth > 20:
-                growth_factor += 0.3  # High growth adds to long-term potential
-
-            # Calculate predictions
-            pred_24h = base_prediction * momentum_factor * vol_factor * short_term_factor
-            pred_5d = base_prediction * momentum_factor * vol_factor * medium_term_factor
-            pred_1mo = base_prediction * momentum_factor * vol_factor * long_term_factor * growth_factor
-
-            # Apply confidence-based adjustments
-            confidence_factor = confidence / 100
-
-            # Cap predictions at reasonable levels
-            pred_24h = max(-5, min(15, pred_24h * confidence_factor))
-            pred_5d = max(-10, min(25, pred_5d * confidence_factor))
-            pred_1mo = max(-15, min(40, pred_1mo * confidence_factor))
-
-            return {
-                'pred_24h': round(pred_24h, 2),
-                'pred_5d': round(pred_5d, 2),
-                'pred_1mo': round(pred_1mo, 2)
-            }
-
-        except Exception as e:
-            logger.error(f"Error calculating multi-timeframe predictions: {str(e)}")
-            return {'pred_24h': 0, 'pred_5d': 0, 'pred_1mo': 0}
-
-    def fetch_corporate_actions(self, symbol: str) -> Dict:
-        """Fetch corporate actions and announcements for better prediction context"""
-        try:
-            corporate_data = {
-                'dividend_yield': 0,
-                'upcoming_events': [],
-                'recent_announcements': [],
-                'sector_performance': 'neutral'
-            }
-
-            # Try to get dividend information from multiple sources
-            try:
-                # Yahoo Finance for basic dividend data
-                ticker = yf.Ticker(f"{symbol}.NS")
-                info = ticker.info
-
-                if 'dividendYield' in info and info['dividendYield']:
-                    corporate_data['dividend_yield'] = float(info['dividendYield']) * 100
-
-                if 'sector' in info:
-                    corporate_data['sector'] = info['sector']
-
-                if 'industry' in info:
-                    corporate_data['industry'] = info['industry']
-
-            except Exception as e:
-                logger.warning(f"Could not fetch corporate data for {symbol}: {str(e)}")
-
-            # Get sector performance comparison
-            corporate_data['sector_performance'] = self.get_sector_performance(symbol)
-
-            # Estimate upcoming events based on historical patterns
-            corporate_data['upcoming_events'] = self.estimate_upcoming_events(symbol)
-
-            return corporate_data
-
-        except Exception as e:
-            logger.error(f"Error fetching corporate actions for {symbol}: {str(e)}")
-            return {
-                'dividend_yield': 0,
-                'upcoming_events': [],
-                'recent_announcements': [],
-                'sector_performance': 'neutral'
-            }
-
-    def get_sector_performance(self, symbol: str) -> str:
-        """Analyze sector performance for context"""
-        try:
-            # Map symbols to sectors (simplified mapping)
-            sector_map = {
-                'RELIANCE': 'Energy',
-                'TCS': 'Technology',
-                'HDFCBANK': 'Banking',
-                'INFY': 'Technology',
-                'HINDUNILVR': 'FMCG',
-                'SBIN': 'Banking',
-                'ITC': 'FMCG',
-                'BAJFINANCE': 'Financial Services',
-                'BHARTIARTL': 'Telecom',
-                'KOTAKBANK': 'Banking',
-                'LT': 'Engineering',
-                'TECHM': 'Technology',
-                'TITAN': 'Consumer Goods',
-                'ULTRACEMCO': 'Cement',
-                'NESTLEIND': 'FMCG',
-                'POWERGRID': 'Utilities',
-                'NTPC': 'Utilities',
-                'ONGC': 'Energy',
-                'COALINDIA': 'Mining',
-                'TATASTEEL': 'Steel',
-                'HINDALCO': 'Metals',
-                'JSWSTEEL': 'Steel',
-                'TATAMOTORS': 'Automobile',
-                'M&M': 'Automobile',
-                'BPCL': 'Energy',
-                'IOC': 'Energy',
-                'GAIL': 'Energy'
-            }
-
-            sector = sector_map.get(symbol, 'Unknown')
-
-            # For now, return neutral, but this could be enhanced with real sector data
-            # In a real implementation, you would fetch sector indices and compare performance
-
-            return 'neutral'  # Could be 'outperforming', 'underperforming', or 'neutral'
-
-        except Exception as e:
-            logger.error(f"Error analyzing sector performance: {str(e)}")
-            return 'neutral'
-
-    def estimate_upcoming_events(self, symbol: str) -> List[str]:
-        """Estimate upcoming corporate events"""
-        try:
-            events = []
-            current_month = datetime.now().month
-
-            # Earnings season (quarterly)
-            if current_month in [1, 4, 7, 10]:  # Earnings months
-                events.append("Quarterly Results Expected")
-
-            # AGM season
-            if current_month in [6, 7, 8, 9]:
-                events.append("AGM Season")
-
-            # Dividend season
-            if current_month in [3, 6, 9, 12]:
-                events.append("Dividend Declaration Period")
-
-            return events
-
-        except Exception as e:
-            logger.error(f"Error estimating events for {symbol}: {str(e)}")
-            return []
-
-    def get_financial_ratios_extended(self, symbol: str) -> Dict:
-        """Get extended financial ratios for better analysis"""
-        try:
-            ratios = {}
-
-            try:
-                # Get data from Yahoo Finance
-                ticker = yf.Ticker(f"{symbol}.NS")
-                info = ticker.info
-
-                # Profitability ratios
-                if 'returnOnEquity' in info and info['returnOnEquity']:
-                    ratios['roe'] = float(info['returnOnEquity']) * 100
-
-                if 'returnOnAssets' in info and info['returnOnAssets']:
-                    ratios['roa'] = float(info['returnOnAssets']) * 100
-
-                if 'profitMargins' in info and info['profitMargins']:
-                    ratios['profit_margin'] = float(info['profitMargins']) * 100
-
-                # Liquidity ratios
-                if 'currentRatio' in info and info['currentRatio']:
-                    ratios['current_ratio'] = float(info['currentRatio'])
-
-                if 'quickRatio' in info and info['quickRatio']:
-                    ratios['quick_ratio'] = float(info['quickRatio'])
-
-                # Leverage ratios
-                if 'debtToEquity' in info and info['debtToEquity']:
-                    ratios['debt_to_equity'] = float(info['debtToEquity'])
-
-                # Efficiency ratios
-                if 'assetTurnover' in info and info['assetTurnover']:
-                    ratios['asset_turnover'] = float(info['assetTurnover'])
-
-                # Market ratios
-                if 'priceToBook' in info and info['priceToBook']:
-                    ratios['price_to_book'] = float(info['priceToBook'])
-
-                if 'pegRatio' in info and info['pegRatio']:
-                    ratios['peg_ratio'] = float(info['pegRatio'])
-
-            except Exception as e:
-                logger.warning(f"Could not fetch extended ratios for {symbol}: {str(e)}")
-
-            return ratios
-
-        except Exception as e:
-            logger.error(f"Error getting financial ratios for {symbol}: {str(e)}")
-            return {}
-
-# Compatibility layer - create an instance that matches the old interface
-class StockScreener(EnhancedStockScreener):
-    """Compatibility wrapper for the enhanced screener"""
-
-    def __init__(self):
-        super().__init__()
-
-    def run_screener(self) -> List[Dict]:
-        """Compatibility method that calls the enhanced screener"""
-        return self.run_enhanced_screener()
-
-    def calculate_technical_indicators(self, symbol: str) -> Dict:
-        """Compatibility method for technical indicators"""
-        enhanced_indicators = self.calculate_enhanced_technical_indicators(symbol)
-
-        # Return subset for backward compatibility
-        return {
-            'atr_14': enhanced_indicators.get('atr_14', 0),
-            'current_price': enhanced_indicators.get('current_price', 0),
-            'momentum_ratio': enhanced_indicators.get('momentum_2d', 0),
-            'volatility': enhanced_indicators.get('atr_volatility', 0)
-        }
-
-    def score_and_rank(self, stocks_data: Dict) -> List[Dict]:
-        """Compatibility method for scoring"""
-        return self.enhanced_score_and_rank(stocks_data)
-
-
-def main():
-    """Test function"""
-    screener = StockScreener()
-    results = screener.run_screener()
-
-    print(json.dumps(results[:3], indent=2))  # Print first 3 results
-
-
-if __name__ == "__main__":
-    main()
+            #
