@@ -497,7 +497,10 @@ class EnhancedStockScreener:
             else:
                 indicators['rsi_signal'] = 'neutral'
 
+        except Exception as e:
+            logger.error(f"Error calculating RSI: {str(e)}")
 
+        return indicators
 
     def assess_data_quality_multi_source(self, stocks_data: Dict) -> Dict:
         """Assess overall data quality from multiple sources"""
@@ -551,10 +554,6 @@ class EnhancedStockScreener:
         return quality_report
 
 
-        except Exception as e:
-            logger.error(f"Error calculating RSI: {str(e)}")
-
-        return indicators
 
     def _calculate_ema_indicators(self, data: pd.DataFrame) -> Dict:
         """Calculate Exponential Moving Averages"""
@@ -705,8 +704,7 @@ class EnhancedStockScreener:
             if len(close_prices) > 10:
                 current_price = close_prices.iloc[-1]
                 past_price = close_prices.iloc[-11]
-                roc_10 = ((current_price - past_price) /```python
- past_price * 100) if past_price > 0 else 0
+                roc_10 = ((current_price - past_price) / past_price * 100) if past_price > 0 else 0
             else:
                 roc_10 = 0
             indicators['roc_10'] = roc_10

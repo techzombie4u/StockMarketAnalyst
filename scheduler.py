@@ -13,6 +13,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
 from stock_screener import StockScreener
+from signal_manager import SignalManager
 import os
 
 # Configure logging
@@ -155,11 +156,17 @@ def run_screening_job_manual():
     try:
         logger.info("Starting manual stock screening...")
 
-        # Create screener instance
+        # Create screener and signal manager instances
         screener = StockScreener()
+        signal_manager = SignalManager()
 
         # Run the screener
-        results = screener.run_screener()
+        raw_results = screener.run_screener()
+        
+        # Filter through signal management for stable predictions
+        results = signal_manager.filter_trading_signals(raw_results)
+        
+        logger.info(f"Signal filtering: {len(raw_results)} raw signals → {len(results)} confirmed signals")
 
         # Add timestamp in IST
         ist = pytz.timezone('Asia/Kolkata')
@@ -300,7 +307,7 @@ class StockAnalystScheduler:
         """Wrapper method to call the manual screening function"""
         run_screening_job_manual()
 
-    def start_scheduler(self, interval_minutes: int = 60):
+    def start_scheduler(self, interval_minutes: int = 1440):  # Default to daily (1440 minutes)
         """Start the scheduler with specified interval"""
         try:
             # Remove existing jobs

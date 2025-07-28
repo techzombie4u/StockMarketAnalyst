@@ -420,7 +420,7 @@ def initialize_app():
 
     try:
         scheduler = StockAnalystScheduler()
-        scheduler.start_scheduler(interval_minutes=30)
+        scheduler.start_scheduler(interval_minutes=1440)  # Daily updates (24 hours)
         print("✅ Scheduler started successfully")
         # Remove blocking initial screening - let it run via scheduler
 
