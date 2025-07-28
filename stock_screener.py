@@ -1876,7 +1876,7 @@ class EnhancedStockScreener:
             # RSI (14-day)
             delta = close.diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-            loss = (-delta).where(delta < 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
             rs = gain / loss
             indicators['rsi_14'] = float(100 - (100 / (1 + rs.iloc[-1]))) if not rs.iloc[-1] == 0 else 50
 
