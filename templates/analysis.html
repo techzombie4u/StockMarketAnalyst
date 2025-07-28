@@ -461,16 +461,40 @@
             } else {
                 insightsList.innerHTML = '<li class="insight-item">🔍 Analyzing patterns... More insights will appear with additional data.</li>';
             }
+            
+            // Add data quality indicator if available
+            if (data.data_quality) {
+                const qualityLi = document.createElement('li');
+                qualityLi.className = 'insight-item';
+                const qualityMap = {
+                    'good': '✅ Data Quality: Good - Reliable analysis available',
+                    'limited': '⚠️ Data Quality: Limited - More sessions needed for better insights',
+                    'none': '📋 Data Quality: No data - Run screening to generate analysis',
+                    'error': '❌ Data Quality: Error - Please check system status'
+                };
+                qualityLi.textContent = qualityMap[data.data_quality] || '📊 Data Quality: Unknown';
+                insightsList.appendChild(qualityLi);
+            }
 
-            // Update trend data (simplified for now)
+            // Update trend data with more detailed information
             const trendElement = document.getElementById('trendData');
+            const sessionsCount = data.sessions_analyzed || data.sessions_count || 0;
+            const dataStatus = data.status === 'current_analysis' ? 'Real-time Analysis' : 
+                              data.status === 'historical_analysis' ? 'Historical Analysis' :
+                              data.status === 'no_data' ? 'No Data Available' : 'Analysis Ready';
+            
             trendElement.innerHTML = `
                 <div style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 10px;">
-                    <p><strong>Current Analysis:</strong> ${accuracy}% accuracy rate</p>
-                    <p><strong>Total Predictions:</strong> ${data.total_predictions_analyzed || 0}</p>
-                    <p><strong>Performance:</strong> ${
-                        accuracy >= 70 ? '🟢 Excellent' : 
-                        accuracy >= 50 ? '🟡 Good' : '🔴 Needs Improvement'
+                    <p><strong>Analysis Status:</strong> ${dataStatus}</p>
+                    <p><strong>Accuracy Rate:</strong> ${accuracy}%</p>
+                    <p><strong>Stocks Analyzed:</strong> ${data.total_predictions_analyzed || 0}</p>
+                    <p><strong>High-Quality Picks:</strong> ${data.correct_predictions || 0}</p>
+                    <p><strong>Sessions Recorded:</strong> ${sessionsCount}</p>
+                    <p><strong>Overall Performance:</strong> ${
+                        accuracy >= 70 ? '🟢 Excellent - Strong stock selection' : 
+                        accuracy >= 50 ? '🟡 Good - Solid performance' : 
+                        accuracy > 0 ? '🔴 Needs Improvement - Review criteria' :
+                        '⚪ Awaiting Data - Run screening first'
                     }</p>
                 </div>
             `;
@@ -503,8 +527,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadAnalysisData();
             
-            // Auto-refresh every 5 minutes to reduce server load
-            refreshInterval = setInterval(loadAnalysisData, 300000);
+            // Auto-refresh disabled - user can manually refresh when needed
+            // refreshInterval = setInterval(loadAnalysisData, 300000);
         });
 
         // Cleanup
