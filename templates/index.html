@@ -425,6 +425,8 @@
         let isLoading = false;
         let retryCount = 0;
         const maxRetries = 3;
+        let lastRequestTime = 0;
+        const minRequestInterval = 5000; // Minimum 5 seconds between requests
 
         function updateStatus(message, type = 'loading') {
             const status = document.getElementById('status');
@@ -535,14 +537,20 @@
         }
 
         function loadStocks() {
-            if (isLoading) return;
+            // Prevent rapid successive calls
+            const now = Date.now();
+            if (isLoading || (now - lastRequestTime) < minRequestInterval) {
+                console.log('Skipping request - too frequent or already loading');
+                return;
+            }
 
+            lastRequestTime = now;
             isLoading = true;
             showLoading();
 
-            // Add timeout to prevent hanging
+            // Add timeout to prevent hanging - increased for production screening
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
             fetch('/api/stocks', {
                 method: 'GET',
@@ -624,7 +632,7 @@
                 let errorMessage = 'Unable to load stock data.';
 
                 if (error.name === 'AbortError') {
-                    errorMessage = 'Request timed out. The server may be busy processing data.';
+                    errorMessage = 'Request timed out. Stock screening in progress - please wait.';
                 } else if (error.message.includes('Failed to fetch')) {
                     errorMessage = 'Network connection error. Please check your internet connection.';
                 } else if (error.message.includes('HTTP')) {
@@ -633,15 +641,23 @@
                     errorMessage = error.message || 'Unknown error occurred.';
                 }
 
-                // Implement retry logic with more aggressive retries for production
+                // For timeout errors, don't retry immediately as screening might be in progress
                 if (retryCount < maxRetries && error.name !== 'AbortError') {
                     retryCount++;
                     updateStatus(`Retrying... (${retryCount}/${maxRetries})`, 'loading');
                     
-                    // Shorter delay for production environments
-                    const delay = window.location.hostname.includes('localhost') ? 
-                        3000 * retryCount : 1000 * retryCount;
+                    // Longer delay to allow screening to complete
+                    const delay = 10000 * retryCount; // 10, 20, 30 seconds
                     setTimeout(loadStocks, delay);
+                } else if (error.name === 'AbortError') {
+                    // For timeout, show specific message and don't retry immediately
+                    updateStatus('Stock screening in progress. Data will update automatically.', 'loading');
+                    // Wait longer before next attempt
+                    setTimeout(() => {
+                        if (!isLoading) {
+                            loadStocks();
+                        }
+                    }, 30000); // Wait 30 seconds before trying again
                 } else {
                     showError(errorMessage);
                 }
@@ -730,23 +746,23 @@
                 clearInterval(refreshInterval);
             }
 
-            // Refresh every 30 seconds for better user experience
+            // Refresh every 60 seconds to prevent server overload
             refreshInterval = setInterval(() => {
                 if (!isLoading) {
                     loadStocks();
                 }
-            }, 30000); // 30 seconds
+            }, 60000); // 60 seconds - reduced from 30
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Dashboard initialized');
 
-            // Initial load with small delay to ensure server is ready
+            // Initial load with longer delay to ensure server is ready
             setTimeout(() => {
                 loadStocks();
                 startAutoRefresh();
-            }, 1000);
+            }, 3000); // Increased to 3 seconds
         });
 
         // Handle page visibility change
@@ -763,14 +779,10 @@
             }
         });
 
-        // Detect if we're in production (no localhost) and increase refresh frequency
+        // Detect if we're in production (no localhost) - but use same frequency to prevent timeouts
         if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-            // In production, check more frequently
-            const productionInterval = setInterval(() => {
-                if (!isLoading && document.visibilityState === 'visible') {
-                    loadStocks();
-                }
-            }, 15000); // Every 15 seconds in production
+            // In production, use same frequency to prevent server overload
+            console.log('Production mode: Using standard refresh frequency to prevent timeouts');
         }
 
         function updateStockTable(stocks) {
