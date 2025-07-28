@@ -390,6 +390,11 @@ def initialize_app():
     except Exception as e:
         print(f"❌ Error starting scheduler: {str(e)}")
 
+def create_app():
+    """Application factory function for WSGI deployment"""
+    initialize_app()
+    return app
+
 if __name__ == '__main__':
     initialize_app()
 
