@@ -101,44 +101,60 @@ def run_screening_job():
             # Clean any potential control characters from string data
             cleaned_data = clean_json_data(json_safe_data)
 
-            # Write to temporary file first, then rename for atomic operation
-            temp_file = 'top10_temp.json'
-            with open(temp_file, 'w', encoding='utf-8') as f:
+            # Write directly to main file with backup approach
+            backup_file = 'top10_backup.json'
+
+            # Create backup of existing file if it exists
+            if os.path.exists('top10.json'):
+                try:
+                    import shutil
+                    shutil.copy2('top10.json', backup_file)
+                except:
+                    pass
+
+            # Write new data directly to main file
+            with open('top10.json', 'w', encoding='utf-8') as f:
                 json.dump(cleaned_data, f, indent=2, ensure_ascii=False)
 
-            # Verify the file is valid JSON before replacing main file
-            with open(temp_file, 'r', encoding='utf-8') as f:
+            # Verify the file is valid JSON
+            with open('top10.json', 'r', encoding='utf-8') as f:
                 json.load(f)  # This will raise an exception if JSON is invalid
 
-            # Replace main file atomically
-            import shutil
-            shutil.move(temp_file, 'top10.json')
+            # Clean up backup file on success
+            if os.path.exists(backup_file):
+                try:
+                    os.remove(backup_file)
+                except:
+                    pass
 
             logger.info(f"✅ Successfully saved {len(validated_stocks)} stocks to top10.json")
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
-            # Clean up temp file if it exists
-            try:
-                import os
-                if os.path.exists('top10_temp.json'):
-                    os.remove('top10_temp.json')
-            except:
-                pass
 
-            # Try to save a minimal version
-            try:
-                minimal_data = {
-                    'timestamp': screening_data['timestamp'],
-                    'last_updated': screening_data['last_updated'],
-                    'stocks': [],
-                    'status': 'save_error',
-                    'error': str(file_error)
-                }
-                with open('top10.json', 'w', encoding='utf-8') as f:
-                    json.dump(minimal_data, f, indent=2, ensure_ascii=False)
-                logger.info("Created minimal error data file")
-            except Exception as e:
-                logger.error(f"Failed to create minimal data file: {str(e)}")
+            # Restore backup if it exists
+            backup_file = 'top10_backup.json'
+            if os.path.exists(backup_file):
+                try:
+                    import shutil
+                    shutil.move(backup_file, 'top10.json')
+                    logger.info("Restored backup file")
+                except Exception as restore_error:
+                    logger.error(f"Failed to restore backup: {str(restore_error)}")
+            else:
+                # Create minimal error file if no backup exists
+                try:
+                    minimal_data = {
+                        'timestamp': screening_data['timestamp'],
+                        'last_updated': screening_data['last_updated'],
+                        'stocks': [],
+                        'status': 'save_error',
+                        'error': str(file_error)
+                    }
+                    with open('top10.json', 'w', encoding='utf-8') as f:
+                        json.dump(minimal_data, f, indent=2, ensure_ascii=False)
+                    logger.info("Created minimal error data file")
+                except Exception as e:
+                    logger.error(f"Failed to create minimal data file: {str(e)}")
 
         # Capture for historical analysis
         try:
@@ -259,44 +275,60 @@ def run_screening_job_manual():
             # Clean any potential control characters from string data
             cleaned_data = clean_json_data(json_safe_data)
 
-            # Write to temporary file first, then rename for atomic operation
-            temp_file = 'top10_temp.json'
-            with open(temp_file, 'w', encoding='utf-8') as f:
+            # Write directly to main file with backup approach
+            backup_file = 'top10_backup.json'
+
+            # Create backup of existing file if it exists
+            if os.path.exists('top10.json'):
+                try:
+                    import shutil
+                    shutil.copy2('top10.json', backup_file)
+                except:
+                    pass
+
+            # Write new data directly to main file
+            with open('top10.json', 'w', encoding='utf-8') as f:
                 json.dump(cleaned_data, f, indent=2, ensure_ascii=False)
 
-            # Verify the file is valid JSON before replacing main file
-            with open(temp_file, 'r', encoding='utf-8') as f:
+            # Verify the file is valid JSON
+            with open('top10.json', 'r', encoding='utf-8') as f:
                 json.load(f)  # This will raise an exception if JSON is invalid
 
-            # Replace main file atomically
-            import shutil
-            shutil.move(temp_file, 'top10.json')
+            # Clean up backup file on success
+            if os.path.exists(backup_file):
+                try:
+                    os.remove(backup_file)
+                except:
+                    pass
 
             logger.info(f"✅ Successfully saved {len(validated_stocks)} stocks to top10.json")
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
-            # Clean up temp file if it exists
-            try:
-                import os
-                if os.path.exists('top10_temp.json'):
-                    os.remove('top10_temp.json')
-            except:
-                pass
 
-            # Try to save a minimal version
-            try:
-                minimal_data = {
-                    'timestamp': screening_data['timestamp'],
-                    'last_updated': screening_data['last_updated'],
-                    'stocks': [],
-                    'status': 'save_error',
-                    'error': str(file_error)
-                }
-                with open('top10.json', 'w', encoding='utf-8') as f:
-                    json.dump(minimal_data, f, indent=2, ensure_ascii=False)
-                logger.info("Created minimal error data file")
-            except Exception as e:
-                logger.error(f"Failed to create minimal data file: {str(e)}")
+            # Restore backup if it exists
+            backup_file = 'top10_backup.json'
+            if os.path.exists(backup_file):
+                try:
+                    import shutil
+                    shutil.move(backup_file, 'top10.json')
+                    logger.info("Restored backup file")
+                except Exception as restore_error:
+                    logger.error(f"Failed to restore backup: {str(restore_error)}")
+            else:
+                # Create minimal error file if no backup exists
+                try:
+                    minimal_data = {
+                        'timestamp': screening_data['timestamp'],
+                        'last_updated': screening_data['last_updated'],
+                        'stocks': [],
+                        'status': 'save_error',
+                        'error': str(file_error)
+                    }
+                    with open('top10.json', 'w', encoding='utf-8') as f:
+                        json.dump(minimal_data, f, indent=2, ensure_ascii=False)
+                    logger.info("Created minimal error data file")
+                except Exception as e:
+                    logger.error(f"Failed to create minimal data file: {str(e)}")
 
         # Capture for historical analysis
         try:
