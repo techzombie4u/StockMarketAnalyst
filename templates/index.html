@@ -354,10 +354,9 @@
                 <p>AI-powered analysis with technical & fundamental scoring</p>
             </div>
             <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
-                    <span class="refresh-icon">🔄</span>
-                    Refresh Now
-                </button>
-
+                <span class="refresh-icon">🔄</span>
+                Refresh Now
+            </button>
         </div>
 
         <div class="stats-grid" id="statsGrid" style="display: none;">
@@ -536,8 +535,41 @@
             return `${sign}${gain.toFixed(1)}%`;
         }
 
+        function updateStockTable(stocks) {
+            const tbody = document.getElementById('stockTableBody');
+            tbody.innerHTML = '';
+
+            if (!stocks || stocks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #666;">No stock data available. Click "Refresh Now" to load data.</td></tr>';
+                return;
+            }
+
+            stocks.forEach((stock, index) => {
+                const row = document.createElement('tr');
+
+                // Get prediction values with fallbacks
+                const pred24h = stock.pred_24h || (stock.predicted_gain || 0) * 0.05;
+                const pred5d = stock.pred_5d || (stock.predicted_gain || 0) * 0.25;
+                const pred1mo = stock.pred_1mo || (stock.predicted_gain || 0);
+
+                row.innerHTML = `
+                    <td class="symbol">${stock.symbol}</td>
+                    <td><span class="score ${getScoreClass(stock.score)}">${stock.score.toFixed(1)}</span></td>
+                    <td class="price">₹${(stock.current_price || 0).toFixed(2)}</td>
+                    <td class="${getGainClass(pred24h)}">${formatGain(pred24h)}</td>
+                    <td class="${getGainClass(pred5d)}">${formatGain(pred5d)}</td>
+                    <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
+                    <td><span class="pe-ratio ${getPEClass(stock.pe_description || 'Not Available')}">${stock.pe_ratio ? stock.pe_ratio.toFixed(1) : 'N/A'}</span></td>
+                    <td><span class="risk-level ${getRiskClass(stock.risk_level || 'Medium')}">${stock.risk_level || 'Medium'}</span></td>
+                    <td class="${getGainClass(stock.revenue_growth || 0)}">${formatGain(stock.revenue_growth || 0)}</td>
+                    <td>${stock.confidence || 0}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
         function loadStocks() {
-            // Prevent multiple simultaneous requests with longer interval
+            // Prevent multiple simultaneous requests
             const now = Date.now();
             if (isLoading || (now - lastRequestTime) < minRequestInterval) {
                 console.log('Skipping request - too frequent or already loading');
@@ -548,9 +580,8 @@
             isLoading = true;
             showLoading();
 
-            // Increased timeout for production
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
             fetch('/api/stocks', {
                 method: 'GET',
@@ -562,16 +593,14 @@
             })
             .then(response => {
                 clearTimeout(timeoutId);
-
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-
                 return response.json();
             })
             .then(data => {
                 isLoading = false;
-                retryCount = 0; // Reset retry count on success
+                retryCount = 0;
 
                 console.log('API Response received:', {
                     status: data.status, 
@@ -579,70 +608,29 @@
                     lastUpdated: data.last_updated
                 });
 
-                // Handle different response statuses
-                if (data.status === 'critical_error' || data.status === 'file_error') {
-                    updateStatus(`System Error: ${data.error || 'Unknown error'}`, 'error');
-                    // Try again after longer delay for critical errors
-                    setTimeout(loadStocks, 15000);
+                updateLastUpdated(data.timestamp || data.last_updated);
+
+                // Handle different statuses
+                if (data.status === 'error' || data.error) {
+                    showError(data.error || 'Unknown error occurred');
                     return;
                 }
 
-                if (data.error && data.status !== 'success') {
-                    throw new Error(data.error);
-                }
-
-                updateLastUpdated(data.timestamp || data.last_updated);
-
                 if (!data.stocks || data.stocks.length === 0) {
-                    if (data.status === 'initializing') {
-                        updateStatus('Initializing system...', 'loading');
+                    if (data.status === 'initial' || data.status === 'no_data') {
+                        updateStatus('Screening in progress...', 'loading');
                         setTimeout(loadStocks, 8000); // Retry in 8 seconds
-                    } else if (data.status === 'no_data') {
-                        updateStatus('No stock data available. Screening in progress...', 'loading');
-                        setTimeout(loadStocks, 10000); // Retry in 10 seconds
                     } else {
                         showEmpty();
                     }
                     return;
                 }
 
-                // Process and display stocks
-                const tbody = document.getElementById('stockTableBody');
-                tbody.innerHTML = '';
-
-                updateStatus(`Found ${data.stocks.length} stocks`, 'success');
-
-                data.stocks.forEach((stock, index) => {
-                    const row = document.createElement('tr');
-
-                    // Ensure all required fields have default values
-                    const symbol = stock.symbol || 'N/A';
-                    const score = stock.score || 0;
-                    const currentPrice = stock.current_price || 0;
-                    const pred24h = stock.pred_24h || 0;
-                    const pred5d = stock.pred_5d || 0;
-                    const pred1mo = stock.pred_1mo || 0;
-                    const peRatio = stock.pe_ratio || 'N/A';
-                    const riskLevel = stock.risk_level || 'Medium';
-                    const revenueGrowth = stock.revenue_growth || 0;
-                    const confidence = stock.confidence || 0;
-
-                    row.innerHTML = `
-                        <td><strong>${symbol}</strong></td>
-                        <td><span class="score-badge ${getScoreClass(score)}">${score.toFixed(1)}</span></td>
-                        <td>₹${currentPrice.toFixed(2)}</td>
-                        <td class="${pred24h >= 0 ? 'positive' : 'negative'}">${formatGain(pred24h)}</td>
-                        <td class="${pred5d >= 0 ? 'positive' : 'negative'}">${formatGain(pred5d)}</td>
-                        <td class="${pred1mo >= 0 ? 'positive' : 'negative'}">${formatGain(pred1mo)}</td>
-                        <td>${peRatio === 'N/A' ? 'N/A' : peRatio.toFixed(1)}</td>
-                        <td><span class="risk-badge risk-${riskLevel.toLowerCase()}">${riskLevel}</span></td>
-                        <td><span class="${revenueGrowth >= 0 ? 'gain-positive' : 'gain-negative'}">${formatGain(revenueGrowth)}</span></td>
-                        <td>${confidence}%</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-
+                // Update table and stats
+                updateStockTable(data.stocks);
+                updateStats(data.stocks);
                 showData();
+                updateStatus(`Found ${data.stocks.length} stocks`, 'success');
             })
             .catch(error => {
                 clearTimeout(timeoutId);
@@ -651,9 +639,8 @@
                 console.error('Error loading stocks:', error);
 
                 let errorMessage = 'Unable to load stock data.';
-
                 if (error.name === 'AbortError') {
-                    errorMessage = 'Request timed out. Stock screening in progress...';
+                    errorMessage = 'Request timed out. Please try again.';
                 } else if (error.message.includes('Failed to fetch')) {
                     errorMessage = 'Network connection error. Please check your connection.';
                 } else if (error.message.includes('HTTP')) {
@@ -662,32 +649,21 @@
                     errorMessage = error.message || 'Unknown error occurred.';
                 }
 
-                updateStatus(errorMessage, 'error');
-
-                // Retry logic with exponential backoff
+                // Retry logic
                 if (retryCount < maxRetries && error.name !== 'AbortError') {
                     retryCount++;
-                    const delay = Math.min(15000 * retryCount, 45000); // Max 45 second delay
+                    const delay = Math.min(10000 * retryCount, 30000);
                     updateStatus(`Retrying in ${delay/1000}s... (${retryCount}/${maxRetries})`, 'loading');
                     setTimeout(loadStocks, delay);
                 } else {
-                    showEmpty();
-                    // Reset retry count after max retries
+                    showError(errorMessage);
                     setTimeout(() => { retryCount = 0; }, 60000);
                 }
             });
         }
 
-        function showEmpty() {
-            updateStatus('❌ No data available', 'error');
-            document.getElementById('stockTable').style.display = 'none';
-            document.getElementById('empty').style.display = 'block';
-        }
-
         function refreshData() {
             const btn = document.getElementById('refreshBtn');
-
-            // Disable button and show loading state
             btn.disabled = true;
             btn.innerHTML = '<span class="refresh-icon">⏳</span> Refreshing...';
 
@@ -703,10 +679,8 @@
             .then(data => {
                 if (data.success) {
                     updateStatus('Screening in progress...', 'loading');
-                    // Wait a bit then fetch new data
                     setTimeout(() => {
                         loadStocks();
-                        // Re-enable button after loading
                         btn.disabled = false;
                         btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
                     }, 3000);
@@ -718,146 +692,44 @@
             })
             .catch(error => {
                 console.error('Refresh error:', error);
-                updateStatus('Failed to refresh data: ' + error.message, 'error');
+                updateStatus('Failed to refresh: ' + error.message, 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
             });
         }
 
-
-
-        function manualRefresh() {
-            updateStatus('🔄 Triggering manual refresh...', 'loading');
-
-            fetch('/api/run-now', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Refresh response:', data);
-
-                if (data.status === 'success') {
-                    updateStatus('Screening in progress...', 'loading');
-                    // Wait a bit before loading new data
-                    setTimeout(() => {
-                        loadStocks();
-                        btn.disabled = false;
-                        btn.textContent = '🔄 Refresh Now';
-                    }, 2000);
-                } else {
-                    throw new Error(data.message || 'Failed to start screening');
-                }
-            })
-            .catch(error => {
-                console.error('Refresh error:', error);
-                updateStatus('Refresh failed', 'error');
-                btn.disabled = false;
-                btn.textContent = '🔄 Refresh Now';
-                alert('Failed to refresh data: ' + error.message);
-            });
-        }
-
         function startAutoRefresh() {
-            // Clear any existing interval
             if (refreshInterval) {
                 clearInterval(refreshInterval);
             }
-
-            // Refresh every 60 seconds to prevent server overload
             refreshInterval = setInterval(() => {
                 if (!isLoading) {
                     loadStocks();
                 }
-            }, 60000); // 60 seconds - reduced from 30
+            }, 60000); // 60 seconds
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Dashboard initialized');
-
-            // Initial load with longer delay to ensure server is ready
             setTimeout(() => {
                 loadStocks();
                 startAutoRefresh();
-            }, 3000); // Increased to 3 seconds
+            }, 2000);
         });
 
         // Handle page visibility change
         document.addEventListener('visibilitychange', function() {
             if (!document.hidden && !isLoading) {
-                loadStocks(); // Refresh when page becomes visible
+                loadStocks();
             }
         });
 
-        // Additional production optimizations
         window.addEventListener('focus', function() {
             if (!isLoading) {
-                loadStocks(); // Refresh when window gains focus
+                loadStocks();
             }
         });
-
-        // Detect if we're in production (no localhost) - but use same frequency to prevent timeouts
-        if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-            // In production, use same frequency to prevent server overload
-            console.log('Production mode: Using standard refresh frequency to prevent timeouts');
-        }
-
-        function updateStockTable(stocks) {
-                const tbody = document.getElementById('stockTableBody');
-                tbody.innerHTML = '';
-
-                if (!stocks || stocks.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No stock data available. Click "Refresh Now" to load data.</td></tr>';
-                    return;
-                }
-
-                stocks.forEach((stock, index) => {
-                    // Validate and fix prediction values
-                    const pred24h = validatePrediction(stock.pred_24h, stock.score, 0.05);
-                    const pred5d = validatePrediction(stock.pred_5d, stock.score, 0.25);
-                    const pred1mo = validatePrediction(stock.pred_1mo, stock.score, 1.0);
-
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="rank">${index + 1}</td>
-                        <td class="symbol">
-                            <strong>${stock.symbol}</strong>
-                            <small class="text-muted d-block">${stock.market_cap || 'N/A'}</small>
-                        </td>
-                        <td class="score">
-                            <span class="badge ${getScoreBadgeClass(stock.score)}">${stock.score}</span>
-                            <small class="text-muted d-block">Adj: ${stock.adjusted_score}</small>
-                        </td>
-                        <td class="confidence">
-                            <div class="confidence-bar">
-                                <div class="confidence-fill" style="width: ${stock.confidence || 0}%"></div>
-                            </div>
-                            <small>${stock.confidence || 0}%</small>
-                        </td>
-                        <td class="price">₹${formatNumber(stock.current_price)}</td>
-                        <td class="prediction ${getPredictionClass(pred24h)}">${formatPercentage(pred24h)}</td>
-                        <td class="prediction ${getPredictionClass(pred5d)}">${formatPercentage(pred5d)}</td>
-                        <td class="prediction ${getPredictionClass(pred1mo)}">${formatPercentage(pred1mo)}</td>
-                        <td class="risk">
-                            <span class="badge badge-${getRiskClass(stock.risk_level)}">${stock.risk_level || 'Medium'}</span>
-                        </td>
-                    `;
-
-                    tbody.appendChild(row);
-                });
-            }
-
-            function validatePrediction(value, score, multiplier) {
-                // Ensure predictions are reasonable based on score
-                if (!value || value <= 0) {
-                    const fallback = Math.max(0.1, (score / 100) * 20 * multiplier);
-                    return Math.round(fallback * 100) / 100;
-                }
-                return Math.round(value * 100) / 100;
-            }
     </script>
 </body>
 </html>

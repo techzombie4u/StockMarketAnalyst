@@ -401,6 +401,7 @@ if __name__ == "__main__":
 
 def convert_numpy_types(obj):
     """Recursively convert numpy types to native Python types."""
+    import numpy
     if isinstance(obj, (numpy.int_, numpy.intc, numpy.intp, numpy.int8,
                             numpy.int16, numpy.int32, numpy.int64, numpy.uint8,
                             numpy.uint16, numpy.uint32, numpy.uint64)):
@@ -410,7 +411,7 @@ def convert_numpy_types(obj):
         return float(obj)
     elif isinstance(obj, numpy.ndarray):
         return obj.tolist()
-    elif isinstance(obj, numpy.bool_):
+    elif isinstance(obj, (numpy.bool_, numpy.bool)):
         return bool(obj)
     elif isinstance(obj, dict):
         return {k: convert_numpy_types(v) for k, v in obj.items()}

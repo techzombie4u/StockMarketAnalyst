@@ -1387,7 +1387,17 @@ class EnhancedStockScreener:
             technical = data.get('technical', {})
 
             # Start with base score
-            score = self._calculate_base_score(fundamentals, technical)
+            try:
+                score = self._calculate_base_score(fundamentals, technical)
+            except AttributeError:
+                # Fallback if method doesn't exist
+                score = 30
+                if fundamentals.get('pe_ratio') is not None:
+                    score += 5
+                if technical.get('current_price', 0) > 0:
+                    score += 5
+                if technical.get('rsi_14') is not None:
+                    score += 5
 
             # 1. Enhanced bulk deal scoring
             score += self._score_bulk_deals(symbol, bulk_deal_symbols)
