@@ -1532,7 +1532,7 @@ class EnhancedStockScreener:
             logger.error(f"Error fetching financial ratios for {symbol}: {str(e)}")
             return {}
 
-def run_enhanced_screener(self) -> List[Dict]:
+    def run_enhanced_screener(self) -> List[Dict]:
         """Main enhanced screening function"""
         logger.info("Starting enhanced stock screening process...")
 
@@ -1805,45 +1805,7 @@ def run_enhanced_screener(self) -> List[Dict]:
             logger.error(f"Error calculating advanced technical indicators: {str(e)}")
             return {}
 
-    def calculate_enhanced_score(self, symbol: str, fundamentals: Dict, technical: Dict, 
-                                sentiment: Dict, market_data: Dict) -> Dict:
-        """Calculate enhanced score using ML-inspired feature engineering"""
-        try:
-            score = 30  # Base score
-            confidence = 50
-            risk_factors = []
-
-            # Fundamental scoring
-            pe_ratio = fundamentals.get('pe_ratio', 0)
-            revenue_growth = fundamentals.get('revenue_growth', 0)
-            earnings_growth = fundamentals.get('earnings_growth', 0)
-
-            if pe_ratio and pe_ratio > 0 and pe_ratio < 20:
-                score += 15
-            if revenue_growth > 10 or earnings_growth > 10:
-                score += 20
-
-            # Technical scoring
-            rsi_14 = technical.get('rsi_14', 50)
-            if 30 <= rsi_14 <= 70:
-                score += 10
-
-            # Sentiment scoring
-            score += sentiment.get('bulk_deal_bonus', 0)
-
-            return {
-                'score': min(100, max(0, score)),
-                'confidence': confidence,
-                'risk_factors': risk_factors,
-                'predictions': {
-                    'pred_24h': score * 0.05,
-                    'pred_5d': score * 0.15,
-                    'pred_1mo': score * 0.25
-                }
-            }
-        except Exception as e:
-            logger.error(f"Error calculating enhanced score: {str(e)}")
-            return {'score': 0, 'confidence': 0, 'risk_factors': [], 'predictions': {'pred_24h': 0, 'pred_5d': 0, 'pred_1mo': 0}}
+    
 
     def enhanced_score_and_rank(self, stocks_data: Dict) -> List[Dict]:
         """Enhanced scoring and ranking with all data sources"""
@@ -1859,29 +1821,23 @@ def run_enhanced_screener(self) -> List[Dict]:
                 bulk_deals_symbols = [deal['symbol'] for deal in self.bulk_deals]
                 sentiment = {'bulk_deal_bonus': 10 if symbol in bulk_deals_symbols else 0}
 
-                # Market data
-                market_data = {'market_cap': self._estimate_market_cap(symbol)}
-
-                # Calculate enhanced score
-                scoring_result = self.calculate_enhanced_score(
-                    symbol, fundamentals, technical, sentiment, market_data
-                )
+                # Calculate base score
+                score = self._calculate_base_score(technical, fundamentals, sentiment)
 
                 # Build stock result
                 current_price = technical.get('current_price', 0)
-                score = scoring_result['score']
 
                 stock_result = {
                     'symbol': symbol,
                     'score': score,
                     'adjusted_score': score * 0.95,  # Slight adjustment
-                    'confidence': scoring_result['confidence'],
+                    'confidence': 85,
                     'current_price': current_price,
                     'predicted_price': current_price * (1 + score/100 * 0.2) if current_price > 0 else 0,
                     'predicted_gain': score * 0.2,  # Simple gain calculation
-                    'pred_24h': scoring_result['predictions']['pred_24h'],
-                    'pred_5d': scoring_result['predictions']['pred_5d'],
-                    'pred_1mo': scoring_result['predictions']['pred_1mo'],
+                    'pred_24h': score * 0.05,
+                    'pred_5d': score * 0.15,
+                    'pred_1mo': score * 0.25,
                     'volatility': technical.get('atr_volatility', 2.0),
                     'time_horizon': max(1, int(100 - score)),  # Days to target
                     'pe_ratio': fundamentals.get('pe_ratio'),
@@ -1889,7 +1845,7 @@ def run_enhanced_screener(self) -> List[Dict]:
                     'revenue_growth': fundamentals.get('revenue_growth', 0),
                     'earnings_growth': fundamentals.get('earnings_growth', 0),
                     'risk_level': 'Low' if score > 70 else 'Medium' if score > 50 else 'High',
-                    'market_cap': market_data['market_cap'],
+                    'market_cap': self._estimate_market_cap(symbol),
                     'technical_summary': self._generate_technical_summary(technical),
                     'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S')
                 }
