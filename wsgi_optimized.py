@@ -53,7 +53,7 @@ except Exception as e:
         return {'status': 'critical_error', 'message': str(e)}
 
 # Start scheduler in background thread for production
-Thread(target=delayed_scheduler_init, daemon=True).start()start()
+Thread(target=delayed_scheduler_init, daemon=True).start()
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0', port=5000)
