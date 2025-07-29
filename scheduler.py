@@ -15,6 +15,7 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from stock_screener import EnhancedStockScreener
 from signal_manager import SignalManager
 import os
+import numpy
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -94,8 +95,10 @@ def run_screening_job():
 
         # Save to JSON file
         try:
+            # Convert NumPy types to native Python types for JSON serialization
+            json_safe_data = convert_numpy_types(screening_data)
             with open('top10.json', 'w') as f:
-                json.dump(screening_data, f, indent=2)
+                json.dump(json_safe_data, f, indent=2)
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
 
@@ -133,8 +136,10 @@ def run_screening_job():
         }
 
         try:
+            # Convert NumPy types to native Python types for JSON serialization
+            json_safe_error_data = convert_numpy_types(error_data)
             with open('top10.json', 'w') as f:
-                json.dump(error_data, f, indent=2)
+                json.dump(json_safe_error_data, f, indent=2)
         except Exception as file_error:
             logger.error(f"Failed to write error data to file: {str(file_error)}")
 
@@ -162,10 +167,10 @@ def run_screening_job_manual():
 
         # Run the screener
         raw_results = screener.run_enhanced_screener()
-        
+
         # Filter through signal management for stable predictions
         results = signal_manager.filter_trading_signals(raw_results)
-        
+
         logger.info(f"Signal filtering: {len(raw_results)} raw signals → {len(results)} confirmed signals")
 
         # Add timestamp in IST
@@ -201,8 +206,10 @@ def run_screening_job_manual():
 
         # Save to JSON file
         try:
+            # Convert NumPy types to native Python types for JSON serialization
+            json_safe_data = convert_numpy_types(screening_data)
             with open('top10.json', 'w') as f:
-                json.dump(screening_data, f, indent=2)
+                json.dump(json_safe_data, f, indent=2)
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
 
@@ -240,8 +247,10 @@ def run_screening_job_manual():
         }
 
         try:
+            # Convert NumPy types to native Python types for JSON serialization
+            json_safe_error_data = convert_numpy_types(error_data)
             with open('top10.json', 'w') as f:
-                json.dump(error_data, f, indent=2)
+                json.dump(json_safe_error_data, f, indent=2)
         except Exception as file_error:
             logger.error(f"Failed to write error data to file: {str(file_error)}")
 
@@ -333,8 +342,10 @@ class StockAnalystScheduler:
                 'status': 'initial'
             }
             try:
+                # Convert NumPy types to native Python types for JSON serialization
+                json_safe_initial_data = convert_numpy_types(initial_data)
                 with open('top10.json', 'w') as f:
-                    json.dump(initial_data, f, indent=2)
+                    json.dump(json_safe_initial_data, f, indent=2)
             except Exception as file_error:
                 logger.error(f"Failed to write initial data to file: {str(file_error)}")
 
@@ -388,3 +399,23 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def convert_numpy_types(obj):
+    """Recursively convert numpy types to native Python types."""
+    if isinstance(obj, (numpy.int_, numpy.intc, numpy.intp, numpy.int8,
+                            numpy.int16, numpy.int32, numpy.int64, numpy.uint8,
+                            numpy.uint16, numpy.uint32, numpy.uint64)):
+        return int(obj)
+    elif isinstance(obj, (numpy.float_, numpy.float16, numpy.float32,
+                            numpy.float64)):
+        return float(obj)
+    elif isinstance(obj, numpy.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, numpy.bool_):
+        return bool(obj)
+    elif isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(v) for v in obj]
+    else:
+        return obj
