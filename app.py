@@ -515,6 +515,9 @@ def initialize_app():
     global scheduler
 
     try:
+        # Create initial demo data
+        create_initial_demo_data()
+        
         from scheduler import StockAnalystScheduler
         scheduler = StockAnalystScheduler()
         scheduler.start_scheduler(interval_minutes=60)
@@ -522,6 +525,93 @@ def initialize_app():
 
     except Exception as e:
         logger.error(f"❌ Error starting scheduler: {str(e)}")
+
+def create_initial_demo_data():
+    """Create initial demo data for immediate display"""
+    try:
+        ist_now = datetime.now(IST)
+        
+        demo_data = {
+            'timestamp': ist_now.isoformat(),
+            'last_updated': ist_now.strftime('%Y-%m-%d %H:%M:%S IST'),
+            'status': 'demo_ready',
+            'stocks': [
+                {
+                    'symbol': 'RELIANCE',
+                    'score': 85.0,
+                    'adjusted_score': 82.5,
+                    'confidence': 90,
+                    'current_price': 1400.0,
+                    'predicted_price': 1680.0,
+                    'predicted_gain': 20.0,
+                    'pred_24h': 1.2,
+                    'pred_5d': 4.8,
+                    'pred_1mo': 18.5,
+                    'volatility': 1.5,
+                    'time_horizon': 12,
+                    'pe_ratio': 25.0,
+                    'pe_description': 'At Par',
+                    'revenue_growth': 8.5,
+                    'earnings_growth': 7.2,
+                    'risk_level': 'Low',
+                    'market_cap': 'Large Cap',
+                    'technical_summary': 'Bullish Trend | RSI Neutral | High Volume',
+                    'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S')
+                },
+                {
+                    'symbol': 'TCS',
+                    'score': 82.0,
+                    'adjusted_score': 80.1,
+                    'confidence': 88,
+                    'current_price': 3150.0,
+                    'predicted_price': 3780.0,
+                    'predicted_gain': 20.0,
+                    'pred_24h': 0.9,
+                    'pred_5d': 3.6,
+                    'pred_1mo': 15.2,
+                    'volatility': 1.4,
+                    'time_horizon': 12,
+                    'pe_ratio': 23.0,
+                    'pe_description': 'At Par',
+                    'revenue_growth': 6.2,
+                    'earnings_growth': 5.8,
+                    'risk_level': 'Low',
+                    'market_cap': 'Large Cap',
+                    'technical_summary': 'Uptrend | RSI Neutral | Normal Volume',
+                    'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S')
+                },
+                {
+                    'symbol': 'INFY',
+                    'score': 78.0,
+                    'adjusted_score': 75.5,
+                    'confidence': 85,
+                    'current_price': 1450.0,
+                    'predicted_price': 1668.0,
+                    'predicted_gain': 15.0,
+                    'pred_24h': 0.8,
+                    'pred_5d': 3.2,
+                    'pred_1mo': 12.8,
+                    'volatility': 1.3,
+                    'time_horizon': 15,
+                    'pe_ratio': 22.0,
+                    'pe_description': 'At Par',
+                    'revenue_growth': 7.8,
+                    'earnings_growth': 6.5,
+                    'risk_level': 'Low',
+                    'market_cap': 'Large Cap',
+                    'technical_summary': 'Sideways | RSI Neutral | Low Volume',
+                    'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S')
+                }
+            ]
+        }
+        
+        with open('top10.json', 'w', encoding='utf-8') as f:
+            json.dump(demo_data, f, indent=2, ensure_ascii=False)
+            
+        logger.info("✅ Initial demo data created successfully")
+        
+    except Exception as e:
+        logger.error(f"Failed to create initial demo data: {e}")
 
 def create_app():
     """Application factory function for WSGI deployment"""

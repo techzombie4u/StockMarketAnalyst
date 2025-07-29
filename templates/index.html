@@ -706,23 +706,20 @@
         }
 
         function startAutoRefresh() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-            }
-            refreshInterval = setInterval(() => {
-                if (!isLoading) {
-                    loadStocks();
-                }
-            }, 60000); // 60 seconds
+            // Auto-refresh disabled as requested
+            // console.log('Starting auto-refresh every 30 seconds');
+            // refreshInterval = setInterval(() => {
+            //     if (!isLoading) {
+            //         loadStocks();
+            //     }
+            // }, 60000); // 60 seconds
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Dashboard initialized');
-            setTimeout(() => {
-                loadStocks();
-                startAutoRefresh();
-            }, 2000);
+            loadStocks();
+            // startAutoRefresh(); // Disabled as requested
         });
 
         // Handle page visibility change

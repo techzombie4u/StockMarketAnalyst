@@ -1,3 +1,4 @@
+"""Removing signal timeout handling to avoid threading issues in the stock screening process."""
 """
 Stock Market Analyst - Scheduler Module
 
@@ -76,25 +77,10 @@ def run_screening_job():
         # Create screener instance
         screener = EnhancedStockScreener()
 
-        # Run the screener with timeout
+        # Run screening without signal timeout (causes threading issues)
         results = []
         try:
-            # Run screening with timeout
-            import signal
-
-            def timeout_handler(signum, frame):
-                raise TimeoutError("Screening timed out")
-
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(300)  # 5 minute timeout
-
             results = screener.run_enhanced_screener()
-
-            signal.alarm(0)  # Cancel timeout
-
-        except TimeoutError:
-            logger.error("Screening timed out after 5 minutes")
-            results = []
         except Exception as e:
             logger.error(f"Screening failed: {e}")
             results = []
