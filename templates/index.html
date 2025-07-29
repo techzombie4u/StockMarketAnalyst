@@ -619,7 +619,14 @@
                 if (!data.stocks || data.stocks.length === 0) {
                     if (data.status === 'initial' || data.status === 'no_data') {
                         updateStatus('Screening in progress...', 'loading');
-                        setTimeout(loadStocks, 8000); // Retry in 8 seconds
+                        setTimeout(loadStocks, 5000); // Retry in 5 seconds
+                    } else if (data.status === 'success') {
+                        updateStatus('No qualifying stocks found', 'error');
+                        showEmpty();
+                        // Try to trigger a new screening
+                        setTimeout(() => {
+                            refreshData();
+                        }, 10000);
                     } else {
                         showEmpty();
                     }

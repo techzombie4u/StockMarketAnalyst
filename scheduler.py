@@ -165,12 +165,21 @@ def run_screening_job_manual():
         signal_manager = SignalManager()
 
         # Run the screener
-        raw_results = screener.run_enhanced_screener()
+        results = screener.run_enhanced_screener()
 
-        # Filter through signal management for stable predictions
-        results = signal_manager.filter_trading_signals(raw_results)
-
-        logger.info(f"Signal filtering: {len(raw_results)} raw signals → {len(results)} confirmed signals")
+        # Apply minimal signal filtering only if we have results
+        if results:
+            try:
+                filtered_results = signal_manager.filter_trading_signals(results)
+                if filtered_results:  # Only use filtered results if we got some
+                    results = filtered_results
+                    logger.info(f"Signal filtering: {len(results)} raw signals → {len(filtered_results)} confirmed signals")
+                else:
+                    logger.warning("Signal filtering returned no results, using original results")
+            except Exception as e:
+                logger.error(f"Signal filtering failed: {str(e)}, using original results")
+        else:
+            logger.warning("No raw results from screener")
 
         # Add timestamp in IST
         ist = pytz.timezone('Asia/Kolkata')

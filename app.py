@@ -115,7 +115,26 @@ def get_stocks():
             'status': 'success' if validated_stocks else data.get('status', 'no_data')
         }
 
-        logger.info(f"API response: {len(validated_stocks)} stocks, status: {response_data['status']}")
+        # If no stocks and status indicates success, try to generate fallback data
+        if not validated_stocks and response_data['status'] == 'success':
+            logger.warning("No stocks in successful response, checking for recent screening data")
+            # Check if we have recent historical data to show
+            if os.path.exists('historical_data'):
+                try:
+                    import glob
+                    recent_files = sorted(glob.glob('historical_data/screening_data_*.json'), reverse=True)
+                    if recent_files:
+                        with open(recent_files[0], 'r') as f:
+                            recent_data = json.load(f)
+                            if recent_data.get('stocks'):
+                                logger.info(f"Using recent historical data with {len(recent_data['stocks'])} stocks")
+                                response_data['stocks'] = recent_data['stocks'][:5]  # Show top 5
+                                response_data['last_updated'] = 'Recent historical data'
+                                response_data['status'] = 'historical_fallback'
+                except Exception as e:
+                    logger.error(f"Failed to load historical fallback: {str(e)}")
+
+        logger.info(f"API response: {len(response_data['stocks'])} stocks, status: {response_data['status']}")
         return jsonify(response_data)
 
     except Exception as e:
