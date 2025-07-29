@@ -25,14 +25,31 @@ def delayed_scheduler_init():
     except Exception as e:
         logger.error(f"❌ Scheduler initialization failed: {str(e)}")
 
-# Import Flask app
-from app import app
+# Import Flask app with error handling
+try:
+    from app import app
+    application = app
+except ImportError as e:
+    import logging
+    logging.error(f"Failed to import app: {str(e)}")
+    # Create minimal Flask app as fallback
+    from flask import Flask
+    application = Flask(__name__)
+    @application.route('/health')
+    def health():
+        return {'status': 'error', 'message': str(e)}
+except Exception as e:
+    import logging
+    logging.error(f"Critical error importing app: {str(e)}")
+    # Create minimal Flask app as fallback
+    from flask import Flask
+    application = Flask(__name__)
+    @application.route('/health')
+    def health():
+        return {'status': 'critical_error', 'message': str(e)}
 
 # Start scheduler in background thread for production
 Thread(target=delayed_scheduler_init, daemon=True).start()
-
-# WSGI application entry point
-application = app
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0', port=5000)

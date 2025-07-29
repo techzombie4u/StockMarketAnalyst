@@ -2304,14 +2304,38 @@ class EnhancedStockScreener:
                                 sentiment: Dict, market_data: Dict) -> Dict:
         """Calculate enhanced score using ML-inspired feature engineering"""
         try:
-            score = 0
-            confidence = 0
+            score = 30  # Base score
+            confidence = 50
             risk_factors = []
 
-            # Base fundamental score (0-40 points)
-            fundamental_score = 0
+            # Fundamental scoring
             pe_ratio = fundamentals.get('pe_ratio', 0)
             revenue_growth = fundamentals.get('revenue_growth', 0)
             earnings_growth = fundamentals.get('earnings_growth', 0)
-
-            #
+            
+            if pe_ratio and pe_ratio > 0 and pe_ratio < 20:
+                score += 15
+            if revenue_growth > 10 or earnings_growth > 10:
+                score += 20
+                
+            # Technical scoring
+            rsi_14 = technical.get('rsi_14', 50)
+            if 30 <= rsi_14 <= 70:
+                score += 10
+                
+            # Sentiment scoring
+            score += sentiment.get('bulk_deal_bonus', 0)
+            
+            return {
+                'score': min(100, max(0, score)),
+                'confidence': confidence,
+                'risk_factors': risk_factors,
+                'predictions': {
+                    'pred_24h': score * 0.05,
+                    'pred_5d': score * 0.15,
+                    'pred_1mo': score * 0.25
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error calculating enhanced score: {str(e)}")
+            return {'score': 0, 'confidence': 0, 'risk_factors': [], 'predictions': {'pred_24h': 0, 'pred_5d': 0, 'pred_1mo': 0}}

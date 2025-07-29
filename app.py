@@ -10,7 +10,6 @@ from datetime import datetime
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import logging
-from scheduler import StockAnalystScheduler
 from historical_analyzer import HistoricalAnalyzer
 import pytz
 
@@ -46,7 +45,7 @@ def get_stocks():
             # Validate and clean stock data
             stocks = data.get('stocks', [])
             validated_stocks = []
-            
+
             for stock in stocks:
                 # Ensure all prediction fields exist with proper values
                 if 'pred_24h' not in stock or stock['pred_24h'] == 0:
@@ -55,12 +54,12 @@ def get_stocks():
                     stock['pred_5d'] = round(stock.get('predicted_gain', 0) * 0.25, 2)
                 if 'pred_1mo' not in stock or stock['pred_1mo'] == 0:
                     stock['pred_1mo'] = round(stock.get('predicted_gain', 0), 2)
-                
+
                 # Ensure minimum values
                 stock['pred_24h'] = max(0.1, stock['pred_24h']) if stock['score'] > 50 else stock['pred_24h']
                 stock['pred_5d'] = max(0.5, stock['pred_5d']) if stock['score'] > 50 else stock['pred_5d']
                 stock['pred_1mo'] = max(1.0, stock['pred_1mo']) if stock['score'] > 50 else stock['pred_1mo']
-                
+
                 validated_stocks.append(stock)
 
             # Add default values if missing
@@ -118,6 +117,7 @@ def run_now():
         else:
             # Try to initialize scheduler if not running (production fallback)
             try:
+                # scheduler import moved to function scope to avoid circular import
                 from scheduler import StockAnalystScheduler
                 scheduler = StockAnalystScheduler()
                 scheduler.start_scheduler(interval_minutes=30)
@@ -221,16 +221,16 @@ def get_analysis():
     try:
         # Initialize analyzer
         analyzer = HistoricalAnalyzer()
-        
+
         # Try to get existing analysis
         analysis_data = analyzer.get_analysis_summary()
-        
+
         # If no analysis exists, check for historical data files
         if not analysis_data or analysis_data.get('status') == 'no_data':
             historical_files = []
             if os.path.exists('historical_data'):
                 historical_files = [f for f in os.listdir('historical_data') if f.endswith('.json')]
-            
+
             # Load current screening results
             current_stocks = []
             current_data_status = 'no_data'
@@ -242,17 +242,17 @@ def get_analysis():
                         current_data_status = current_data.get('status', 'no_data')
                 except Exception as e:
                     logger.warning(f"Error reading current data: {str(e)}")
-            
+
             # Create meaningful analysis based on available data
             if historical_files or current_stocks:
                 # Calculate some basic metrics from available data
                 total_stocks_analyzed = len(current_stocks)
                 high_score_stocks = len([s for s in current_stocks if s.get('score', 0) >= 70])
                 avg_score = sum(s.get('score', 0) for s in current_stocks) / max(1, len(current_stocks))
-                
+
                 # Extract top performers from current data
                 top_performers = sorted(current_stocks, key=lambda x: x.get('score', 0), reverse=True)[:5]
-                
+
                 analysis_data = {
                     'timestamp': datetime.now().isoformat(),
                     'status': 'current_analysis',
@@ -298,7 +298,7 @@ def get_analysis():
                     'data_quality': 'none',
                     'sessions_analyzed': 0
                 }
-        
+
         return jsonify(analysis_data)
 
     except Exception as e:
@@ -345,26 +345,26 @@ def lookup_stock(symbol):
     """API endpoint to analyze a specific stock"""
     try:
         symbol = symbol.upper().strip()
-        
+
         if not symbol:
             return jsonify({'error': 'Stock symbol is required'}), 400
-        
+
         logger.info(f"Looking up stock: {symbol}")
-        
+
         # Import here to avoid circular imports
         from stock_screener import EnhancedStockScreener
-        
+
         screener = EnhancedStockScreener()
-        
+
         # Get fundamental data
         fundamentals = screener.scrape_screener_data(symbol)
-        
+
         # Get technical indicators
         technical = screener.calculate_enhanced_technical_indicators(symbol)
-        
+
         if not fundamentals and not technical:
             return jsonify({'error': f'No data found for symbol {symbol}'}), 404
-        
+
         # Create stock data structure
         stocks_data = {
             symbol: {
@@ -372,15 +372,15 @@ def lookup_stock(symbol):
                 'technical': technical
             }
         }
-        
+
         # Score and rank (returns list)
         scored_stocks = screener.enhanced_score_and_rank(stocks_data)
-        
+
         if not scored_stocks:
             return jsonify({'error': f'Unable to analyze {symbol}'}), 404
-        
+
         stock_result = scored_stocks[0]  # Get the first (and only) result
-        
+
         # Try to add ML predictions if available
         try:
             from predictor import enrich_with_ml_predictions
@@ -389,13 +389,13 @@ def lookup_stock(symbol):
                 stock_result = enhanced_stocks[0]
         except Exception as e:
             logger.warning(f"ML predictions failed for {symbol}: {str(e)}")
-        
+
         return jsonify({
             'stock': stock_result,
             'timestamp': datetime.now(IST).isoformat(),
             'analyzed_at': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST')
         })
-        
+
     except Exception as e:
         logger.error(f"Error in stock lookup for {symbol}: {str(e)}")
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
@@ -419,6 +419,8 @@ def initialize_app():
     global scheduler
 
     try:
+        # scheduler import moved to function scope to avoid circular import
+        from scheduler import StockAnalystScheduler
         scheduler = StockAnalystScheduler()
         scheduler.start_scheduler(interval_minutes=1440)  # Daily updates (24 hours)
         print("✅ Scheduler started successfully")
@@ -446,7 +448,7 @@ if __name__ == '__main__':
         time.sleep(2)  # Let Flask start first
         initialize_app()
     Thread(target=delayed_init, daemon=True).start()
-    
+
     # Run Flask app
     app.run(
         host='0.0.0.0',

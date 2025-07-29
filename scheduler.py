@@ -12,7 +12,7 @@ import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
-from stock_screener import StockScreener
+from stock_screener import EnhancedStockScreener
 from signal_manager import SignalManager
 import os
 
@@ -53,10 +53,10 @@ def run_screening_job():
 
         try:
             # Create screener instance
-            screener = StockScreener()
+            screener = EnhancedStockScreener()
 
             # Run the screener
-            results = screener.run_screener()
+            results = screener.run_enhanced_screener()
         except Exception as e:
             logger.error(f"Screening failed: {e}")
             return
@@ -157,11 +157,11 @@ def run_screening_job_manual():
         logger.info("Starting manual stock screening...")
 
         # Create screener and signal manager instances
-        screener = StockScreener()
+        screener = EnhancedStockScreener()
         signal_manager = SignalManager()
 
         # Run the screener
-        raw_results = screener.run_screener()
+        raw_results = screener.run_enhanced_screener()
         
         # Filter through signal management for stable predictions
         results = signal_manager.filter_trading_signals(raw_results)
