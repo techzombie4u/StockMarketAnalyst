@@ -1328,13 +1328,10 @@ class EnhancedStockScreener:
         return None
 
 
-    def _calculate_base_score(self, symbol: str, data: Dict) -> float:
+    def _calculate_base_score(self, technical_data: Dict, fundamental_data: Dict, sentiment_data: Dict) -> float:
         """Calculate base score for a stock"""
         try:
             score = 30  # Base score
-
-            technical_data = data.get('technical', {})
-            fundamental_data = data.get('fundamentals', {})
 
             # Technical scoring
             if technical_data:
@@ -1367,15 +1364,15 @@ class EnhancedStockScreener:
                 if fundamental_data.get('promoter_buying', False):
                     score += 20
 
-            # Bulk deal bonus
-            bulk_deal_symbols = [deal['symbol'] for deal in self.bulk_deals]
-            if symbol in bulk_deal_symbols:
-                score += 30
+            # Sentiment scoring
+            if sentiment_data:
+                bulk_deal_bonus = sentiment_data.get('bulk_deal_bonus', 0)
+                score += bulk_deal_bonus
 
             return max(0, min(100, score))
 
         except Exception as e:
-            logger.error(f"Error calculating base score for {symbol}: {str(e)}")
+            logger.error(f"Error calculating base score: {str(e)}")
             return 30
 
     def get_pe_description(self, pe_ratio: float) -> str:
@@ -1535,8 +1532,7 @@ class EnhancedStockScreener:
             logger.error(f"Error fetching financial ratios for {symbol}: {str(e)}")
             return {}
 
-```python
-    def run_enhanced_screener(self) -> List[Dict]:
+def run_enhanced_screener(self) -> List[Dict]:
         """Main enhanced screening function"""
         logger.info("Starting enhanced stock screening process...")
 
