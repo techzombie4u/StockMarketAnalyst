@@ -561,7 +561,19 @@
                     <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
                     <td><span class="pe-ratio ${getPEClass(stock.pe_description || 'Not Available')}">${stock.pe_ratio ? stock.pe_ratio.toFixed(1) : 'N/A'}</span></td>
                     <td><span class="risk-level ${getRiskClass(stock.risk_level || 'Medium')}">${stock.risk_level || 'Medium'}</span></td>
-                    <td class="${getGainClass(stock.revenue_growth || 0)}">${formatGain(stock.revenue_growth || 0)}</td>
+                    <td class="growth-cell">
+                            <div class="growth-container">
+                                <span class="growth-value" style="color: ${getGrowthColor(stock.revenue_growth || 0)}">
+                                    Rev: ${stock.revenue_growth ? stock.revenue_growth.toFixed(1) : '0'}%
+                                </span>
+                                <span class="growth-value" style="color: ${getGrowthColor(stock.earnings_growth || 0)}">
+                                    Earn: ${stock.earnings_growth ? stock.earnings_growth.toFixed(1) : '0'}%
+                                </span>
+                                <span class="growth-combined" style="color: ${getGrowthColor(stock.combined_growth || 0)}">
+                                    Avg: ${stock.combined_growth ? stock.combined_growth.toFixed(1) : '0'}%
+                                </span>
+                            </div>
+                        </td>
                     <td>${stock.confidence || 0}%</td>
                 `;
                 tbody.appendChild(row);
@@ -713,6 +725,13 @@
             //         loadStocks();
             //     }
             // }, 60000); // 60 seconds
+        }
+
+        // Color definitions for growth rates
+        function getGrowthColor(growth) {
+            if (growth > 20) return '#2ecc71'; // High growth
+            if (growth > 0) return '#f39c12';  // Moderate growth
+            return '#e74c3c';                   // Negative or no growth
         }
 
         // Initialize
