@@ -238,5 +238,29 @@
     ],
     "confirmed_signal": null,
     "last_updated": "2025-07-29T08:01:59.539397"
+  },
+  "BPCL": {
+    "confirmations": [
+      {
+        "timestamp": "2025-07-29T08:07:13.895702",
+        "score": 81.5,
+        "predicted_gain": 15.8,
+        "confidence": 100
+      }
+    ],
+    "confirmed_signal": null,
+    "last_updated": "2025-07-29T08:07:13.895702"
+  },
+  "PNB": {
+    "confirmations": [
+      {
+        "timestamp": "2025-07-29T08:12:00.380038",
+        "score": 96.5,
+        "predicted_gain": 18.8,
+        "confidence": 97
+      }
+    ],
+    "confirmed_signal": null,
+    "last_updated": "2025-07-29T08:12:00.380038"
   }
 }
