@@ -115,24 +115,42 @@ def get_stocks():
             'status': 'success' if validated_stocks else data.get('status', 'no_data')
         }
 
-        # If no stocks and status indicates success, try to generate fallback data
-        if not validated_stocks and response_data['status'] == 'success':
-            logger.warning("No stocks in successful response, checking for recent screening data")
-            # Check if we have recent historical data to show
-            if os.path.exists('historical_data'):
-                try:
-                    import glob
-                    recent_files = sorted(glob.glob('historical_data/screening_data_*.json'), reverse=True)
-                    if recent_files:
-                        with open(recent_files[0], 'r') as f:
-                            recent_data = json.load(f)
-                            if recent_data.get('stocks'):
-                                logger.info(f"Using recent historical data with {len(recent_data['stocks'])} stocks")
-                                response_data['stocks'] = recent_data['stocks'][:5]  # Show top 5
-                                response_data['last_updated'] = 'Recent historical data'
-                                response_data['status'] = 'historical_fallback'
-                except Exception as e:
-                    logger.error(f"Failed to load historical fallback: {str(e)}")
+        # If no stocks but file seems to have been updated recently, reload it
+        if not validated_stocks and os.path.exists('top10.json'):
+            try:
+                # Check file modification time
+                file_mtime = os.path.getmtime('top10.json')
+                current_time = datetime.now().timestamp()
+                
+                # If file was modified in last 10 minutes, try reloading
+                if current_time - file_mtime < 600:
+                    logger.info("File recently modified, attempting reload...")
+                    with open('top10.json', 'r') as f:
+                        fresh_data = json.load(f)
+                        fresh_stocks = fresh_data.get('stocks', [])
+                        if fresh_stocks:
+                            logger.info(f"Found {len(fresh_stocks)} stocks on reload")
+                            response_data['stocks'] = fresh_stocks
+                            response_data['status'] = 'success'
+                            response_data['last_updated'] = fresh_data.get('last_updated', 'Recently updated')
+            except Exception as e:
+                logger.error(f"Failed to reload recent data: {str(e)}")
+        
+        # If still no stocks, check for recent historical data
+        if not response_data.get('stocks') and os.path.exists('historical_data'):
+            try:
+                import glob
+                recent_files = sorted(glob.glob('historical_data/screening_data_*.json'), reverse=True)
+                if recent_files:
+                    with open(recent_files[0], 'r') as f:
+                        recent_data = json.load(f)
+                        if recent_data.get('stocks'):
+                            logger.info(f"Using recent historical data with {len(recent_data['stocks'])} stocks")
+                            response_data['stocks'] = recent_data['stocks'][:10]  # Show top 10
+                            response_data['last_updated'] = 'Recent historical data'
+                            response_data['status'] = 'historical_fallback'
+            except Exception as e:
+                logger.error(f"Failed to load historical fallback: {str(e)}")
 
         logger.info(f"API response: {len(response_data['stocks'])} stocks, status: {response_data['status']}")
         return jsonify(response_data)

@@ -36,6 +36,7 @@ def is_market_hours() -> bool:
 
     # Check if current time is within market hours
     is_weekday = now_ist.weekday() < 5  # Monday = 0, Sunday = 6
+    is_within_hours = now_ist.weekday() < 5
     is_within_hours = market_open <= current_time <= market_close
 
     return is_weekday and is_within_hours
@@ -98,8 +99,23 @@ def run_screening_job():
             json_safe_data = convert_numpy_types(screening_data)
             with open('top10.json', 'w') as f:
                 json.dump(json_safe_data, f, indent=2)
+            logger.info(f"✅ Successfully saved {len(validated_stocks)} stocks to top10.json")
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
+            # Try to save a minimal version
+            try:
+                minimal_data = {
+                    'timestamp': screening_data['timestamp'],
+                    'last_updated': screening_data['last_updated'],
+                    'stocks': [],
+                    'status': 'save_error',
+                    'error': str(file_error)
+                }
+                with open('top10.json', 'w') as f:
+                    json.dump(minimal_data, f, indent=2)
+                logger.info("Created minimal error data file")
+            except Exception as e:
+                logger.error(f"Failed to create minimal data file: {str(e)}")
 
         # Capture for historical analysis
         try:
@@ -218,8 +234,23 @@ def run_screening_job_manual():
             json_safe_data = convert_numpy_types(screening_data)
             with open('top10.json', 'w') as f:
                 json.dump(json_safe_data, f, indent=2)
+            logger.info(f"✅ Successfully saved {len(validated_stocks)} stocks to top10.json")
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
+            # Try to save a minimal version
+            try:
+                minimal_data = {
+                    'timestamp': screening_data['timestamp'],
+                    'last_updated': screening_data['last_updated'],
+                    'stocks': [],
+                    'status': 'save_error',
+                    'error': str(file_error)
+                }
+                with open('top10.json', 'w') as f:
+                    json.dump(minimal_data, f, indent=2)
+                logger.info("Created minimal error data file")
+            except Exception as e:
+                logger.error(f"Failed to create minimal data file: {str(e)}")
 
         # Capture for historical analysis
         try:
@@ -420,7 +451,7 @@ def convert_numpy_types(obj):
         return float(obj)
     elif isinstance(obj, numpy.ndarray):
         return obj.tolist()
-    elif isinstance(obj, (numpy.bool_, numpy.bool)):
+    elif isinstance(obj, (numpy.bool_, numpy.bool_)):
         return bool(obj)
     elif isinstance(obj, dict):
         return {k: convert_numpy_types(v) for k, v in obj.items()}
