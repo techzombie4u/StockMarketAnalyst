@@ -254,13 +254,25 @@
   "PNB": {
     "confirmations": [
       {
-        "timestamp": "2025-07-29T08:12:00.380038",
+        "timestamp": "2025-07-29T08:13:07.444586",
         "score": 96.5,
         "predicted_gain": 18.8,
         "confidence": 97
       }
     ],
     "confirmed_signal": null,
-    "last_updated": "2025-07-29T08:12:00.380038"
+    "last_updated": "2025-07-29T08:13:07.444586"
+  },
+  "CANBK": {
+    "confirmations": [
+      {
+        "timestamp": "2025-07-29T08:21:10.746128",
+        "score": 97.5,
+        "predicted_gain": 19.0,
+        "confidence": 97
+      }
+    ],
+    "confirmed_signal": null,
+    "last_updated": "2025-07-29T08:21:10.746128"
   }
 }
