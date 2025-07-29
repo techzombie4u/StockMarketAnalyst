@@ -1,25 +1,6 @@
 {
-  "timestamp": "2025-07-29T15:51:22.441509+05:30",
-  "last_updated": "2025-07-29 15:51:22 IST",
-  "status": "demo_fallback",
-  "stocks": [
-    {
-      "symbol": "RELIANCE",
-      "score": 85.0,
-      "adjusted_score": 82.5,
-      "confidence": 90,
-      "current_price": 1400.0,
-      "predicted_price": 1680.0,
-      "predicted_gain": 20.0,
-      "pred_24h": 1.2,
-      "pred_5d": 4.8,
-      "pred_1mo": 18.5,
-      "volatility": 1.5,
-      "time_horizon": 12,
-      "pe_ratio": 25.0,
-      "revenue_growth": 8.5,
-      "risk_level": "Low",
-      "confidence_level": "high"
-    }
-  ]
+  "timestamp": "2025-07-29T15:55:31.269994+05:30",
+  "last_updated": "2025-07-29 15:55:31 IST",
+  "stocks": [],
+  "status": "initial"
 }
