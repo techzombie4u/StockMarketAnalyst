@@ -1327,12 +1327,12 @@ class EnhancedStockScreener:
 
         return None
 
-    
+
     def _calculate_base_score(self, symbol: str, data: Dict) -> float:
         """Calculate base score for a stock"""
         try:
             score = 30  # Base score
-            
+
             technical_data = data.get('technical', {})
             fundamental_data = data.get('fundamentals', {})
 
@@ -1535,6 +1535,7 @@ class EnhancedStockScreener:
             logger.error(f"Error fetching financial ratios for {symbol}: {str(e)}")
             return {}
 
+```python
     def run_enhanced_screener(self) -> List[Dict]:
         """Main enhanced screening function"""
         logger.info("Starting enhanced stock screening process...")
@@ -1542,12 +1543,19 @@ class EnhancedStockScreener:
         try:
             # Step 1: Create demo data if real scraping fails
             logger.info("Creating reliable demo data...")
-            
-            # Use a smaller subset for testing
-            test_symbols = ['RELIANCE', 'TCS', 'INFY', 'SBIN', 'HDFC']
-            
+
+            # Use expanded list of quality stocks under ₹500
+            test_symbols = [
+            'SBIN', 'BHARTIARTL', 'ITC', 'NTPC', 'POWERGRID',
+            'ONGC', 'COALINDIA', 'TATASTEEL', 'JSWSTEEL', 'HINDALCO',
+            'TATAMOTORS', 'M&M', 'BPCL', 'GAIL', 'IOC',
+            'SAIL', 'VEDL', 'BANKBARODA', 'CANBK', 'PNB',
+            'RECLTD', 'PFC', 'IRCTC', 'HAL', 'BEL',
+            'FEDERALBNK', 'IDFCFIRSTB', 'RBLBANK', 'LICHSGFIN', 'MUTHOOTFIN'
+            ]
+
             scored_stocks = []
-            
+
             for symbol in test_symbols:
                 try:
                     # Simple scoring without complex data fetching
@@ -1573,20 +1581,20 @@ class EnhancedStockScreener:
                         'technical_summary': 'Bullish Trend | RSI Neutral | High Volume',
                         'last_analyzed': datetime.now().strftime('%d/%m/%Y, %H:%M:%S')
                     }
-                    
+
                     scored_stocks.append(stock_data)
                     logger.info(f"Generated data for {symbol}")
-                    
+
                 except Exception as e:
                     logger.error(f"Error creating data for {symbol}: {str(e)}")
                     continue
-            
+
             # Sort by score
             scored_stocks.sort(key=lambda x: x['score'], reverse=True)
-            
+
             logger.info(f"✅ Successfully generated {len(scored_stocks)} stock records")
             return scored_stocks
-            
+
         except Exception as e:
             logger.error(f"Critical error in screening: {str(e)}")
             return []
@@ -1850,11 +1858,11 @@ class EnhancedStockScreener:
             for symbol, data in stocks_data.items():
                 fundamentals = data.get('fundamentals', {})
                 technical = data.get('technical', {})
-                
+
                 # Create sentiment data
                 bulk_deals_symbols = [deal['symbol'] for deal in self.bulk_deals]
                 sentiment = {'bulk_deal_bonus': 10 if symbol in bulk_deals_symbols else 0}
-                
+
                 # Market data
                 market_data = {'market_cap': self._estimate_market_cap(symbol)}
 
@@ -1866,7 +1874,7 @@ class EnhancedStockScreener:
                 # Build stock result
                 current_price = technical.get('current_price', 0)
                 score = scoring_result['score']
-                
+
                 stock_result = {
                     'symbol': symbol,
                     'score': score,

@@ -242,7 +242,7 @@ def force_demo_data():
         ist_now = datetime.now(IST)
         demo_data = {
             'timestamp': ist_now.isoformat(),
-            'last_updated': ist_now.strftime('%Y-%m-%d %H:%M:%S'),
+            'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
             'status': 'demo',
             'stocks': [
                 {
@@ -517,7 +517,7 @@ def initialize_app():
     try:
         # Create initial demo data
         create_initial_demo_data()
-        
+
         from scheduler import StockAnalystScheduler
         scheduler = StockAnalystScheduler()
         scheduler.start_scheduler(interval_minutes=60)
@@ -530,10 +530,10 @@ def create_initial_demo_data():
     """Create initial demo data for immediate display"""
     try:
         ist_now = datetime.now(IST)
-        
+
         demo_data = {
             'timestamp': ist_now.isoformat(),
-            'last_updated': ist_now.strftime('%Y-%m-%d %H:%M:%S IST'),
+            'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
             'status': 'demo_ready',
             'stocks': [
                 {
@@ -604,12 +604,12 @@ def create_initial_demo_data():
                 }
             ]
         }
-        
+
         with open('top10.json', 'w', encoding='utf-8') as f:
             json.dump(demo_data, f, indent=2, ensure_ascii=False)
-            
+
         logger.info("✅ Initial demo data created successfully")
-        
+
     except Exception as e:
         logger.error(f"Failed to create initial demo data: {e}")
 

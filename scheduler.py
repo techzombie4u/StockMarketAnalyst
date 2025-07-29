@@ -1,3 +1,4 @@
+"""Fixing the date format for JavaScript compatibility by changing the date format string in the screening_data dictionary."""
 """Removing signal timeout handling to avoid threading issues in the stock screening process."""
 """
 Stock Market Analyst - Scheduler Module
@@ -112,7 +113,7 @@ def run_screening_job():
             if valid_results:
                 screening_data = {
                     'timestamp': now_ist.isoformat(),
-                    'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+                    'last_updated': now_ist.strftime('%d/%m/%Y, %H:%M:%S'),
                     'stocks': valid_results,
                     'status': 'success'
                 }
@@ -144,7 +145,7 @@ def run_screening_job():
         # Save empty/error state
         error_data = {
             'timestamp': now_ist.isoformat(),
-            'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+            'last_updated': now_ist.strftime('%d/%m/%Y, %H:%M:%S'),
             'stocks': [],
             'status': 'no_data'
         }
@@ -166,7 +167,7 @@ def run_screening_job():
             now_ist = datetime.now(ist)
             emergency_data = {
                 'timestamp': now_ist.isoformat(),
-                'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+                'last_updated': now_ist.strftime('%d/%m/%Y, %H:%M:%S'),
                 'stocks': [],
                 'status': 'error',
                 'error': str(e)[:200]
