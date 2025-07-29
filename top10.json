@@ -1,7 +1,6 @@
 {
-  "timestamp": "2025-07-29T15:37:20.109216+05:30",
-  "last_updated": "2025-07-29 15:37:20 IST",
+  "timestamp": "2025-07-29T15:39:31.004578+05:30",
+  "last_updated": "2025-07-29 15:39:31 IST",
   "stocks": [],
-  "status": "save_error",
-  "error": "[Errno 2] No such file or directory: 'top10_temp.json'"
+  "status": "initial"
 }
