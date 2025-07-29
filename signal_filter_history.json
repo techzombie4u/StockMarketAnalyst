@@ -2,9 +2,9 @@
   "daily_stats": {
     "2025-07-29": {
       "input_signals": 2,
-      "filtered_signals": 0,
-      "quality_score": 0,
-      "filter_rate": 100.0
+      "filtered_signals": 2,
+      "quality_score": 61.18333333333334,
+      "filter_rate": 0.0
     }
   }
 }
