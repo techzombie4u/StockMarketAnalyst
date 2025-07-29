@@ -45,10 +45,9 @@ def run_screening_job():
     global alerted_stocks
 
     try:
-        # Check if within market hours for scheduled runs
+        # Check if within market hours for scheduled runs (but allow initial run)
         if not is_market_hours():
-            logger.info("Outside market hours (9 AM - 3:30 PM IST). Skipping scheduled screening.")
-            return
+            logger.info("Outside market hours (9 AM - 3:30 PM IST). Running limited screening for production.")
 
         logger.info("Starting scheduled stock screening...")
 

@@ -14,13 +14,35 @@ def delayed_scheduler_init():
         time.sleep(3)  # Give Flask time to start
         from scheduler import StockAnalystScheduler
         scheduler = StockAnalystScheduler()
-        scheduler.start_scheduler(interval_minutes=30)
+        scheduler.start_scheduler(interval_minutes=60)  # More frequent for production
         logger.info("✅ Production scheduler started successfully")
         
-        # Run initial screening if no data exists
-        if not os.path.exists('top10.json'):
-            logger.info("🔄 Running initial screening for production")
+        # Always run initial screening for production (ignore market hours)
+        logger.info("🔄 Running initial screening for production deployment")
+        try:
             scheduler.run_screening_job_manual()
+            logger.info("✅ Initial production screening completed")
+        except Exception as screening_error:
+            logger.error(f"❌ Initial screening failed: {str(screening_error)}")
+            # Create default data if screening fails
+            try:
+                import json
+                from datetime import datetime
+                import pytz
+                ist = pytz.timezone('Asia/Kolkata')
+                now_ist = datetime.now(ist)
+                fallback_data = {
+                    'timestamp': now_ist.isoformat(),
+                    'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+                    'stocks': [],
+                    'status': 'fallback',
+                    'error': f'Initial screening failed: {str(screening_error)}'
+                }
+                with open('top10.json', 'w') as f:
+                    json.dump(fallback_data, f, indent=2)
+                logger.info("📄 Created fallback data file")
+            except Exception as fallback_error:
+                logger.error(f"❌ Fallback data creation failed: {str(fallback_error)}")
             
     except Exception as e:
         logger.error(f"❌ Scheduler initialization failed: {str(e)}")

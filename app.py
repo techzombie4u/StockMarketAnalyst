@@ -111,22 +111,44 @@ def run_now():
     """Manually trigger screening"""
     global scheduler
     try:
+        logger.info("Manual refresh requested")
+        
         if scheduler:
-            scheduler.run_screening_job_manual()
+            # Run screening in background thread to avoid timeout
+            import threading
+            def run_background_screening():
+                try:
+                    scheduler.run_screening_job_manual()
+                    logger.info("✅ Manual screening completed successfully")
+                except Exception as e:
+                    logger.error(f"❌ Manual screening failed: {str(e)}")
+            
+            threading.Thread(target=run_background_screening, daemon=True).start()
             return jsonify({'success': True, 'message': 'Screening started successfully'})
         else:
             # Try to initialize scheduler if not running (production fallback)
             try:
-                # scheduler import moved to function scope to avoid circular import
+                logger.info("Initializing scheduler for manual refresh")
                 from scheduler import StockAnalystScheduler
                 scheduler = StockAnalystScheduler()
-                scheduler.start_scheduler(interval_minutes=30)
-                scheduler.run_screening_job_manual()
+                scheduler.start_scheduler(interval_minutes=60)
+                
+                # Run screening in background
+                import threading
+                def run_background_screening():
+                    try:
+                        scheduler.run_screening_job_manual()
+                        logger.info("✅ Manual screening with new scheduler completed")
+                    except Exception as e:
+                        logger.error(f"❌ Manual screening with new scheduler failed: {str(e)}")
+                
+                threading.Thread(target=run_background_screening, daemon=True).start()
                 return jsonify({'success': True, 'message': 'Scheduler initialized and screening started'})
             except Exception as init_error:
                 logger.error(f"Failed to initialize scheduler: {str(init_error)}")
                 return jsonify({'success': False, 'message': f'Scheduler initialization failed: {str(init_error)}'})
     except Exception as e:
+        logger.error(f"Manual refresh error: {str(e)}")
         return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/api/force-demo', methods=['POST'])
@@ -403,10 +425,31 @@ def lookup_stock(symbol):
 @app.route('/api/health')
 def health_check():
     """Health check endpoint"""
+    global scheduler
+    
+    # Check if data file exists and has content
+    data_status = 'no_data'
+    stock_count = 0
+    last_updated = 'never'
+    
+    try:
+        if os.path.exists('top10.json'):
+            with open('top10.json', 'r') as f:
+                data = json.load(f)
+                stock_count = len(data.get('stocks', []))
+                last_updated = data.get('last_updated', 'unknown')
+                data_status = data.get('status', 'unknown')
+    except Exception as e:
+        data_status = f'error: {str(e)}'
+    
     return jsonify({
         'status': 'healthy',
         'service': 'Stock Market Analyst',
-        'port': 5000
+        'port': 5000,
+        'scheduler_running': scheduler is not None and hasattr(scheduler, 'scheduler') and scheduler.scheduler.running,
+        'data_status': data_status,
+        'stock_count': stock_count,
+        'last_updated': last_updated
     })
 
 @app.route('/readiness')
@@ -422,9 +465,21 @@ def initialize_app():
         # scheduler import moved to function scope to avoid circular import
         from scheduler import StockAnalystScheduler
         scheduler = StockAnalystScheduler()
-        scheduler.start_scheduler(interval_minutes=1440)  # Daily updates (24 hours)
+        scheduler.start_scheduler(interval_minutes=60)  # More frequent updates in production
         print("✅ Scheduler started successfully")
-        # Remove blocking initial screening - let it run via scheduler
+        
+        # Run initial screening for production deployment
+        import threading
+        def delayed_initial_run():
+            import time
+            time.sleep(5)  # Wait for full initialization
+            try:
+                scheduler.run_screening_job_manual()
+                print("✅ Initial production screening completed")
+            except Exception as e:
+                print(f"⚠️ Initial screening failed: {str(e)}")
+        
+        threading.Thread(target=delayed_initial_run, daemon=True).start()
 
     except Exception as e:
         print(f"❌ Error starting scheduler: {str(e)}")
