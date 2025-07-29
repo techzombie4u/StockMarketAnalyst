@@ -34,158 +34,84 @@ def dashboard():
 def get_stocks():
     """API endpoint to get current stock data"""
     try:
-        # Check if file exists and is readable
+        # Ensure file exists with initial data
         if not os.path.exists('top10.json'):
-            logger.warning("top10.json does not exist, creating default")
-            default_data = {
-                'timestamp': datetime.now(IST).isoformat(),
-                'last_updated': 'Initializing system...',
+            initial_data = {
+                'timestamp': datetime.now().isoformat(),
+                'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S IST'),
                 'stocks': [],
-                'status': 'initializing'
+                'status': 'initial'
             }
-            
-            try:
-                with open('top10.json', 'w') as f:
-                    json.dump(default_data, f, indent=2)
-            except Exception as write_error:
-                logger.error(f"Failed to create top10.json: {write_error}")
-            
-            return jsonify(default_data)
 
-        # Try to read the file with better error handling
+            with open('top10.json', 'w', encoding='utf-8') as f:
+                json.dump(initial_data, f, ensure_ascii=False, indent=2)
+
+            return jsonify({
+                'stocks': [],
+                'status': 'initial',
+                'last_updated': initial_data['last_updated'],
+                'stockCount': 0
+            })
+
+        # Read the file with proper error handling
         try:
             with open('top10.json', 'r', encoding='utf-8') as f:
-                content = f.read()
-                # Clean any control characters before parsing
-                import re
-                cleaned_content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', content)
-                data = json.loads(cleaned_content)
-        except (json.JSONDecodeError, IOError) as file_error:
-            logger.error(f"Error reading top10.json: {file_error}")
-            
-            # Try to recover by creating a fresh file
-            try:
-                logger.info("Attempting to create fresh top10.json")
-                fresh_data = {
-                    'timestamp': datetime.now(IST).isoformat(),
-                    'last_updated': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST'),
-                    'stocks': [],
-                    'status': 'recovering'
-                }
-                with open('top10.json', 'w', encoding='utf-8') as f:
-                    json.dump(fresh_data, f, indent=2, ensure_ascii=False)
-                logger.info("Fresh top10.json created successfully")
-                return jsonify(fresh_data)
-            except Exception as recovery_error:
-                logger.error(f"Failed to create fresh file: {recovery_error}")
-            
-            # Return error response but don't crash
-            error_data = {
-                'timestamp': datetime.now(IST).isoformat(),
-                'last_updated': 'File read error - please refresh',
+                content = f.read().strip()
+
+            if not content:
+                raise ValueError("Empty file")
+
+            data = json.loads(content)
+
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"File read/parse error: {str(e)}")
+
+            # Reset corrupted file
+            initial_data = {
+                'timestamp': datetime.now().isoformat(),
+                'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S IST'),
                 'stocks': [],
-                'status': 'file_error',
-                'error': f'File corrupted, creating fresh data...'
+                'status': 'file_reset'
             }
-            return jsonify(error_data)
 
-        # Validate data structure
-        if not isinstance(data, dict):
-            logger.error("Invalid data format in top10.json")
-            raise ValueError("Invalid data format")
+            with open('top10.json', 'w', encoding='utf-8') as f:
+                json.dump(initial_data, f, ensure_ascii=False, indent=2)
 
-        # Process stock data
+            return jsonify({
+                'stocks': [],
+                'status': 'file_reset',
+                'last_updated': initial_data['last_updated'],
+                'stockCount': 0
+            })
+
+        # Extract data safely
         stocks = data.get('stocks', [])
-        if not isinstance(stocks, list):
-            stocks = []
+        status = data.get('status', 'unknown')
+        last_updated = data.get('last_updated', 'Never')
 
-        validated_stocks = []
+        # Validate stocks data
+        valid_stocks = []
         for stock in stocks:
-            if not isinstance(stock, dict):
-                continue
-                
-            # Ensure required fields exist
-            stock.setdefault('symbol', 'UNKNOWN')
-            stock.setdefault('score', 0)
-            stock.setdefault('current_price', 0)
-            stock.setdefault('predicted_gain', 0)
-            
-            # Fix prediction fields
-            predicted_gain = stock.get('predicted_gain', 0)
-            if 'pred_24h' not in stock or not stock['pred_24h']:
-                stock['pred_24h'] = round(predicted_gain * 0.05, 2)
-            if 'pred_5d' not in stock or not stock['pred_5d']:
-                stock['pred_5d'] = round(predicted_gain * 0.25, 2)
-            if 'pred_1mo' not in stock or not stock['pred_1mo']:
-                stock['pred_1mo'] = round(predicted_gain, 2)
+            if isinstance(stock, dict) and 'symbol' in stock:
+                valid_stocks.append(stock)
 
-            # Ensure minimum values for good scores
-            if stock.get('score', 0) > 50:
-                stock['pred_24h'] = max(0.1, stock['pred_24h'])
-                stock['pred_5d'] = max(0.5, stock['pred_5d']) 
-                stock['pred_1mo'] = max(1.0, stock['pred_1mo'])
+        logger.info(f"API response: {len(valid_stocks)} valid stocks, status: {status}")
 
-            validated_stocks.append(stock)
-
-        # Build response
-        response_data = {
-            'timestamp': data.get('timestamp', datetime.now(IST).isoformat()),
-            'last_updated': data.get('last_updated', 'Unknown'),
-            'stocks': validated_stocks,
-            'error': data.get('error', None),
-            'status': 'success' if validated_stocks else data.get('status', 'no_data')
-        }
-
-        # If no stocks but file seems to have been updated recently, reload it
-        if not validated_stocks and os.path.exists('top10.json'):
-            try:
-                # Check file modification time
-                file_mtime = os.path.getmtime('top10.json')
-                current_time = datetime.now().timestamp()
-                
-                # If file was modified in last 10 minutes, try reloading
-                if current_time - file_mtime < 600:
-                    logger.info("File recently modified, attempting reload...")
-                    with open('top10.json', 'r') as f:
-                        fresh_data = json.load(f)
-                        fresh_stocks = fresh_data.get('stocks', [])
-                        if fresh_stocks:
-                            logger.info(f"Found {len(fresh_stocks)} stocks on reload")
-                            response_data['stocks'] = fresh_stocks
-                            response_data['status'] = 'success'
-                            response_data['last_updated'] = fresh_data.get('last_updated', 'Recently updated')
-            except Exception as e:
-                logger.error(f"Failed to reload recent data: {str(e)}")
-        
-        # If still no stocks, check for recent historical data
-        if not response_data.get('stocks') and os.path.exists('historical_data'):
-            try:
-                import glob
-                recent_files = sorted(glob.glob('historical_data/screening_data_*.json'), reverse=True)
-                if recent_files:
-                    with open(recent_files[0], 'r') as f:
-                        recent_data = json.load(f)
-                        if recent_data.get('stocks'):
-                            logger.info(f"Using recent historical data with {len(recent_data['stocks'])} stocks")
-                            response_data['stocks'] = recent_data['stocks'][:10]  # Show top 10
-                            response_data['last_updated'] = 'Recent historical data'
-                            response_data['status'] = 'historical_fallback'
-            except Exception as e:
-                logger.error(f"Failed to load historical fallback: {str(e)}")
-
-        logger.info(f"API response: {len(response_data['stocks'])} stocks, status: {response_data['status']}")
-        return jsonify(response_data)
+        return jsonify({
+            'stocks': valid_stocks,
+            'status': status,
+            'last_updated': last_updated,
+            'stockCount': len(valid_stocks)
+        })
 
     except Exception as e:
-        logger.error(f"Critical error in /api/stocks: {str(e)}")
-        error_response = {
-            'error': str(e),
-            'timestamp': datetime.now(IST).isoformat(),
-            'last_updated': 'Critical error occurred',
+        logger.error(f"Critical error in get_stocks API: {str(e)}")
+        return jsonify({
             'stocks': [],
-            'status': 'critical_error'
-        }
-        return jsonify(error_response), 500
+            'status': 'critical_error',
+            'last_updated': 'System Error',
+            'stockCount': 0
+        }), 500
 
 @app.route('/api/status')
 def get_status():
@@ -202,7 +128,7 @@ def run_now():
     global scheduler
     try:
         logger.info("Manual refresh requested")
-        
+
         # Always try to run screening
         def run_background_screening():
             try:
@@ -218,7 +144,7 @@ def run_now():
                         logger.info("✅ Manual screening with temporary scheduler completed")
                     else:
                         logger.warning("⚠️ Manual screening returned no results")
-                        
+
             except Exception as e:
                 logger.error(f"❌ Manual screening failed: {str(e)}")
                 # Generate demo data as fallback
@@ -254,11 +180,11 @@ def run_now():
                     logger.info("✅ Demo data generated as fallback")
                 except Exception as demo_error:
                     logger.error(f"Failed to generate demo data: {demo_error}")
-        
+
         import threading
         threading.Thread(target=run_background_screening, daemon=True).start()
         return jsonify({'success': True, 'message': 'Screening started successfully'})
-        
+
     except Exception as e:
         logger.error(f"Manual refresh error: {str(e)}")
         return jsonify({'success': False, 'message': str(e)})
@@ -538,12 +464,12 @@ def lookup_stock(symbol):
 def health_check():
     """Health check endpoint"""
     global scheduler
-    
+
     # Check if data file exists and has content
     data_status = 'no_data'
     stock_count = 0
     last_updated = 'never'
-    
+
     try:
         if os.path.exists('top10.json'):
             with open('top10.json', 'r') as f:
@@ -553,7 +479,7 @@ def health_check():
                 data_status = data.get('status', 'unknown')
     except Exception as e:
         data_status = f'error: {str(e)}'
-    
+
     return jsonify({
         'status': 'healthy',
         'service': 'Stock Market Analyst',
@@ -579,7 +505,7 @@ def initialize_app():
         scheduler = StockAnalystScheduler()
         scheduler.start_scheduler(interval_minutes=60)  # More frequent updates in production
         print("✅ Scheduler started successfully")
-        
+
         # Run initial screening for production deployment
         import threading
         def delayed_initial_run():
@@ -590,7 +516,7 @@ def initialize_app():
                 print("✅ Initial production screening completed")
             except Exception as e:
                 print(f"⚠️ Initial screening failed: {str(e)}")
-        
+
         threading.Thread(target=delayed_initial_run, daemon=True).start()
 
     except Exception as e:

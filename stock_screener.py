@@ -245,31 +245,31 @@ class EnhancedStockScreener:
         try:
             # Import daily technical analyzer
             from daily_technical_analyzer import DailyTechnicalAnalyzer
-            
+
             # Use daily technical analysis as primary method
             daily_analyzer = DailyTechnicalAnalyzer()
             daily_indicators = daily_analyzer.calculate_daily_technical_indicators(symbol)
-            
+
             # If daily analysis is successful, use it
             if daily_indicators and daily_indicators.get('current_price', 0) > 0:
                 logger.info(f"Using daily OHLC technical analysis for {symbol}")
-                
+
                 # Add backward compatibility indicators
                 daily_indicators['data_quality_score'] = 95  # High quality for daily data
                 daily_indicators['timeframe'] = 'daily'
                 daily_indicators['analysis_type'] = 'daily_ohlc'
-                
+
                 # Map some indicators for backward compatibility
                 if 'sma_20' in daily_indicators:
                     daily_indicators['ema_21'] = daily_indicators['sma_20']
                 if 'momentum_5d_pct' in daily_indicators:
                     daily_indicators['momentum_5d'] = daily_indicators['momentum_5d_pct'] / 100
-                
+
                 return daily_indicators
-            
+
             # Fallback to intraday data if daily analysis fails
             logger.warning(f"Daily OHLC analysis failed for {symbol}, falling back to intraday data")
-            
+
             # Try multiple data sources for price data
             hist_data = self._fetch_price_data_multiple_sources(symbol)
 
@@ -771,7 +771,8 @@ class EnhancedStockScreener:
         # Calculate source performance
         for source in all_sources:
             if source in source_success_count:
-                success_rate = (source_success_count[source]['success'] / 
+                success_rate = (source_success_count[tool_code
+source]['success'] / 
                               source_success_count[source]['total']) * 100
                 quality_report['source_performance'][source] = {
                     'success_rate': round(success_rate, 2),
@@ -1354,518 +1355,103 @@ class EnhancedStockScreener:
 
         return None
 
-    def _calculate_base_score(self, fundamentals: Dict, technical: Dict) -> float:
-        """Calculate base score from fundamental and technical data"""
-        base_score = 30
-        
-        # Add points for having valid data
-        if fundamentals.get('pe_ratio') is not None:
-            base_score += 5
-        if technical.get('current_price', 0) > 0:
-            base_score += 5
-        if technical.get('rsi_14') is not None:
-            base_score += 5
-            
-        return base_score
-
-    def enhanced_score_and_rank(self, stocks_data: Dict) -> List[Dict]:
-        """Enhanced scoring algorithm with new technical indicators"""
-        scored_stocks = []
-
-        # Calculate median PE for normalization
-        pe_ratios = [
-            data.get('fundamentals', {}).get('pe_ratio')
-            for data in stocks_data.values()
-            if data.get('fundamentals', {}).get('pe_ratio') is not None and data.get('fundamentals', {}).get('pe_ratio') > 0
-        ]
-        median_pe = np.median(pe_ratios) if pe_ratios else 20
-
-        bulk_deal_symbols = {deal['symbol'] for deal in self.bulk_deals}
-
-        for symbol, data in stocks_data.items():
-            fundamentals = data.get('fundamentals', {})
-            technical = data.get('technical', {})
-
-            # Start with base score
-            try:
-                score = self._calculate_base_score(fundamentals, technical)
-            except AttributeError:
-                # Fallback if method doesn't exist
-                score = 30
-                if fundamentals.get('pe_ratio') is not None:
-                    score += 5
-                if technical.get('current_price', 0) > 0:
-                    score += 5
-                if technical.get('rsi_14') is not None:
-                    score += 5
-
-            # 1. Enhanced bulk deal scoring
-            score += self._score_bulk_deals(symbol, bulk_deal_symbols)
-
-            # 2. Enhanced fundamental scoring
-            score += self._score_fundamentals(fundamentals, median_pe)
-
-            # 3. Enhanced technical scoring with new indicators
-            score += self._score_technical_indicators(technical)
-
-            # 4. Data quality bonus
-            data_quality = technical.get('data_quality_score', 50)
-            score += (data_quality - 50) / 10  # Max 5 points bonus for perfect data
-
-            # 5. Volatility adjustment
-            volatility_score = self._score_volatility(technical)
-            score += volatility_score
-
-            # Normalize score to 0-100
-            normalized_score = max(25, min(100, score))
-
-            # Calculate enhanced predictions
-            predictions = self._calculate_enhanced_predictions(technical, normalized_score)
-
-            # Risk assessment
-            risk_assessment = self._assess_risk(technical, fundamentals)
-
-            stock_result = {
-                'symbol': symbol,
-                'score': round(normalized_score, 1),
-                'adjusted_score': round(normalized_score * risk_assessment['risk_factor'], 1),
-                'confidence': self._calculate_confidence(technical, fundamentals),
-                'current_price': technical.get('current_price', 0),
-                'risk_level': risk_assessment['risk_level'],
-                'market_cap': self._estimate_market_cap(symbol),
-                'pe_ratio': fundamentals.get('pe_ratio'),
-                'pe_description': self.get_pe_description(fundamentals.get('pe_ratio')),
-                'revenue_growth': round(fundamentals.get('revenue_growth', 0), 1),
-                'technical_summary': self._generate_technical_summary(technical),
-                'fundamentals': fundamentals,
-                'technical': technical,
-                **predictions
-            }
-
-            scored_stocks.append(stock_result)
-
-        # Sort by adjusted score
-        scored_stocks.sort(key=lambda x: x['adjusted_score'], reverse=True)
-
-        return scored_stocks[:20]
-
-    def _score_bulk_deals(self, symbol: str, bulk_deal_symbols: set) -> float:
-        """Enhanced bulk deal scoring"""
-        score_boost = 0
-
-        symbol_deals = [deal for deal in self.bulk_deals if deal['symbol'] == symbol]
-        if symbol_deals:
-            for deal in symbol_deals:
-                deal_type = deal.get('type', 'Other')
-                percentage = deal.get('percentage', 0)
-
-                # Base bulk deal bonus
-                score_boost += 20
-
-                # Type-based scoring
-                type_bonuses = {
-                    'FII': 15,
-                    'DII': 12,
-                    'Promoter': 18,
-                    'Buy': 8
-                }
-                score_boost += type_bonuses.get(deal_type, 5)
-
-                # Size-based bonus
-                if percentage >= 2.0:
-                    score_boost += 8
-                elif percentage >= 1.0:
-                    score_boost += 4
-
-        return score_boost
-
-    def _score_fundamentals(self, fundamentals: Dict, median_pe: float) -> float:
-        """Enhanced fundamental scoring"""
-        score_boost = 0
-
-        # PE ratio scoring
-        pe_ratio = fundamentals.get('pe_ratio')
-        if pe_ratio and pe_ratio > 0:
-            score_boost += 5  # Points for having PE data
-            if pe_ratio < median_pe * 1.2:
-                score_boost += 8
-            if pe_ratio < 15:
-                score_boost += 5  # Additional bonus for very low PE
-
-        # Growth scoring
-        revenue_growth = fundamentals.get('revenue_growth', 0) or 0
-        earnings_growth = fundamentals.get('earnings_growth', 0) or 0
-
-        if revenue_growth > 15 or earnings_growth > 15:
-            score_boost += 12
-        elif revenue_growth > 5 or earnings_growth > 5:
-            score_boost += 6
-
-        # Additional financial metrics
-        roe = fundamentals.get('roe')
-        if roe and roe > 15:
-            score_boost += 5
-
-        debt_to_equity = fundamentals.get('debt_to_equity')
-        if debt_to_equity and debt_to_equity < 0.5:
-            score_boost += 3
-
-        # Promoter buying
-        if fundamentals.get('promoter_buying', False):
-            score_boost += 15
-
-        return score_boost
-
-    def _score_technical_indicators(self, technical: Dict) -> float:
-        """Score based on enhanced daily technical indicators"""
-        score_boost = 0
-
-        # Determine if we're using daily or intraday analysis
-        analysis_type = technical.get('analysis_type', 'unknown')
-        
-        # Daily OHLC analysis scoring (preferred)
-        if analysis_type == 'daily_ohlc':
-            # Trend direction scoring
-            trend_direction = technical.get('trend_direction', 'sideways')
-            trend_scores = {
-                'strong_uptrend': 12,
-                'uptrend': 8,
-                'sideways': 2,
-                'downtrend': -4,
-                'strong_downtrend': -8
-            }
-            score_boost += trend_scores.get(trend_direction, 0)
-            
-            # RSI scoring (daily)
-            rsi_14 = technical.get('rsi_14', 50)
-            if 30 <= rsi_14 <= 70:  # Neutral zone
-                score_boost += 5
-            elif 25 <= rsi_14 <= 35:  # Oversold (good for buying)
-                score_boost += 10
-            elif 20 <= rsi_14 <= 25:  # Very oversold
-                score_boost += 8
-            
-            # Moving average positioning
-            if technical.get('above_sma_20', False):
-                score_boost += 6
-            if technical.get('above_sma_50', False):
-                score_boost += 4
-            if technical.get('golden_cross', False):
-                score_boost += 8
-            
-            # Volume analysis
-            vol_class = technical.get('volume_classification', 'normal')
-            vol_scores = {'high': 6, 'normal': 2, 'low': -2}
-            score_boost += vol_scores.get(vol_class, 0)
-            
-            # Momentum scoring (daily)
-            momentum_5d = technical.get('momentum_5d_pct', 0)
-            if momentum_5d > 5:  # Strong positive momentum
-                score_boost += 8
-            elif momentum_5d > 2:
-                score_boost += 5
-            elif momentum_5d > 0:
-                score_boost += 2
-            elif momentum_5d < -5:  # Strong negative momentum
-                score_boost -= 6
-            
-            # MACD scoring
-            if technical.get('macd_bullish', False):
-                score_boost += 6
-            
-            # ADX trend strength
-            trend_strength = technical.get('trend_strength', 'weak')
-            if trend_strength == 'strong' and trend_direction in ['uptrend', 'strong_uptrend']:
-                score_boost += 5
-            elif trend_strength == 'moderate' and trend_direction in ['uptrend', 'strong_uptrend']:
-                score_boost += 3
-            
-            # Support/Resistance positioning
-            sr_position = technical.get('price_position_sr', 50)
-            if 25 <= sr_position <= 35:  # Near support (good for buying)
-                score_boost += 4
-            elif sr_position > 80:  # Near resistance (caution)
-                score_boost -= 2
-            
-            # Volatility adjustment
-            vol_regime = technical.get('volatility_regime', 'medium')
-            if vol_regime == 'low':
-                score_boost += 3  # Low volatility is good
-            elif vol_regime == 'high':
-                score_boost -= 3  # High volatility is risky
-            
-            # Pattern bonuses
-            if technical.get('hammer_pattern', False):
-                score_boost += 3
-            if technical.get('gap_up', False):
-                score_boost += 2
-            elif technical.get('gap_down', False):
-                score_boost -= 2
-                
-        else:
-            # Fallback scoring for intraday analysis
-            # RSI scoring
-            rsi_14 = technical.get('rsi_14', 50)
-            if 30 <= rsi_14 <= 70:  # Neutral zone
-                score_boost += 5
-            elif 25 <= rsi_14 <= 35:  # Oversold (good for buying)
-                score_boost += 8
-
-            # EMA trend scoring
-            if technical.get('ema_12_above_21', False):
-                score_boost += 6
-            if technical.get('price_above_ema_12', False):
-                score_boost += 4
-
-            # Bollinger Bands scoring
-            bb_signal = technical.get('bb_signal', 'within_bands')
-            if bb_signal == 'below_lower':  # Potential oversold
-                score_boost += 6
-            elif bb_signal == 'within_bands':
-                score_boost += 3
-
-            # MACD scoring
-            if technical.get('macd_bullish', False):
-                score_boost += 5
-
-            # Volume scoring
-            volume_ratio = technical.get('volume_ratio_10', 1)
-            if volume_ratio > 1.5:  # High volume
-                score_boost += 4
-            elif volume_ratio > 1.2:
-                score_boost += 2
-
-            # Momentum scoring
-            momentum_5d = technical.get('momentum_5d', 0)
-            if momentum_5d > 0.02:  # Positive momentum
-                score_boost += 6
-            elif momentum_5d > 0:
-                score_boost += 3
-
-        return score_boost
-
-    def _score_volatility(self, technical: Dict) -> float:
-        """Score based on volatility measures"""
-        volatility_regime = technical.get('volatility_regime', 'normal')
-
-        if volatility_regime == 'low':
-            return 5  # Low volatility is good
-        elif volatility_regime == 'normal':
-            return 2
-        else:  # high volatility
-            return -3
-
-    def _calculate_enhanced_predictions(self, technical: Dict, score: float) -> Dict:
-        """Calculate enhanced predictions using multiple indicators"""
-
-        current_price = technical.get('current_price', 0)
-        if current_price <= 0:
-            # Try to get a reasonable estimate if current price is missing
-            price_5d_ago = technical.get('price_5d_ago', 0)  
-            price_1d_ago = technical.get('price_1d_ago', 0)
-
-            if price_1d_ago > 0:
-                current_price = price_1d_ago
-            elif price_5d_ago > 0:
-                current_price = price_5d_ago
-            else:
-                # Generate reasonable fallback predictions based on score
-                base_gain = max(1.0, min(25.0, score * 0.25))
-                return {
-                    'predicted_price': 100.0,  # Fallback price
-                    'predicted_gain': round(base_gain, 1),
-                    'pred_24h': round(base_gain * 0.05, 2),
-                    'pred_5d': round(base_gain * 0.25, 2), 
-                    'pred_1mo': round(base_gain, 2),
-                    'confidence_level': 'low',
-                    'time_horizon': 15
-                }
-
-        # Enhanced prediction logic based on score and technical indicators
-        # Base prediction scaling with score
-        score_factor = max(0.1, min(1.0, score / 100))  # Scale 0.1 to 1.0
-
-        # Technical momentum adjustment
-        momentum_2d = technical.get('momentum_2d', 0)
-        momentum_5d = technical.get('momentum_5d', 0)
-        momentum_10d = technical.get('momentum_10d', 0)
-
-        # RSI adjustment
-        rsi_14 = technical.get('rsi_14', 50)
-        rsi_adjustment = 0
-        if rsi_14 < 35:  # Oversold - positive adjustment
-            rsi_adjustment = (35 - rsi_14) / 10
-        elif rsi_14 > 65:  # Overbought - negative adjustment
-            rsi_adjustment = -(rsi_14 - 65) / 10
-
-        # EMA trend adjustment
-        ema_trend_strength = technical.get('ema_trend_strength', 0)
-        trend_adjustment = max(-2, min(3, ema_trend_strength / 2))
-
-        # MACD adjustment
-        macd_adjustment = 1.0 if technical.get('macd_bullish', False) else -0.5
-
-        # Volume adjustment
-        volume_ratio = technical.get('volume_ratio_10', 1)
-        volume_adjustment = 0.5 if volume_ratio > 1.5 else 0
-
-        # Calculate base predictions with technical adjustments
-        base_adjustment = rsi_adjustment + trend_adjustment + macd_adjustment + volume_adjustment
-
-        # 24h prediction (conservative)
-        pred_24h = (score_factor * 3) + (momentum_2d * 100) + (base_adjustment * 0.3)
-        pred_24h = max(-3, min(8, pred_24h))
-
-        # 5d prediction (moderate)
-        pred_5d = (score_factor * 8) + (momentum_5d * 100) + (base_adjustment * 0.6)
-        pred_5d = max(-8, min(15, pred_5d))
-
-        # 1mo prediction (aggressive)
-        pred_1mo = (score_factor * 20) + (momentum_10d * 100) + (base_adjustment * 1.0)
-        pred_1mo = max(-15, min(30, pred_1mo))
-
-        # Ensure predictions make sense (5d should be between 24h and 1mo)
-        if pred_5d < pred_24h:
-            pred_5d = pred_24h + (pred_1mo - pred_24h) * 0.3
-        if pred_1mo < pred_5d:
-            pred_1mo = pred_5d + 2
-
-        # Calculate predicted prices
-        predicted_price_24h = current_price * (1 + pred_24h / 100)
-        predicted_price_5d = current_price * (1 + pred_5d / 100)  
-        predicted_price_1mo = current_price * (1 + pred_1mo / 100)
-
-        # Overall prediction (use 1mo as primary)
-        predicted_price = predicted_price_1mo
-        predicted_gain = pred_1mo
-
-        # Calculate time horizon based on score and predicted gain
-        if predicted_gain > 15:
-            time_horizon = 8
-        elif predicted_gain > 10:
-            time_horizon = 12
-        elif predicted_gain > 5:
-            time_horizon = 18
-        else:
-            time_horizon = 25
-
-        # Confidence level
-        data_quality = technical.get('data_quality_score', 50)
-        if data_quality > 80 and current_price > 0 and score > 70:
-            confidence_level = 'high'
-        elif data_quality > 60 and current_price > 0 and score > 50:
-            confidence_level = 'medium'
-        else:
-            confidence_level = 'low'
-
-        return {
-            'predicted_price': round(predicted_price, 2),
-            'predicted_gain': round(predicted_gain, 1),
-            'pred_24h': round(pred_24h, 2),
-            'pred_5d': round(pred_5d, 2),
-            'pred_1mo': round(pred_1mo, 2),
-            'confidence_level': confidence_level,
-            'time_horizon': time_horizon
-        }
-
-    def _assess_risk(self, technical: Dict, fundamentals: Dict) -> Dict:
-        """Comprehensive risk assessment"""
-        risk_score = 0
-
-        # Volatility risk
-        volatility_regime = technical.get('volatility_regime', 'normal')
-        volatility_scores = {'low': 0, 'normal': 1, 'high': 3}
-        risk_score += volatility_scores.get(volatility_regime, 1)
-
-        # PE ratio risk
-        pe_ratio = fundamentals.get('pe_ratio')
-        if pe_ratio:
-            if pe_ratio > 50:
-                risk_score += 2
-            elif pe_ratio > 30:
-                risk_score += 1
-
-        # Debt risk
-        debt_to_equity = fundamentals.get('debt_to_equity')
-        if debt_to_equity:
-            if debt_to_equity > 1.0:
-                risk_score += 2
-            elif debt_to_equity > 0.5:
-                risk_score += 1
-
-        # Technical risk
-        bb_signal = technical.get('bb_signal', 'within_bands')
-        if bb_signal == 'above_upper':
-            risk_score += 1
-
-        # Risk level and factor
-        if risk_score <= 1:
-            risk_level = 'Low'
-            risk_factor = 1.0
-        elif risk_score <= 3:
-            risk_level = 'Medium'
-            risk_factor = 0.95
-        else:
-            risk_level = 'High'
-            risk_factor = 0.85
-
-        return {
-            'risk_level': risk_level,
-            'risk_factor': risk_factor,
-            'risk_score': risk_score
-        }
-
-    def _calculate_confidence(self, technical: Dict, fundamentals: Dict) -> int:
-        """Calculate overall confidence score"""
-        confidence = 50  # Base confidence
-
-        # Data quality
-        data_quality = technical.get('data_quality_score', 50)
-        confidence += (data_quality - 50) / 2
-
-        # Fundamental data availability
-        if fundamentals.get('pe_ratio') is not None:
-            confidence += 10
-        if fundamentals.get('revenue_growth') != 5.0:  # Not default value
-            confidence += 10
-        if fundamentals.get('roe') is not None:
-            confidence += 5
-
-        # Technical indicator consistency
-        consistency_score = 0
-
-        # RSI and price position consistency
-        rsi_14 = technical.get('rsi_14', 50)
-        bb_position = technical.get('bb_position', 50)
-        if (rsi_14 < 40 and bb_position < 40) or (rsi_14 > 60 and bb_position > 60):
-            consistency_score += 10
-
-        # EMA and MACD consistency
-        if technical.get('ema_12_above_21', False) and technical.get('macd_bullish', False):
-            consistency_score += 10
-
-        confidence += consistency_score
-
-        return int(max(0, min(100, confidence)))
-
-    def _generate_technical_summary(self, technical: Dict) -> str:
+    
+    def _calculate_base_score(self, technical_data, fundamental_data, bulk_deal_data):
+        """Calculate base score for a stock"""
+        try:
+            score = 0
+
+            # Technical scoring
+            if technical_data:
+                score += self._score_technical_indicators(technical_data)
+
+            # Fundamental scoring  
+            if fundamental_data:
+                score += self._score_fundamentals(fundamental_data)
+
+            # Bulk deal bonus
+            symbol = technical_data.get('symbol', '') if technical_data else ''
+            if symbol in bulk_deal_data:
+                score += 30
+
+            return max(0, min(100, score))
+
+        except Exception as e:
+            logger.error(f"Error calculating base score: {str(e)}")
+            return 0
+
+    def _score_technical_indicators(self, technical_data):
+        """Score technical indicators"""
+        try:
+            score = 0
+            # Implement technical scoring logic here
+
+            return score
+
+        except Exception as e:
+            logger.error(f"Error scoring technicals: {str(e)}")
+            return 0
+
+    def _score_fundamentals(self, fundamental_data):
+        """Score fundamental indicators"""
+        try:
+            score = 0
+
+            pe_ratio = fundamental_data.get('pe_ratio', 0)
+            revenue_growth = fundamental_data.get('revenue_growth', 0)
+            earnings_growth = fundamental_data.get('earnings_growth', 0)
+
+            # PE ratio scoring (lower is better, but not too low)
+            if 0 < pe_ratio < 15:
+                score += 15
+            elif 15 <= pe_ratio < 25:
+                score += 10
+            elif 25 <= pe_ratio < 35:
+                score += 5
+
+            # Growth scoring
+            if revenue_growth > 20:
+                score += 15
+            elif revenue_growth > 10:
+                score += 10
+            elif revenue_growth > 5:
+                score += 5
+
+            if earnings_growth > 20:
+                score += 15
+            elif earnings_growth > 10:
+                score += 10
+            elif earnings_growth > 5:
+                score += 5
+
+            # Promoter buying bonus
+            if fundamental_data.get('promoter_buying', False):
+                score += 20
+
+            return score
+
+        except Exception as e:
+            logger.error(f"Error scoring fundamentals: {str(e)}")
+            return 0
+
+    def _generate_technical_summary(self, technical_data):
         """Generate a comprehensive technical summary"""
-        analysis_type = technical.get('analysis_type', 'unknown')
-        
+        analysis_type = technical_data.get('analysis_type', 'unknown')
+
         # Use daily technical analyzer's summary if available
         if analysis_type == 'daily_ohlc':
             try:
                 from daily_technical_analyzer import DailyTechnicalAnalyzer
                 analyzer = DailyTechnicalAnalyzer()
-                return analyzer.generate_daily_technical_summary(technical)
+                return analyzer.generate_daily_technical_summary(technical_data)
             except Exception:
                 pass
-        
+
         # Fallback to legacy summary
         summary_parts = []
 
         # RSI summary
-        rsi_14 = technical.get('rsi_14', 50)
+        rsi_14 = technical_data.get('rsi_14', 50)
         if rsi_14 < 30:
             summary_parts.append("Oversold (RSI)")
         elif rsi_14 > 70:
@@ -1874,13 +1460,13 @@ class EnhancedStockScreener:
             summary_parts.append("Neutral (RSI)")
 
         # Trend summary
-        if technical.get('ema_12_above_21', False):
+        if technical_data.get('ema_12_above_21', False):
             summary_parts.append("Uptrend (EMA)")
         else:
             summary_parts.append("Downtrend (EMA)")
 
         # Bollinger Bands summary
-        bb_signal = technical.get('bb_signal', 'within_bands')
+        bb_signal = technical_data.get('bb_signal', 'within_bands')
         bb_summaries = {
             'above_upper': 'Above Upper BB',
             'below_lower': 'Below Lower BB',
@@ -1889,7 +1475,7 @@ class EnhancedStockScreener:
         summary_parts.append(bb_summaries.get(bb_signal, 'BB Neutral'))
 
         # Volume summary
-        volume_ratio = technical.get('volume_ratio_10', 1)
+        volume_ratio = technical_data.get('volume_ratio_10', 1)
         if volume_ratio > 1.5:
             summary_parts.append("High Volume")
         elif volume_ratio < 0.8:
@@ -2403,20 +1989,20 @@ class EnhancedStockScreener:
             pe_ratio = fundamentals.get('pe_ratio', 0)
             revenue_growth = fundamentals.get('revenue_growth', 0)
             earnings_growth = fundamentals.get('earnings_growth', 0)
-            
+
             if pe_ratio and pe_ratio > 0 and pe_ratio < 20:
                 score += 15
             if revenue_growth > 10 or earnings_growth > 10:
                 score += 20
-                
+
             # Technical scoring
             rsi_14 = technical.get('rsi_14', 50)
             if 30 <= rsi_14 <= 70:
                 score += 10
-                
+
             # Sentiment scoring
             score += sentiment.get('bulk_deal_bonus', 0)
-            
+
             return {
                 'score': min(100, max(0, score)),
                 'confidence': confidence,

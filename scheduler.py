@@ -495,6 +495,159 @@ class StockAnalystScheduler:
             'jobs': [{'id': job.id, 'name': job.name, 'next_run': str(job.next_run_time)} for job in jobs]
         }
 
+    def update_screening_data(self):
+        """Update stock screening data"""
+        try:
+            logger.info("Starting stock screening update...")
+
+            # Update status to screening
+            self._update_status("screening")
+
+            # Get enhanced screening results
+            screener = EnhancedStockScreener()
+            results = screener.screen_and_rank_stocks()
+
+            if not results or len(results) == 0:
+                logger.warning("No screening results returned")
+                self._save_empty_data("no_data")
+                return
+
+            # Process results
+            processed_results = []
+            for stock in results[:10]:  # Top 10 only
+                try:
+                    processed_stock = {
+                        'symbol': stock.get('symbol', 'UNKNOWN'),
+                        'score': round(float(stock.get('score', 0)), 1),
+                        'adjusted_score': round(float(stock.get('adjusted_score', stock.get('score', 0))), 1),
+                        'current_price': round(float(stock.get('current_price', 0)), 2),
+                        'volatility': round(float(stock.get('technical', {}).get('atr_volatility', 0)), 2),
+                        'predicted_gain': round(float(stock.get('predicted_gain', 0)), 1),
+                        'predicted_price': round(float(stock.get('predicted_price', stock.get('current_price', 0))), 2),
+                        'time_horizon': int(stock.get('time_horizon', 30)),
+                        'confidence': round(float(stock.get('confidence', 50)), 1),
+                        'technical_summary': str(stock.get('technical_summary', 'No analysis available')),
+                        'market_cap': str(stock.get('market_cap', 'Unknown')),
+                        'last_updated': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST')
+                    }
+                    processed_results.append(processed_stock)
+                except Exception as e:
+                    logger.error(f"Error processing stock {stock.get('symbol', 'UNKNOWN')}: {str(e)}")
+                    continue
+
+            if processed_results:
+                # Save successful results
+                data = {
+                    'timestamp': datetime.now(IST).isoformat(),
+                    'last_updated': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST'),
+                    'stocks': processed_results,
+                    'status': 'success'
+                }
+
+                success = self._save_data_safely(data)
+                if success:
+                    logger.info(f"Successfully updated screening data with {len(processed_results)} stocks")
+                else:
+                    logger.error("Failed to save screening data")
+                    self._save_empty_data("save_error")
+            else:
+                logger.warning("No valid stocks after processing")
+                self._save_empty_data("processing_error")
+
+        except Exception as e:
+            logger.error(f"Error in screening update: {str(e)}")
+            self._save_empty_data("error")
+
+    def _update_status(self, status):
+        """Update just the status in the data file"""
+        try:
+            ist = pytz.timezone('Asia/Kolkata')
+            now_ist = datetime.now(ist)
+            current_data = {
+                'timestamp': now_ist.isoformat(),
+                'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+                'stocks': [],
+                'status': status
+            }
+
+            # Try to read existing data first
+            try:
+                if os.path.exists('top10.json'):
+                    with open('top10.json', 'r', encoding='utf-8') as f:
+                        existing_data = json.load(f)
+                        current_data['stocks'] = existing_data.get('stocks', [])
+            except:
+                pass  # Use empty stocks if can't read existing
+
+            current_data['status'] = status
+            self._save_data_safely(current_data)
+
+        except Exception as e:
+            logger.error(f"Error updating status: {str(e)}")
+
+    def _save_data_safely(self, data):
+        """Save data with atomic write"""
+        try:
+            # Ensure all data is properly serializable
+            serializable_data = self._ensure_serializable(data)
+
+            # Write directly to final file with proper encoding
+            with open('top10.json', 'w', encoding='utf-8') as f:
+                json.dump(serializable_data, f, ensure_ascii=False, indent=2, default=str)
+
+            logger.info("Data saved successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error saving data: {str(e)}")
+            try:
+                # Emergency fallback - create minimal valid JSON
+                ist = pytz.timezone('Asia/Kolkata')
+                now_ist = datetime.now(ist)
+                fallback_data = {
+                    'timestamp': now_ist.isoformat(),
+                    'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+                    'stocks': [],
+                    'status': 'save_error'
+                }
+                with open('top10.json', 'w', encoding='utf-8') as f:
+                    json.dump(fallback_data, f, ensure_ascii=False, indent=2)
+                logger.info("Fallback data saved")
+                return False
+            except Exception as fallback_error:
+                logger.error(f"Even fallback save failed: {str(fallback_error)}")
+                return False
+
+    def _ensure_serializable(self, data):
+        """Ensure all data is JSON serializable"""
+        if isinstance(data, dict):
+            return {k: self._ensure_serializable(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._ensure_serializable(v) for v in data]
+        elif isinstance(data, (int, float, str, bool)) or data is None:
+            return data
+        else:
+            return str(data)
+
+    def _save_empty_data(self, status):
+        """Save empty data with the given status"""
+        try:
+            ist = pytz.timezone('Asia/Kolkata')
+            now_ist = datetime.now(ist)
+            empty_data = {
+                'timestamp': now_ist.isoformat(),
+                'last_updated': now_ist.strftime('%Y-%m-%d %H:%M:%S IST'),
+                'stocks': [],
+                'status': status
+            }
+
+            self._save_data_safely(empty_data)
+            logger.info(f"Empty data saved with status: {status}")
+
+        except Exception as e:
+            logger.error(f"Error saving empty data: {str(e)}")
+
+
 def main():
     """Test scheduler"""
     scheduler = StockAnalystScheduler()
