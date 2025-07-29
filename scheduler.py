@@ -93,15 +93,38 @@ def run_screening_job():
 
         screening_data['stocks'] = validated_stocks
 
-        # Save to JSON file
+        # Save to JSON file with enhanced error handling
         try:
             # Convert NumPy types to native Python types for JSON serialization
             json_safe_data = convert_numpy_types(screening_data)
-            with open('top10.json', 'w') as f:
-                json.dump(json_safe_data, f, indent=2)
+
+            # Clean any potential control characters from string data
+            cleaned_data = clean_json_data(json_safe_data)
+
+            # Write to temporary file first, then rename for atomic operation
+            temp_file = 'top10_temp.json'
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(cleaned_data, f, indent=2, ensure_ascii=False)
+
+            # Verify the file is valid JSON before replacing main file
+            with open(temp_file, 'r', encoding='utf-8') as f:
+                json.load(f)  # This will raise an exception if JSON is invalid
+
+            # Replace main file atomically
+            import shutil
+            shutil.move(temp_file, 'top10.json')
+
             logger.info(f"✅ Successfully saved {len(validated_stocks)} stocks to top10.json")
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
+            # Clean up temp file if it exists
+            try:
+                import os
+                if os.path.exists('top10_temp.json'):
+                    os.remove('top10_temp.json')
+            except:
+                pass
+
             # Try to save a minimal version
             try:
                 minimal_data = {
@@ -111,8 +134,8 @@ def run_screening_job():
                     'status': 'save_error',
                     'error': str(file_error)
                 }
-                with open('top10.json', 'w') as f:
-                    json.dump(minimal_data, f, indent=2)
+                with open('top10.json', 'w', encoding='utf-8') as f:
+                    json.dump(minimal_data, f, indent=2, ensure_ascii=False)
                 logger.info("Created minimal error data file")
             except Exception as e:
                 logger.error(f"Failed to create minimal data file: {str(e)}")
@@ -228,15 +251,38 @@ def run_screening_job_manual():
 
         screening_data['stocks'] = validated_stocks
 
-        # Save to JSON file
+        # Save to JSON file with enhanced error handling
         try:
             # Convert NumPy types to native Python types for JSON serialization
             json_safe_data = convert_numpy_types(screening_data)
-            with open('top10.json', 'w') as f:
-                json.dump(json_safe_data, f, indent=2)
+
+            # Clean any potential control characters from string data
+            cleaned_data = clean_json_data(json_safe_data)
+
+            # Write to temporary file first, then rename for atomic operation
+            temp_file = 'top10_temp.json'
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(cleaned_data, f, indent=2, ensure_ascii=False)
+
+            # Verify the file is valid JSON before replacing main file
+            with open(temp_file, 'r', encoding='utf-8') as f:
+                json.load(f)  # This will raise an exception if JSON is invalid
+
+            # Replace main file atomically
+            import shutil
+            shutil.move(temp_file, 'top10.json')
+
             logger.info(f"✅ Successfully saved {len(validated_stocks)} stocks to top10.json")
         except Exception as file_error:
             logger.error(f"Failed to write screening data to file: {str(file_error)}")
+            # Clean up temp file if it exists
+            try:
+                import os
+                if os.path.exists('top10_temp.json'):
+                    os.remove('top10_temp.json')
+            except:
+                pass
+
             # Try to save a minimal version
             try:
                 minimal_data = {
@@ -246,8 +292,8 @@ def run_screening_job_manual():
                     'status': 'save_error',
                     'error': str(file_error)
                 }
-                with open('top10.json', 'w') as f:
-                    json.dump(minimal_data, f, indent=2)
+                with open('top10.json', 'w', encoding='utf-8') as f:
+                    json.dump(minimal_data, f, indent=2, ensure_ascii=False)
                 logger.info("Created minimal error data file")
             except Exception as e:
                 logger.error(f"Failed to create minimal data file: {str(e)}")
@@ -457,5 +503,17 @@ def convert_numpy_types(obj):
         return {k: convert_numpy_types(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [convert_numpy_types(v) for v in obj]
+    else:
+        return obj
+
+def clean_json_data(obj):
+    """Recursively remove invalid control characters from string data."""
+    if isinstance(obj, str):
+        # Remove characters in the range 0-31 (except for \t, \n, \r)
+        return ''.join(c for c in obj if 32 <= ord(c) <= 126 or ord(c) in [9, 10, 13] or ord(c) > 126)
+    elif isinstance(obj, dict):
+        return {k: clean_json_data(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_json_data(v) for v in obj]
     else:
         return obj

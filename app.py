@@ -52,19 +52,40 @@ def get_stocks():
             
             return jsonify(default_data)
 
-        # Try to read the file
+        # Try to read the file with better error handling
         try:
-            with open('top10.json', 'r') as f:
-                data = json.load(f)
+            with open('top10.json', 'r', encoding='utf-8') as f:
+                content = f.read()
+                # Clean any control characters before parsing
+                import re
+                cleaned_content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', content)
+                data = json.loads(cleaned_content)
         except (json.JSONDecodeError, IOError) as file_error:
             logger.error(f"Error reading top10.json: {file_error}")
+            
+            # Try to recover by creating a fresh file
+            try:
+                logger.info("Attempting to create fresh top10.json")
+                fresh_data = {
+                    'timestamp': datetime.now(IST).isoformat(),
+                    'last_updated': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST'),
+                    'stocks': [],
+                    'status': 'recovering'
+                }
+                with open('top10.json', 'w', encoding='utf-8') as f:
+                    json.dump(fresh_data, f, indent=2, ensure_ascii=False)
+                logger.info("Fresh top10.json created successfully")
+                return jsonify(fresh_data)
+            except Exception as recovery_error:
+                logger.error(f"Failed to create fresh file: {recovery_error}")
+            
             # Return error response but don't crash
             error_data = {
                 'timestamp': datetime.now(IST).isoformat(),
-                'last_updated': 'File read error',
+                'last_updated': 'File read error - please refresh',
                 'stocks': [],
                 'status': 'file_error',
-                'error': f'File read error: {str(file_error)}'
+                'error': f'File corrupted, creating fresh data...'
             }
             return jsonify(error_data)
 
