@@ -241,8 +241,35 @@ class EnhancedStockScreener:
         }
 
     def calculate_enhanced_technical_indicators(self, symbol: str) -> Dict:
-        """Calculate enhanced technical indicators with multiple timeframes"""
+        """Calculate enhanced technical indicators using daily OHLC data"""
         try:
+            # Import daily technical analyzer
+            from daily_technical_analyzer import DailyTechnicalAnalyzer
+            
+            # Use daily technical analysis as primary method
+            daily_analyzer = DailyTechnicalAnalyzer()
+            daily_indicators = daily_analyzer.calculate_daily_technical_indicators(symbol)
+            
+            # If daily analysis is successful, use it
+            if daily_indicators and daily_indicators.get('current_price', 0) > 0:
+                logger.info(f"Using daily OHLC technical analysis for {symbol}")
+                
+                # Add backward compatibility indicators
+                daily_indicators['data_quality_score'] = 95  # High quality for daily data
+                daily_indicators['timeframe'] = 'daily'
+                daily_indicators['analysis_type'] = 'daily_ohlc'
+                
+                # Map some indicators for backward compatibility
+                if 'sma_20' in daily_indicators:
+                    daily_indicators['ema_21'] = daily_indicators['sma_20']
+                if 'momentum_5d_pct' in daily_indicators:
+                    daily_indicators['momentum_5d'] = daily_indicators['momentum_5d_pct'] / 100
+                
+                return daily_indicators
+            
+            # Fallback to intraday data if daily analysis fails
+            logger.warning(f"Daily OHLC analysis failed for {symbol}, falling back to intraday data")
+            
             # Try multiple data sources for price data
             hist_data = self._fetch_price_data_multiple_sources(symbol)
 
@@ -299,6 +326,8 @@ class EnhancedStockScreener:
                 indicators['current_price'] = 0
 
             indicators['data_quality_score'] = self._assess_data_quality(hist_data)
+            indicators['timeframe'] = 'intraday_fallback'
+            indicators['analysis_type'] = 'intraday_legacy'
 
             return indicators
 
@@ -1426,46 +1455,130 @@ class EnhancedStockScreener:
         return score_boost
 
     def _score_technical_indicators(self, technical: Dict) -> float:
-        """Score based on enhanced technical indicators"""
+        """Score based on enhanced daily technical indicators"""
         score_boost = 0
 
-        # RSI scoring
-        rsi_14 = technical.get('rsi_14', 50)
-        if 30 <= rsi_14 <= 70:  # Neutral zone
-            score_boost += 5
-        elif 25 <= rsi_14 <= 35:  # Oversold (good for buying)
-            score_boost += 8
+        # Determine if we're using daily or intraday analysis
+        analysis_type = technical.get('analysis_type', 'unknown')
+        
+        # Daily OHLC analysis scoring (preferred)
+        if analysis_type == 'daily_ohlc':
+            # Trend direction scoring
+            trend_direction = technical.get('trend_direction', 'sideways')
+            trend_scores = {
+                'strong_uptrend': 12,
+                'uptrend': 8,
+                'sideways': 2,
+                'downtrend': -4,
+                'strong_downtrend': -8
+            }
+            score_boost += trend_scores.get(trend_direction, 0)
+            
+            # RSI scoring (daily)
+            rsi_14 = technical.get('rsi_14', 50)
+            if 30 <= rsi_14 <= 70:  # Neutral zone
+                score_boost += 5
+            elif 25 <= rsi_14 <= 35:  # Oversold (good for buying)
+                score_boost += 10
+            elif 20 <= rsi_14 <= 25:  # Very oversold
+                score_boost += 8
+            
+            # Moving average positioning
+            if technical.get('above_sma_20', False):
+                score_boost += 6
+            if technical.get('above_sma_50', False):
+                score_boost += 4
+            if technical.get('golden_cross', False):
+                score_boost += 8
+            
+            # Volume analysis
+            vol_class = technical.get('volume_classification', 'normal')
+            vol_scores = {'high': 6, 'normal': 2, 'low': -2}
+            score_boost += vol_scores.get(vol_class, 0)
+            
+            # Momentum scoring (daily)
+            momentum_5d = technical.get('momentum_5d_pct', 0)
+            if momentum_5d > 5:  # Strong positive momentum
+                score_boost += 8
+            elif momentum_5d > 2:
+                score_boost += 5
+            elif momentum_5d > 0:
+                score_boost += 2
+            elif momentum_5d < -5:  # Strong negative momentum
+                score_boost -= 6
+            
+            # MACD scoring
+            if technical.get('macd_bullish', False):
+                score_boost += 6
+            
+            # ADX trend strength
+            trend_strength = technical.get('trend_strength', 'weak')
+            if trend_strength == 'strong' and trend_direction in ['uptrend', 'strong_uptrend']:
+                score_boost += 5
+            elif trend_strength == 'moderate' and trend_direction in ['uptrend', 'strong_uptrend']:
+                score_boost += 3
+            
+            # Support/Resistance positioning
+            sr_position = technical.get('price_position_sr', 50)
+            if 25 <= sr_position <= 35:  # Near support (good for buying)
+                score_boost += 4
+            elif sr_position > 80:  # Near resistance (caution)
+                score_boost -= 2
+            
+            # Volatility adjustment
+            vol_regime = technical.get('volatility_regime', 'medium')
+            if vol_regime == 'low':
+                score_boost += 3  # Low volatility is good
+            elif vol_regime == 'high':
+                score_boost -= 3  # High volatility is risky
+            
+            # Pattern bonuses
+            if technical.get('hammer_pattern', False):
+                score_boost += 3
+            if technical.get('gap_up', False):
+                score_boost += 2
+            elif technical.get('gap_down', False):
+                score_boost -= 2
+                
+        else:
+            # Fallback scoring for intraday analysis
+            # RSI scoring
+            rsi_14 = technical.get('rsi_14', 50)
+            if 30 <= rsi_14 <= 70:  # Neutral zone
+                score_boost += 5
+            elif 25 <= rsi_14 <= 35:  # Oversold (good for buying)
+                score_boost += 8
 
-        # EMA trend scoring
-        if technical.get('ema_12_above_21', False):
-            score_boost += 6
-        if technical.get('price_above_ema_12', False):
-            score_boost += 4
+            # EMA trend scoring
+            if technical.get('ema_12_above_21', False):
+                score_boost += 6
+            if technical.get('price_above_ema_12', False):
+                score_boost += 4
 
-        # Bollinger Bands scoring
-        bb_signal = technical.get('bb_signal', 'within_bands')
-        if bb_signal == 'below_lower':  # Potential oversold
-            score_boost += 6
-        elif bb_signal == 'within_bands':
-            score_boost += 3
+            # Bollinger Bands scoring
+            bb_signal = technical.get('bb_signal', 'within_bands')
+            if bb_signal == 'below_lower':  # Potential oversold
+                score_boost += 6
+            elif bb_signal == 'within_bands':
+                score_boost += 3
 
-        # MACD scoring
-        if technical.get('macd_bullish', False):
-            score_boost += 5
+            # MACD scoring
+            if technical.get('macd_bullish', False):
+                score_boost += 5
 
-        # Volume scoring
-        volume_ratio = technical.get('volume_ratio_10', 1)
-        if volume_ratio > 1.5:  # High volume
-            score_boost += 4
-        elif volume_ratio > 1.2:
-            score_boost += 2
+            # Volume scoring
+            volume_ratio = technical.get('volume_ratio_10', 1)
+            if volume_ratio > 1.5:  # High volume
+                score_boost += 4
+            elif volume_ratio > 1.2:
+                score_boost += 2
 
-        # Momentum scoring
-        momentum_5d = technical.get('momentum_5d', 0)
-        if momentum_5d > 0.02:  # Positive momentum
-            score_boost += 6
-        elif momentum_5d > 0:
-            score_boost += 3
+            # Momentum scoring
+            momentum_5d = technical.get('momentum_5d', 0)
+            if momentum_5d > 0.02:  # Positive momentum
+                score_boost += 6
+            elif momentum_5d > 0:
+                score_boost += 3
 
         return score_boost
 
@@ -1674,7 +1787,19 @@ class EnhancedStockScreener:
         return int(max(0, min(100, confidence)))
 
     def _generate_technical_summary(self, technical: Dict) -> str:
-        """Generate a summary of technical indicators"""
+        """Generate a comprehensive technical summary"""
+        analysis_type = technical.get('analysis_type', 'unknown')
+        
+        # Use daily technical analyzer's summary if available
+        if analysis_type == 'daily_ohlc':
+            try:
+                from daily_technical_analyzer import DailyTechnicalAnalyzer
+                analyzer = DailyTechnicalAnalyzer()
+                return analyzer.generate_daily_technical_summary(technical)
+            except Exception:
+                pass
+        
+        # Fallback to legacy summary
         summary_parts = []
 
         # RSI summary
