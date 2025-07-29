@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-07-29T19:40:20.393349+05:30",
-  "last_updated": "29/07/2025, 19:40:20",
+  "timestamp": "2025-07-29T19:46:47.742141+05:30",
+  "last_updated": "29/07/2025, 19:46:47",
   "stocks": [
     {
       "symbol": "SBIN",
@@ -22,7 +22,7 @@
       "risk_level": "Low",
       "market_cap": "Large Cap",
       "technical_summary": "Trend: Sideways | RSI: 42.3 (neutral) | Below 20-day SMA | Volume: normal | Volatility: low | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     },
     {
       "symbol": "POWERGRID",
@@ -44,7 +44,7 @@
       "risk_level": "Low",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Downtrend | RSI: 33.1 (neutral) | Below 20-day SMA | Volume: normal | Volatility: low | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     },
     {
       "symbol": "ONGC",
@@ -66,7 +66,7 @@
       "risk_level": "Low",
       "market_cap": "Large Cap",
       "technical_summary": "Trend: Sideways | RSI: 45.1 (neutral) | Below 20-day SMA | Volume: normal | Volatility: low | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     },
     {
       "symbol": "COALINDIA",
@@ -88,7 +88,7 @@
       "risk_level": "Low",
       "market_cap": "Large Cap",
       "technical_summary": "Trend: Sideways | RSI: 45.1 (neutral) | Below 20-day SMA | Volume: normal | Volatility: low | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     },
     {
       "symbol": "HINDALCO",
@@ -110,7 +110,7 @@
       "risk_level": "Low",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Sideways | RSI: 66.6 (neutral) | Above 20-day SMA | Volume: normal | Volatility: low | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     },
     {
       "symbol": "TATAMOTORS",
@@ -132,7 +132,7 @@
       "risk_level": "Low",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Strong Uptrend | RSI: 49.8 (neutral) | Above 20-day SMA | Volume: normal | Volatility: low | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     },
     {
       "symbol": "BPCL",
@@ -154,7 +154,7 @@
       "risk_level": "Low",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Sideways | RSI: 32.2 (neutral) | Below 20-day SMA | Volume: normal | Volatility: medium | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     },
     {
       "symbol": "GAIL",
@@ -176,7 +176,7 @@
       "risk_level": "Low",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Downtrend | RSI: 45.6 (neutral) | Below 20-day SMA | Volume: normal | Volatility: medium | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     },
     {
       "symbol": "IOC",
@@ -198,7 +198,7 @@
       "risk_level": "Low",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Sideways | RSI: 43.2 (neutral) | Below 20-day SMA | Volume: low | Volatility: low | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     },
     {
       "symbol": "SAIL",
@@ -220,7 +220,7 @@
       "risk_level": "Low",
       "market_cap": "Small Cap",
       "technical_summary": "Trend: Downtrend | RSI: 31.6 (neutral) | Below 20-day SMA | Volume: normal | Volatility: medium | Mid-range",
-      "last_analyzed": "29/07/2025, 14:10:20"
+      "last_analyzed": "29/07/2025, 14:16:47"
     }
   ],
   "status": "success"
