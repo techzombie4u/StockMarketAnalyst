@@ -1,6 +1,46 @@
 {
-  "timestamp": "2025-07-29T12:25:45.405194+05:30",
-  "last_updated": "2025-07-29 12:25:45 IST",
-  "stocks": [],
-  "status": "initial"
-}
+  "timestamp": "2025-07-29T12:41:43.602217+05:30",
+  "last_updated": "2025-07-29 12:41:43 IST",
+  "stocks": [
+    {
+      "symbol": "HINDALCO",
+      "score": 100,
+      "adjusted_score": 100.0,
+      "confidence": 100,
+      "current_price": 690.1500244140625,
+      "risk_level": "Low",
+      "market_cap": "Mid Cap",
+      "pe_ratio": 9.37,
+      "pe_description": "Very Low",
+      "revenue_growth": 181.4,
+      "technical_summary": "Trend: Sideways | RSI: 65.0 (neutral) | Above 20-day SMA | Volume: low | Volatility: low | Mid-range",
+      "fundamentals": {
+        "pe_ratio": 9.37,
+        "revenue_growth": 181.37019230769232,
+        "earnings_growth": 747.4903474903475,
+        "promoter_buying": true,
+        "debt_to_equity": null,
+        "roe": null,
+        "current_ratio": null,
+        "data_source": "screener"
+      },
+      "technical": {
+        "current_price": 690.1500244140625,
+        "sma_5": 692.7900024414063,
+        "price_vs_sma_5": -0.38,
+        "sma_10": 685.3900024414063,
+        "price_vs_sma_10": 0.69,
+        "sma_20": 683.9774963378907,
+        "price_vs_sma_20": 0.9,
+        "sma_50": 666.91599609375,
+        "price_vs_sma_50": 3.48,
+        "sma_100": 657.546996459961,
+        "price_vs_sma_100": 4.96,
+        "sma_200": 649.0482476806641,
+        "price_vs_sma_200": 6.33,
+        "ema_12": 686.2984761881416,
+        "ema_26": 679.8630284532484,
+        "ema_50": 670.3086374390739,
+        "golden_cross": true,
+        "death_cross": false,
+        "above_sma_20": 
