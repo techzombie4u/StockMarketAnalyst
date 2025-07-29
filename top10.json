@@ -1,52 +1,7 @@
-
 {
-  "timestamp": "2025-07-29T15:45:00.000000+05:30",
-  "last_updated": "2025-07-29 15:45:00 IST",
-  "stocks": [
-    {
-      "symbol": "SBIN",
-      "score": 78.5,
-      "adjusted_score": 76.2,
-      "confidence": 88,
-      "current_price": 845.75,
-      "predicted_price": 925.80,
-      "predicted_gain": 9.47,
-      "pred_24h": 1.5,
-      "pred_5d": 4.2,
-      "pred_1mo": 9.5,
-      "volatility": 2.3,
-      "time_horizon": 15,
-      "pe_ratio": 12.4,
-      "pe_description": "Below Average",
-      "revenue_growth": 12.5,
-      "earnings_growth": 15.2,
-      "risk_level": "Low",
-      "market_cap": "Large Cap",
-      "technical_summary": "Bullish Trend | RSI Neutral | High Volume",
-      "last_analyzed": "29/07/2025, 15:45:00"
-    },
-    {
-      "symbol": "BHARTIARTL",
-      "score": 72.1,
-      "adjusted_score": 70.8,
-      "confidence": 82,
-      "current_price": 1684.25,
-      "predicted_price": 1798.15,
-      "predicted_gain": 6.76,
-      "pred_24h": 1.2,
-      "pred_5d": 3.8,
-      "pred_1mo": 6.8,
-      "volatility": 1.9,
-      "time_horizon": 18,
-      "pe_ratio": 18.7,
-      "pe_description": "At Par",
-      "revenue_growth": 8.3,
-      "earnings_growth": 11.7,
-      "risk_level": "Low",
-      "market_cap": "Large Cap",
-      "technical_summary": "Neutral Trend | RSI Bullish | Normal Volume",
-      "last_analyzed": "29/07/2025, 15:45:00"
-    }
-  ],
-  "status": "success"
+  "timestamp": "2025-07-29T17:00:56.748129+05:30",
+  "last_updated": "29/07/2025, 17:00:56",
+  "stocks": [],
+  "status": "error",
+  "error": "unindent does not match any outer indentation level (stock_screener.py, line 1598)"
 }
