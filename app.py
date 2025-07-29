@@ -36,9 +36,11 @@ def get_stocks():
     try:
         # Ensure file exists with initial data
         if not os.path.exists('top10.json'):
+            # Generate proper IST timestamp
+            ist_now = datetime.now(IST)
             initial_data = {
-                'timestamp': datetime.now().isoformat(),
-                'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S IST'),
+                'timestamp': ist_now.isoformat(),
+                'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
                 'stocks': [],
                 'status': 'initial'
             }
@@ -67,9 +69,11 @@ def get_stocks():
             logger.error(f"File read/parse error: {str(e)}")
 
             # Reset corrupted file
+            # Generate proper IST timestamp for file reset
+            ist_now = datetime.now(IST)
             initial_data = {
-                'timestamp': datetime.now().isoformat(),
-                'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S IST'),
+                'timestamp': ist_now.isoformat(),
+                'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
                 'stocks': [],
                 'status': 'file_reset'
             }
@@ -150,9 +154,11 @@ def run_now():
                 # Generate demo data as fallback
                 try:
                     logger.info("Generating fallback demo data")
+                    # Generate proper IST timestamp
+                    ist_now = datetime.now(IST)
                     demo_data = {
-                        'timestamp': datetime.now(IST).isoformat(),
-                        'last_updated': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST'),
+                        'timestamp': ist_now.isoformat(),
+                        'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
                         'status': 'demo_fallback',
                         'stocks': [
                             {
@@ -169,6 +175,7 @@ def run_now():
                                 'volatility': 1.5,
                                 'time_horizon': 12,
                                 'pe_ratio': 25.0,
+                                'pe_description': 'At Par',
                                 'revenue_growth': 8.5,
                                 'risk_level': 'Low',
                                 'confidence_level': 'high'
@@ -196,9 +203,11 @@ def force_demo_data():
         logger.info("Generating demo data")
 
         # Create sample data structure with predictions
+        # Generate proper IST timestamp for demo data
+        ist_now = datetime.now(IST)
         demo_data = {
-            'timestamp': datetime.now(IST).isoformat(),
-            'last_updated': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S IST'),
+            'timestamp': ist_now.isoformat(),
+            'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
             'status': 'demo',
             'stocks': [
                 {
@@ -215,7 +224,9 @@ def force_demo_data():
                     'volatility': 1.5,
                     'time_horizon': 12,
                     'pe_ratio': 25.0,
-                    'revenue_growth': 8.5
+                    'pe_description': 'At Par',
+                    'revenue_growth': 8.5,
+                    'risk_level': 'Low'
                 },
                 {
                     'symbol': 'TCS',
@@ -231,7 +242,9 @@ def force_demo_data():
                     'volatility': 1.4,
                     'time_horizon': 12,
                     'pe_ratio': 23.0,
-                    'revenue_growth': 6.2
+                    'pe_description': 'At Par',
+                    'revenue_growth': 6.2,
+                    'risk_level': 'Low'
                 },
                 {
                     'symbol': 'INFY',
@@ -247,7 +260,9 @@ def force_demo_data():
                     'volatility': 1.3,
                     'time_horizon': 15,
                     'pe_ratio': 22.0,
-                    'revenue_growth': 7.8
+                    'pe_description': 'At Par',
+                    'revenue_growth': 7.8,
+                    'risk_level': 'Low'
                 }
             ]
         }

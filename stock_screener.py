@@ -771,8 +771,7 @@ class EnhancedStockScreener:
         # Calculate source performance
         for source in all_sources:
             if source in source_success_count:
-                success_rate = (source_success_count[tool_code
-source]['success'] / 
+                success_rate = (source_success_count[source]['success'] / 
                               source_success_count[source]['total']) * 100
                 quality_report['source_performance'][source] = {
                     'success_rate': round(success_rate, 2),
@@ -2016,3 +2015,62 @@ source]['success'] /
         except Exception as e:
             logger.error(f"Error calculating enhanced score: {str(e)}")
             return {'score': 0, 'confidence': 0, 'risk_factors': [], 'predictions': {'pred_24h': 0, 'pred_5d': 0, 'pred_1mo': 0}}
+
+    def enhanced_score_and_rank(self, stocks_data: Dict) -> List[Dict]:
+        """Enhanced scoring and ranking with all data sources"""
+        try:
+            scored_stocks = []
+            ist_now = datetime.now()
+
+            for symbol, data in stocks_data.items():
+                fundamentals = data.get('fundamentals', {})
+                technical = data.get('technical', {})
+                
+                # Create sentiment data
+                bulk_deals_symbols = [deal['symbol'] for deal in self.bulk_deals]
+                sentiment = {'bulk_deal_bonus': 10 if symbol in bulk_deals_symbols else 0}
+                
+                # Market data
+                market_data = {'market_cap': self._estimate_market_cap(symbol)}
+
+                # Calculate enhanced score
+                scoring_result = self.calculate_enhanced_score(
+                    symbol, fundamentals, technical, sentiment, market_data
+                )
+
+                # Build stock result
+                current_price = technical.get('current_price', 0)
+                score = scoring_result['score']
+                
+                stock_result = {
+                    'symbol': symbol,
+                    'score': score,
+                    'adjusted_score': score * 0.95,  # Slight adjustment
+                    'confidence': scoring_result['confidence'],
+                    'current_price': current_price,
+                    'predicted_price': current_price * (1 + score/100 * 0.2) if current_price > 0 else 0,
+                    'predicted_gain': score * 0.2,  # Simple gain calculation
+                    'pred_24h': scoring_result['predictions']['pred_24h'],
+                    'pred_5d': scoring_result['predictions']['pred_5d'],
+                    'pred_1mo': scoring_result['predictions']['pred_1mo'],
+                    'volatility': technical.get('atr_volatility', 2.0),
+                    'time_horizon': max(1, int(100 - score)),  # Days to target
+                    'pe_ratio': fundamentals.get('pe_ratio'),
+                    'pe_description': self.get_pe_description(fundamentals.get('pe_ratio', 0)),
+                    'revenue_growth': fundamentals.get('revenue_growth', 0),
+                    'earnings_growth': fundamentals.get('earnings_growth', 0),
+                    'risk_level': 'Low' if score > 70 else 'Medium' if score > 50 else 'High',
+                    'market_cap': market_data['market_cap'],
+                    'technical_summary': self._generate_technical_summary(technical),
+                    'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S')
+                }
+
+                scored_stocks.append(stock_result)
+
+            # Sort by score descending and return top 10
+            scored_stocks.sort(key=lambda x: x['score'], reverse=True)
+            return scored_stocks[:10]
+
+        except Exception as e:
+            logger.error(f"Error in enhanced scoring and ranking: {str(e)}")
+            return []
