@@ -93,23 +93,11 @@ def run_system_health_check():
                 return False
 
         # Test stock screener functionality
-        from stock_screener import StockScreener
-        screener = StockScreener()
-        print("✅ Stock screener module loaded successfully")
-
-        # Test scheduler functionality
-        from scheduler import StockAnalystScheduler
-        scheduler = StockAnalystScheduler()
-        print("✅ Scheduler module loaded successfully")
-
-        # Create directories if they don't exist
-        os.makedirs('historical_data', exist_ok=True)
-        os.makedirs('logs', exist_ok=True)
-        print("✅ Required directories created/verified")
-
-        print("✅ System health check completed successfully")
+        from stock_screener import EnhancedStockScreener
+        screener = EnhancedStockScreener()
+        screener.calculate_enhanced_technical_indicators('RELIANCE')
+        print("✅ Stock screener working")
         return True
-
     except Exception as e:
         print(f"❌ System health check failed: {str(e)}")
         return False

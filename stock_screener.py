@@ -643,6 +643,44 @@ class EnhancedStockScreener:
             pass
         return None
 
+    def _extract_mc_market_cap(self, soup) -> Optional[float]:
+        """Extract market cap from MoneyControl"""
+        try:
+            # Look for market cap in the key statistics section
+            mc_elem = soup.find('td', string='Market Cap')
+            if mc_elem and mc_elem.find_next_sibling('td'):
+                mc_text = mc_elem.find_next_sibling('td').get_text().strip()
+                # Convert crores to actual number
+                if 'crore' in mc_text.lower():
+                    value = float(mc_text.replace('crore', '').replace(',', '').strip())
+                    return value * 10000000  # Convert crores to actual value
+                return float(mc_text.replace(',', ''))
+        except:
+            pass
+        return None
+
+    def _extract_mc_volume(self, soup) -> Optional[float]:
+        """Extract volume from MoneyControl"""
+        try:
+            vol_elem = soup.find('td', string='Volume')
+            if vol_elem and vol_elem.find_next_sibling('td'):
+                vol_text = vol_elem.find_next_sibling('td').get_text().strip()
+                return float(vol_text.replace(',', ''))
+        except:
+            pass
+        return None
+
+    def _extract_mc_change(self, soup) -> Optional[float]:
+        """Extract day change from MoneyControl"""
+        try:
+            change_elem = soup.find('span', {'class': 'change'})
+            if change_elem:
+                change_text = change_elem.get_text().strip()
+                return float(change_text.replace('%', '').replace('+', ''))
+        except:
+            pass
+        return None
+
     def _extract_investing_rating(self, soup) -> Optional[str]:
         """Extract technical rating from Investing.com"""
         try:
@@ -1977,6 +2015,35 @@ class EnhancedStockScreener:
             'type': 'Promoter', 
             'percentage': 1.2
         }]
+
+    def fetch_corporate_actions(self, symbol: str) -> Dict:
+        """Fetch corporate actions data (placeholder)"""
+        try:
+            # Placeholder for corporate actions data
+            return {
+                'dividend_yield': None,
+                'bonus_ratio': None,
+                'split_ratio': None,
+                'rights_issue': False
+            }
+        except Exception as e:
+            logger.error(f"Error fetching corporate actions for {symbol}: {str(e)}")
+            return {}
+
+    def get_financial_ratios_extended(self, symbol: str) -> Dict:
+        """Get extended financial ratios (placeholder)"""
+        try:
+            # Placeholder for extended financial ratios
+            return {
+                'current_ratio': None,
+                'quick_ratio': None,
+                'debt_to_equity': None,
+                'return_on_assets': None,
+                'return_on_equity': None
+            }
+        except Exception as e:
+            logger.error(f"Error fetching financial ratios for {symbol}: {str(e)}")
+            return {}
 
     def run_enhanced_screener(self) -> List[Dict]:
         """Main enhanced screening function"""
