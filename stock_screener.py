@@ -1354,6 +1354,20 @@ class EnhancedStockScreener:
 
         return None
 
+    def _calculate_base_score(self, fundamentals: Dict, technical: Dict) -> float:
+        """Calculate base score from fundamental and technical data"""
+        base_score = 30
+        
+        # Add points for having valid data
+        if fundamentals.get('pe_ratio') is not None:
+            base_score += 5
+        if technical.get('current_price', 0) > 0:
+            base_score += 5
+        if technical.get('rsi_14') is not None:
+            base_score += 5
+            
+        return base_score
+
     def enhanced_score_and_rank(self, stocks_data: Dict) -> List[Dict]:
         """Enhanced scoring algorithm with new technical indicators"""
         scored_stocks = []
@@ -1373,7 +1387,7 @@ class EnhancedStockScreener:
             technical = data.get('technical', {})
 
             # Start with base score
-            score = 30
+            score = self._calculate_base_score(fundamentals, technical)
 
             # 1. Enhanced bulk deal scoring
             score += self._score_bulk_deals(symbol, bulk_deal_symbols)
