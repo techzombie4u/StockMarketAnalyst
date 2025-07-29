@@ -408,9 +408,7 @@
                         <th>📊 5d Pred.</th>
                         <th>🎯 1mo Pred.</th>
                         <th>📉 P/E Ratio</th>
-                        <th>🔥 Risk</th>
-                        <th>📊 Growth</th>
-                        <th>🎲 Confidence</th>
+                        <th>📊 Technical Summary</th>
                     </tr>
                 </thead>
                 <tbody id="stockTableBody">
@@ -540,7 +538,7 @@
             tbody.innerHTML = '';
 
             if (!stocks || stocks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #666;">No stock data available. Click "Refresh Now" to load data.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666;">No stock data available. Click "Refresh Now" to load data.</td></tr>';
                 return;
             }
 
@@ -560,21 +558,7 @@
                     <td class="${getGainClass(pred5d)}">${formatGain(pred5d)}</td>
                     <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
                     <td><span class="pe-ratio ${getPEClass(stock.pe_description || 'Not Available')}">${stock.pe_ratio ? stock.pe_ratio.toFixed(1) : 'N/A'}</span></td>
-                    <td><span class="risk-level ${getRiskClass(stock.risk_level || 'Medium')}">${stock.risk_level || 'Medium'}</span></td>
-                    <td class="growth-cell">
-                            <div class="growth-container">
-                                <span class="growth-value" style="color: ${getGrowthColor(stock.revenue_growth || 0)}">
-                                    Rev: ${stock.revenue_growth ? stock.revenue_growth.toFixed(1) : '0'}%
-                                </span>
-                                <span class="growth-value" style="color: ${getGrowthColor(stock.earnings_growth || 0)}">
-                                    Earn: ${stock.earnings_growth ? stock.earnings_growth.toFixed(1) : '0'}%
-                                </span>
-                                <span class="growth-combined" style="color: ${getGrowthColor(stock.combined_growth || 0)}">
-                                    Avg: ${stock.combined_growth ? stock.combined_growth.toFixed(1) : '0'}%
-                                </span>
-                            </div>
-                        </td>
-                    <td>${stock.confidence || 0}%</td>
+                    <td style="font-size: 0.85em; color: #666;">${stock.technical_summary || 'N/A'}</td>
                 `;
                 tbody.appendChild(row);
             });
