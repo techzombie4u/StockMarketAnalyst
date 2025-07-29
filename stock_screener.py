@@ -304,10 +304,11 @@ class EnhancedStockScreener:
         # Primary source: Yahoo Finance (most reliable)
         try:
             ticker = f"{symbol}.NS"
-            # Add more robust error handling and retry logic
             import yfinance as yf
-            stock = yf.Ticker(ticker)
-            hist_data = stock.history(period="1y")
+            
+            # Try with session for better reliability
+            stock = yf.Ticker(ticker, session=self.session)
+            hist_data = stock.history(period="1y", timeout=15)
 
             if hist_data is not None and not hist_data.empty and len(hist_data) > 30:
                 logger.debug(f"Yahoo Finance data successful for {symbol}: {len(hist_data)} days")
@@ -315,15 +316,15 @@ class EnhancedStockScreener:
         except Exception as e:
             logger.warning(f"Yahoo Finance primary failed for {symbol}: {str(e)}")
 
-        # Fallback: Try with different ticker formats
+        # Fallback: Try with different ticker formats and periods
         ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
         fallback_periods = ["6mo", "3mo", "2mo", "1mo"]
 
         for ticker_format in ticker_formats:
             for period in fallback_periods:
                 try:
-                    stock = yf.Ticker(ticker_format)
-                    hist_data = stock.history(period=period)
+                    stock = yf.Ticker(ticker_format, session=self.session)
+                    hist_data = stock.history(period=period, timeout=10)
 
                     if hist_data is not None and not hist_data.empty and len(hist_data) > 10:
                         logger.info(f"Yahoo Finance fallback successful for {symbol} ({ticker_format}, {period}): {len(hist_data)} days")
@@ -1118,10 +1119,19 @@ class EnhancedStockScreener:
         """Enhanced scrape fundamental data from Screener.in with better error handling"""
         try:
             url = f"https://www.screener.in/company/{symbol}/consolidated/"
-            response = self.session.get(url, timeout=15)
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.screener.in/',
+                'Connection': 'keep-alive',
+            }
+            
+            response = self.session.get(url, headers=headers, timeout=15)
 
             fallback_data = {
-                'pe_ratio': 20.0,  # Default reasonable PE
+                'pe_ratio': 20.0,
                 'revenue_growth': 5.0,
                 'earnings_growth': 3.0,
                 'promoter_buying': False,
@@ -1132,35 +1142,36 @@ class EnhancedStockScreener:
             }
 
             if response.status_code != 200:
-                logger.warning(f"Failed to fetch data for {symbol}: {response.status_code}")
-                return fallback_data
+                logger.warning(f"Screener.in failed for {symbol}: {response.status_code}")
+                # Try alternative URL format
+                try:
+                    alt_url = f"https://www.screener.in/company/{symbol}/"
+                    alt_response = self.session.get(alt_url, headers=headers, timeout=10)
+                    if alt_response.status_code == 200:
+                        response = alt_response
+                    else:
+                        return fallback_data
+                except:
+                    return fallback_data
 
             soup = BeautifulSoup(response.content, 'html.parser')
-
             result = fallback_data.copy()
             result['data_source'] = 'screener'
 
-            # Try to extract PE ratio
-            try:
-                # Look for PE ratio in various formats
-                pe_elements = soup.find_all(text=lambda text: text and 'P/E' in text)
-                for element in pe_elements:
-                    parent = element.parent
-                    if parent:
-                        # Find the next number
-                        next_sibling = parent.find_next_sibling()
-                        if next_sibling:
-                            pe_text = next_sibling.get_text(strip=True)
-                            try:
-                                pe_value = float(pe_text.replace(',', ''))
-                                if 0 < pe_value < 500:
-                                    result['pe_ratio'] = pe_value
-                                    break
-                            except ValueError:
-                                continue
-            except Exception:
-                pass
+            # Extract PE ratio with multiple methods
+            pe_ratio = self._extract_pe_ratio_enhanced(soup, symbol)
+            if pe_ratio:
+                result['pe_ratio'] = pe_ratio
 
+            # Extract financial metrics
+            financial_metrics = self._extract_financial_metrics_enhanced(soup)
+            result.update(financial_metrics)
+
+            # Extract growth data
+            growth_data = self._extract_growth_data_enhanced(soup)
+            result.update(growth_data)
+
+            logger.debug(f"Scraped data for {symbol}: PE={result.get('pe_ratio', 'N/A')}")
             return result
 
         except Exception as e:
@@ -1175,6 +1186,151 @@ class EnhancedStockScreener:
                 'current_ratio': 1.5,
                 'data_source': 'error'
             }
+    
+    def _extract_pe_ratio_enhanced(self, soup: BeautifulSoup, symbol: str) -> Optional[float]:
+        """Enhanced PE ratio extraction with multiple strategies"""
+        strategies = [
+            # Strategy 1: Look for "Stock P/E" in ratio section
+            lambda: self._find_ratio_value(soup, ["Stock P/E", "P/E", "PE Ratio"]),
+            # Strategy 2: Look in company ratios table
+            lambda: self._find_table_value(soup, "P/E"),
+            # Strategy 3: Look for span with number class
+            lambda: self._find_pe_in_numbers(soup),
+            # Strategy 4: Fallback to yfinance
+            lambda: self._get_pe_from_yfinance(symbol)
+        ]
+        
+        for strategy in strategies:
+            try:
+                pe_value = strategy()
+                if pe_value and 0 < pe_value < 500:
+                    return pe_value
+            except Exception as e:
+                logger.debug(f"PE extraction strategy failed: {str(e)}")
+                continue
+        
+        return None
+    
+    def _find_ratio_value(self, soup: BeautifulSoup, search_terms: List[str]) -> Optional[float]:
+        """Find ratio value by searching for terms"""
+        for term in search_terms:
+            elements = soup.find_all(text=lambda text: text and term in text)
+            for element in elements:
+                parent = element.parent
+                if parent:
+                    # Look for sibling with number
+                    for sibling in [parent.find_next_sibling(), parent.parent.find_next('span')]:
+                        if sibling and sibling.text:
+                            try:
+                                value = float(sibling.text.strip().replace(',', ''))
+                                return value
+                            except ValueError:
+                                continue
+        return None
+    
+    def _find_table_value(self, soup: BeautifulSoup, search_term: str) -> Optional[float]:
+        """Find value in table structure"""
+        tables = soup.find_all('table')
+        for table in tables:
+            rows = table.find_all('tr')
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                for i, cell in enumerate(cells):
+                    if search_term in cell.get_text():
+                        if i + 1 < len(cells):
+                            try:
+                                value = float(cells[i + 1].get_text().strip().replace(',', ''))
+                                return value
+                            except ValueError:
+                                continue
+        return None
+    
+    def _find_pe_in_numbers(self, soup: BeautifulSoup) -> Optional[float]:
+        """Look for PE in number spans"""
+        number_spans = soup.find_all('span', class_='number')
+        for span in number_spans:
+            try:
+                value = float(span.get_text().strip().replace(',', ''))
+                if 5 < value < 100:  # Reasonable PE range
+                    return value
+            except ValueError:
+                continue
+        return None
+    
+    def _get_pe_from_yfinance(self, symbol: str) -> Optional[float]:
+        """Fallback to get PE from yfinance"""
+        try:
+            import yfinance as yf
+            ticker = f"{symbol}.NS"
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            if 'trailingPE' in info and info['trailingPE']:
+                return float(info['trailingPE'])
+        except Exception:
+            pass
+        return None
+    
+    def _extract_financial_metrics_enhanced(self, soup: BeautifulSoup) -> Dict:
+        """Extract financial metrics with better parsing"""
+        metrics = {}
+        
+        # Define metric mappings
+        metric_mappings = {
+            'debt_to_equity': ['Debt to equity', 'D/E', 'Debt/Equity'],
+            'roe': ['ROE', 'Return on equity', 'Return on Equity'],
+            'current_ratio': ['Current ratio', 'Current Ratio']
+        }
+        
+        for metric, search_terms in metric_mappings.items():
+            value = self._find_ratio_value(soup, search_terms)
+            if value is not None:
+                metrics[metric] = value
+        
+        return metrics
+    
+    def _extract_growth_data_enhanced(self, soup: BeautifulSoup) -> Dict:
+        """Extract growth data with better parsing"""
+        growth_data = {
+            'revenue_growth': 5.0,
+            'earnings_growth': 3.0,
+            'promoter_buying': False
+        }
+        
+        try:
+            # Look for quarterly results or annual data
+            tables = soup.find_all('table')
+            
+            for table in tables:
+                # Check if this is a financial results table
+                headers = table.find_all('th')
+                if any('sales' in th.get_text().lower() or 'revenue' in th.get_text().lower() for th in headers):
+                    rows = table.find_all('tr')
+                    for row in rows:
+                        cells = row.find_all(['td', 'th'])
+                        if len(cells) >= 3:
+                            row_text = cells[0].get_text().lower()
+                            
+                            # Look for sales/revenue growth
+                            if any(term in row_text for term in ['sales', 'revenue', 'income']):
+                                growth = self._calculate_growth_from_cells(cells[1:3])
+                                if growth is not None:
+                                    growth_data['revenue_growth'] = growth
+                            
+                            # Look for profit/earnings growth
+                            elif any(term in row_text for term in ['net profit', 'earnings', 'pat']):
+                                growth = self._calculate_growth_from_cells(cells[1:3])
+                                if growth is not None:
+                                    growth_data['earnings_growth'] = growth
+            
+            # Check for promoter buying indicators
+            page_text = soup.get_text().lower()
+            if any(term in page_text for term in ['promoter', 'buying', 'increase in holding']):
+                growth_data['promoter_buying'] = True
+                
+        except Exception as e:
+            logger.debug(f"Error extracting growth data: {str(e)}")
+        
+        return growth_data
 
     def _extract_pe_ratio(self, soup: BeautifulSoup, symbol: str) -> Optional[float]:
         """Enhanced PE ratio extraction"""
@@ -1407,58 +1563,82 @@ class EnhancedStockScreener:
     def scrape_bulk_deals(self) -> List[Dict]:
         """Scrape bulk deals with enhanced error handling"""
         try:
-            url = "https://trendlyne.com/equity/bulk-block-deals/today/"
+            # Try multiple sources for bulk deals
+            sources = [
+                "https://trendlyne.com/equity/bulk-block-deals/today/",
+                "https://www.nseindia.com/api/corporates-bulk-deals",
+                "https://www.bseindia.com/corporates/bulk_deals.aspx"
+            ]
+            
+            for url in sources:
+                try:
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Accept-Encoding': 'gzip, deflate, br',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1',
+                    }
 
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
-                'Connection': 'keep-alive',
-            }
+                    response = self.session.get(url, headers=headers, timeout=15)
 
-            response = self.session.get(url, headers=headers, timeout=15)
+                    if response.status_code == 200:
+                        soup = BeautifulSoup(response.content, 'html.parser')
+                        deals = self._parse_bulk_deals_from_soup(soup)
+                        
+                        if deals:
+                            logger.info(f"Found {len(deals)} bulk deals from {url}")
+                            return deals
+                            
+                except Exception as e:
+                    logger.warning(f"Failed to fetch from {url}: {str(e)}")
+                    continue
 
-            if response.status_code != 200:
-                logger.warning(f"Failed to fetch bulk deals: {response.status_code}")
-                return self._get_fallback_bulk_deals()
-
-            soup = BeautifulSoup(response.content, 'html.parser')
-            deals = []
-
-            tables = soup.find_all('table', {'class': 'table'})
-
-            for table in tables:
-                rows = table.find_all('tr')[1:]  # Skip header row
-
-                for row in rows:
-                    cells = row.find_all(['td', 'th'])
-
-                    if len(cells) >= 6:
-                        try:
-                            symbol = cells[0].get_text(strip=True).upper()
-                            client_name = cells[1].get_text(strip=True)
-                            deal_type = cells[2].get_text(strip=True)
-
-                            if symbol in self.under500_symbols:
-                                deals.append({
-                                    'symbol': symbol,
-                                    'type': 'Buy' if 'buy' in deal_type.lower() else 'Sell',
-                                    'percentage': 1.0,
-                                    'client': client_name,
-                                    'deal_type': deal_type
-                                })
-
-                        except (ValueError, IndexError) as e:
-                            logger.debug(f"Error parsing bulk deal row: {str(e)}")
-                            continue
-
-            logger.info(f"Found {len(deals)} bulk deals")
-            return deals
+            logger.warning("All bulk deal sources failed, using fallback")
+            return self._get_fallback_bulk_deals()
 
         except Exception as e:
             logger.error(f"Error scraping bulk deals: {str(e)}")
             return self._get_fallback_bulk_deals()
+    
+    def _parse_bulk_deals_from_soup(self, soup: BeautifulSoup) -> List[Dict]:
+        """Parse bulk deals from HTML soup"""
+        deals = []
+        
+        # Look for table with bulk deals data
+        tables = soup.find_all('table')
+        
+        for table in tables:
+            rows = table.find_all('tr')
+            
+            for row in rows[1:]:  # Skip header row
+                cells = row.find_all(['td', 'th'])
+                
+                if len(cells) >= 3:
+                    try:
+                        # Extract symbol (first column usually)
+                        symbol_text = cells[0].get_text(strip=True).upper()
+                        # Clean symbol name
+                        symbol = ''.join(c for c in symbol_text if c.isalpha())
+                        
+                        if symbol in self.under500_symbols:
+                            client_name = cells[1].get_text(strip=True) if len(cells) > 1 else 'Unknown'
+                            deal_type = cells[2].get_text(strip=True) if len(cells) > 2 else 'Buy'
+                            
+                            deals.append({
+                                'symbol': symbol,
+                                'type': 'Buy' if 'buy' in deal_type.lower() else 'Sell',
+                                'percentage': 1.0,
+                                'client': client_name,
+                                'deal_type': deal_type
+                            })
+                            
+                    except Exception as e:
+                        logger.debug(f"Error parsing bulk deal row: {str(e)}")
+                        continue
+        
+        return deals
 
     def _classify_deal_type(self, client_name: str, deal_type: str) -> str:
         """Classify deal type based on client name and deal type"""
@@ -1533,67 +1713,100 @@ class EnhancedStockScreener:
             return {}
 
     def run_enhanced_screener(self) -> List[Dict]:
-        """Main enhanced screening function"""
+        """Main enhanced screening function with real-time data"""
         logger.info("Starting enhanced stock screening process...")
-
+        
         try:
-            # Step 1: Create demo data if real scraping fails
-            logger.info("Creating reliable demo data...")
-
-            # Use expanded list of quality stocks under ₹500
-            test_symbols = [
-            'SBIN', 'BHARTIARTL', 'ITC', 'NTPC', 'POWERGRID',
-            'ONGC', 'COALINDIA', 'TATASTEEL', 'JSWSTEEL', 'HINDALCO',
-            'TATAMOTORS', 'M&M', 'BPCL', 'GAIL', 'IOC',
-            'SAIL', 'VEDL', 'BANKBARODA', 'CANBK', 'PNB',
-            'RECLTD', 'PFC', 'IRCTC', 'HAL', 'BEL',
-            'FEDERALBNK', 'IDFCFIRSTB', 'RBLBANK', 'LICHSGFIN', 'MUTHOOTFIN'
-            ]
-
-            scored_stocks = []
-
-            for symbol in test_symbols:
+            # Step 1: Scrape bulk deals
+            logger.info("Fetching bulk deals data...")
+            self.bulk_deals = self.scrape_bulk_deals()
+            bulk_deal_symbols = [deal['symbol'] for deal in self.bulk_deals]
+            logger.info(f"Found {len(self.bulk_deals)} bulk deals")
+            
+            # Step 2: Collect stock data
+            stocks_data = {}
+            
+            for i, symbol in enumerate(self.under500_symbols[:30]):  # Process 30 stocks
                 try:
-                    # Simple scoring without complex data fetching
-                    stock_data = {
-                        'symbol': symbol,
-                        'score': 75.0 + (hash(symbol) % 20) - 10,  # Varied scores
-                        'adjusted_score': 72.0 + (hash(symbol) % 15),
-                        'confidence': 85 + (hash(symbol) % 15),
-                        'current_price': 1000 + (hash(symbol) % 1000),
-                        'predicted_price': 1200 + (hash(symbol) % 800),
-                        'predicted_gain': 15.0 + (hash(symbol) % 10),
-                        'pred_24h': 1.2 + (hash(symbol) % 5) * 0.1,
-                        'pred_5d': 4.5 + (hash(symbol) % 8) * 0.2,
-                        'pred_1mo': 12.0 + (hash(symbol) % 15),
-                        'volatility': 1.5 + (hash(symbol) % 10) * 0.1,
-                        'time_horizon': 10 + (hash(symbol) % 20),
-                        'pe_ratio': 20.0 + (hash(symbol) % 15),
-                        'pe_description': 'At Par',
-                        'revenue_growth': 8.0 + (hash(symbol) % 10),
-                        'earnings_growth': 6.0 + (hash(symbol) % 12),
-                        'risk_level': 'Low' if hash(symbol) % 3 == 0 else 'Medium',
-                        'market_cap': 'Large Cap',
-                        'technical_summary': 'Bullish Trend | RSI Neutral | High Volume',
-                        'last_analyzed': datetime.now().strftime('%d/%m/%Y, %H:%M:%S')
-                    }
-
-                    scored_stocks.append(stock_data)
-                    logger.info(f"Generated data for {symbol}")
-
+                    logger.info(f"Processing {symbol} ({i+1}/30)...")
+                    
+                    # Get fundamental data
+                    fundamentals = self.scrape_screener_data(symbol)
+                    
+                    # Get technical indicators
+                    technical = self.calculate_enhanced_technical_indicators(symbol)
+                    
+                    if fundamentals or technical:
+                        stocks_data[symbol] = {
+                            'fundamentals': fundamentals,
+                            'technical': technical,
+                            'bulk_deals': symbol in bulk_deal_symbols
+                        }
+                        logger.info(f"✅ {symbol}: Got data")
+                    else:
+                        logger.warning(f"⚠️ {symbol}: No data available")
+                        
+                    # Add delay to avoid rate limiting
+                    time.sleep(1)
+                    
                 except Exception as e:
-                    logger.error(f"Error creating data for {symbol}: {str(e)}")
+                    logger.error(f"Error processing {symbol}: {str(e)}")
                     continue
-
-            # Sort by score
-            scored_stocks.sort(key=lambda x: x['score'], reverse=True)
-
-            logger.info(f"✅ Successfully generated {len(scored_stocks)} stock records")
+            
+            # Step 3: Score and rank stocks
+            logger.info("Scoring and ranking stocks...")
+            scored_stocks = self.enhanced_score_and_rank(stocks_data)
+            
+            # Step 4: Add ML predictions if available
+            try:
+                from predictor import enrich_with_ml_predictions
+                scored_stocks = enrich_with_ml_predictions(scored_stocks)
+                logger.info("✅ ML predictions added")
+            except Exception as e:
+                logger.warning(f"ML predictions failed: {str(e)}")
+            
+            logger.info(f"✅ Successfully screened {len(scored_stocks)} stocks")
             return scored_stocks
-
+            
         except Exception as e:
             logger.error(f"Critical error in screening: {str(e)}")
-            return []
+            # Fallback to demo data if real screening fails
+            return self._generate_fallback_data()
+
+    def _generate_fallback_data(self) -> List[Dict]:
+        """Generate fallback demo data when real scraping fails"""
+        logger.info("Generating fallback demo data...")
+        
+        fallback_stocks = []
+        test_symbols = self.under500_symbols[:30]
+        
+        for symbol in test_symbols:
+            stock_data = {
+                'symbol': symbol,
+                'score': 65.0 + (hash(symbol) % 25),
+                'adjusted_score': 62.0 + (hash(symbol) % 20),
+                'confidence': 80 + (hash(symbol) % 20),
+                'current_price': 200 + (hash(symbol) % 300),
+                'predicted_price': 240 + (hash(symbol) % 200),
+                'predicted_gain': 10.0 + (hash(symbol) % 15),
+                'pred_24h': 0.5 + (hash(symbol) % 3) * 0.3,
+                'pred_5d': 2.0 + (hash(symbol) % 6) * 0.5,
+                'pred_1mo': 8.0 + (hash(symbol) % 12),
+                'volatility': 1.0 + (hash(symbol) % 20) * 0.1,
+                'time_horizon': 15 + (hash(symbol) % 30),
+                'pe_ratio': 15.0 + (hash(symbol) % 20),
+                'pe_description': 'At Par',
+                'revenue_growth': 5.0 + (hash(symbol) % 15),
+                'earnings_growth': 3.0 + (hash(symbol) % 12),
+                'risk_level': 'Low' if hash(symbol) % 3 == 0 else 'Medium',
+                'market_cap': self._estimate_market_cap(symbol),
+                'technical_summary': 'Demo Data | Market Closed',
+                'last_analyzed': datetime.now().strftime('%d/%m/%Y, %H:%M:%S')
+            }
+            fallback_stocks.append(stock_data)
+        
+        fallback_stocks.sort(key=lambda x: x['score'], reverse=True)
+        return fallback_stocks[:10]
 
     def is_market_hours(self) -> bool:
         """Check if the current time is within market hours (9 AM - 4 PM IST)"""
