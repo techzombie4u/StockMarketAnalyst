@@ -352,13 +352,24 @@ class DailyTechnicalAnalyzer:
                 hist_vol_20 = returns.rolling(window=20).std() * np.sqrt(252) * 100
                 indicators['historical_volatility_20'] = round(hist_vol_20.iloc[-1], 2)
                 
-                # Volatility classification
-                if indicators['historical_volatility_20'] < 20:
+                # Enhanced volatility classification with ATR-based thresholds
+                atr_volatility = indicators.get('atr_volatility_pct', 2.5)
+                
+                # Dynamic volatility regimes based on ATR percentage
+                if atr_volatility < 1.5:
                     indicators['volatility_regime'] = 'low'
-                elif indicators['historical_volatility_20'] > 40:
-                    indicators['volatility_regime'] = 'high'
-                else:
+                elif 1.5 <= atr_volatility <= 3.0:
                     indicators['volatility_regime'] = 'medium'
+                else:
+                    indicators['volatility_regime'] = 'high'
+                
+                # Additional classification based on historical volatility
+                if indicators['historical_volatility_20'] < 15:
+                    indicators['hist_vol_regime'] = 'low'
+                elif indicators['historical_volatility_20'] > 35:
+                    indicators['hist_vol_regime'] = 'high'
+                else:
+                    indicators['hist_vol_regime'] = 'medium'
             
             # Daily Range Analysis
             daily_range = ((high - low) / close) * 100

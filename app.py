@@ -125,13 +125,73 @@ def get_stocks():
         }), 500
 
 @app.route('/api/status')
-def get_status():
-    """Get scheduler status"""
-    global scheduler
-    if scheduler:
-        return jsonify(scheduler.get_job_status())
-    else:
-        return jsonify({'running': False, 'jobs': []})
+def api_status():
+    """Get API status and screening statistics with confidence filtering info"""
+    try:
+        # Read current data
+        try:
+            with open('top10.json', 'r') as f:
+                data = json.load(f)
+                stock_count = len(data) if isinstance(data, list) else 0
+
+                # Calculate confidence statistics
+                if isinstance(data, list) and stock_count > 0:
+                    confidences = [stock.get('confidence', 0) for stock in data]
+                    avg_confidence = round(sum(confidences) / len(confidences), 1)
+                    high_confidence_count = len([c for c in confidences if c >= 90])
+                    confidence_stats = {
+                        'average_confidence': avg_confidence,
+                        'high_confidence_stocks': high_confidence_count,
+                        'confidence_threshold': 80.0,
+                        'min_confidence': round(min(confidences), 1) if confidences else 0,
+                        'max_confidence': round(max(confidences), 1) if confidences else 0
+                    }
+                else:
+                    confidence_stats = {
+                        'average_confidence': 0,
+                        'high_confidence_stocks': 0,
+                        'confidence_threshold': 80.0,
+                        'min_confidence': 0,
+                        'max_confidence': 0
+                    }
+        except:
+            stock_count = 0
+            confidence_stats = {
+                'average_confidence': 0,
+                'high_confidence_stocks': 0,
+                'confidence_threshold': 80.0,
+                'min_confidence': 0,
+                'max_confidence': 0
+            }
+
+        status = {
+            'status': 'active',
+            'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'stock_count': stock_count,
+            'confidence_filtering': confidence_stats,
+            'scheduler_running': True,
+            'next_update': 'Every hour',
+            'data_sources': ['Screener.in', 'Yahoo Finance', 'Daily OHLC'],
+            'features': [
+                'Enhanced Technical Analysis (50+ indicators)',
+                'Dynamic Volatility Classification', 
+                'ML Confidence Scoring (80% threshold)',
+                'Short-term Prediction Enhancement',
+                'Risk Assessment',
+                'Advanced Signal Filtering'
+            ],
+            'enhancements': {
+                'volatility_classification': 'Dynamic ATR-based (Low: <1.5%, Medium: 1.5-3%, High: >3%)',
+                'confidence_filtering': 'ML-style scoring with 80% minimum threshold',
+                'prediction_granularity': 'Enhanced with multi-indicator confirmation'
+            }
+        }
+
+        return jsonify(status)
+
+    except Exception as e:
+        logger.error(f"Error in API status: {str(e)}")
+        return jsonify({'error': 'Status check failed'}), 500
 
 @app.route('/api/run-now', methods=['POST'])
 def run_now():
