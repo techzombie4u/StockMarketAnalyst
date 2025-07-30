@@ -207,19 +207,18 @@ class EnhancedStockScreener:
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
 
-        # High-scoring quality stocks - optimized for 70+ scores
+        # Quality stocks under ₹500 list
         self.under500_symbols = [
-            # Top performers (70+ expected scores)
-            'BPCL', 'RECLTD', 'HINDALCO', 'TATASTEEL', 'BANKINDIA',
-            'PFC', 'TATAMOTORS', 'IOC', 'AXISBANK',
-
-            # Strong performers (65-70 expected scores)
-            'ONGC', 'POWERGRID', 'GAIL', 'NTPC', 'COALINDIA',
-            'SBIN', 'M&M', 'JSWSTEEL', 'HAL', 'SAIL',
-
-            # Good backup stocks
-            'BHARTIARTL', 'ITC', 'VEDL', 'BANKBARODA', 'CANBK',
-            'PNB', 'UNIONBANK', 'CENTRALBK', 'INDIANB', 'IRFC'
+            'SBIN', 'BHARTIARTL', 'ITC', 'NTPC', 'POWERGRID',
+            'ONGC', 'COALINDIA', 'TATASTEEL', 'JSWSTEEL', 'HINDALCO',
+            'TATAMOTORS', 'M&M', 'BPCL', 'GAIL', 'IOC',
+            'SAIL', 'VEDL', 'BANKBARODA', 'CANBK',
+            'PNB', 'UNIONBANK', 'BANKINDIA', 'CENTRALBK', 'INDIANB',
+            'RECLTD', 'PFC', 'IRFC', 'IRCTC', 'RAILTEL',
+            'HAL', 'BEL', 'BEML', 'BHEL', 'CONCOR',
+            'NBCC', 'RITES', 'KTKBANK', 'FEDERALBNK', 'IDFCFIRSTB',
+            'EQUITAS', 'RBLBANK', 'YESBANK', 'LICHSGFIN',
+            'MUTHOOTFIN', 'BAJAJHLDNG', 'GODREJCP', 'MARICO', 'DABUR'
         ]
 
         # Use stocks under ₹500 for comprehensive screening
@@ -779,7 +778,6 @@ class EnhancedStockScreener:
             indicators['price_above_ema_21'] = float(current_price) > float(indicators.get('ema_21', 0))
             indicators['ema_12_above_21'] = float(indicators.get('ema_12', 0)) > float(indicators.get('ema_21', 0))
 
-```python
             # EMA trend strength
             ema_5 = indicators.get('ema_5', 0)
             ema_21 = indicators.get('ema_21', 0)
