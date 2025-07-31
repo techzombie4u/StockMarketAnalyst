@@ -1,0 +1,334 @@
+
+"""
+External Historical Data Importer
+Imports 1-year historical data from external sources for model training
+"""
+
+import pandas as pd
+import numpy as np
+import json
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+from data_loader import MLDataLoader
+from models import MLModels
+import yfinance as yf
+
+logger = logging.getLogger(__name__)
+
+class ExternalDataImporter:
+    def __init__(self):
+        self.data_loader = MLDataLoader()
+        self.models = MLModels()
+        
+    def import_historical_csv(self, csv_file_path: str, symbol: str) -> Optional[pd.DataFrame]:
+        """
+        Import historical data from CSV file
+        Expected columns: Date, Open, High, Low, Close, Volume
+        """
+        try:
+            df = pd.read_csv(csv_file_path)
+            
+            # Standardize column names
+            column_mapping = {
+                'date': 'Date', 'Date': 'Date',
+                'open': 'Open', 'Open': 'Open', 'OPEN': 'Open',
+                'high': 'High', 'High': 'High', 'HIGH': 'High',
+                'low': 'Low', 'Low': 'Low', 'LOW': 'Low',
+                'close': 'Close', 'Close': 'Close', 'CLOSE': 'Close',
+                'volume': 'Volume', 'Volume': 'Volume', 'VOLUME': 'Volume'
+            }
+            
+            df = df.rename(columns=column_mapping)
+            
+            # Ensure required columns exist
+            required_cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+            if not all(col in df.columns for col in required_cols):
+                logger.error(f"Missing required columns in CSV: {required_cols}")
+                return None
+            
+            # Convert Date column
+            df['Date'] = pd.to_datetime(df['Date'])
+            df = df.sort_values('Date')
+            
+            # Add symbol for reference
+            df['Symbol'] = symbol
+            
+            logger.info(f"Imported {len(df)} days of historical data for {symbol}")
+            return df
+            
+        except Exception as e:
+            logger.error(f"Error importing CSV data: {str(e)}")
+            return None
+    
+    def import_yfinance_extended(self, symbol: str, period: str = "1y") -> Optional[pd.DataFrame]:
+        """
+        Import extended historical data using yfinance
+        """
+        try:
+            ticker = f"{symbol}.NS"  # NSE format
+            
+            # Try different ticker formats if NSE fails
+            ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
+            
+            for ticker_format in ticker_formats:
+                try:
+                    stock = yf.Ticker(ticker_format)
+                    df = stock.history(period=period, interval="1d")
+                    
+                    if not df.empty and len(df) > 200:  # At least 200 days
+                        df.reset_index(inplace=True)
+                        df['Symbol'] = symbol
+                        logger.info(f"Downloaded {len(df)} days for {symbol} using {ticker_format}")
+                        return df
+                        
+                except Exception as e:
+                    logger.debug(f"Failed {ticker_format}: {str(e)}")
+                    continue
+            
+            logger.warning(f"Could not download data for {symbol}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error downloading extended data for {symbol}: {str(e)}")
+            return None
+    
+    def create_enhanced_training_dataset(self, 
+                                       symbols_list: List[str], 
+                                       csv_data_path: str = None,
+                                       use_extended_period: bool = True) -> Dict:
+        """
+        Create comprehensive training dataset using multiple sources
+        """
+        try:
+            logger.info(f"Creating enhanced training dataset for {len(symbols_list)} symbols...")
+            
+            all_historical_data = []
+            lstm_X, lstm_y = [], []
+            rf_X, rf_y = [], []
+            
+            for i, symbol in enumerate(symbols_list):
+                logger.info(f"Processing {symbol} ({i+1}/{len(symbols_list)})...")
+                
+                # Try multiple data sources
+                historical_df = None
+                
+                # Source 1: CSV data (if provided)
+                if csv_data_path:
+                    csv_file = f"{csv_data_path}/{symbol}.csv"
+                    historical_df = self.import_historical_csv(csv_file, symbol)
+                
+                # Source 2: Extended yfinance download
+                if historical_df is None and use_extended_period:
+                    historical_df = self.import_yfinance_extended(symbol, period="2y")
+                
+                # Source 3: Standard yfinance (fallback)
+                if historical_df is None:
+                    historical_df = self.data_loader.fetch_historical_data(symbol, period="1y")
+                
+                if historical_df is None or len(historical_df) < 100:
+                    logger.warning(f"Insufficient data for {symbol}, skipping...")
+                    continue
+                
+                # Calculate technical indicators
+                historical_df = self.data_loader.calculate_technical_indicators(historical_df)
+                all_historical_data.append(historical_df)
+                
+                # Create fundamental data (get from screener or use defaults)
+                fundamentals = self._get_fundamentals_for_symbol(symbol)
+                
+                # Prepare LSTM training data (time series)
+                lstm_sequences = self._create_lstm_sequences(historical_df)
+                if lstm_sequences:
+                    lstm_X.extend(lstm_sequences['X'])
+                    lstm_y.extend(lstm_sequences['y'])
+                
+                # Prepare RF training data (daily samples)
+                rf_samples = self._create_rf_samples(historical_df, fundamentals)
+                if rf_samples:
+                    rf_X.extend(rf_samples['X'])
+                    rf_y.extend(rf_samples['y'])
+                
+                logger.info(f"✅ {symbol}: LSTM sequences: {len(lstm_sequences['X']) if lstm_sequences else 0}, RF samples: {len(rf_samples['X']) if rf_samples else 0}")
+            
+            # Save comprehensive dataset
+            training_dataset = {
+                'lstm': {
+                    'X': np.array(lstm_X) if lstm_X else None,
+                    'y': np.array(lstm_y) if lstm_y else None
+                },
+                'rf': {
+                    'X': np.array(rf_X) if rf_X else None,
+                    'y': np.array(rf_y) if rf_y else None
+                },
+                'metadata': {
+                    'symbols_processed': len(all_historical_data),
+                    'total_symbols': len(symbols_list),
+                    'lstm_samples': len(lstm_X),
+                    'rf_samples': len(rf_X),
+                    'creation_date': datetime.now().isoformat(),
+                    'data_period': '1-2 years historical'
+                }
+            }
+            
+            # Save dataset for future use
+            with open('enhanced_training_dataset.json', 'w') as f:
+                # Convert numpy arrays to lists for JSON serialization
+                serializable_dataset = {
+                    'lstm': {
+                        'X': lstm_X if isinstance(lstm_X, list) else lstm_X.tolist() if lstm_X is not None else None,
+                        'y': lstm_y if isinstance(lstm_y, list) else lstm_y.tolist() if lstm_y is not None else None
+                    },
+                    'rf': {
+                        'X': rf_X if isinstance(rf_X, list) else rf_X.tolist() if rf_X is not None else None,
+                        'y': rf_y if isinstance(rf_y, list) else rf_y.tolist() if rf_y is not None else None
+                    },
+                    'metadata': training_dataset['metadata']
+                }
+                json.dump(serializable_dataset, f, indent=2)
+            
+            logger.info(f"Enhanced training dataset created:")
+            logger.info(f"  - LSTM samples: {len(lstm_X)}")
+            logger.info(f"  - RF samples: {len(rf_X)}")
+            logger.info(f"  - Symbols processed: {len(all_historical_data)}/{len(symbols_list)}")
+            
+            return training_dataset
+            
+        except Exception as e:
+            logger.error(f"Error creating enhanced training dataset: {str(e)}")
+            return {}
+    
+    def _create_lstm_sequences(self, df: pd.DataFrame) -> Optional[Dict]:
+        """Create LSTM training sequences from historical data"""
+        try:
+            # Use data loader's LSTM preparation
+            X, y = self.data_loader.prepare_lstm_data(df)
+            
+            if X is not None and y is not None:
+                return {'X': X, 'y': y}
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error creating LSTM sequences: {str(e)}")
+            return None
+    
+    def _create_rf_samples(self, df: pd.DataFrame, fundamentals: Dict) -> Optional[Dict]:
+        """Create Random Forest training samples from historical data"""
+        try:
+            # Create multiple samples from different time windows
+            samples_X, samples_y = [], []
+            
+            # Use last 60 days for sample creation, moving window approach
+            window_size = 30
+            
+            for i in range(window_size, len(df)):
+                window_data = df.iloc[i-window_size:i]
+                
+                # Use data loader's RF preparation
+                X, y = self.data_loader.prepare_rf_data(window_data, fundamentals)
+                
+                if X is not None and y is not None:
+                    samples_X.extend(X)
+                    samples_y.extend(y)
+            
+            if samples_X:
+                return {'X': samples_X, 'y': samples_y}
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error creating RF samples: {str(e)}")
+            return None
+    
+    def _get_fundamentals_for_symbol(self, symbol: str) -> Dict:
+        """Get fundamental data for symbol"""
+        try:
+            from stock_screener import EnhancedStockScreener
+            screener = EnhancedStockScreener()
+            return screener.scrape_screener_data(symbol)
+        except Exception:
+            # Return default values if screener fails
+            return {
+                'pe_ratio': 20.0,
+                'revenue_growth': 5.0,
+                'earnings_growth': 3.0,
+                'promoter_buying': False,
+                'debt_to_equity': 1.0,
+                'roe': 15.0
+            }
+    
+    def train_models_with_external_data(self, 
+                                      csv_data_path: str = None,
+                                      symbols_file: str = None) -> bool:
+        """
+        Complete pipeline to train models with external historical data
+        """
+        try:
+            logger.info("🚀 Starting enhanced model training with external data...")
+            
+            # Get symbols list
+            if symbols_file:
+                with open(symbols_file, 'r') as f:
+                    symbols_list = [line.strip() for line in f.readlines()]
+            else:
+                # Use default watchlist
+                from stock_screener import EnhancedStockScreener
+                screener = EnhancedStockScreener()
+                symbols_list = screener.watchlist[:50]  # Use more symbols for training
+            
+            logger.info(f"Training with {len(symbols_list)} symbols...")
+            
+            # Create enhanced training dataset
+            training_data = self.create_enhanced_training_dataset(
+                symbols_list, 
+                csv_data_path=csv_data_path,
+                use_extended_period=True
+            )
+            
+            if not training_data or not training_data.get('lstm') or not training_data.get('rf'):
+                logger.error("Failed to create training dataset")
+                return False
+            
+            # Train models
+            logger.info("🤖 Training ML models with enhanced dataset...")
+            success = self.models.train_models(training_data)
+            
+            if success:
+                logger.info("✅ Enhanced model training completed successfully!")
+                logger.info(f"Models trained with:")
+                logger.info(f"  - LSTM samples: {training_data['metadata']['lstm_samples']}")
+                logger.info(f"  - RF samples: {training_data['metadata']['rf_samples']}")
+                logger.info(f"  - Symbols: {training_data['metadata']['symbols_processed']}")
+                
+                # Save training metadata
+                with open('training_metadata.json', 'w') as f:
+                    json.dump(training_data['metadata'], f, indent=2)
+                
+                return True
+            else:
+                logger.error("❌ Enhanced model training failed!")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error in enhanced model training: {str(e)}")
+            return False
+
+def main():
+    """Example usage of external data importer"""
+    importer = ExternalDataImporter()
+    
+    # Example 1: Train with CSV data
+    # success = importer.train_models_with_external_data(
+    #     csv_data_path="./historical_csv_data/",
+    #     symbols_file="symbols_list.txt"
+    # )
+    
+    # Example 2: Train with extended yfinance data
+    success = importer.train_models_with_external_data()
+    
+    if success:
+        print("✅ Enhanced training completed!")
+    else:
+        print("❌ Enhanced training failed!")
+
+if __name__ == "__main__":
+    main()
