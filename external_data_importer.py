@@ -34,7 +34,22 @@ class ExternalDataImporter:
                 return None
             
             logger.info(f"Reading CSV file: {csv_file_path}")
-            df = pd.read_csv(csv_file_path)
+            
+            # First, check if we need to skip header rows
+            with open(csv_file_path, 'r') as f:
+                first_few_lines = [f.readline().strip() for _ in range(5)]
+            
+            skip_rows = 0
+            for i, line in enumerate(first_few_lines):
+                if line.startswith('Date,') or (line and line.split(',')[0].replace('-', '').replace('/', '').isdigit()):
+                    skip_rows = i
+                    break
+            
+            if skip_rows > 0:
+                logger.info(f"Skipping {skip_rows} header rows in {csv_file_path}")
+                df = pd.read_csv(csv_file_path, skiprows=skip_rows)
+            else:
+                df = pd.read_csv(csv_file_path)
             
             # Log available columns for debugging
             logger.info(f"Available columns in {symbol} CSV: {list(df.columns)}")
