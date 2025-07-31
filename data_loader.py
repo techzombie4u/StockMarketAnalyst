@@ -3,7 +3,7 @@
 Stock Market Analyst - ML Data Loader Module
 
 Handles data preparation for machine learning models:
-1. Historical OHLC data fetching
+1. Historical OHLC data fetching (5 years for training)
 2. Technical indicators calculation
 3. Time-series windowing for LSTM
 4. Target variable preparation for both models
@@ -25,26 +25,34 @@ class MLDataLoader:
         self.price_scaler = MinMaxScaler()
         self.feature_scaler = MinMaxScaler()
         
-    def fetch_historical_data(self, symbol: str, period: str = "2y") -> Optional[pd.DataFrame]:
-        """Fetch historical OHLC data from Yahoo Finance"""
+    def fetch_historical_data(self, symbol: str, period: str = "5y") -> Optional[pd.DataFrame]:
+        """Fetch 5 years of historical OHLC data from Yahoo Finance"""
         try:
-            ticker = f"{symbol}.NS"
-            data = yf.download(ticker, period=period, progress=False)
+            ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
             
-            if data is None or data.empty:
-                logger.warning(f"No historical data found for {symbol}")
-                return None
+            for ticker_format in ticker_formats:
+                try:
+                    ticker = yf.Ticker(ticker_format)
+                    data = ticker.history(period=period, progress=False)
+                    
+                    if data is not None and not data.empty and len(data) > 100:
+                        logger.info(f"✅ Fetched {len(data)} days of data for {symbol} using {ticker_format}")
+                        # Reset index to have Date as column
+                        data.reset_index(inplace=True)
+                        return data
+                except Exception as e:
+                    logger.debug(f"Failed {ticker_format} for {symbol}: {str(e)}")
+                    continue
+            
+            logger.warning(f"No historical data found for {symbol}")
+            return None
                 
-            # Reset index to have Date as column
-            data.reset_index(inplace=True)
-            return data
-            
         except Exception as e:
             logger.error(f"Error fetching historical data for {symbol}: {str(e)}")
             return None
     
     def calculate_technical_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Calculate technical indicators for ML features"""
+        """Calculate technical indicators for ML features with proper error handling"""
         try:
             df = data.copy()
             
@@ -68,9 +76,14 @@ class MLDataLoader:
             df['Momentum_5d'] = df['Close'].pct_change(periods=5).fillna(0)
             df['Momentum_10d'] = df['Close'].pct_change(periods=10).fillna(0)
             
-            # Volume indicators
-            df['Volume_MA'] = df['Volume'].rolling(window=20).mean().fillna(df['Volume'].mean())
-            df['Volume_Ratio'] = (df['Volume'] / df['Volume_MA']).fillna(1.0)
+            # Volume indicators - Fix the DataFrame assignment error
+            volume_ma = df['Volume'].rolling(window=20).mean().fillna(df['Volume'].mean())
+            df['Volume_MA'] = volume_ma
+            
+            # Fix: Ensure volume_ratio is calculated properly
+            volume_ratio = df['Volume'] / volume_ma
+            volume_ratio = volume_ratio.fillna(1.0)
+            df['Volume_Ratio'] = volume_ratio
             
             # Moving averages
             df['MA_5'] = df['Close'].rolling(window=5).mean().fillna(df['Close'])
@@ -94,8 +107,8 @@ class MLDataLoader:
             rs = gain / (loss + 1e-8)
             df['RSI'] = (100 - (100 / (1 + rs))).fillna(50)
             
-            # Fill any remaining NaN values
-            df = df.fillna(method='forward').fillna(method='backward').fillna(0)
+            # Fill any remaining NaN values using proper pandas methods
+            df = df.fillna(method='ffill').fillna(method='bfill').fillna(0)
             
             return df
             
@@ -104,7 +117,7 @@ class MLDataLoader:
             return data
     
     def prepare_lstm_data(self, data: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
-        """Prepare windowed time-series data for LSTM"""
+        """Prepare windowed time-series data for LSTM with fixed fillna method"""
         try:
             # Select features for LSTM
             feature_columns = ['Open', 'High', 'Low', 'Close', 'Volume', 'ATR', 
@@ -120,8 +133,8 @@ class MLDataLoader:
             # Use available columns
             df_clean = data[available_columns].copy()
             
-            # Fill NaN values
-            df_clean = df_clean.fillna(method='forward').fillna(method='backward').fillna(0)
+            # Fix: Use proper pandas fillna methods
+            df_clean = df_clean.fillna(method='ffill').fillna(method='bfill').fillna(0)
             
             if len(df_clean) < self.lookback_window + 1:
                 logger.warning(f"Insufficient data for LSTM preparation: {len(df_clean)} < {self.lookback_window + 1}")
@@ -153,7 +166,7 @@ class MLDataLoader:
             return None, None
     
     def prepare_rf_data(self, data: pd.DataFrame, fundamentals: Dict) -> Tuple[np.ndarray, np.ndarray]:
-        """Prepare feature data for Random Forest classification"""
+        """Prepare feature data for Random Forest classification with fixed Series ambiguity"""
         try:
             # Calculate recent features (last 30 days)
             recent_data = data.tail(30)
@@ -235,11 +248,12 @@ class MLDataLoader:
             
             features.extend([pe_ratio, revenue_growth, earnings_growth, promoter_buying])
             
-            # Create target variable (next day direction)
+            # Create target variable (next day direction) - Fix Series ambiguity
             price_changes = data['Close'].pct_change().dropna()
             if len(price_changes) > 0:
                 last_change = price_changes.iloc[-1]
-                next_day_direction = 1 if (not np.isnan(last_change) and last_change > 0) else 0
+                # Fix: Use explicit boolean conversion instead of ambiguous Series evaluation
+                next_day_direction = 1 if (not np.isnan(last_change) and float(last_change) > 0) else 0
             else:
                 next_day_direction = 0
             
@@ -253,18 +267,18 @@ class MLDataLoader:
             return None, None
     
     def create_training_dataset(self, symbols: List[str], fundamentals_data: Dict) -> Dict:
-        """Create training dataset for both models"""
+        """Create training dataset for both models using 5 years of data"""
         lstm_X, lstm_y = [], []
         rf_X, rf_y = [], []
         
-        logger.info(f"Creating training dataset for {len(symbols)} symbols...")
+        logger.info(f"Creating 5-year training dataset for {len(symbols)} symbols...")
         
         for i, symbol in enumerate(symbols):
             try:
-                logger.info(f"Processing {symbol} for training data ({i+1}/{len(symbols)})")
+                logger.info(f"Processing {symbol} for training data ({i+1}/{len(symbols)})...")
                 
-                # Fetch historical data
-                hist_data = self.fetch_historical_data(symbol)
+                # Fetch 5 years of historical data
+                hist_data = self.fetch_historical_data(symbol, period="5y")
                 if hist_data is None:
                     continue
                 
@@ -276,6 +290,7 @@ class MLDataLoader:
                 if lstm_x is not None and lstm_y_vals is not None:
                     lstm_X.extend(lstm_x)
                     lstm_y.extend(lstm_y_vals)
+                    logger.info(f"  ✅ LSTM: Added {len(lstm_x)} samples for {symbol}")
                 
                 # Prepare RF data
                 fundamentals = fundamentals_data.get(symbol, {})
@@ -283,10 +298,15 @@ class MLDataLoader:
                 if rf_x is not None and rf_y_vals is not None:
                     rf_X.extend(rf_x)
                     rf_y.extend(rf_y_vals)
+                    logger.info(f"  ✅ RF: Added {len(rf_x)} samples for {symbol}")
                 
             except Exception as e:
                 logger.error(f"Error processing {symbol} for training: {str(e)}")
                 continue
+        
+        logger.info(f"Training dataset completed:")
+        logger.info(f"  Total LSTM samples: {len(lstm_X)}")
+        logger.info(f"  Total RF samples: {len(rf_X)}")
         
         return {
             'lstm': {
@@ -302,7 +322,7 @@ class MLDataLoader:
     def prepare_prediction_data(self, symbol: str, fundamentals: Dict) -> Dict:
         """Prepare data for real-time prediction"""
         try:
-            # Fetch recent historical data
+            # Fetch recent historical data (3 months for prediction)
             hist_data = self.fetch_historical_data(symbol, period="3mo")
             if hist_data is None:
                 return None
