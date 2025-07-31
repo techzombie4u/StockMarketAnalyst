@@ -1,4 +1,3 @@
-
 """
 Stock Market Analyst - Model Training Script
 
@@ -9,7 +8,7 @@ Usage: python train_models.py
 import logging
 from data_loader import MLDataLoader
 from models import MLModels
-from stock_screener import StockScreener
+from stock_screener import EnhancedStockScreener
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,13 +18,13 @@ def main():
     """Train ML models with historical data"""
     try:
         logger.info("🚀 Starting ML model training process...")
-        
+
         # Get stock symbols from screener
-        screener = StockScreener()
+        screener = EnhancedStockScreener()
         symbols = screener.watchlist[:20]  # Use first 20 stocks for training
-        
+
         logger.info(f"Training models with {len(symbols)} stocks: {symbols}")
-        
+
         # Create fundamentals data (simplified for training)
         fundamentals_data = {}
         for symbol in symbols:
@@ -42,26 +41,26 @@ def main():
                     'earnings_growth': 3.0,
                     'promoter_buying': False
                 }
-        
+
         # Create data loader and prepare training data
         logger.info("📊 Preparing training data...")
         data_loader = MLDataLoader()
         training_data = data_loader.create_training_dataset(symbols, fundamentals_data)
-        
+
         # Check if we have sufficient data
         lstm_samples = len(training_data['lstm']['X']) if training_data['lstm']['X'] is not None else 0
         rf_samples = len(training_data['rf']['X']) if training_data['rf']['X'] is not None else 0
-        
+
         logger.info(f"Training data prepared - LSTM: {lstm_samples} samples, RF: {rf_samples} samples")
-        
+
         if lstm_samples < 100 or rf_samples < 50:
             logger.warning("⚠️  Limited training data. Models may have reduced accuracy.")
-        
+
         # Train models
         logger.info("🤖 Training ML models...")
         models = MLModels()
         success = models.train_models(training_data)
-        
+
         if success:
             logger.info("✅ Model training completed successfully!")
             logger.info("Models saved:")
@@ -70,7 +69,7 @@ def main():
             logger.info("\n🎯 Models are now ready for predictions!")
         else:
             logger.error("❌ Model training failed!")
-            
+
     except KeyboardInterrupt:
         logger.info("Training interrupted by user")
     except Exception as e:
