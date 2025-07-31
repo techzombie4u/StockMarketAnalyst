@@ -1,45 +1,5 @@
 [
   {
-    "symbol": "NTPC",
-    "timestamp": "2025-07-31T02:04:51.245610",
-    "current_price": 338.8,
-    "predicted_1mo": 16.04,
-    "predicted_price": 393.16,
-    "score": 75,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-07-31T02:04:51.245950",
-    "current_price": 399.55,
-    "predicted_1mo": 16.34,
-    "predicted_price": 464.83,
-    "score": 80,
-    "confidence": 95,
-    "trend_class": "uptrend"
-  },
-  {
-    "symbol": "HINDALCO",
-    "timestamp": "2025-07-31T02:04:51.246299",
-    "current_price": 688.8,
-    "predicted_1mo": 18.05,
-    "predicted_price": 813.14,
-    "score": 78,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "IOC",
-    "timestamp": "2025-07-31T02:04:51.246598",
-    "current_price": 149.04,
-    "predicted_1mo": 15.53,
-    "predicted_price": 172.18,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
     "symbol": "TATAMOTORS",
     "timestamp": "2025-07-31T02:04:51.246887",
     "current_price": 668.45,
@@ -965,6 +925,76 @@
     "current_price": 124.16,
     "predicted_1mo": 14.32,
     "predicted_price": 141.94,
+    "score": 71,
+    "confidence": 95,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "NTPC",
+    "timestamp": "2025-07-31T06:24:44.588659",
+    "current_price": 337.7,
+    "predicted_1mo": 11.1,
+    "predicted_price": 375.2,
+    "score": 70,
+    "confidence": 95,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "IOC",
+    "timestamp": "2025-07-31T06:24:44.590749",
+    "current_price": 146.33,
+    "predicted_1mo": 14.7,
+    "predicted_price": 167.85,
+    "score": 74,
+    "confidence": 95,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-07-31T06:24:44.602472",
+    "current_price": 178.41,
+    "predicted_1mo": 13.33,
+    "predicted_price": 202.19,
+    "score": 74,
+    "confidence": 95,
+    "trend_class": "downtrend"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-07-31T06:24:44.628399",
+    "current_price": 686.5,
+    "predicted_1mo": 13.7,
+    "predicted_price": 780.58,
+    "score": 73,
+    "confidence": 95,
+    "trend_class": "uptrend"
+  },
+  {
+    "symbol": "RECLTD",
+    "timestamp": "2025-07-31T06:24:44.640088",
+    "current_price": 397.0,
+    "predicted_1mo": 11.11,
+    "predicted_price": 441.09,
+    "score": 72,
+    "confidence": 95,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-07-31T06:24:44.644214",
+    "current_price": 330.0,
+    "predicted_1mo": 12.1,
+    "predicted_price": 369.92,
+    "score": 70,
+    "confidence": 95,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SAIL",
+    "timestamp": "2025-07-31T06:24:44.655241",
+    "current_price": 124.55,
+    "predicted_1mo": 14.31,
+    "predicted_price": 142.38,
     "score": 71,
     "confidence": 95,
     "trend_class": "sideways"
