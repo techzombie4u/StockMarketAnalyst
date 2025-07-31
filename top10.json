@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-07-31T07:29:36.179684+05:30",
-  "last_updated": "31/07/2025, 07:29:36",
+  "timestamp": "2025-07-31T07:32:01.037503+05:30",
+  "last_updated": "31/07/2025, 07:32:01",
   "status": "demo_ready",
   "stocks": [
     {
@@ -23,7 +23,7 @@
       "risk_level": "Low",
       "market_cap": "Large Cap",
       "technical_summary": "Bullish Trend | RSI Neutral | High Volume",
-      "last_analyzed": "31/07/2025, 07:29:36"
+      "last_analyzed": "31/07/2025, 07:32:01"
     },
     {
       "symbol": "TCS",
@@ -45,7 +45,7 @@
       "risk_level": "Low",
       "market_cap": "Large Cap",
       "technical_summary": "Uptrend | RSI Neutral | Normal Volume",
-      "last_analyzed": "31/07/2025, 07:29:36"
+      "last_analyzed": "31/07/2025, 07:32:01"
     },
     {
       "symbol": "INFY",
@@ -67,7 +67,7 @@
       "risk_level": "Low",
       "market_cap": "Large Cap",
       "technical_summary": "Sideways | RSI Neutral | Low Volume",
-      "last_analyzed": "31/07/2025, 07:29:36"
+      "last_analyzed": "31/07/2025, 07:32:01"
     }
   ]
 }
