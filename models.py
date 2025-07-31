@@ -29,7 +29,8 @@ class MLModels:
         self.lstm_model = None
         self.rf_model = None
         self.lstm_model_path = 'lstm_model.h5'
-        self.rf_model_path = 'rf_model.joblib'
+        self.rf_model_path = 'rf_model.pkl'  # Changed from .joblib to .pkl
+        self.scalers_path = 'scalers.pkl'
     
     def create_lstm_model(self, input_shape: Tuple[int, int]) -> Sequential:
         """Create LSTM model architecture"""
@@ -117,6 +118,10 @@ class MLModels:
             
             logger.info(f"Training Random Forest model with {len(X)} samples...")
             
+            # Ensure we have 2D array for RF
+            if len(X.shape) == 1:
+                X = X.reshape(-1, 1)
+            
             # Split data
             X_train, X_test, y_train, y_test = train_test_split(
                 X, y, test_size=0.2, random_state=42
@@ -139,7 +144,7 @@ class MLModels:
             
             logger.info(f"Random Forest Test Accuracy: {accuracy:.4f}")
             
-            # Save model
+            # Save model using joblib (more reliable for sklearn models)
             joblib.dump(self.rf_model, self.rf_model_path)
             logger.info(f"Random Forest model saved to {self.rf_model_path}")
             
@@ -152,23 +157,26 @@ class MLModels:
     def load_models(self) -> bool:
         """Load pre-trained models"""
         try:
+            models_loaded = 0
+            
             # Load LSTM model
             if os.path.exists(self.lstm_model_path):
                 self.lstm_model = tf.keras.models.load_model(self.lstm_model_path)
                 logger.info("LSTM model loaded successfully")
+                models_loaded += 1
             else:
                 logger.warning("LSTM model file not found")
-                return False
             
             # Load Random Forest model
             if os.path.exists(self.rf_model_path):
                 self.rf_model = joblib.load(self.rf_model_path)
                 logger.info("Random Forest model loaded successfully")
+                models_loaded += 1
             else:
                 logger.warning("Random Forest model file not found")
-                return False
             
-            return True
+            # Return True if at least one model is loaded
+            return models_loaded > 0
             
         except Exception as e:
             logger.error(f"Error loading models: {str(e)}")
@@ -199,6 +207,10 @@ class MLModels:
             if self.rf_model is None or rf_input is None:
                 return None
             
+            # Ensure proper shape
+            if len(rf_input.shape) == 1:
+                rf_input = rf_input.reshape(1, -1)
+            
             # Make prediction
             direction = self.rf_model.predict(rf_input)[0]
             probabilities = self.rf_model.predict_proba(rf_input)[0]
@@ -222,21 +234,25 @@ class MLModels:
             
             # Train LSTM model
             lstm_success = False
-            if training_data['lstm']['X'] is not None and training_data['lstm']['y'] is not None:
+            if training_data.get('lstm', {}).get('X') is not None and training_data.get('lstm', {}).get('y') is not None:
                 lstm_success = self.train_lstm_model(
                     training_data['lstm']['X'], 
                     training_data['lstm']['y']
                 )
+            else:
+                logger.warning("LSTM training data is None or empty")
             
             # Train Random Forest model
             rf_success = False
-            if training_data['rf']['X'] is not None and training_data['rf']['y'] is not None:
+            if training_data.get('rf', {}).get('X') is not None and training_data.get('rf', {}).get('y') is not None:
                 rf_success = self.train_rf_model(
                     training_data['rf']['X'], 
                     training_data['rf']['y']
                 )
+            else:
+                logger.warning("Random Forest training data is None or empty")
             
-            success = lstm_success and rf_success
+            success = lstm_success or rf_success  # At least one model should work
             logger.info(f"Model training completed. LSTM: {lstm_success}, RF: {rf_success}")
             
             return success
