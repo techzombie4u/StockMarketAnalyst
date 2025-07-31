@@ -45,7 +45,22 @@ def main():
     # Initialize importer
     importer = ExternalDataImporter()
     
+    print("\n🔍 Testing CSV file reading...")
+    # Test reading one CSV file first
+    test_file = os.path.join(csv_dir, csv_files[0])
+    test_symbol = csv_files[0].replace('.csv', '')
+    
+    test_df = importer.import_historical_csv(test_file, test_symbol)
+    if test_df is not None:
+        print(f"✅ Successfully read {test_symbol}: {len(test_df)} rows")
+        print(f"   Columns: {list(test_df.columns)}")
+        print(f"   Date range: {test_df['Date'].min()} to {test_df['Date'].max()}")
+    else:
+        print(f"❌ Failed to read {test_symbol}")
+        return False
+    
     # Train models with CSV data
+    print("\n🤖 Starting model training...")
     success = importer.train_models_with_external_data(
         csv_data_path=csv_dir,
         symbols_file="symbols_list.txt"

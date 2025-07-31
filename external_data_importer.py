@@ -47,7 +47,13 @@ class ExternalDataImporter:
                 'low': 'Low', 'Low': 'Low', 'LOW': 'Low',
                 'close': 'Close', 'Close': 'Close', 'CLOSE': 'Close',
                 'volume': 'Volume', 'Volume': 'Volume', 'VOLUME': 'Volume',
-                'adj close': 'Adj Close', 'Adj Close': 'Adj Close'
+                'adj close': 'Adj Close', 'Adj Close': 'Adj Close',
+                'Adj Close': 'Adj Close', 'ADJ CLOSE': 'Adj Close',
+                # Handle additional common variations
+                'Close Price': 'Close', 'close_price': 'Close',
+                'Open Price': 'Open', 'open_price': 'Open',
+                'High Price': 'High', 'high_price': 'High',
+                'Low Price': 'Low', 'low_price': 'Low'
             }
             
             df = df.rename(columns=column_mapping)
@@ -62,13 +68,38 @@ class ExternalDataImporter:
                 return None
             
             # Convert Date column with multiple format support
-            try:
-                df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-            except:
+            date_formats = [
+                '%Y-%m-%d',
+                '%d-%m-%Y', 
+                '%m/%d/%Y',
+                '%d/%m/%Y',
+                '%Y/%m/%d',
+                '%d-%b-%Y',
+                '%d %b %Y',
+                '%Y-%m-%d %H:%M:%S'
+            ]
+            
+            date_parsed = False
+            for fmt in date_formats:
                 try:
-                    df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')
+                    df['Date'] = pd.to_datetime(df['Date'], format=fmt, errors='coerce')
+                    if not df['Date'].isna().all():
+                        date_parsed = True
+                        logger.info(f"Successfully parsed dates using format: {fmt}")
+                        break
                 except:
-                    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
+                    continue
+            
+            if not date_parsed:
+                # Try pandas' automatic parsing as last resort
+                try:
+                    df['Date'] = pd.to_datetime(df['Date'], errors='coerce', infer_datetime_format=True)
+                    if not df['Date'].isna().all():
+                        date_parsed = True
+                        logger.info("Successfully parsed dates using automatic detection")
+                except:
+                    logger.error(f"Failed to parse dates in {symbol} CSV file")
+                    return None
             
             # Remove rows with invalid dates
             df = df.dropna(subset=['Date'])
