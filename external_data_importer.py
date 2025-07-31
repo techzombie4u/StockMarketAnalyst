@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import json
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from data_loader import MLDataLoader
@@ -27,38 +28,69 @@ class ExternalDataImporter:
         Expected columns: Date, Open, High, Low, Close, Volume
         """
         try:
+            # Check if file exists
+            if not os.path.exists(csv_file_path):
+                logger.warning(f"CSV file not found: {csv_file_path}")
+                return None
+            
+            logger.info(f"Reading CSV file: {csv_file_path}")
             df = pd.read_csv(csv_file_path)
             
-            # Standardize column names
+            # Log available columns for debugging
+            logger.info(f"Available columns in {symbol} CSV: {list(df.columns)}")
+            
+            # Standardize column names (handle various formats)
             column_mapping = {
-                'date': 'Date', 'Date': 'Date',
+                'date': 'Date', 'Date': 'Date', 'DATE': 'Date',
                 'open': 'Open', 'Open': 'Open', 'OPEN': 'Open',
                 'high': 'High', 'High': 'High', 'HIGH': 'High',
                 'low': 'Low', 'Low': 'Low', 'LOW': 'Low',
                 'close': 'Close', 'Close': 'Close', 'CLOSE': 'Close',
-                'volume': 'Volume', 'Volume': 'Volume', 'VOLUME': 'Volume'
+                'volume': 'Volume', 'Volume': 'Volume', 'VOLUME': 'Volume',
+                'adj close': 'Adj Close', 'Adj Close': 'Adj Close'
             }
             
             df = df.rename(columns=column_mapping)
             
             # Ensure required columns exist
             required_cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
-            if not all(col in df.columns for col in required_cols):
-                logger.error(f"Missing required columns in CSV: {required_cols}")
+            missing_cols = [col for col in required_cols if col not in df.columns]
+            
+            if missing_cols:
+                logger.error(f"Missing required columns in {symbol} CSV: {missing_cols}")
+                logger.error(f"Available columns: {list(df.columns)}")
                 return None
             
-            # Convert Date column
-            df['Date'] = pd.to_datetime(df['Date'])
+            # Convert Date column with multiple format support
+            try:
+                df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+            except:
+                try:
+                    df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')
+                except:
+                    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
+            
+            # Remove rows with invalid dates
+            df = df.dropna(subset=['Date'])
             df = df.sort_values('Date')
+            
+            # Ensure numeric columns
+            for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+            # Remove rows with missing OHLC data
+            df = df.dropna(subset=['Open', 'High', 'Low', 'Close'])
             
             # Add symbol for reference
             df['Symbol'] = symbol
             
-            logger.info(f"Imported {len(df)} days of historical data for {symbol}")
+            logger.info(f"✅ Imported {len(df)} days of historical data for {symbol}")
+            logger.info(f"   Date range: {df['Date'].min()} to {df['Date'].max()}")
+            
             return df
             
         except Exception as e:
-            logger.error(f"Error importing CSV data: {str(e)}")
+            logger.error(f"Error importing CSV data for {symbol}: {str(e)}")
             return None
     
     def import_yfinance_extended(self, symbol: str, period: str = "1y") -> Optional[pd.DataFrame]:
@@ -113,10 +145,15 @@ class ExternalDataImporter:
                 # Try multiple data sources
                 historical_df = None
                 
-                # Source 1: CSV data (if provided)
-                if csv_data_path:
-                    csv_file = f"{csv_data_path}/{symbol}.csv"
+                # Source 1: CSV data (check local directory first)
+                csv_file = f"historical_csv_data/{symbol}.csv"
+                if os.path.exists(csv_file):
+                    logger.info(f"Using local CSV file for {symbol}")
                     historical_df = self.import_historical_csv(csv_file, symbol)
+                elif csv_data_path:
+                    csv_file = f"{csv_data_path}/{symbol}.csv"
+                    if os.path.exists(csv_file):
+                        historical_df = self.import_historical_csv(csv_file, symbol)
                 
                 # Source 2: Extended yfinance download
                 if historical_df is None and use_extended_period:
@@ -316,14 +353,25 @@ def main():
     """Example usage of external data importer"""
     importer = ExternalDataImporter()
     
-    # Example 1: Train with CSV data
-    # success = importer.train_models_with_external_data(
-    #     csv_data_path="./historical_csv_data/",
-    #     symbols_file="symbols_list.txt"
-    # )
+    # Check if we have CSV files in the local directory
+    csv_dir = "historical_csv_data"
+    csv_files = []
     
-    # Example 2: Train with extended yfinance data
-    success = importer.train_models_with_external_data()
+    if os.path.exists(csv_dir):
+        csv_files = [f for f in os.listdir(csv_dir) if f.endswith('.csv')]
+        print(f"Found {len(csv_files)} CSV files: {csv_files}")
+    
+    if csv_files:
+        # Train with local CSV data
+        print("🎯 Training with local CSV data...")
+        success = importer.train_models_with_external_data(
+            csv_data_path=csv_dir,
+            symbols_file="symbols_list.txt"
+        )
+    else:
+        # Fall back to extended yfinance data
+        print("📈 Training with extended yfinance data...")
+        success = importer.train_models_with_external_data()
     
     if success:
         print("✅ Enhanced training completed!")
