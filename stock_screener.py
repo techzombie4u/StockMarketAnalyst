@@ -775,8 +775,7 @@ class EnhancedStockScreener:
             # EMA crossover signals
             current_price = close_prices.iloc[-1] if len(close_prices) > 0 else 0
             indicators['price_above_ema_12'] = float(current_price) > float(indicators.get('ema_12', 0))
-            indicators['price_above_ema_21'] = float(```python
-current_price) > float(indicators.get('ema_21', 0))
+            indicators['price_above_ema_21'] = float(current_price) > float(indicators.get('ema_21', 0))
             indicators['ema_12_above_21'] = float(indicators.get('ema_12', 0)) > float(indicators.get('ema_21', 0))
 
             # EMA trend strength
