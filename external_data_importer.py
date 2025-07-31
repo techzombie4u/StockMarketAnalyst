@@ -42,6 +42,7 @@ class ExternalDataImporter:
             # Standardize column names (handle various formats)
             column_mapping = {
                 'date': 'Date', 'Date': 'Date', 'DATE': 'Date',
+                'Price': 'Date', 'price': 'Date', 'PRICE': 'Date',  # Handle Price as Date column
                 'open': 'Open', 'Open': 'Open', 'OPEN': 'Open',
                 'high': 'High', 'High': 'High', 'HIGH': 'High',
                 'low': 'Low', 'Low': 'Low', 'LOW': 'Low',
@@ -58,6 +59,18 @@ class ExternalDataImporter:
             
             df = df.rename(columns=column_mapping)
             
+            # Check if we have a valid Date column after mapping
+            if 'Date' not in df.columns:
+                # Try to find any date-like column
+                date_candidates = [col for col in df.columns if any(word in col.lower() for word in ['date', 'time', 'day'])]
+                if date_candidates:
+                    df = df.rename(columns={date_candidates[0]: 'Date'})
+                    logger.info(f"Using {date_candidates[0]} as Date column for {symbol}")
+                else:
+                    # If no date column found, use index as dates (assuming sequential data)
+                    logger.warning(f"No date column found in {symbol} CSV, using row index as dates")
+                    df['Date'] = pd.date_range(start='2023-01-01', periods=len(df), freq='D')
+            
             # Ensure required columns exist
             required_cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
             missing_cols = [col for col in required_cols if col not in df.columns]
@@ -65,7 +78,15 @@ class ExternalDataImporter:
             if missing_cols:
                 logger.error(f"Missing required columns in {symbol} CSV: {missing_cols}")
                 logger.error(f"Available columns: {list(df.columns)}")
-                return None
+                
+                # Try to handle missing Volume column
+                if 'Volume' in missing_cols and len(missing_cols) == 1:
+                    logger.warning(f"Volume column missing for {symbol}, using default values")
+                    df['Volume'] = 100000  # Default volume
+                    missing_cols.remove('Volume')
+                
+                if missing_cols:
+                    return None
             
             # Convert Date column with multiple format support
             date_formats = [
