@@ -81,47 +81,36 @@ def save_data_as_csv(downloaded_data, csv_dir="downloaded_historical_data"):
         print(f"   Saved {symbol}.csv ({len(data)} rows)")
 
 def main():
-    print("🚀 Training ML Models with Yahoo Finance Data")
+    print("🚀 Training ML Models with Downloaded Historical Data")
     print("=" * 60)
     
-    # Define the symbols to download (same as your existing watchlist)
-    symbols_list = [
-        'SBIN', 'BHARTIARTL', 'ITC', 'NTPC', 'POWERGRID',
-        'ONGC', 'COALINDIA', 'TATASTEEL', 'JSWSTEEL', 'HINDALCO',
-        'TATAMOTORS', 'M&M', 'BPCL', 'GAIL', 'IOC',
-        'SAIL', 'VEDL', 'BANKBARODA', 'CANBK', 'PNB',
-        'UNIONBANK', 'BANKINDIA', 'CENTRALBK', 'INDIANB',
-        'RECLTD', 'PFC', 'IRFC', 'IRCTC', 'RAILTEL',
-        'HAL', 'BEL', 'BEML', 'BHEL', 'CONCOR',
-        'NBCC', 'RITES', 'KTKBANK', 'FEDERALBNK', 'IDFCFIRSTB',
-        'EQUITAS', 'RBLBANK', 'YESBANK', 'LICHSGFIN',
-        'MUTHOOTFIN', 'BAJAJHLDNG', 'GODREJCP', 'MARICO', 'DABUR'
-    ]
+    csv_folder = "downloaded_historical_data"
     
-    print(f"📋 Symbols to process: {len(symbols_list)}")
-    for i, symbol in enumerate(symbols_list, 1):
-        if i <= 10:
-            print(f"   {i}. {symbol}")
-        elif i == 11:
-            print(f"   ... and {len(symbols_list) - 10} more")
-            break
-    
-    # Download data from Yahoo Finance
-    downloaded_data = download_yahoo_finance_data(symbols_list, period="1y")
-    
-    if not downloaded_data:
-        print("\n❌ No data was downloaded successfully!")
+    # Check if CSV folder exists
+    if not os.path.exists(csv_folder):
+        print(f"❌ CSV folder not found: {csv_folder}")
+        print("Please run the data download first or check the folder path.")
         return False
     
-    # Save as CSV backup
-    save_data_as_csv(downloaded_data)
+    # List available CSV files
+    csv_files = [f for f in os.listdir(csv_folder) if f.endswith('.csv')]
+    if not csv_files:
+        print(f"❌ No CSV files found in {csv_folder}")
+        return False
     
-    # Create enhanced training dataset
-    print("\n🤖 Creating enhanced training dataset...")
+    print(f"📋 Found {len(csv_files)} CSV files to process:")
+    for i, csv_file in enumerate(csv_files[:10], 1):
+        symbol = csv_file.replace('.csv', '')
+        print(f"   {i}. {symbol}")
+    if len(csv_files) > 10:
+        print(f"   ... and {len(csv_files) - 10} more")
+    
+    # Create enhanced training dataset from CSV files
+    print(f"\n🤖 Creating enhanced training dataset from {csv_folder}...")
     importer = ExternalDataImporter()
     
-    # Create training dataset using downloaded data
-    training_data = importer.create_enhanced_training_dataset_from_data(downloaded_data)
+    # Create training dataset using CSV data
+    training_data = importer.create_training_dataset_from_csv_folder(csv_folder)
     
     if not training_data or not training_data.get('lstm') or not training_data.get('rf'):
         print("❌ Failed to create training dataset")
@@ -133,7 +122,7 @@ def main():
     
     if success:
         print("\n✅ Enhanced model training completed successfully!")
-        print("🎯 Models are now trained with 1-year Yahoo Finance data")
+        print("🎯 Models are now trained with 1-year historical data")
         print("📊 You can now run the stock screening with improved predictions")
         
         # Check if models were created
