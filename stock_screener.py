@@ -1496,7 +1496,7 @@ class EnhancedStockScreener:
         except Exception:
             return None
 
-    def _calculate_growth_from_cells(self, self, cells: List) -> Optional[float]:
+    def _calculate_growth_from_cells(self, cells: List) -> Optional[float]:
         """Calculate growth rate from table cells"""
         try:
             if len(cells) >= 2:
