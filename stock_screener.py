@@ -775,7 +775,8 @@ class EnhancedStockScreener:
             # EMA crossover signals
             current_price = close_prices.iloc[-1] if len(close_prices) > 0 else 0
             indicators['price_above_ema_12'] = float(current_price) > float(indicators.get('ema_12', 0))
-            indicators['price_above_ema_21'] = float(current_price) > float(indicators.get('ema_21', 0))
+            indicators['price_above_ema_21'] = float(```python
+current_price) > float(indicators.get('ema_21', 0))
             indicators['ema_12_above_21'] = float(indicators.get('ema_12', 0)) > float(indicators.get('ema_21', 0))
 
             # EMA trend strength
@@ -1496,7 +1497,7 @@ class EnhancedStockScreener:
         except Exception:
             return None
 
-    def _calculate_growth_from_cells(self, cells: List) -> Optional[float]:
+    def _calculate_growth_from_cells(self, self, cells: List) -> Optional[float]:
         """Calculate growth rate from table cells"""
         try:
             if len(cells) >= 2:
@@ -1997,13 +1998,18 @@ class EnhancedStockScreener:
             elif days == 30:  # 1mo prediction
                 return base_return * 1.0   # Full base return in 30 days
             else:
+                # Linear scaling for other timeframes
+                return base_return * (days / 30)
 
+        except Exception as e:
+            self.logger.error(f"Error calculating timeframe prediction: {str(e)}")
+            return 0.0
 
     def _generate_technical_summary_with_trend(self, technical: Dict, trend_class: str, rsi: float) -> str:
         """Generate enhanced technical summary with trend information"""
         try:
             summary_parts = []
-            
+
             # Trend information
             if trend_class == 'uptrend':
                 summary_parts.append("🔥 Strong Uptrend")
@@ -2011,7 +2017,7 @@ class EnhancedStockScreener:
                 summary_parts.append("⚠️ Downtrend")
             else:
                 summary_parts.append("📊 Sideways")
-            
+
             # RSI status
             if rsi < 30:
                 summary_parts.append("RSI Oversold")
@@ -2019,13 +2025,13 @@ class EnhancedStockScreener:
                 summary_parts.append("RSI Overbought")
             else:
                 summary_parts.append(f"RSI {rsi:.0f}")
-            
+
             # Moving average status
             if technical.get('above_sma_20', False):
                 summary_parts.append("Above SMA20")
             else:
                 summary_parts.append("Below SMA20")
-            
+
             # Volume status
             volume_ratio = technical.get('volume_ratio_10', 1)
             if volume_ratio > 1.5:
@@ -2034,26 +2040,19 @@ class EnhancedStockScreener:
                 summary_parts.append("Low Volume")
             else:
                 summary_parts.append("Normal Volume")
-            
+
             # Volatility status
             volatility_regime = technical.get('volatility_regime', 'medium')
             if volatility_regime == 'high':
                 summary_parts.append("High Volatility")
             elif volatility_regime == 'low':
                 summary_parts.append("Low Volatility")
-            
+
             return " | ".join(summary_parts[:4])  # Limit to 4 items for space
-            
+
         except Exception as e:
             logger.error(f"Error generating technical summary: {str(e)}")
             return "Technical analysis in progress"
-
-                # Linear scaling for other timeframes
-                return base_return * (days / 30)
-
-        except Exception as e:
-            self.logger.error(f"Error calculating timeframe prediction: {str(e)}")
-            return 0.0
 
     def calculate_advanced_technical_indicators(self, price_data: pd.DataFrame) -> Dict:
         """Calculate comprehensive technical indicators for better predictions"""
@@ -2097,7 +2096,7 @@ class EnhancedStockScreener:
             # Stochastic Oscillator
             lowest_low = low.rolling(window=14).min()
             highest_high = high.rolling(window=14).max()
-            k_percent = 100 * ((close - lowest_low) / (highest_high - lowest_high))
+            k_percent = 100 * ((close - lowest_low) / (highest_high - lowest_low))
             indicators['stoch_k'] = float(k_percent.iloc[-1])
             indicators['stoch_d'] = float(k_percent.rolling(window=3).mean().iloc[-1])
 
@@ -2236,7 +2235,7 @@ class EnhancedStockScreener:
                 # Get RSI and trend classification
                 rsi = technical.get('rsi_14', 50)
                 trend_direction = technical.get('trend_direction', 'sideways')
-                
+
                 # Determine trend classification with visual indicators
                 if trend_direction in ['strong_uptrend', 'uptrend']:
                     trend_class = 'uptrend'
@@ -2252,7 +2251,7 @@ class EnhancedStockScreener:
                 if score < 70:
                     logger.debug(f"Filtering out {symbol} due to low score: {score}")
                     continue
-                    
+
                 if trend_class == 'downtrend' and rsi < 30:
                     logger.debug(f"Filtering out {symbol} due to downtrend with low RSI: {rsi}")
                     continue
