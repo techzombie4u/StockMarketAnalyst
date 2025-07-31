@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-07-31T06:28:34.940364+05:30",
-  "last_updated": "31/07/2025, 06:28:34",
+  "timestamp": "2025-07-31T06:51:42.259632+05:30",
+  "last_updated": "31/07/2025, 06:51:42",
   "stocks": [
     {
       "symbol": "NTPC",
@@ -24,7 +24,7 @@
       "risk_level": "Low",
       "market_cap": "Large Cap",
       "technical_summary": "Trend: Sideways | RSI: 44.1 (neutral) | Below 20-day SMA | Volume: normal | Volatility: low | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     },
     {
@@ -49,7 +49,7 @@
       "risk_level": "Medium",
       "market_cap": "Small Cap",
       "technical_summary": "Trend: Uptrend | RSI: 52.0 (neutral) | Above 20-day SMA | Volume: normal | Volatility: medium | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     },
     {
@@ -74,7 +74,7 @@
       "risk_level": "Low",
       "market_cap": "Large Cap",
       "technical_summary": "Trend: Sideways | RSI: 46.7 (neutral) | Below 20-day SMA | Volume: normal | Volatility: low | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     },
     {
@@ -99,7 +99,7 @@
       "risk_level": "Low-Med",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Sideways | RSI: 61.6 (neutral) | Above 20-day SMA | Volume: low | Volatility: medium | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     },
     {
@@ -124,7 +124,7 @@
       "risk_level": "Low",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Sideways | RSI: 39.7 (neutral) | Below 20-day SMA | Volume: normal | Volatility: medium | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     },
     {
@@ -149,7 +149,7 @@
       "risk_level": "Medium",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Sideways | RSI: 40.3 (neutral) | Below 20-day SMA | Volume: high | Volatility: medium | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     },
     {
@@ -174,7 +174,7 @@
       "risk_level": "Low-Med",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Sideways | RSI: 31.6 (neutral) | Below 20-day SMA | Volume: high | Volatility: medium | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     },
     {
@@ -199,7 +199,7 @@
       "risk_level": "Low",
       "market_cap": "Mid Cap",
       "technical_summary": "Trend: Downtrend | RSI: 39.9 (neutral) | Below 20-day SMA | Volume: normal | Volatility: medium | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     },
     {
@@ -224,32 +224,32 @@
       "risk_level": "Medium",
       "market_cap": "Large Cap",
       "technical_summary": "Trend: Sideways | RSI: 44.7 (neutral) | Below 20-day SMA | Volume: normal | Volatility: low | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     },
     {
-      "symbol": "PNB",
-      "score": 73,
-      "adjusted_score": 65.4,
+      "symbol": "POWERGRID",
+      "score": 70,
+      "adjusted_score": 65.3,
       "confidence": 95,
-      "current_price": 108.1,
-      "predicted_price": 126.44,
-      "predicted_gain": 16.96,
-      "pred_24h": 0.85,
-      "pred_5d": 4.24,
-      "pred_1mo": 16.96,
-      "volatility": 2.59,
+      "current_price": 288.95,
+      "predicted_price": 333.78,
+      "predicted_gain": 15.52,
+      "pred_24h": 0.78,
+      "pred_5d": 3.88,
+      "pred_1mo": 15.52,
+      "volatility": 1.67,
       "volatility_regime": "medium",
-      "time_horizon": 11,
-      "pe_ratio": 7.47,
-      "pe_description": "Very Low",
-      "revenue_growth": 9.5,
-      "earnings_growth": 18.7,
-      "combined_growth": 14.1,
-      "risk_level": "Med-High",
-      "market_cap": "Small Cap",
-      "technical_summary": "Trend: Downtrend | RSI: 45.8 (neutral) | Below 20-day SMA | Volume: high | Volatility: medium | Mid-range",
-      "last_analyzed": "31/07/2025, 00:58:34",
+      "time_horizon": 13,
+      "pe_ratio": 17.4,
+      "pe_description": "At Par",
+      "revenue_growth": 3.3,
+      "earnings_growth": 1.6,
+      "combined_growth": 2.5,
+      "risk_level": "Low",
+      "market_cap": "Mid Cap",
+      "technical_summary": "Trend: Downtrend | RSI: 27.7 (oversold) | Below 20-day SMA | Volume: normal | Volatility: medium | Mid-range",
+      "last_analyzed": "31/07/2025, 01:21:42",
       "confidence_grade": "A"
     }
   ],
