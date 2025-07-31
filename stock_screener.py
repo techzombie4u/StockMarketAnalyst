@@ -1897,6 +1897,27 @@ class EnhancedStockScreener:
             except Exception as e:
                 logger.warning(f"ML predictions failed: {str(e)}")
 
+            # Step 5: Save results with proper timestamp
+            if scored_stocks:
+                try:
+                    import pytz
+                    IST = pytz.timezone('Asia/Kolkata')
+                    ist_now = datetime.now(IST)
+                    
+                    result_data = {
+                        'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
+                        'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
+                        'status': 'success',
+                        'stocks': scored_stocks
+                    }
+                    
+                    with open('top10.json', 'w', encoding='utf-8') as f:
+                        json.dump(result_data, f, indent=2, ensure_ascii=False)
+                    
+                    logger.info(f"✅ Results saved with {len(scored_stocks)} stocks")
+                except Exception as save_error:
+                    logger.error(f"Error saving results: {save_error}")
+
             logger.info(f"✅ Successfully screened {len(scored_stocks)} stocks")
             return scored_stocks
 

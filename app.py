@@ -38,8 +38,8 @@ def get_stocks():
         if not os.path.exists('top10.json'):
             ist_now = datetime.now(IST)
             initial_data = {
-                'timestamp': ist_now.isoformat(),
-                'last_updated': ist_now.strftime('%Y-%m-%d %H:%M:%S IST'),
+                'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
+                'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
                 'stocks': [],
                 'status': 'initial'
             }
@@ -51,6 +51,7 @@ def get_stocks():
                 'stocks': [],
                 'status': 'initial',
                 'last_updated': initial_data['last_updated'],
+                'timestamp': initial_data['timestamp'],
                 'stockCount': 0,
                 'backtesting': {'status': 'no_data'}
             })
@@ -68,8 +69,8 @@ def get_stocks():
             # Try to recover by returning empty data
             ist_now = datetime.now(IST)
             reset_data = {
-                'timestamp': ist_now.isoformat(),
-                'last_updated': ist_now.strftime('%Y-%m-%d %H:%M:%S IST'),
+                'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
+                'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
                 'stocks': [],
                 'status': 'file_reset',
                 'backtesting': {'status': 'error'}
@@ -82,6 +83,7 @@ def get_stocks():
                 'stocks': [],
                 'status': 'file_reset',
                 'last_updated': reset_data['last_updated'],
+                'timestamp': reset_data['timestamp'],
                 'stockCount': 0,
                 'backtesting': {'status': 'error'}
             }), 200  # Return 200 instead of 500 to avoid frontend errors
@@ -101,6 +103,43 @@ def get_stocks():
         stocks = data.get('stocks', [])
         status = data.get('status', 'unknown')
         last_updated = data.get('last_updated', 'Never')
+        timestamp = data.get('timestamp')
+
+        # Fix timestamp if it's in wrong format
+        if timestamp and 'T' not in str(timestamp):
+            try:
+                # Try to parse and reformat if needed
+                if isinstance(timestamp, str) and '/' in timestamp:
+                    # Convert from dd/mm/yyyy format to ISO format
+                    from datetime import datetime
+                    parsed_date = datetime.strptime(timestamp.split(',')[0], '%d/%m/%Y')
+                    timestamp = parsed_date.strftime('%Y-%m-%dT%H:%M:%S')
+            except:
+                timestamp = datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S')
+
+        # Don't serve mock/demo data in production - force real screening if demo data detected
+        if status in ['demo', 'demo_ready', 'demo_fallback'] and len(stocks) <= 3:
+            logger.warning("Demo data detected in production - triggering real screening")
+            # Trigger background screening
+            try:
+                def trigger_real_screening():
+                    if scheduler:
+                        scheduler.run_screening_job_manual()
+                
+                import threading
+                threading.Thread(target=trigger_real_screening, daemon=True).start()
+            except:
+                pass
+            
+            # Return minimal response to force refresh
+            return jsonify({
+                'stocks': [],
+                'status': 'screening_triggered',
+                'last_updated': 'Triggering real screening...',
+                'timestamp': timestamp or datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S'),
+                'stockCount': 0,
+                'backtesting': {'status': 'pending'}
+            })
 
         # Validate stocks data
         valid_stocks = []
@@ -124,6 +163,7 @@ def get_stocks():
             'stocks': valid_stocks,
             'status': status,
             'last_updated': last_updated,
+            'timestamp': timestamp or datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S'),
             'stockCount': len(valid_stocks),
             'backtesting': data.get('backtesting', {'status': 'unavailable'})  # Include backtesting data
         })
@@ -215,63 +255,50 @@ def run_now():
     try:
         logger.info("Manual refresh requested")
 
-        def run_background_screening():
-            try:
-                if scheduler:
-                    success = scheduler.run_screening_job_manual()
-                    if success:
-                        logger.info("✅ Manual screening completed successfully")
-                    else:
-                        logger.warning("⚠️ Manual screening completed with issues")
+        # Run screening synchronously to ensure completion before returning
+        try:
+            if scheduler:
+                success = scheduler.run_screening_job_manual()
+                if success:
+                    logger.info("✅ Manual screening completed successfully")
+                    return jsonify({
+                        'success': True, 
+                        'message': 'Screening completed successfully',
+                        'data_ready': True
+                    })
                 else:
-                    # Run standalone screening
-                    from scheduler import run_screening_job_manual
-                    success = run_screening_job_manual()
-                    if success:
-                        logger.info("✅ Standalone manual screening completed")
-                    else:
-                        logger.warning("⚠️ Standalone screening had issues")
+                    logger.warning("⚠️ Manual screening completed with issues")
+                    return jsonify({
+                        'success': False, 
+                        'message': 'Screening completed with issues',
+                        'data_ready': False
+                    })
+            else:
+                # Run standalone screening
+                from scheduler import run_screening_job_manual
+                success = run_screening_job_manual()
+                if success:
+                    logger.info("✅ Standalone manual screening completed")
+                    return jsonify({
+                        'success': True, 
+                        'message': 'Screening completed successfully',
+                        'data_ready': True
+                    })
+                else:
+                    logger.warning("⚠️ Standalone screening had issues")
+                    return jsonify({
+                        'success': False, 
+                        'message': 'Screening completed with issues',
+                        'data_ready': False
+                    })
 
-            except Exception as e:
-                logger.error(f"❌ Manual screening failed: {str(e)}")
-                # Create emergency demo data
-                try:
-                    ist_now = datetime.now(IST)
-                    demo_data = {
-                        'timestamp': ist_now.isoformat(),
-                        'last_updated': ist_now.strftime('%Y-%m-%d %H:%M:%S IST'),
-                        'status': 'demo_fallback',
-                        'stocks': [
-                            {
-                                'symbol': 'RELIANCE',
-                                'score': 85.0,
-                                'adjusted_score': 82.5,
-                                'confidence': 90,
-                                'current_price': 1400.0,
-                                'predicted_price': 1680.0,
-                                'predicted_gain': 20.0,
-                                'pred_24h': 1.2,
-                                'pred_5d': 4.8,
-                                'pred_1mo': 18.5,
-                                'volatility': 1.5,
-                                'time_horizon': 12,
-                                'pe_ratio': 25.0,
-                                'pe_description': 'At Par',
-                                'revenue_growth': 8.5,
-                                'risk_level': 'Low',
-                                'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S')
-                            }
-                        ]
-                    }
-                    with open('top10.json', 'w', encoding='utf-8') as f:
-                        json.dump(demo_data, f, indent=2, ensure_ascii=False)
-                    logger.info("✅ Emergency demo data generated")
-                except Exception as demo_error:
-                    logger.error(f"Failed to generate demo data: {demo_error}")
-
-        import threading
-        threading.Thread(target=run_background_screening, daemon=True).start()
-        return jsonify({'success': True, 'message': 'Screening started successfully'})
+        except Exception as e:
+            logger.error(f"❌ Manual screening failed: {str(e)}")
+            return jsonify({
+                'success': False, 
+                'message': f'Screening failed: {str(e)}',
+                'data_ready': False
+            })
 
     except Exception as e:
         logger.error(f"Manual refresh error: {str(e)}")
@@ -627,91 +654,26 @@ def initialize_app():
         logger.error(f"❌ Error starting scheduler: {str(e)}")
 
 def create_initial_demo_data():
-    """Create initial demo data for immediate display"""
+    """Create minimal initial data structure"""
     try:
         ist_now = datetime.now(IST)
 
-        demo_data = {
-            'timestamp': ist_now.isoformat(),
+        initial_data = {
+            'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
             'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
-            'status': 'demo_ready',
-            'stocks': [
-                {
-                    'symbol': 'RELIANCE',
-                    'score': 85.0,
-                    'adjusted_score': 82.5,
-                    'confidence': 90,
-                    'current_price': 1400.0,
-                    'predicted_price': 1680.0,
-                    'predicted_gain': 20.0,
-                    'pred_24h': 1.2,
-                    'pred_5d': 4.8,
-                    'pred_1mo': 18.5,
-                    'volatility': 1.5,
-                    'time_horizon': 12,
-                    'pe_ratio': 25.0,
-                    'pe_description': 'At Par',
-                    'revenue_growth': 8.5,
-                    'earnings_growth': 7.2,
-                    'risk_level': 'Low',
-                    'market_cap': 'Large Cap',
-                    'technical_summary': 'Bullish Trend | RSI Neutral | High Volume',
-                    'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S')
-                },
-                {
-                    'symbol': 'TCS',
-                    'score': 82.0,
-                    'adjusted_score': 80.1,
-                    'confidence': 88,
-                    'current_price': 3150.0,
-                    'predicted_price': 3780.0,
-                    'predicted_gain': 20.0,
-                    'pred_24h': 0.9,
-                    'pred_5d': 3.6,
-                    'pred_1mo': 15.2,
-                    'volatility': 1.4,
-                    'time_horizon': 12,
-                    'pe_ratio': 23.0,
-                    'pe_description': 'At Par',
-                    'revenue_growth': 6.2,
-                    'earnings_growth': 5.8,
-                    'risk_level': 'Low',
-                    'market_cap': 'Large Cap',
-                    'technical_summary': 'Uptrend | RSI Neutral | Normal Volume',
-                    'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S')
-                },
-                {
-                    'symbol': 'INFY',
-                    'score': 78.0,
-                    'adjusted_score': 75.5,
-                    'confidence': 85,
-                    'current_price': 1450.0,
-                    'predicted_price': 1668.0,
-                    'predicted_gain': 15.0,
-                    'pred_24h': 0.8,
-                    'pred_5d': 3.2,
-                    'pred_1mo': 12.8,
-                    'volatility': 1.3,
-                    'time_horizon': 15,
-                    'pe_ratio': 22.0,
-                    'pe_description': 'At Par',
-                    'revenue_growth': 7.8,
-                    'earnings_growth': 6.5,
-                    'risk_level': 'Low',
-                    'market_cap': 'Large Cap',
-                    'technical_summary': 'Sideways | RSI Neutral | Low Volume',
-                    'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S')
-                }
-            ]
+            'status': 'initializing',
+            'stocks': []
         }
 
-        with open('top10.json', 'w', encoding='utf-8') as f:
-            json.dump(demo_data, f, indent=2, ensure_ascii=False)
+        # Only create if file doesn't exist
+        if not os.path.exists('top10.json'):
+            with open('top10.json', 'w', encoding='utf-8') as f:
+                json.dump(initial_data, f, indent=2, ensure_ascii=False)
 
-        logger.info("✅ Initial demo data created successfully")
+            logger.info("✅ Initial data structure created")
 
     except Exception as e:
-        logger.error(f"Failed to create initial demo data: {e}")
+        logger.error(f"Failed to create initial data: {e}")
 
 def create_app():
     """Application factory function for WSGI deployment"""

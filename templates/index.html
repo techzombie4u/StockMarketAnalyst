@@ -465,8 +465,31 @@
         function updateLastUpdated(timestamp) {
             const element = document.getElementById('lastUpdated');
             if (timestamp) {
-                const date = new Date(timestamp);
-                element.textContent = `Last Updated: ${date.toLocaleString()}`;
+                try {
+                    // Handle different timestamp formats
+                    let date;
+                    if (typeof timestamp === 'string') {
+                        if (timestamp.includes('/')) {
+                            // Already formatted string like "31/07/2025, 10:20:45"
+                            element.textContent = `Last Updated: ${timestamp}`;
+                            return;
+                        } else {
+                            // ISO string format
+                            date = new Date(timestamp);
+                        }
+                    } else {
+                        date = new Date(timestamp);
+                    }
+                    
+                    if (isNaN(date.getTime())) {
+                        element.textContent = 'Last Updated: Processing...';
+                    } else {
+                        element.textContent = `Last Updated: ${date.toLocaleString()}`;
+                    }
+                } catch (error) {
+                    console.warn('Error parsing timestamp:', error);
+                    element.textContent = 'Last Updated: Processing...';
+                }
             } else {
                 element.textContent = 'Last Updated: Never';
             }
@@ -621,7 +644,7 @@
             const now = Date.now();
             if (isLoading || (now - lastRequestTime) < minRequestInterval) {
                 console.log('Skipping request - too frequent or already loading');
-                return;
+                return Promise.resolve();
             }
 
             lastRequestTime = now;
@@ -631,7 +654,7 @@
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-            fetch('/api/stocks', {
+            return fetch('/api/stocks', {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
@@ -656,7 +679,7 @@
                     lastUpdated: data.last_updated
                 });
 
-                updateLastUpdated(data.timestamp || data.last_updated);
+                updateLastUpdated(data.last_updated || data.timestamp);
 
                 // Handle different statuses
                 if (data.status === 'error' || data.error) {
@@ -720,9 +743,10 @@
         function refreshData() {
             const btn = document.getElementById('refreshBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="refresh-icon">⏳</span> Refreshing...';
+            btn.innerHTML = '<span class="refresh-icon">⏳</span> Screening...';
 
-            updateStatus('Manual screening triggered...', 'loading');
+            updateStatus('Starting stock screening...', 'loading');
+            showLoading();
 
             fetch('/api/run-now', { 
                 method: 'POST',
@@ -732,15 +756,17 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    updateStatus('Screening in progress...', 'loading');
+                if (data.success && data.data_ready) {
+                    updateStatus('Screening completed, loading results...', 'loading');
+                    // Wait a moment then load fresh data
                     setTimeout(() => {
-                        loadStocks();
-                        btn.disabled = false;
-                        btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
-                    }, 3000);
+                        loadStocks().then(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
+                        });
+                    }, 1000);
                 } else {
-                    updateStatus('Screening failed', 'error');
+                    updateStatus(data.message || 'Screening failed', 'error');
                     btn.disabled = false;
                     btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
                 }
