@@ -192,6 +192,93 @@ class ExternalDataImporter:
             logger.error(f"Error downloading extended data for {symbol}: {str(e)}")
             return None
     
+    def create_enhanced_training_dataset_from_data(self, downloaded_data: Dict) -> Dict:
+        """
+        Create comprehensive training dataset using pre-downloaded data
+        """
+        try:
+            logger.info(f"Creating enhanced training dataset from downloaded data...")
+            
+            lstm_X, lstm_y = [], []
+            rf_X, rf_y = [], []
+            processed_symbols = 0
+            
+            for symbol, historical_df in downloaded_data.items():
+                logger.info(f"Processing {symbol} ({processed_symbols+1}/{len(downloaded_data)})...")
+                
+                if historical_df is None or len(historical_df) < 100:
+                    logger.warning(f"Insufficient data for {symbol}, skipping...")
+                    continue
+                
+                # Calculate technical indicators
+                historical_df = self.data_loader.calculate_technical_indicators(historical_df)
+                processed_symbols += 1
+                
+                # Create fundamental data (get from screener or use defaults)
+                fundamentals = self._get_fundamentals_for_symbol(symbol)
+                
+                # Prepare LSTM training data (time series)
+                lstm_sequences = self._create_lstm_sequences(historical_df)
+                if lstm_sequences:
+                    lstm_X.extend(lstm_sequences['X'])
+                    lstm_y.extend(lstm_sequences['y'])
+                
+                # Prepare RF training data (daily samples)
+                rf_samples = self._create_rf_samples(historical_df, fundamentals)
+                if rf_samples:
+                    rf_X.extend(rf_samples['X'])
+                    rf_y.extend(rf_samples['y'])
+                
+                logger.info(f"✅ {symbol}: LSTM sequences: {len(lstm_sequences['X']) if lstm_sequences else 0}, RF samples: {len(rf_samples['X']) if rf_samples else 0}")
+            
+            # Save comprehensive dataset
+            training_dataset = {
+                'lstm': {
+                    'X': np.array(lstm_X) if lstm_X else None,
+                    'y': np.array(lstm_y) if lstm_y else None
+                },
+                'rf': {
+                    'X': np.array(rf_X) if rf_X else None,
+                    'y': np.array(rf_y) if rf_y else None
+                },
+                'metadata': {
+                    'symbols_processed': processed_symbols,
+                    'total_symbols': len(downloaded_data),
+                    'lstm_samples': len(lstm_X),
+                    'rf_samples': len(rf_X),
+                    'creation_date': datetime.now().isoformat(),
+                    'data_period': '1 year historical (Yahoo Finance)',
+                    'data_source': 'Yahoo Finance API'
+                }
+            }
+            
+            # Save dataset for future use
+            with open('enhanced_training_dataset.json', 'w') as f:
+                # Convert numpy arrays to lists for JSON serialization
+                serializable_dataset = {
+                    'lstm': {
+                        'X': lstm_X if isinstance(lstm_X, list) else lstm_X.tolist() if lstm_X is not None else None,
+                        'y': lstm_y if isinstance(lstm_y, list) else lstm_y.tolist() if lstm_y is not None else None
+                    },
+                    'rf': {
+                        'X': rf_X if isinstance(rf_X, list) else rf_X.tolist() if rf_X is not None else None,
+                        'y': rf_y if isinstance(rf_y, list) else rf_y.tolist() if rf_y is not None else None
+                    },
+                    'metadata': training_dataset['metadata']
+                }
+                json.dump(serializable_dataset, f, indent=2)
+            
+            logger.info(f"Enhanced training dataset created:")
+            logger.info(f"  - LSTM samples: {len(lstm_X)}")
+            logger.info(f"  - RF samples: {len(rf_X)}")
+            logger.info(f"  - Symbols processed: {processed_symbols}/{len(downloaded_data)}")
+            
+            return training_dataset
+            
+        except Exception as e:
+            logger.error(f"Error creating enhanced training dataset: {str(e)}")
+            return {}
+
     def create_enhanced_training_dataset(self, 
                                        symbols_list: List[str], 
                                        csv_data_path: str = None,
