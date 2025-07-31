@@ -48,42 +48,54 @@ class MLDataLoader:
         try:
             df = data.copy()
             
+            # Ensure we have the required columns
+            required_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
+            for col in required_cols:
+                if col not in df.columns:
+                    logger.error(f"Missing required column: {col}")
+                    return data
+            
             # Calculate ATR (14-day)
             high_low = df['High'] - df['Low']
             high_close = np.abs(df['High'] - df['Close'].shift())
             low_close = np.abs(df['Low'] - df['Close'].shift())
             true_range = np.maximum(high_low, np.maximum(high_close, low_close))
-            df['ATR'] = true_range.rolling(window=14).mean()
+            df['ATR'] = true_range.rolling(window=14).mean().fillna(0)
             
             # Calculate momentum ratios
-            df['Price_Change'] = df['Close'].pct_change()
-            df['Momentum_2d'] = df['Close'].pct_change(periods=2)
-            df['Momentum_5d'] = df['Close'].pct_change(periods=5)
-            df['Momentum_10d'] = df['Close'].pct_change(periods=10)
+            df['Price_Change'] = df['Close'].pct_change().fillna(0)
+            df['Momentum_2d'] = df['Close'].pct_change(periods=2).fillna(0)
+            df['Momentum_5d'] = df['Close'].pct_change(periods=5).fillna(0)
+            df['Momentum_10d'] = df['Close'].pct_change(periods=10).fillna(0)
             
             # Volume indicators
-            df['Volume_MA'] = df['Volume'].rolling(window=20).mean()
-            df['Volume_Ratio'] = df['Volume'] / df['Volume_MA']
+            df['Volume_MA'] = df['Volume'].rolling(window=20).mean().fillna(df['Volume'].mean())
+            df['Volume_Ratio'] = (df['Volume'] / df['Volume_MA']).fillna(1.0)
             
             # Moving averages
-            df['MA_5'] = df['Close'].rolling(window=5).mean()
-            df['MA_10'] = df['Close'].rolling(window=10).mean()
-            df['MA_20'] = df['Close'].rolling(window=20).mean()
+            df['MA_5'] = df['Close'].rolling(window=5).mean().fillna(df['Close'])
+            df['MA_10'] = df['Close'].rolling(window=10).mean().fillna(df['Close'])
+            df['MA_20'] = df['Close'].rolling(window=20).mean().fillna(df['Close'])
             
             # Price position relative to moving averages
-            df['Price_vs_MA5'] = (df['Close'] - df['MA_5']) / df['MA_5']
-            df['Price_vs_MA10'] = (df['Close'] - df['MA_10']) / df['MA_10']
-            df['Price_vs_MA20'] = (df['Close'] - df['MA_20']) / df['MA_20']
+            df['Price_vs_MA5'] = ((df['Close'] - df['MA_5']) / df['MA_5']).fillna(0)
+            df['Price_vs_MA10'] = ((df['Close'] - df['MA_10']) / df['MA_10']).fillna(0)
+            df['Price_vs_MA20'] = ((df['Close'] - df['MA_20']) / df['MA_20']).fillna(0)
             
             # Volatility
-            df['Volatility'] = df['Price_Change'].rolling(window=20).std()
+            df['Volatility'] = df['Price_Change'].rolling(window=20).std().fillna(0)
             
             # RSI
             delta = df['Close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-            rs = gain / loss
-            df['RSI'] = 100 - (100 / (1 + rs))
+            
+            # Avoid division by zero
+            rs = gain / (loss + 1e-8)
+            df['RSI'] = (100 - (100 / (1 + rs))).fillna(50)
+            
+            # Fill any remaining NaN values
+            df = df.fillna(method='forward').fillna(method='backward').fillna(0)
             
             return df
             
@@ -98,21 +110,41 @@ class MLDataLoader:
             feature_columns = ['Open', 'High', 'Low', 'Close', 'Volume', 'ATR', 
                              'Momentum_2d', 'Momentum_5d', 'Price_vs_MA5', 'Price_vs_MA10', 'RSI']
             
-            # Filter and clean data
-            df_clean = data[feature_columns].dropna()
+            # Check which columns actually exist
+            available_columns = [col for col in feature_columns if col in data.columns]
+            
+            if len(available_columns) < 5:  # Need at least basic OHLCV
+                logger.warning(f"Insufficient columns for LSTM. Available: {available_columns}")
+                return None, None
+            
+            # Use available columns
+            df_clean = data[available_columns].copy()
+            
+            # Fill NaN values
+            df_clean = df_clean.fillna(method='forward').fillna(method='backward').fillna(0)
             
             if len(df_clean) < self.lookback_window + 1:
-                logger.warning("Insufficient data for LSTM preparation")
+                logger.warning(f"Insufficient data for LSTM preparation: {len(df_clean)} < {self.lookback_window + 1}")
                 return None, None
             
             # Normalize features
-            scaled_features = self.feature_scaler.fit_transform(df_clean)
+            try:
+                scaled_features = self.feature_scaler.fit_transform(df_clean)
+            except Exception as e:
+                logger.error(f"Error in feature scaling: {str(e)}")
+                return None, None
             
             # Create sequences
             X, y = [], []
+            close_idx = available_columns.index('Close') if 'Close' in available_columns else 3
+            
             for i in range(self.lookback_window, len(scaled_features)):
                 X.append(scaled_features[i-self.lookback_window:i])
-                y.append(scaled_features[i, 3])  # Next day's close price (index 3)
+                y.append(scaled_features[i, close_idx])  # Next day's close price
+            
+            if len(X) == 0:
+                logger.warning("No sequences created for LSTM")
+                return None, None
             
             return np.array(X), np.array(y)
             
@@ -134,35 +166,71 @@ class MLDataLoader:
             features = []
             
             # Recent ATR (average of last 5 days)
-            recent_atr = recent_data['ATR'].tail(5).mean() if 'ATR' in recent_data.columns else 0
+            if 'ATR' in recent_data.columns and not recent_data['ATR'].isna().all():
+                recent_atr = recent_data['ATR'].tail(5).mean()
+                recent_atr = recent_atr if not np.isnan(recent_atr) else 0
+            else:
+                recent_atr = 0
             features.append(recent_atr)
             
             # Recent momentum ratios
-            recent_momentum_2d = recent_data['Momentum_2d'].tail(5).mean() if 'Momentum_2d' in recent_data.columns else 0
-            recent_momentum_5d = recent_data['Momentum_5d'].tail(5).mean() if 'Momentum_5d' in recent_data.columns else 0
+            if 'Momentum_2d' in recent_data.columns and not recent_data['Momentum_2d'].isna().all():
+                recent_momentum_2d = recent_data['Momentum_2d'].tail(5).mean()
+                recent_momentum_2d = recent_momentum_2d if not np.isnan(recent_momentum_2d) else 0
+            else:
+                recent_momentum_2d = 0
+                
+            if 'Momentum_5d' in recent_data.columns and not recent_data['Momentum_5d'].isna().all():
+                recent_momentum_5d = recent_data['Momentum_5d'].tail(5).mean()
+                recent_momentum_5d = recent_momentum_5d if not np.isnan(recent_momentum_5d) else 0
+            else:
+                recent_momentum_5d = 0
+                
             features.extend([recent_momentum_2d, recent_momentum_5d])
             
             # Price vs moving averages
-            price_vs_ma5 = recent_data['Price_vs_MA5'].iloc[-1] if 'Price_vs_MA5' in recent_data.columns else 0
-            price_vs_ma10 = recent_data['Price_vs_MA10'].iloc[-1] if 'Price_vs_MA10' in recent_data.columns else 0
+            if 'Price_vs_MA5' in recent_data.columns and len(recent_data['Price_vs_MA5']) > 0:
+                price_vs_ma5 = recent_data['Price_vs_MA5'].iloc[-1]
+                price_vs_ma5 = price_vs_ma5 if not np.isnan(price_vs_ma5) else 0
+            else:
+                price_vs_ma5 = 0
+                
+            if 'Price_vs_MA10' in recent_data.columns and len(recent_data['Price_vs_MA10']) > 0:
+                price_vs_ma10 = recent_data['Price_vs_MA10'].iloc[-1]
+                price_vs_ma10 = price_vs_ma10 if not np.isnan(price_vs_ma10) else 0
+            else:
+                price_vs_ma10 = 0
+                
             features.extend([price_vs_ma5, price_vs_ma10])
             
             # Volume trend
-            volume_ratio = recent_data['Volume_Ratio'].tail(5).mean() if 'Volume_Ratio' in recent_data.columns else 1
+            if 'Volume_Ratio' in recent_data.columns and not recent_data['Volume_Ratio'].isna().all():
+                volume_ratio = recent_data['Volume_Ratio'].tail(5).mean()
+                volume_ratio = volume_ratio if not np.isnan(volume_ratio) else 1
+            else:
+                volume_ratio = 1
             features.append(volume_ratio)
             
             # Volatility
-            recent_volatility = recent_data['Volatility'].tail(5).mean() if 'Volatility' in recent_data.columns else 0
+            if 'Volatility' in recent_data.columns and not recent_data['Volatility'].isna().all():
+                recent_volatility = recent_data['Volatility'].tail(5).mean()
+                recent_volatility = recent_volatility if not np.isnan(recent_volatility) else 0
+            else:
+                recent_volatility = 0
             features.append(recent_volatility)
             
             # RSI
-            recent_rsi = recent_data['RSI'].iloc[-1] if 'RSI' in recent_data.columns else 50
+            if 'RSI' in recent_data.columns and len(recent_data['RSI']) > 0:
+                recent_rsi = recent_data['RSI'].iloc[-1]
+                recent_rsi = recent_rsi if not np.isnan(recent_rsi) else 50
+            else:
+                recent_rsi = 50
             features.append(recent_rsi)
             
             # Fundamental features
             pe_ratio = fundamentals.get('pe_ratio', 20) or 20
-            revenue_growth = fundamentals.get('revenue_growth', 0)
-            earnings_growth = fundamentals.get('earnings_growth', 0)
+            revenue_growth = fundamentals.get('revenue_growth', 0) or 0
+            earnings_growth = fundamentals.get('earnings_growth', 0) or 0
             promoter_buying = 1 if fundamentals.get('promoter_buying', False) else 0
             
             features.extend([pe_ratio, revenue_growth, earnings_growth, promoter_buying])
@@ -170,9 +238,13 @@ class MLDataLoader:
             # Create target variable (next day direction)
             price_changes = data['Close'].pct_change().dropna()
             if len(price_changes) > 0:
-                next_day_direction = 1 if price_changes.iloc[-1] > 0 else 0
+                last_change = price_changes.iloc[-1]
+                next_day_direction = 1 if (not np.isnan(last_change) and last_change > 0) else 0
             else:
                 next_day_direction = 0
+            
+            # Ensure all features are valid numbers
+            features = [float(f) if not np.isnan(float(f)) else 0.0 for f in features]
             
             return np.array(features).reshape(1, -1), np.array([next_day_direction])
             
