@@ -243,6 +243,29 @@
         .pe-very-high { background: #f8d7da; color: #721c24; }
         .pe-na { background: #e2e3e5; color: #6c757d; }
 
+        .confidence {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+
+        .confidence-high { background: #d4edda; color: #155724; }
+        .confidence-medium { background: #fff3cd; color: #856404; }
+        .confidence-low { background: #f8d7da; color: #721c24; }
+
+        .trend {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .trend-uptrend { background: #d4edda; color: #155724; }
+        .trend-sideways { background: #fff3cd; color: #856404; }
+        .trend-downtrend { background: #f8d7da; color: #721c24; }
+
         .risk-level {
             padding: 4px 8px;
             border-radius: 12px;
@@ -403,8 +426,9 @@
                     <tr>
                         <th>🏢 Stock</th>
                         <th>⭐ Score</th>
+                        <th>🎯 Confidence</th>
+                        <th>📈 Trend</th>
                         <th>💰 Price</th>
-                        <th>📈 24h Pred.</th>
                         <th>📊 5d Pred.</th>
                         <th>🎯 1mo Pred.</th>
                         <th>📉 P/E Ratio</th>
@@ -485,18 +509,34 @@
             updateStatus('Data loaded successfully', 'success');
         }
 
-        function updateStats(stocks) {
+        function updateStats(stocks, backtesting) {
             if (!stocks || stocks.length === 0) return;
 
             const totalStocks = stocks.length;
-            const highScoreStocks = stocks.filter(s => s.score >= 70).length;
-            const avgScore = (stocks.reduce((sum, s) => sum + s.score, 0) / totalStocks).toFixed(1);
-            const topGain = Math.max(...stocks.map(s => s.predicted_gain || 0)).toFixed(1);
+            const highScoreStocks = stocks.filter(s => s.score >= 75).length;
+            const avgConfidence = (stocks.reduce((sum, s) => sum + (s.confidence || 0), 0) / totalStocks).toFixed(1);
+            const uptrends = stocks.filter(s => s.trend_class === 'uptrend').length;
 
             document.getElementById('totalStocks').textContent = totalStocks;
             document.getElementById('highScoreStocks').textContent = highScoreStocks;
-            document.getElementById('avgScore').textContent = avgScore;
-            document.getElementById('topGain').textContent = topGain + '%';
+            document.getElementById('avgScore').textContent = avgConfidence + '%';
+            document.getElementById('topGain').textContent = uptrends;
+
+            // Update labels
+            document.querySelector('.stat-card:nth-child(2) .stat-label').textContent = 'High Score (75+)';
+            document.querySelector('.stat-card:nth-child(3) .stat-label').textContent = 'Avg Confidence';
+            document.querySelector('.stat-card:nth-child(4) .stat-label').textContent = 'Uptrend Stocks';
+
+            // Add backtesting accuracy if available
+            if (backtesting && backtesting.status === 'available' && backtesting.accuracy_rate) {
+                const backTestCard = document.querySelector('.stat-card:nth-child(4)');
+                if (backTestCard) {
+                    backTestCard.innerHTML = `
+                        <div class="stat-number">${backtesting.accuracy_rate}%</div>
+                        <div class="stat-label">Model Accuracy (30d)</div>
+                    `;
+                }
+            }
         }
 
         function getScoreClass(score) {
@@ -524,6 +564,16 @@
             return peClasses[peDesc] || 'pe-na';
         }
 
+        function getConfidenceClass(confidence) {
+            if (confidence >= 85) return 'confidence-high';
+            if (confidence >= 75) return 'confidence-medium';
+            return 'confidence-low';
+        }
+
+        function getTrendClass(trendClass) {
+            return `trend-${trendClass}`;
+        }
+
         function getRiskClass(risk) {
             return `risk-${risk.toLowerCase()}`;
         }
@@ -538,7 +588,7 @@
             tbody.innerHTML = '';
 
             if (!stocks || stocks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666;">No stock data available. Click "Refresh Now" to load data.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;">No stock data available. Click "Refresh Now" to load data.</td></tr>';
                 return;
             }
 
@@ -546,15 +596,17 @@
                 const row = document.createElement('tr');
 
                 // Get prediction values with fallbacks
-                const pred24h = stock.pred_24h || (stock.predicted_gain || 0) * 0.05;
                 const pred5d = stock.pred_5d || (stock.predicted_gain || 0) * 0.25;
                 const pred1mo = stock.pred_1mo || (stock.predicted_gain || 0);
+                const confidence = stock.confidence || 0;
+                const trendVisual = stock.trend_visual || '➡️ Sideways';
 
                 row.innerHTML = `
                     <td class="symbol">${stock.symbol}</td>
                     <td><span class="score ${getScoreClass(stock.score)}">${stock.score.toFixed(1)}</span></td>
+                    <td><span class="confidence ${getConfidenceClass(confidence)}">${confidence.toFixed(1)}%</span></td>
+                    <td><span class="trend ${getTrendClass(stock.trend_class || 'sideways')}">${trendVisual}</span></td>
                     <td class="price">₹${(stock.current_price || 0).toFixed(2)}</td>
-                    <td class="${getGainClass(pred24h)}">${formatGain(pred24h)}</td>
                     <td class="${getGainClass(pred5d)}">${formatGain(pred5d)}</td>
                     <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
                     <td><span class="pe-ratio ${getPEClass(stock.pe_description || 'Not Available')}">${stock.pe_ratio ? stock.pe_ratio.toFixed(1) : 'N/A'}</span></td>
@@ -631,7 +683,7 @@
 
                 // Update table and stats
                 updateStockTable(data.stocks);
-                updateStats(data.stocks);
+                updateStats(data.stocks, data.backtesting);
                 showData();
                 updateStatus(`Found ${data.stocks.length} stocks`, 'success');
             })

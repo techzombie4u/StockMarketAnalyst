@@ -32,7 +32,7 @@ def dashboard():
 
 @app.route('/api/stocks')
 def get_stocks():
-    """API endpoint to get current stock data"""
+    """API endpoint to get current stock data with backtesting info"""
     try:
         # Initialize file if it doesn't exist
         if not os.path.exists('top10.json'):
@@ -51,29 +51,28 @@ def get_stocks():
                 'stocks': [],
                 'status': 'initial',
                 'last_updated': initial_data['last_updated'],
-                'stockCount': 0
+                'stockCount': 0,
+                'backtesting': {'status': 'no_data'}
             })
 
         # Read the file safely
         try:
             with open('top10.json', 'r', encoding='utf-8') as f:
                 content = f.read().strip()
-
-            if not content:
-                raise ValueError("Empty file")
-
-            data = json.loads(content)
+                if not content:
+                    raise ValueError("Empty file")
+                data = json.loads(content)
 
         except (json.JSONDecodeError, ValueError) as e:
-            logger.error(f"File read/parse error: {str(e)}")
-
-            # Reset corrupted file
+            logger.error(f"JSON parsing error in /api/stocks: {str(e)}")
+            # Try to recover by returning empty data
             ist_now = datetime.now(IST)
             reset_data = {
                 'timestamp': ist_now.isoformat(),
                 'last_updated': ist_now.strftime('%Y-%m-%d %H:%M:%S IST'),
                 'stocks': [],
-                'status': 'file_reset'
+                'status': 'file_reset',
+                'backtesting': {'status': 'error'}
             }
 
             with open('top10.json', 'w', encoding='utf-8') as f:
@@ -83,8 +82,20 @@ def get_stocks():
                 'stocks': [],
                 'status': 'file_reset',
                 'last_updated': reset_data['last_updated'],
-                'stockCount': 0
-            })
+                'stockCount': 0,
+                'backtesting': {'status': 'error'}
+            }), 200  # Return 200 instead of 500 to avoid frontend errors
+
+
+        # Add backtesting summary
+        try:
+            from backtesting_manager import BacktestingManager
+            backtester = BacktestingManager()
+            backtest_summary = backtester.get_latest_backtest_summary()
+            data['backtesting'] = backtest_summary
+        except Exception as bt_error:
+            logger.warning(f"Backtesting data unavailable: {str(bt_error)}")
+            data['backtesting'] = {'status': 'unavailable'}
 
         # Extract and validate data
         stocks = data.get('stocks', [])
@@ -102,6 +113,8 @@ def get_stocks():
                     stock['current_price'] = 0.0
                 if 'predicted_gain' not in stock:
                     stock['predicted_gain'] = stock.get('score', 50) * 0.2
+                if 'confidence' not in stock:
+                    stock['confidence'] = 0.0  # Provide a default value
 
                 valid_stocks.append(stock)
 
@@ -111,18 +124,19 @@ def get_stocks():
             'stocks': valid_stocks,
             'status': status,
             'last_updated': last_updated,
-            'stockCount': len(valid_stocks)
+            'stockCount': len(valid_stocks),
+            'backtesting': data.get('backtesting', {'status': 'unavailable'})  # Include backtesting data
         })
 
     except Exception as e:
-        logger.error(f"Critical error in get_stocks API: {str(e)}")
+        logger.error(f"Error in /api/stocks: {str(e)}")
         return jsonify({
+            'status': 'error',
             'stocks': [],
-            'status': 'critical_error',
-            'last_updated': 'System Error',
-            'stockCount': 0,
-            'error': str(e)
-        }), 500
+            'error': str(e),
+            'timestamp': datetime.now().isoformat(),
+            'backtesting': {'status': 'error'}
+        }), 200
 
 @app.route('/api/status')
 def api_status():
@@ -132,11 +146,12 @@ def api_status():
         try:
             with open('top10.json', 'r') as f:
                 data = json.load(f)
-                stock_count = len(data) if isinstance(data, list) else 0
+                stock_count = len(data.get('stocks', [])) if isinstance(data, dict) else 0
 
                 # Calculate confidence statistics
-                if isinstance(data, list) and stock_count > 0:
-                    confidences = [stock.get('confidence', 0) for stock in data]
+                stocks = data.get('stocks', [])
+                if isinstance(stocks, list) and stock_count > 0:
+                    confidences = [stock.get('confidence', 0) for stock in stocks]
                     avg_confidence = round(sum(confidences) / len(confidences), 1)
                     high_confidence_count = len([c for c in confidences if c >= 90])
                     confidence_stats = {
@@ -154,7 +169,7 @@ def api_status():
                         'min_confidence': 0,
                         'max_confidence': 0
                     }
-        except:
+        except Exception as e:
             stock_count = 0
             confidence_stats = {
                 'average_confidence': 0,
@@ -570,6 +585,30 @@ def lookup_stock(symbol):
     except Exception as e:
         logger.error(f"Error in stock lookup for {symbol}: {str(e)}")
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+
+@app.route('/api/backtest')
+def get_backtest_results():
+    """Get backtesting analysis results"""
+    try:
+        from backtesting_manager import BacktestingManager
+        backtester = BacktestingManager()
+
+        # Run fresh backtest analysis
+        results = backtester.run_backtest_analysis()
+
+        return jsonify({
+            'status': 'success',
+            'results': results,
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Error in backtesting API: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
 
 def initialize_app():
     """Initialize the application with scheduler"""

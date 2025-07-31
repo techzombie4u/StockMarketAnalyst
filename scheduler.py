@@ -1,3 +1,4 @@
+"""Integrate backtesting into screening job"""
 """Fixing the date format for JavaScript compatibility by changing the date format string in the screening_data dictionary."""
 """Removing signal timeout handling to avoid threading issues in the stock screening process."""
 """
@@ -79,6 +80,7 @@ def run_screening_job():
         screener = EnhancedStockScreener()
 
         # Run screening without signal timeout (causes threading issues)
+        start_time = time.time()
         results = []
         try:
             results = screener.run_enhanced_screener()
@@ -111,16 +113,28 @@ def run_screening_job():
                     valid_results.append(stock)
 
             if valid_results:
-                screening_data = {
-                    'timestamp': now_ist.isoformat(),
-                    'last_updated': now_ist.strftime('%d/%m/%Y, %H:%M:%S'),
+                # Save results with timestamp
+                results_data = {
+                    'status': 'success',
                     'stocks': valid_results,
-                    'status': 'success'
+                    'last_updated': now_ist.strftime('%d/%m/%Y, %H:%M:%S'),
+                    'timestamp': now_ist.isoformat(),
+                    'total_stocks': len(valid_results),
+                    'screening_time': f"{time.time() - start_time:.2f} seconds"
                 }
 
-                # Save data safely
+                # Record predictions for backtesting
                 try:
-                    json_safe_data = convert_numpy_types(screening_data)
+                    from backtesting_manager import BacktestingManager
+                    backtester = BacktestingManager()
+                    for stock in valid_results:
+                        backtester.record_prediction(stock)
+                    logger.info("Predictions recorded for backtesting")
+                except Exception as bt_error:
+                    logger.warning(f"Failed to record predictions for backtesting: {str(bt_error)}")
+
+                try:
+                    json_safe_data = convert_numpy_types(results_data)
                     with open('top10.json', 'w', encoding='utf-8') as f:
                         json.dump(json_safe_data, f, indent=2, ensure_ascii=False)
 
@@ -137,6 +151,7 @@ def run_screening_job():
 
                 except Exception as save_error:
                     logger.error(f"Failed to save results: {save_error}")
+
             else:
                 logger.warning("No valid results after processing")
         else:

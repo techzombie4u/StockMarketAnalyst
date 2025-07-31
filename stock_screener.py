@@ -1997,6 +1997,57 @@ class EnhancedStockScreener:
             elif days == 30:  # 1mo prediction
                 return base_return * 1.0   # Full base return in 30 days
             else:
+
+
+    def _generate_technical_summary_with_trend(self, technical: Dict, trend_class: str, rsi: float) -> str:
+        """Generate enhanced technical summary with trend information"""
+        try:
+            summary_parts = []
+            
+            # Trend information
+            if trend_class == 'uptrend':
+                summary_parts.append("🔥 Strong Uptrend")
+            elif trend_class == 'downtrend':
+                summary_parts.append("⚠️ Downtrend")
+            else:
+                summary_parts.append("📊 Sideways")
+            
+            # RSI status
+            if rsi < 30:
+                summary_parts.append("RSI Oversold")
+            elif rsi > 70:
+                summary_parts.append("RSI Overbought")
+            else:
+                summary_parts.append(f"RSI {rsi:.0f}")
+            
+            # Moving average status
+            if technical.get('above_sma_20', False):
+                summary_parts.append("Above SMA20")
+            else:
+                summary_parts.append("Below SMA20")
+            
+            # Volume status
+            volume_ratio = technical.get('volume_ratio_10', 1)
+            if volume_ratio > 1.5:
+                summary_parts.append("High Volume")
+            elif volume_ratio < 0.8:
+                summary_parts.append("Low Volume")
+            else:
+                summary_parts.append("Normal Volume")
+            
+            # Volatility status
+            volatility_regime = technical.get('volatility_regime', 'medium')
+            if volatility_regime == 'high':
+                summary_parts.append("High Volatility")
+            elif volatility_regime == 'low':
+                summary_parts.append("Low Volatility")
+            
+            return " | ".join(summary_parts[:4])  # Limit to 4 items for space
+            
+        except Exception as e:
+            logger.error(f"Error generating technical summary: {str(e)}")
+            return "Technical analysis in progress"
+
                 # Linear scaling for other timeframes
                 return base_return * (days / 30)
 
@@ -2153,9 +2204,10 @@ class EnhancedStockScreener:
 
 
     def enhanced_score_and_rank(self, stocks_data: Dict) -> List[Dict]:
-        """Enhanced scoring and ranking with confidence filtering and improved calculations"""
+        """Enhanced scoring and ranking with trend filtering and high-score prioritization"""
         try:
             scored_stocks = []
+            high_score_stocks = []
             ist_now = datetime.now()
 
             for symbol, data in stocks_data.items():
@@ -2181,8 +2233,32 @@ class EnhancedStockScreener:
                 # Enhanced confidence calculation
                 confidence = self._calculate_confidence(technical, fundamentals, score)
 
-                # CONFIDENCE FILTERING: Only include stocks with confidence >= 80%
-                if confidence < 80.0:
+                # Get RSI and trend classification
+                rsi = technical.get('rsi_14', 50)
+                trend_direction = technical.get('trend_direction', 'sideways')
+                
+                # Determine trend classification with visual indicators
+                if trend_direction in ['strong_uptrend', 'uptrend']:
+                    trend_class = 'uptrend'
+                    trend_visual = '📈 Uptrend'
+                elif trend_direction in ['strong_downtrend', 'downtrend']:
+                    trend_class = 'downtrend'
+                    trend_visual = '📉 Downtrend'
+                else:
+                    trend_class = 'sideways'
+                    trend_visual = '➡️ Sideways'
+
+                # ENHANCED FILTERING: Remove stocks with Score < 70 OR Downtrend with RSI < 30
+                if score < 70:
+                    logger.debug(f"Filtering out {symbol} due to low score: {score}")
+                    continue
+                    
+                if trend_class == 'downtrend' and rsi < 30:
+                    logger.debug(f"Filtering out {symbol} due to downtrend with low RSI: {rsi}")
+                    continue
+
+                # CONFIDENCE FILTERING: Only include stocks with confidence >= 75%
+                if confidence < 75.0:
                     logger.debug(f"Filtering out {symbol} due to low confidence: {confidence}%")
                     continue
 
@@ -2216,7 +2292,10 @@ class EnhancedStockScreener:
                     'pred_5d': round(predictions['pred_5d'], 2),
                     'pred_1mo': round(predictions['pred_1mo'], 2),
                     'volatility': round(atr_volatility, 2),
-                    'volatility_regime': volatility_regime,  # NEW: Volatility classification
+                    'volatility_regime': volatility_regime,
+                    'trend_class': trend_class,
+                    'trend_visual': trend_visual,
+                    'rsi_14': round(rsi, 1),
                     'time_horizon': predictions['time_horizon'],
                     'pe_ratio': fundamentals.get('pe_ratio'),
                     'pe_description': self.get_pe_description(fundamentals.get('pe_ratio', 0)),
@@ -2225,21 +2304,35 @@ class EnhancedStockScreener:
                     'combined_growth': round((fundamentals.get('revenue_growth', 0) + fundamentals.get('earnings_growth', 0)) / 2, 1),
                     'risk_level': risk_level,
                     'market_cap': self._estimate_market_cap(symbol),
-                    'technical_summary': self._generate_technical_summary(technical),
+                    'technical_summary': self._generate_technical_summary_with_trend(technical, trend_class, rsi),
                     'last_analyzed': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
-                    'confidence_grade': 'A' if confidence >= 90 else 'B' if confidence >= 85 else 'C'  # NEW: Grade system
+                    'confidence_grade': 'A' if confidence >= 90 else 'B' if confidence >= 85 else 'C'
                 }
 
-                scored_stocks.append(stock_result)
+                # PRIORITIZE HIGH-SCORING STOCKS (Score ≥ 75) with positive 5D/1Mo predictions
+                if (score >= 75 and 
+                    predictions['pred_5d'] > 0 and 
+                    predictions['pred_1mo'] > 0):
+                    high_score_stocks.append(stock_result)
+                else:
+                    scored_stocks.append(stock_result)
 
-            # Enhanced sorting: Primary by confidence, secondary by adjusted score
-            scored_stocks.sort(key=lambda x: (x['confidence'], x['adjusted_score']), reverse=True)
+            # Combine results: High-score stocks first, then others
+            all_stocks = high_score_stocks + scored_stocks
 
-            # Return top 10 with confidence filtering applied
-            filtered_count = len(scored_stocks)
-            logger.info(f"Confidence filtering: {filtered_count} stocks passed 80% threshold")
+            # Enhanced sorting: Primary by score tier, then by confidence, then by adjusted score
+            all_stocks.sort(key=lambda x: (
+                1 if x['score'] >= 75 and x['pred_5d'] > 0 and x['pred_1mo'] > 0 else 0,
+                x['confidence'], 
+                x['adjusted_score']
+            ), reverse=True)
 
-            return scored_stocks[:10]
+            # Return top 10 with enhanced filtering applied
+            filtered_count = len(all_stocks)
+            high_score_count = len(high_score_stocks)
+            logger.info(f"Enhanced filtering: {filtered_count} stocks passed (including {high_score_count} high-scoring stocks)")
+
+            return all_stocks[:10]
 
         except Exception as e:
             logger.error(f"Error in enhanced scoring and ranking: {str(e)}")
