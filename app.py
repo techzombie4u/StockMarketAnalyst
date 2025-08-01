@@ -637,6 +637,69 @@ def get_backtest_results():
             'timestamp': datetime.now().isoformat()
         }), 500
 
+@app.route('/prediction-tracker')
+def prediction_tracker():
+    """Prediction tracking dashboard page"""
+    return render_template('prediction_tracker.html')
+
+@app.route('/api/predictions-tracker')
+def get_predictions_tracker():
+    """API endpoint to get prediction tracking data"""
+    try:
+        predictions = []
+        
+        # Load predictions from predictions_history.json
+        if os.path.exists('predictions_history.json'):
+            with open('predictions_history.json', 'r') as f:
+                predictions = json.load(f)
+        
+        # Enrich with additional data if needed
+        enriched_predictions = []
+        for pred in predictions:
+            # Add calculated fields
+            current_price = pred.get('current_price', 0)
+            predicted_price = pred.get('predicted_price', current_price)
+            
+            # Calculate 5-day prediction if not present
+            pred_5d = pred.get('pred_5d')
+            if pred_5d is None and current_price > 0:
+                # Estimate 5-day from 30-day prediction
+                pred_30d = pred.get('predicted_1mo', 0)
+                pred_5d = round(pred_30d * 0.15, 2)  # Rough estimate
+            
+            enriched_pred = {
+                'symbol': pred.get('symbol', 'N/A'),
+                'timestamp': pred.get('timestamp', datetime.now().isoformat()),
+                'current_price': current_price,
+                'predicted_price': predicted_price,
+                'predicted_1mo': pred.get('predicted_1mo', 0),
+                'pred_5d': pred_5d or 0,
+                'score': pred.get('score', 0),
+                'confidence': pred.get('confidence', 0),
+                'trend_class': pred.get('trend_class', 'sideways')
+            }
+            enriched_predictions.append(enriched_pred)
+        
+        # Sort by timestamp (newest first)
+        enriched_predictions.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        return jsonify({
+            'status': 'success',
+            'predictions': enriched_predictions,
+            'total_count': len(enriched_predictions),
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in predictions tracker API: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'predictions': [],
+            'total_count': 0,
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
 def initialize_app():
     """Initialize the application with scheduler"""
     global scheduler
