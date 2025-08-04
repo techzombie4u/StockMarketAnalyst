@@ -151,7 +151,7 @@ def get_stocks():
         logger.info(f"API response: {len(valid_stocks)} valid stocks, status: {status}")
 
         # Force status to success if we have valid stocks
-        if valid_stocks and status in ['demo', 'unknown', 'initializing']:
+        if valid_stocks and status in ['demo', 'unknown', 'initializing', 'screening_triggered']:
             status = 'success'
 
         response_data = {
@@ -163,7 +163,7 @@ def get_stocks():
             'backtesting': data.get('backtesting', {'status': 'unavailable'})
         }
 
-        logger.info(f"Sending API response with {len(valid_stocks)} stocks")
+        logger.info(f"Sending API response with {len(valid_stocks)} stocks, status: {status}")
         return jsonify(response_data)
 
     except Exception as e:

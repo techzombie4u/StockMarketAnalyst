@@ -671,40 +671,42 @@
 
         // API functions
         function loadStocks() {
-            const now = Date.now();
-
-            log('Starting stock data load');
+            log('🔄 Starting stock data load');
 
             return fetch('/api/stocks', {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
                     'Cache-Control': 'no-cache'
-                },
-                timeout: 30000
+                }
             })
             .then(response => {
-                log(`API response status: ${response.status}`);
+                log(`📡 API response status: ${response.status}`);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(data => {
-                log(`API data received - Status: ${data.status}, Stock count: ${data.stocks ? data.stocks.length : 0}`);
-
+                log(`📊 API data received:`, data);
                 consecutiveErrors = 0;
+                
+                // Update timestamp
                 updateLastUpdated(data.last_updated || data.timestamp);
 
+                // Handle error status
                 if (data.status === 'error' || data.error) {
-                    showError(data.error || 'System error - please try refresh');
+                    const errorMsg = data.error || data.message || 'Unknown error occurred';
+                    log(`❌ API returned error: ${errorMsg}`, 'error');
+                    showError(errorMsg);
                     updateStatus('Error loading data', 'error');
                     return;
                 }
 
-                if (!data.stocks || data.stocks.length === 0) {
-                    log('No stocks in response, showing empty state');
-                    if (data.status === 'initial' || data.status === 'screening_triggered' || data.status === 'no_data') {
+                // Handle no stocks
+                if (!data.stocks || !Array.isArray(data.stocks) || data.stocks.length === 0) {
+                    log('📭 No stocks in response');
+                    if (data.status === 'initial' || data.status === 'initializing' || data.status === 'no_data') {
                         updateStatus('Stock screening in progress...', 'loading');
                         showEmpty();
                     } else {
@@ -715,23 +717,40 @@
                 }
 
                 // Successfully got data
-                log(`✅ Displaying ${data.stocks.length} stocks`);
-                updateStockTable(data.stocks);
-                updateStats(data.stocks);
+                log(`✅ Processing ${data.stocks.length} stocks`);
+                
+                // Validate stock data
+                const validStocks = data.stocks.filter(stock => 
+                    stock && typeof stock === 'object' && stock.symbol
+                );
+
+                if (validStocks.length === 0) {
+                    log('⚠️ No valid stocks found');
+                    showEmpty();
+                    updateStatus('No valid stock data', 'error');
+                    return;
+                }
+
+                // Display the data
+                updateStockTable(validStocks);
+                updateStats(validStocks);
                 showData();
-                updateStatus(`Successfully loaded ${data.stocks.length} stocks`, 'success');
+                updateStatus(`Successfully loaded ${validStocks.length} stocks`, 'success');
                 retryCount = 0;
+
+                log(`🎉 Successfully displayed ${validStocks.length} stocks`);
             })
             .catch(error => {
-                log(`API Error: ${error.message}`, 'error');
+                log(`💥 API Error: ${error.message}`, 'error');
                 consecutiveErrors++;
                 retryCount++;
 
                 if (retryCount <= maxRetries) {
-                    updateStatus(`Connection error (retry ${retryCount}/${maxRetries})...`, 'loading');
-                    setTimeout(() => loadStocks(), 2000 * retryCount);
+                    const retryDelay = Math.min(2000 * retryCount, 10000);
+                    updateStatus(`Connection error - retrying in ${retryDelay/1000}s (${retryCount}/${maxRetries})`, 'loading');
+                    setTimeout(() => loadStocks(), retryDelay);
                 } else {
-                    showError(`Failed to load data: ${error.message}`);
+                    showError(`Failed to load data after ${maxRetries} attempts: ${error.message}`);
                     updateStatus('Failed to load data', 'error');
                     retryCount = 0;
                 }
@@ -741,23 +760,24 @@
         // Manual refresh function
         function handleRefreshClick() {
             if (isRefreshing) {
-                log('Already refreshing, ignoring click');
+                log('⏸️ Already refreshing, ignoring click');
                 return;
             }
 
             const now = Date.now();
             if (now - lastRequestTime < minRequestInterval) {
-                log('Request too frequent, throttling');
+                log('⚡ Request too frequent, throttling');
                 return;
             }
 
-            log('Manual refresh initiated');
+            log('🔄 Manual refresh initiated');
             isRefreshing = true;
             lastRequestTime = now;
             retryCount = 0;
 
+            // Immediately disable button and show loading state
             setRefreshButtonState(true);
-            updateStatus('Starting refresh...', 'loading');
+            updateStatus('Starting manual screening...', 'loading');
             showLoading();
 
             fetch('/api/run-now', {
@@ -765,69 +785,65 @@
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
-                },
-                timeout: 120000
+                }
             })
             .then(response => {
-                log(`Manual refresh response status: ${response.status}`);
+                log(`🌐 Manual refresh response: ${response.status}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(result => {
-                log(`Manual refresh result: Success=${result.success}, Message=${result.message}`);
+                log(`📋 Manual refresh result:`, result);
 
                 if (result.success) {
-                    updateStatus('Screening completed - loading results...', 'loading');
+                    updateStatus('Screening completed - loading fresh data...', 'loading');
+                    // Wait a bit for data to be processed, then load
                     setTimeout(() => {
                         loadStocks().finally(() => {
                             isRefreshing = false;
                             setRefreshButtonState(false);
                         });
-                    }, 3000);
-                } else {
-                    updateStatus(`Refresh failed: ${result.message}`, 'error');
-                    setTimeout(() => {
-                        isRefreshing = false;
-                        setRefreshButtonState(false);
-                        loadStocks();
                     }, 2000);
+                } else {
+                    const errorMsg = result.message || 'Manual refresh failed';
+                    updateStatus(`Refresh failed: ${errorMsg}`, 'error');
+                    showError(errorMsg);
+                    isRefreshing = false;
+                    setRefreshButtonState(false);
                 }
             })
             .catch(error => {
-                log(`Manual refresh error: ${error.message}`, 'error');
+                log(`💥 Manual refresh error: ${error.message}`, 'error');
                 updateStatus(`Manual refresh failed: ${error.message}`, 'error');
-                setTimeout(() => {
-                    isRefreshing = false;
-                    setRefreshButtonState(false);
-                    loadStocks();
-                }, 2000);
+                showError(`Manual refresh failed: ${error.message}`);
+                isRefreshing = false;
+                setRefreshButtonState(false);
             });
         }
 
         // Initialize application
         function initializeApp() {
-            log('Initializing Stock Market Analyst Dashboard');
-            updateStatus('Initializing...', 'initializing');
+            log('🚀 Initializing Stock Market Analyst Dashboard');
+            updateStatus('Loading stock data...', 'loading');
             showLoading();
 
             // Set up refresh button event listener
             const refreshBtn = document.getElementById('refreshBtn');
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', handleRefreshClick);
-                log('Refresh button event listener attached');
+                log('✅ Refresh button event listener attached');
+                setRefreshButtonState(false); // Ensure button starts enabled
             } else {
-                log('Refresh button not found', 'error');
+                log('❌ Refresh button not found', 'error');
             }
 
-            // Load initial data with delay
-            setTimeout(() => {
-                log('Starting initial data load');
-                loadStocks().finally(() => {
-                    setRefreshButtonState(false);
-                });
-            }, 2000);
+            // Load initial data immediately
+            log('📊 Starting immediate data load');
+            loadStocks().finally(() => {
+                log('📋 Initial data load completed');
+            });
         }
 
         // Start application when DOM is ready
@@ -835,6 +851,14 @@
 
         // Expose refresh function globally for backward compatibility
         window.refreshData = handleRefreshClick;
+        
+        // Auto-refresh every 5 minutes if user is on page
+        setInterval(() => {
+            if (document.visibilityState === 'visible' && !isRefreshing) {
+                log('Auto-refresh triggered');
+                loadStocks();
+            }
+        }, 300000); // 5 minutes
     </script>
 </body>
 </html>
