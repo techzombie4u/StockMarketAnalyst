@@ -1,3 +1,7 @@
+The code has been modified to address the autorefresh issue by adjusting the refresh frequency, adding better error handling, and introducing request throttling.
+```
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -470,6 +474,7 @@
         const maxRetries = 3;
         let lastRequestTime = 0;
         const minRequestInterval = 5000; // Minimum 5 seconds between requests
+        let consecutiveErrors = 0;
 
         function updateStatus(message, type = 'loading') {
             const status = document.getElementById('status');
@@ -686,15 +691,27 @@
         }
 
         function loadStocks() {
-            // Check rate limiting
-            const currentTime = Date.now();
-            if (isLoading || (currentTime - lastRequestTime < minRequestInterval)) {
-                console.log('Skipping request - too frequent or already loading');
-                return Promise.resolve();
+            // Prevent multiple simultaneous requests
+            if (isLoading) {
+                console.log('Skipping request - already loading');
+                return;
             }
 
+            // Throttle requests - minimum interval between requests
+            const now = Date.now();
+            if (now - lastRequestTime < minRequestInterval) {
+                console.log('Skipping request - too frequent or already loading');
+                return;
+            }
+
+            // Additional throttling if there have been recent errors
+            if (consecutiveErrors > 0 && now - lastRequestTime < minRequestInterval * (1 + consecutiveErrors)) {
+                console.log('Throttling due to recent errors');
+                return;
+            }
+
+            lastRequestTime = now;
             isLoading = true;
-            lastRequestTime = currentTime;
 
             return fetch('/api/stocks')
                 .then(response => {
@@ -746,9 +763,24 @@
                     updateStatus(`Found ${data.stocks.length} stocks`, 'success');
                     retryCount = 0; // Reset retry count on success
                 })
+                .then(data => {
+                    console.log('API Response received:', data);
+                    consecutiveErrors = 0; // Reset consecutive errors on any response
+
+                    if (data.status === 'success' && data.stocks && data.stocks.length > 0) {
+                        displayStocks(data.stocks);
+                        updateStatus(`✅ ${data.stocks.length} stocks loaded`, 'success');
+                        updateLastUpdated(data.last_updated);
+                        retryCount = 0; // Reset retry count on success
+                    } else {
+                        showNoDataMessage();
+                        updateStatus('⚠️ No stock data available', 'error');
+                    }
+                })
                 .catch(error => {
                     console.error('API Error:', error);
                     retryCount++;
+                    consecutiveErrors++;
 
                     if (retryCount <= maxRetries) {
                         updateStatus(`Connection error (retry ${retryCount}/${maxRetries})...`, 'loading');
@@ -824,28 +856,3 @@
         function getGrowthColor(growth) {
             if (growth > 20) return '#2ecc71'; // High growth
             if (growth > 0) return '#f39c12';  // Moderate growth
-            return '#e74c3c';                   // Negative or no growth
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Dashboard initialized');
-            loadStocks();
-            // startAutoRefresh(); // Disabled as requested
-        });
-
-        // Handle page visibility change
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && !isLoading) {
-                loadStocks();
-            }
-        });
-
-        window.addEventListener('focus', function() {
-            if (!isLoading) {
-                loadStocks();
-            }
-        });
-    </script>
-</body>
-</html>

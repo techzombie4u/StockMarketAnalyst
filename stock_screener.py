@@ -56,7 +56,7 @@ class RetryStrategy:
 class GracefulDegradation:
 
     @staticmethod
-    def fallback_data(fallback_value: any):
+    def fallback_data(fallback_value):
         """Return fallback data on failure"""
         def decorator(func):
             @wraps(func)
@@ -777,8 +777,7 @@ class EnhancedStockScreener:
             # EMA crossover signals
             current_price = close_prices.iloc[-1] if len(close_prices) > 0 else 0
             indicators['price_above_ema_12'] = float(current_price) > float(indicators.get('ema_12', 0))
-            indicators['price_above_ema_21'] = float(current_price) > float(indicators.```python
-get('ema_21', 0))
+            indicators['price_above_ema_21'] = float(current_price) > float(indicators.get('ema_21', 0))
             indicators['ema_12_above_21'] = float(indicators.get('ema_12', 0)) > float(indicators.get('ema_21', 0))
 
             # EMA trend strength
@@ -2143,13 +2142,19 @@ Extract a specific metric value from soup"""
             # Momentum indicators
             indicators['momentum_10'] = float(close.iloc[-1] - close.iloc[-11]) if len(close) > 11 else 0
 
-            # Relative Vigor Index (RVI)            # Simple RVI calculation
-            if len(close_open) > 10:
-                rvi_numerator = close_open.rolling(window=10).sum()
-                rvi_denominator = high_low.rolling(window=10).sum()
-                rvi = rvi_numerator / (rvi_denominator + 1e-10)  # Avoid division by zero
-                indicators['rvi'] = float(rvi.iloc[-1]) if not pd.isna(rvi.iloc[-1]) else 0
-            else:
+            # Relative Vigor Index (RVI) - Simple calculation
+            try:
+                close_open = close - data['Open']
+                high_low = data['High'] - data['Low']
+                
+                if len(close_open) > 10:
+                    rvi_numerator = close_open.rolling(window=10).sum()
+                    rvi_denominator = high_low.rolling(window=10).sum()
+                    rvi = rvi_numerator / (rvi_denominator + 1e-10)  # Avoid division by zero
+                    indicators['rvi'] = float(rvi.iloc[-1]) if not pd.isna(rvi.iloc[-1]) else 0
+                else:
+                    indicators['rvi'] = 0
+            except Exception:
                 indicators['rvi'] = 0
 
             return indicators
@@ -2170,4 +2175,13 @@ Extract a specific metric value from soup"""
             # Calculate pivot points
             pivot = (high.iloc[-1] + low.iloc[-1] + close.iloc[-1]) / 3
             support1 = 2 * pivot - high.iloc[-1]
-            resistance1 = 2 * pivot - low.iloc
+            resistance1 = 2 * pivot - low.iloc[-1]
+            
+            indicators['pivot_point'] = float(pivot)
+            indicators['support1'] = float(support1)
+            indicators['resistance1'] = float(resistance1)
+
+        except Exception as e:
+            logger.error(f"Error calculating support/resistance levels: {str(e)}")
+
+        return indicators
