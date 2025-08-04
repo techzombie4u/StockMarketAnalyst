@@ -112,13 +112,14 @@ def check_file_integrity():
                 if not isinstance(data, dict):
                     logger.warning("JSON is not a dictionary")
                     raise ValueError("Invalid data structure")
+                
+                return data
 
         except (json.JSONDecodeError, ValueError, FileNotFoundError) as e:
             logger.error(f"JSON parsing error in /api/stocks: {str(e)}")
             
             # Try to recover by creating fresh data
             try:
-                from datetime import datetime
                 ist_now = datetime.now(IST)
                 
                 # Try to run a quick screening to get fresh data
