@@ -104,8 +104,8 @@
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
         }
 
-        .refresh-btn:hover {
-            background: #2980b9;
+        .refresh-btn:hover:not(:disabled) {
+            background: linear-gradient(45deg, #2980b9, #3498db);
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
         }
@@ -115,6 +115,7 @@
             cursor: not-allowed !important;
             transform: none !important;
             box-shadow: none !important;
+            opacity: 0.6;
         }
 
         .refresh-icon.spinning {
@@ -305,11 +306,6 @@
             margin: 0 auto 20px;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
         .error-message {
             background: rgba(248, 215, 218, 0.9);
             color: #721c24;
@@ -359,28 +355,6 @@
                 padding: 10px 8px;
             }
         }
-
-        .direction[data-direction="UP"] { color: #27ae60; }
-        .direction[data-direction="DOWN"] { color: #e74c3c; }
-        .direction[data-direction="UNKNOWN"] { color: #95a5a6; }
-
-        /* AI Agent Styling */
-        .ai-recommendation {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 8px;
-            padding: 8px;
-            margin: 5px 0;
-        }
-
-        .ai-action[data-action="STRONG_BUY"] { color: #00ff00; font-weight: bold; }
-        .ai-action[data-action="BUY"] { color: #27ae60; font-weight: bold; }
-        .ai-action[data-action="HOLD"] { color: #f39c12; }
-        .ai-action[data-action="WEAK_SELL"] { color: #e67e22; }
-        .ai-action[data-action="STRONG_SELL"] { color: #e74c3c; font-weight: bold; }
-
-        .risk-level[data-risk="LOW"] { color: #27ae60; }
-        .risk-level[data-risk="MEDIUM"] { color: #f39c12; }
-        .risk-level[data-risk="HIGH"] { color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -393,7 +367,7 @@
         </div>
 
         <div class="header-info">
-            <div class="status-indicator" id="status">
+            <div class="status-indicator status-loading" id="status">
                 <span>🔄</span>
                 <span>Initializing...</span>
             </div>
@@ -409,9 +383,9 @@
                 <h3>🎯 Top Performing Stocks</h3>
                 <p>AI-powered analysis with technical & fundamental scoring</p>
             </div>
-            <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
-                <span class="refresh-icon">🔄</span>
-                Refresh Now
+            <button class="refresh-btn" id="refreshBtn">
+                <span class="refresh-icon" id="refreshIcon">🔄</span>
+                <span id="refreshText">Refresh Now</span>
             </button>
         </div>
 
@@ -444,7 +418,7 @@
             <div id="error" class="error-message" style="display: none;">
                 <h3>⚠️ Connection Error</h3>
                 <p id="errorMessage">Unable to load stock data. Please try refreshing.</p>
-                <button onclick="refreshData()" style="margin-top: 10px; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                <button onclick="handleRefreshClick()" style="margin-top: 10px; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
                     🔄 Retry
                 </button>
             </div>
@@ -475,53 +449,52 @@
     </div>
 
     <script>
-        let refreshInterval;
-        let isLoading = false;
+        // Global variables
+        let isRefreshing = false;
+        let lastRequestTime = 0;
+        const minRequestInterval = 5000; // 5 seconds minimum between requests
+        let consecutiveErrors = 0;
         let retryCount = 0;
         const maxRetries = 3;
-        let lastRequestTime = 0;
-        const minRequestInterval = 5000; // Minimum 5 seconds between requests
-        let consecutiveErrors = 0;
+
+        // Utility functions
+        function log(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${new Date().toLocaleTimeString()}: ${message}`);
+        }
 
         function updateStatus(message, type = 'loading') {
             const status = document.getElementById('status');
             const icons = {
                 loading: '🔄',
-                success: '✅',
+                success: '✅', 
                 error: '❌',
                 initializing: '⏳'
             };
 
             status.className = `status-indicator status-${type}`;
             status.innerHTML = `<span>${icons[type] || '🔄'}</span><span>${message}</span>`;
+            log(`Status: ${message}`, type);
         }
 
         function updateLastUpdated(timestamp) {
             const element = document.getElementById('lastUpdated');
             if (timestamp) {
                 try {
-                    // Handle different timestamp formats
-                    let date;
+                    let displayTime;
                     if (typeof timestamp === 'string') {
                         if (timestamp.includes('/')) {
-                            // Already formatted string like "31/07/2025, 10:20:45"
-                            element.textContent = `Last Updated: ${timestamp}`;
-                            return;
+                            displayTime = timestamp;
                         } else {
-                            // ISO string format
-                            date = new Date(timestamp);
+                            const date = new Date(timestamp);
+                            displayTime = date.toLocaleString();
                         }
                     } else {
-                        date = new Date(timestamp);
+                        const date = new Date(timestamp);
+                        displayTime = date.toLocaleString();
                     }
-
-                    if (isNaN(date.getTime())) {
-                        element.textContent = 'Last Updated: Processing...';
-                    } else {
-                        element.textContent = `Last Updated: ${date.toLocaleString()}`;
-                    }
+                    element.textContent = `Last Updated: ${displayTime}`;
                 } catch (error) {
-                    console.warn('Error parsing timestamp:', error);
+                    log(`Error parsing timestamp: ${error}`, 'error');
                     element.textContent = 'Last Updated: Processing...';
                 }
             } else {
@@ -529,84 +502,91 @@
             }
         }
 
+        // UI state management
         function showLoading() {
+            log('Showing loading state');
             document.getElementById('loading').style.display = 'block';
             document.getElementById('stockTable').style.display = 'none';
             document.getElementById('error').style.display = 'none';
             document.getElementById('empty').style.display = 'none';
             document.getElementById('statsGrid').style.display = 'none';
-            updateStatus('Loading stock data...', 'loading');
         }
 
         function showError(message) {
+            log(`Showing error: ${message}`, 'error');
             document.getElementById('loading').style.display = 'none';
             document.getElementById('empty').style.display = 'none';
             document.getElementById('stockTable').style.display = 'none';
             document.getElementById('statsGrid').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
 
-            const errorDiv = document.getElementById('error');
             const errorMessage = document.getElementById('errorMessage');
-
-            errorDiv.style.display = 'block';
             if (errorMessage) {
                 errorMessage.textContent = message;
             }
         }
 
-        function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
-        }
-
-        function hideError() {
-            document.getElementById('error').style.display = 'none';
-        }
-
         function showEmpty() {
+            log('Showing empty state');
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'none';
             document.getElementById('empty').style.display = 'block';
             document.getElementById('stockTable').style.display = 'none';
             document.getElementById('statsGrid').style.display = 'none';
-            console.log('Showing empty state');
         }
 
         function showData() {
+            log('Showing stock data');
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error').style.display = 'none';
             document.getElementById('empty').style.display = 'none';
             document.getElementById('stockTable').style.display = 'table';
             document.getElementById('statsGrid').style.display = 'grid';
-            console.log('Stock table should now be visible');
         }
 
-        function updateStats(stocks, backtesting) {
+        // Button state management
+        function setRefreshButtonState(isLoading) {
+            const refreshBtn = document.getElementById('refreshBtn');
+            const refreshIcon = document.getElementById('refreshIcon');
+            const refreshText = document.getElementById('refreshText');
+
+            if (!refreshBtn || !refreshIcon || !refreshText) {
+                log('Refresh button elements not found', 'error');
+                return;
+            }
+
+            if (isLoading) {
+                refreshBtn.disabled = true;
+                refreshIcon.className = 'refresh-icon spinning';
+                refreshIcon.textContent = '⏳';
+                refreshText.textContent = 'Refreshing...';
+                refreshBtn.style.opacity = '0.6';
+                log('Refresh button disabled - refreshing');
+            } else {
+                refreshBtn.disabled = false;
+                refreshIcon.className = 'refresh-icon';
+                refreshIcon.textContent = '🔄';
+                refreshText.textContent = 'Refresh Now';
+                refreshBtn.style.opacity = '1';
+                log('Refresh button enabled - ready');
+            }
+        }
+
+        // Data processing functions
+        function updateStats(stocks) {
             if (!stocks || stocks.length === 0) return;
 
             const totalStocks = stocks.length;
-            const highScoreStocks = stocks.filter(s => s.score >= 75).length;
-            const avgConfidence = (stocks.reduce((sum, s) => sum + (s.confidence || 0), 0) / totalStocks).toFixed(1);
-            const uptrends = stocks.filter(s => s.trend_class === 'uptrend').length;
+            const highScoreStocks = stocks.filter(s => s.score >= 70).length;
+            const avgScore = (stocks.reduce((sum, s) => sum + (s.score || 0), 0) / totalStocks).toFixed(1);
+            const maxGain = Math.max(...stocks.map(s => s.pred_1mo || 0)).toFixed(1);
 
             document.getElementById('totalStocks').textContent = totalStocks;
             document.getElementById('highScoreStocks').textContent = highScoreStocks;
-            document.getElementById('avgScore').textContent = avgConfidence + '%';
-            document.getElementById('topGain').textContent = uptrends;
+            document.getElementById('avgScore').textContent = avgScore;
+            document.getElementById('topGain').textContent = maxGain + '%';
 
-            // Update labels
-            document.querySelector('.stat-card:nth-child(2) .stat-label').textContent = 'High Score (75+)';
-            document.querySelector('.stat-card:nth-child(3) .stat-label').textContent = 'Avg Confidence';
-            document.querySelector('.stat-card:nth-child(4) .stat-label').textContent = 'Uptrend Stocks';
-
-            // Add backtesting accuracy if available
-            if (backtesting && backtesting.status === 'available' && backtesting.accuracy_rate) {
-                const backTestCard = document.querySelector('.stat-card:nth-child(4)');
-                if (backTestCard) {
-                    backTestCard.innerHTML = `
-                        <div class="stat-number">${backtesting.accuracy_rate}%</div>
-                        <div class="stat-label">Model Accuracy (30d)</div>
-                    `;
-                }
-            }
+            log(`Stats updated: ${totalStocks} stocks, ${highScoreStocks} high-score, avg: ${avgScore}`);
         }
 
         function getScoreClass(score) {
@@ -635,17 +615,13 @@
         }
 
         function getConfidenceClass(confidence) {
-            if (confidence >= 85) return 'confidence-high';
-            if (confidence >= 75) return 'confidence-medium';
+            if (confidence >= 80) return 'confidence-high';
+            if (confidence >= 65) return 'confidence-medium';
             return 'confidence-low';
         }
 
         function getTrendClass(trendClass) {
-            return `trend-${trendClass}`;
-        }
-
-        function getRiskClass(risk) {
-            return `risk-${risk.toLowerCase()}`;
+            return `trend-${trendClass || 'sideways'}`;
         }
 
         function formatGain(gain) {
@@ -654,22 +630,20 @@
         }
 
         function updateStockTable(stocks) {
-            console.log('Updating stock table with', stocks.length, 'stocks');
+            log(`Updating stock table with ${stocks.length} stocks`);
             const tbody = document.getElementById('stockTableBody');
             tbody.innerHTML = '';
 
             if (!stocks || stocks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;">No stock data available. Click "Refresh Now" to load data.</td></tr>';
-                console.log('No stocks to display');
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666; padding: 40px;">No stock data available. Click "Refresh Now" to load data.</td></tr>';
                 return;
             }
 
             stocks.forEach((stock, index) => {
                 const row = document.createElement('tr');
 
-                // Get prediction values with fallbacks
-                const pred5d = stock.pred_5d || (stock.predicted_gain || 0) * 0.25;
-                const pred1mo = stock.pred_1mo || (stock.predicted_gain || 0);
+                const pred5d = stock.pred_5d || 0;
+                const pred1mo = stock.pred_1mo || 0;
                 const confidence = stock.confidence || 0;
                 const trendVisual = stock.trend_visual || '➡️ Sideways';
 
@@ -683,295 +657,184 @@
                     <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
                     <td class="pe-ratio">
                         <span class="pe-value ${getPEClass(stock.pe_description || 'At Par')}">${stock.pe_ratio && stock.pe_ratio > 0 ? stock.pe_ratio.toFixed(1) : '--'}</span>
-                        <div class="pe-desc">${stock.pe_description || 'At Par'}</div>
+                        <div class="pe-desc" style="font-size: 0.8em; margin-top: 2px;">${stock.pe_description || 'At Par'}</div>
                     </td>
                     <td class="technical-summary">
                         ${stock.technical_summary || 'Processing...'}
-                        ${stock.agent_recommendation ? `<br><div class="ai-recommendation" title="${stock.agent_explanation || ''}">
-                            <span class="ai-action" data-action="${stock.agent_recommendation.replace(/[🔼🔽⏸️]\s*/g, '')}">${stock.agent_recommendation}</span>
-                            <span class="ai-confidence">(${stock.agent_confidence}%)</span>
-                            ${stock.agent_locked ? '<span class="ai-locked">🔒</span>' : ''}
-                        </div>` : ''}
                     </td>
                 `;
                 tbody.appendChild(row);
-                console.log(`Added row for ${stock.symbol}`);
             });
-            
-            console.log('Stock table updated with', tbody.children.length, 'rows');
+
+            log(`Stock table updated successfully with ${tbody.children.length} rows`);
         }
 
+        // API functions
         function loadStocks() {
-            // Don't prevent loading if called from refresh
             const now = Date.now();
-            
-            console.log('Loading stocks...', { isLoading, timeSinceLastRequest: now - lastRequestTime });
 
-            lastRequestTime = now;
+            log('Starting stock data load');
 
-            return fetch('/api/stocks')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('API Response received:', {
-                        status: data.status, 
-                        stockCount: data.stocks ? data.stocks.length : 0,
-                        lastUpdated: data.last_updated,
-                        stocks: data.stocks
-                    });
+            return fetch('/api/stocks', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                },
+                timeout: 30000
+            })
+            .then(response => {
+                log(`API response status: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                log(`API data received - Status: ${data.status}, Stock count: ${data.stocks ? data.stocks.length : 0}`);
 
-                    consecutiveErrors = 0;
-                    updateLastUpdated(data.last_updated || data.timestamp);
+                consecutiveErrors = 0;
+                updateLastUpdated(data.last_updated || data.timestamp);
 
-                    // Handle error status
-                    if (data.status === 'error' || data.error) {
-                        console.error('API returned error:', data.error);
-                        showError(data.error || 'System error - please try refresh');
-                        updateStatus('Error loading data', 'error');
-                        return;
-                    }
+                if (data.status === 'error' || data.error) {
+                    showError(data.error || 'System error - please try refresh');
+                    updateStatus('Error loading data', 'error');
+                    return;
+                }
 
-                    // Check for actual stock data
-                    if (!data.stocks || data.stocks.length === 0) {
-                        console.log('No stocks data available, status:', data.status);
-                        if (data.status === 'initial' || data.status === 'screening_triggered' || data.status === 'no_data' || data.status === 'initializing') {
-                            updateStatus('Stock screening in progress...', 'loading');
-                            showEmpty();
-                        } else {
-                            updateStatus('No stocks available', 'error');
-                            showEmpty();
-                        }
-                        return;
-                    }
-
-                    // Successfully got data - log this clearly
-                    console.log('✅ Displaying stock data:', data.stocks.length, 'stocks');
-                    console.log('Stock symbols:', data.stocks.map(s => s.symbol));
-                    
-                    updateStockTable(data.stocks);
-                    updateStats(data.stocks, data.backtesting);
-                    showData();
-                    updateStatus(`Successfully loaded ${data.stocks.length} stocks`, 'success');
-                    retryCount = 0;
-                    
-                    // Ensure table is visible
-                    const table = document.getElementById('stockTable');
-                    const tbody = document.getElementById('stockTableBody');
-                    console.log('Table display:', table.style.display);
-                    console.log('Table body rows:', tbody.children.length);
-                })
-                .catch(error => {
-                    console.error('API Error:', error);
-                    retryCount++;
-                    consecutiveErrors++;
-                    updateStatus('Connection error', 'error');
-
-                    if (retryCount <= maxRetries) {
-                        updateStatus(`Connection error (retry ${retryCount}/${maxRetries})...`, 'loading');
-                        setTimeout(() => {
-                            loadStocks();
-                        }, 2000 * retryCount);
+                if (!data.stocks || data.stocks.length === 0) {
+                    log('No stocks in response, showing empty state');
+                    if (data.status === 'initial' || data.status === 'screening_triggered' || data.status === 'no_data') {
+                        updateStatus('Stock screening in progress...', 'loading');
+                        showEmpty();
                     } else {
-                        showError(`Failed to load data: ${error.message}`);
-                        updateStatus('Failed to load data', 'error');
-                        retryCount = 0;
+                        updateStatus('No stocks available', 'error');
+                        showEmpty();
                     }
-                })
-                .finally(() => {
-                    // Don't reset loading state here if refresh is managing it
-                });
+                    return;
+                }
+
+                // Successfully got data
+                log(`✅ Displaying ${data.stocks.length} stocks`);
+                updateStockTable(data.stocks);
+                updateStats(data.stocks);
+                showData();
+                updateStatus(`Successfully loaded ${data.stocks.length} stocks`, 'success');
+                retryCount = 0;
+            })
+            .catch(error => {
+                log(`API Error: ${error.message}`, 'error');
+                consecutiveErrors++;
+                retryCount++;
+
+                if (retryCount <= maxRetries) {
+                    updateStatus(`Connection error (retry ${retryCount}/${maxRetries})...`, 'loading');
+                    setTimeout(() => loadStocks(), 2000 * retryCount);
+                } else {
+                    showError(`Failed to load data: ${error.message}`);
+                    updateStatus('Failed to load data', 'error');
+                    retryCount = 0;
+                }
+            });
         }
 
         // Manual refresh function
-        function refreshData() {
-            if (isLoading) {
-                console.log('Already loading, skipping refresh request');
+        function handleRefreshClick() {
+            if (isRefreshing) {
+                log('Already refreshing, ignoring click');
                 return;
             }
 
             const now = Date.now();
             if (now - lastRequestTime < minRequestInterval) {
-                console.log('Request too frequent, throttling...');
+                log('Request too frequent, throttling');
                 return;
             }
 
-            isLoading = true;
+            log('Manual refresh initiated');
+            isRefreshing = true;
             lastRequestTime = now;
             retryCount = 0;
 
-            // Disable refresh button and update its text IMMEDIATELY
-            const refreshBtn = document.getElementById('refreshBtn');
-            if (refreshBtn) {
-                refreshBtn.disabled = true;
-                refreshBtn.innerHTML = '<span class="refresh-icon spinning">⏳</span> Refreshing...';
-                refreshBtn.style.opacity = '0.6';
-                refreshBtn.style.cursor = 'not-allowed';
-                refreshBtn.style.pointerEvents = 'none';
-            }
-
+            setRefreshButtonState(true);
             updateStatus('Starting refresh...', 'loading');
             showLoading();
 
-            // Manual refresh with better error handling
             fetch('/api/run-now', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
-                timeout: 120000 // 2 minute timeout
+                timeout: 120000
             })
             .then(response => {
+                log(`Manual refresh response status: ${response.status}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(result => {
-                console.log('Manual refresh result:', result);
+                log(`Manual refresh result: Success=${result.success}, Message=${result.message}`);
 
                 if (result.success) {
                     updateStatus('Screening completed - loading results...', 'loading');
-                    // Wait longer for data to be ready, then load
                     setTimeout(() => {
                         loadStocks().finally(() => {
-                            resetRefreshButton();
+                            isRefreshing = false;
+                            setRefreshButtonState(false);
                         });
                     }, 3000);
                 } else {
                     updateStatus(`Refresh failed: ${result.message}`, 'error');
                     setTimeout(() => {
-                        resetRefreshButton();
+                        isRefreshing = false;
+                        setRefreshButtonState(false);
                         loadStocks();
                     }, 2000);
                 }
             })
             .catch(error => {
-                console.error('Manual refresh error:', error);
+                log(`Manual refresh error: ${error.message}`, 'error');
                 updateStatus(`Manual refresh failed: ${error.message}`, 'error');
                 setTimeout(() => {
-                    resetRefreshButton();
+                    isRefreshing = false;
+                    setRefreshButtonState(false);
                     loadStocks();
                 }, 2000);
             });
         }
 
-        function resetRefreshButton() {
-            const refreshBtn = document.getElementById('refreshBtn');
-            if (refreshBtn) {
-                refreshBtn.disabled = false;
-                refreshBtn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
-                refreshBtn.style.opacity = '1';
-                refreshBtn.style.cursor = 'pointer';
-                refreshBtn.style.pointerEvents = 'auto';
-            }
-            isLoading = false;
-        }
-
-        function startAutoRefresh() {
-            // Auto-refresh disabled as requested
-            // console.log('Starting auto-refresh every 30 seconds');
-            // refreshInterval = setInterval(() => {
-            //     if (!isLoading) {
-            //         loadStocks();
-            //     }
-            // }, 60000); // 60 seconds
-        }
-
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Stock Market Analyst Dashboard loaded');
+        // Initialize application
+        function initializeApp() {
+            log('Initializing Stock Market Analyst Dashboard');
             updateStatus('Initializing...', 'initializing');
-            
-            // Show loading state immediately
             showLoading();
-            
-            // Load initial data with longer delay to allow server to start
-            setTimeout(() => {
-                console.log('Starting initial data load...');
-                loadStocks();
-            }, 2000);
-        });
 
-        // Color definitions for growth rates
-        function getGrowthColor(growth) {
-            if (growth > 20) return '#2ecc71'; // High growth
-            if (growth > 0) return '#f39c12';  // Moderate growth
-            return '#e74c3c'; // Decline
-        }
-
-        // Manual refresh function (ensure it's properly defined)
-        function refreshData() {
-            if (isLoading) {
-                console.log('Already loading, skipping refresh request');
-                return;
-            }
-
-            const now = Date.now();
-            if (now - lastRequestTime < minRequestInterval) {
-                console.log('Request too frequent, throttling...');
-                return;
-            }
-
-            isLoading = true;
-            lastRequestTime = now;
-            retryCount = 0;
-
-            // Disable refresh button and update its text IMMEDIATELY
+            // Set up refresh button event listener
             const refreshBtn = document.getElementById('refreshBtn');
             if (refreshBtn) {
-                refreshBtn.disabled = true;
-                refreshBtn.innerHTML = '<span class="refresh-icon spinning">⏳</span> Refreshing...';
-                refreshBtn.style.opacity = '0.6';
-                refreshBtn.style.cursor = 'not-allowed';
-                refreshBtn.style.pointerEvents = 'none';
+                refreshBtn.addEventListener('click', handleRefreshClick);
+                log('Refresh button event listener attached');
+            } else {
+                log('Refresh button not found', 'error');
             }
 
-            updateStatus('Starting refresh...', 'loading');
-            showLoading();
-
-            // Manual refresh with better error handling
-            fetch('/api/run-now', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                timeout: 120000 // 2 minute timeout
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(result => {
-                console.log('Manual refresh result:', result);
-
-                if (result.success) {
-                    updateStatus('Screening completed - loading results...', 'loading');
-                    // Wait longer for data to be ready, then load
-                    setTimeout(() => {
-                        loadStocks().finally(() => {
-                            resetRefreshButton();
-                        });
-                    }, 3000);
-                } else {
-                    updateStatus(`Refresh failed: ${result.message}`, 'error');
-                    setTimeout(() => {
-                        resetRefreshButton();
-                        loadStocks();
-                    }, 2000);
-                }
-            })
-            .catch(error => {
-                console.error('Manual refresh error:', error);
-                updateStatus(`Manual refresh failed: ${error.message}`, 'error');
-                setTimeout(() => {
-                    resetRefreshButton();
-                    loadStocks();
-                }, 2000);
-            });
+            // Load initial data with delay
+            setTimeout(() => {
+                log('Starting initial data load');
+                loadStocks().finally(() => {
+                    setRefreshButtonState(false);
+                });
+            }, 2000);
         }
+
+        // Start application when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        // Expose refresh function globally for backward compatibility
+        window.refreshData = handleRefreshClick;
+    </script>
+</body>
+</html>

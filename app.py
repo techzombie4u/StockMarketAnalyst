@@ -122,18 +122,29 @@ def get_stocks():
         for stock in stocks:
             if isinstance(stock, dict) and 'symbol' in stock:
                 # Ensure required fields exist with proper defaults
-                stock.setdefault('score', 50.0)
-                stock.setdefault('current_price', 0.0)
-                stock.setdefault('predicted_gain', stock.get('score', 50) * 0.2)
-                stock.setdefault('confidence', max(50.0, stock.get('score', 50) * 0.8))
+                score = float(stock.get('score', 50.0))
+                current_price = float(stock.get('current_price', 0.0))
+                
+                stock.setdefault('score', score)
+                stock.setdefault('current_price', current_price)
+                stock.setdefault('predicted_gain', score * 0.2)
+                stock.setdefault('confidence', max(50.0, min(95.0, score * 0.9)))
                 stock.setdefault('pred_5d', stock.get('predicted_gain', 0) * 0.25)
                 stock.setdefault('pred_1mo', stock.get('predicted_gain', 0))
                 stock.setdefault('trend_class', 'sideways')
                 stock.setdefault('trend_visual', '➡️ Sideways')
                 stock.setdefault('risk_level', 'Medium')
-                stock.setdefault('pe_ratio', 0)
+                stock.setdefault('pe_ratio', stock.get('pe_ratio', 20.0))
                 stock.setdefault('pe_description', 'At Par')
-                stock.setdefault('technical_summary', 'Analysis in progress...')
+                stock.setdefault('technical_summary', f"Score: {score:.1f} | Analysis Complete")
+
+                # Ensure numeric fields are actually numeric
+                numeric_fields = ['score', 'current_price', 'predicted_gain', 'confidence', 'pred_5d', 'pred_1mo', 'pe_ratio']
+                for field in numeric_fields:
+                    try:
+                        stock[field] = float(stock[field]) if stock[field] is not None else 0.0
+                    except (ValueError, TypeError):
+                        stock[field] = 0.0
 
                 valid_stocks.append(stock)
 
@@ -309,43 +320,52 @@ def run_now():
     """Manually trigger screening"""
     global scheduler
     try:
-        logger.info("Manual refresh requested")
+        logger.info("🔄 Manual refresh requested")
 
         # Run screening synchronously to ensure completion before returning
         try:
-            if scheduler:
+            if scheduler and hasattr(scheduler, 'run_screening_job_manual'):
+                logger.info("Using scheduler for manual screening")
                 success = scheduler.run_screening_job_manual()
                 if success:
-                    logger.info("✅ Manual screening completed successfully")
+                    logger.info("✅ Manual screening completed successfully via scheduler")
                     return jsonify({
                         'success': True, 
                         'message': 'Screening completed successfully',
-                        'data_ready': True
+                        'data_ready': True,
+                        'timestamp': datetime.now(IST).isoformat()
                     })
                 else:
-                    logger.warning("⚠️ Manual screening completed with issues")
+                    logger.warning("⚠️ Manual screening completed with issues via scheduler")
                     return jsonify({
                         'success': False, 
                         'message': 'Screening completed with issues',
-                        'data_ready': False
+                        'data_ready': False,
+                        'timestamp': datetime.now(IST).isoformat()
                     })
             else:
                 # Run standalone screening
-                from scheduler import run_screening_job_manual
-                success = run_screening_job_manual()
-                if success:
-                    logger.info("✅ Standalone manual screening completed")
+                logger.info("Using standalone screening")
+                from stock_screener import EnhancedStockScreener
+                screener = EnhancedStockScreener()
+                results = screener.run_enhanced_screener()
+                
+                if results and len(results) > 0:
+                    logger.info(f"✅ Standalone manual screening completed with {len(results)} stocks")
                     return jsonify({
                         'success': True, 
-                        'message': 'Screening completed successfully',
-                        'data_ready': True
+                        'message': f'Screening completed successfully - {len(results)} stocks analyzed',
+                        'data_ready': True,
+                        'stock_count': len(results),
+                        'timestamp': datetime.now(IST).isoformat()
                     })
                 else:
-                    logger.warning("⚠️ Standalone screening had issues")
+                    logger.warning("⚠️ Standalone screening returned no results")
                     return jsonify({
                         'success': False, 
-                        'message': 'Screening completed with issues',
-                        'data_ready': False
+                        'message': 'Screening completed but no results generated',
+                        'data_ready': False,
+                        'timestamp': datetime.now(IST).isoformat()
                     })
 
         except Exception as e:
@@ -353,12 +373,19 @@ def run_now():
             return jsonify({
                 'success': False, 
                 'message': f'Screening failed: {str(e)}',
-                'data_ready': False
+                'data_ready': False,
+                'error': str(e),
+                'timestamp': datetime.now(IST).isoformat()
             })
 
     except Exception as e:
         logger.error(f"Manual refresh error: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({
+            'success': False, 
+            'message': f'Manual refresh error: {str(e)}',
+            'error': str(e),
+            'timestamp': datetime.now(IST).isoformat()
+        })
 
 @app.route('/api/health')
 def health_check():
