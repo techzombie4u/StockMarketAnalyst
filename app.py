@@ -910,6 +910,78 @@ def get_predictions_tracker():
             'timestamp': datetime.now(IST).isoformat()
         }), 500
 
+@app.route('/api/interactive-tracker-data')
+def get_interactive_tracker_data():
+    """API endpoint for interactive tracker enhanced data"""
+    try:
+        # Load interactive tracking data
+        tracking_data = load_interactive_tracking_data()
+        
+        return jsonify({
+            'status': 'success',
+            'tracking_data': tracking_data,
+            'timestamp': datetime.now(IST).isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in interactive tracker data API: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'tracking_data': {},
+            'timestamp': datetime.now(IST).isoformat()
+        }), 500
+
+@app.route('/api/update-lock-status', methods=['POST'])
+def update_lock_status():
+    """API endpoint to update lock status for predictions"""
+    try:
+        data = request.get_json()
+        symbol = data.get('symbol')
+        period = data.get('period')  # '5d' or '30d'
+        locked = data.get('locked', False)
+        timestamp = data.get('timestamp')
+        
+        if not symbol or not period:
+            return jsonify({'success': False, 'message': 'Symbol and period required'}), 400
+        
+        # Save lock status
+        success = save_lock_status(symbol, period, locked, timestamp)
+        
+        if success:
+            logger.info(f"Lock status updated: {symbol} {period} = {locked}")
+            return jsonify({
+                'success': True,
+                'message': f'Lock status updated for {symbol}',
+                'timestamp': datetime.now(IST).isoformat()
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Failed to save lock status'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating lock status: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+def load_interactive_tracking_data():
+    """Load enhanced tracking data for interactive charts"""
+    try:
+        from interactive_tracker_manager import InteractiveTrackerManager
+        tracker_manager = InteractiveTrackerManager()
+        return tracker_manager.load_tracking_data()
+    except Exception as e:
+        logger.warning(f"Could not load interactive tracking data: {str(e)}")
+        return {}
+
+def save_lock_status(symbol, period, locked, timestamp):
+    """Save lock status for a stock prediction"""
+    try:
+        from interactive_tracker_manager import InteractiveTrackerManager
+        tracker_manager = InteractiveTrackerManager()
+        return tracker_manager.update_lock_status(symbol, period, locked, timestamp)
+    except Exception as e:
+        logger.error(f"Error saving lock status: {str(e)}")
+        return False
+
 def initialize_app():
     """Initialize the application with scheduler"""
     global scheduler

@@ -89,7 +89,7 @@ def run_screening_job():
                 results = screener._generate_fallback_data()
             else:
                 results = screener.run_enhanced_screener()
-                
+
         except SyntaxError as se:
             logger.error(f"Syntax error in screener: {se}")
             results = screener._generate_fallback_data() if screener else []
@@ -285,6 +285,72 @@ class StockAnalystScheduler:
         except Exception as e:
             logger.error(f"Manual screening failed: {e}")
             return False
+
+    def run_backtesting_job(self):
+        """Run backtesting analysis job"""
+        try:
+            logger.info("Starting backtesting analysis...")
+
+            from backtesting_manager import BacktestingManager
+            backtester = BacktestingManager()
+
+            # Run backtest analysis
+            results = backtester.run_backtest_analysis()
+
+            if results and results.get('status') == 'success':
+                logger.info(f"✅ Backtesting completed: {results.get('summary', {}).get('total_predictions', 0)} predictions analyzed")
+            else:
+                logger.warning("⚠️ Backtesting completed with limited results")
+
+        except Exception as e:
+            logger.error(f"❌ Backtesting job failed: {str(e)}")
+            return False
+
+    def run_daily_tracker_update(self):
+        """Run daily tracker update job"""
+        try:
+            logger.info("Starting daily tracker update...")
+
+            from interactive_tracker_manager import InteractiveTrackerManager
+            tracker_manager = InteractiveTrackerManager()
+
+            # Update daily actual prices for all tracked stocks
+            update_summary = tracker_manager.update_daily_actual_prices()
+
+            if update_summary and 'error' not in update_summary:
+                updated_count = len(update_summary.get('updated_stocks', []))
+                failed_count = len(update_summary.get('failed_stocks', []))
+                logger.info(f"✅ Daily tracker update completed: {updated_count} updated, {failed_count} failed")
+
+                # Initialize tracking for any new stocks from latest screening
+                self.initialize_new_stock_tracking(tracker_manager)
+
+            else:
+                logger.warning("⚠️ Daily tracker update completed with issues")
+
+        except Exception as e:
+            logger.error(f"❌ Daily tracker update job failed: {str(e)}")
+            return False
+
+    def initialize_new_stock_tracking(self, tracker_manager):
+        """Initialize tracking for new stocks from latest screening"""
+        try:
+            # Load current stock data
+            if os.path.exists('top10.json'):
+                with open('top10.json', 'r') as f:
+                    data = json.load(f)
+                    stocks = data.get('stocks', [])
+
+                    for stock in stocks:
+                        symbol = stock.get('symbol')
+                        if symbol:
+                            # Initialize if not already tracking
+                            tracker_manager.initialize_stock_tracking(symbol, stock)
+
+                logger.info(f"Checked tracking initialization for {len(stocks)} stocks")
+
+        except Exception as e:
+            logger.warning(f"Error initializing new stock tracking: {str(e)}")
 
 def main():
     """Test scheduler"""
