@@ -707,13 +707,7 @@
             // Throttle requests - minimum interval between requests
             const now = Date.now();
             if (now - lastRequestTime < minRequestInterval) {
-                console.log('Skipping request - too frequent or already loading');
-                return;
-            }
-
-            // Additional throttling if there have been recent errors
-            if (consecutiveErrors > 0 && now - lastRequestTime < minRequestInterval * (1 + consecutiveErrors)) {
-                console.log('Throttling due to recent errors');
+                console.log('Skipping request - too frequent');
                 return;
             }
 
@@ -734,55 +728,32 @@
                         lastUpdated: data.last_updated
                     });
 
+                    consecutiveErrors = 0; // Reset consecutive errors on successful response
                     updateLastUpdated(data.last_updated || data.timestamp);
 
                     // Handle different statuses
                     if (data.status === 'error' || data.error) {
                         showError(data.error || 'System error - please try refresh');
-                        // Auto-retry after error
-                        setTimeout(() => {
-                            refreshData();
-                        }, 5000);
                         return;
                     }
 
                     if (!data.stocks || data.stocks.length === 0) {
-                        if (data.status === 'initial' || data.status === 'no_data') {
+                        if (data.status === 'initial' || data.status === 'screening_triggered' || data.status === 'no_data') {
                             updateStatus('Screening in progress...', 'loading');
-                            setTimeout(loadStocks, 5000); // Retry in 5 seconds
-                        } else if (data.status === 'success') {
-                            updateStatus('No qualifying stocks found', 'error');
                             showEmpty();
-                            // Try to trigger a new screening
-                            setTimeout(() => {
-                                refreshData();
-                            }, 10000);
                         } else {
+                            updateStatus('No qualifying stocks found', 'error');
                             showEmpty();
                         }
                         return;
                     }
 
-                    // Update table and stats
+                    // Successfully got data - update table and stats
                     updateStockTable(data.stocks);
                     updateStats(data.stocks, data.backtesting);
                     showData();
                     updateStatus(`Found ${data.stocks.length} stocks`, 'success');
                     retryCount = 0; // Reset retry count on success
-                })
-                .then(data => {
-                    console.log('API Response received:', data);
-                    consecutiveErrors = 0; // Reset consecutive errors on any response
-
-                    if (data.status === 'success' && data.stocks && data.stocks.length > 0) {
-                        displayStocks(data.stocks);
-                        updateStatus(`✅ ${data.stocks.length} stocks loaded`, 'success');
-                        updateLastUpdated(data.last_updated);
-                        retryCount = 0; // Reset retry count on success
-                    } else {
-                        showNoDataMessage();
-                        updateStatus('⚠️ No stock data available', 'error');
-                    }
                 })
                 .catch(error => {
                     console.error('API Error:', error);
@@ -791,7 +762,10 @@
 
                     if (retryCount <= maxRetries) {
                         updateStatus(`Connection error (retry ${retryCount}/${maxRetries})...`, 'loading');
-                        setTimeout(loadStocks, 3000 * retryCount); // Exponential backoff
+                        setTimeout(() => {
+                            isLoading = false;
+                            loadStocks();
+                        }, 3000 * retryCount); // Exponential backoff
                     } else {
                         showError(`Connection failed after ${maxRetries} attempts: ${error.message}`);
                         retryCount = 0;
@@ -799,8 +773,7 @@
                 })
                 .finally(() => {
                     isLoading = false;
-                    consecutiveErrors = 0; // Reset error count on completion
-                    resetRefreshButton(); // Re-enable refresh button
+                    resetRefreshButton(); // Always re-enable refresh button
                 });
         }
 
@@ -831,12 +804,7 @@
             }
 
             updateStatus('Refreshing data...', 'loading');
-
-            // Show loading immediately
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('stockTable').style.display = 'none';
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('empty').style.display = 'none';
+            showLoading();
 
             // Manual refresh
             fetch('/api/run-now', {
@@ -846,7 +814,6 @@
                 }
             })
             .then(response => response.json())
-            ```text
             .then(result => {
                 console.log('Manual refresh result:', result);
 
@@ -896,7 +863,19 @@
             // }, 60000); // 60 seconds
         }
 
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Stock Market Analyst Dashboard loaded');
+            updateStatus('Initializing...', 'initializing');
+            
+            // Load initial data
+            setTimeout(() => {
+                loadStocks();
+            }, 1000);
+        });
+
         // Color definitions for growth rates
         function getGrowthColor(growth) {
             if (growth > 20) return '#2ecc71'; // High growth
             if (growth > 0) return '#f39c12';  // Moderate growth
+            return '#e74c3c'; // Decline
