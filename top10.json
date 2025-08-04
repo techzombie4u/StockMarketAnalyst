@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-08-04T14:17:08.446422+05:30",
-  "last_updated": "04/08/2025, 14:17:08",
+  "timestamp": "2025-08-04T14:24:48.655402+05:30",
+  "last_updated": "04/08/2025, 14:24:48",
   "stocks": [],
   "status": "error",
-  "error": "invalid syntax (stock_screener.py, line 1525)"
+  "error": "invalid syntax (stock_screener.py, line 59)"
 }
