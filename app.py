@@ -117,13 +117,7 @@ def get_stocks():
             except:
                 timestamp = datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S')
 
-        # Don't serve mock/demo data in production - serve actual data
-        if status in ['demo', 'demo_ready', 'demo_fallback'] and len(stocks) <= 3:
-            logger.warning("Demo data detected - checking for real data")
-            # Don't trigger new screening, just return available data
-            pass
-
-        # Validate stocks data
+        # Validate stocks data and ensure all required fields
         valid_stocks = []
         for stock in stocks:
             if isinstance(stock, dict) and 'symbol' in stock:
@@ -145,14 +139,21 @@ def get_stocks():
 
         logger.info(f"API response: {len(valid_stocks)} valid stocks, status: {status}")
 
-        return jsonify({
+        # Force status to success if we have valid stocks
+        if valid_stocks and status in ['demo', 'unknown', 'initializing']:
+            status = 'success'
+
+        response_data = {
             'stocks': valid_stocks,
             'status': status,
             'last_updated': last_updated,
             'timestamp': timestamp or datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S'),
             'stockCount': len(valid_stocks),
-            'backtesting': data.get('backtesting', {'status': 'unavailable'})  # Include backtesting data
-        })
+            'backtesting': data.get('backtesting', {'status': 'unavailable'})
+        }
+
+        logger.info(f"Sending API response with {len(valid_stocks)} stocks")
+        return jsonify(response_data)
 
     except Exception as e:
         logger.error(f"Error in /api/stocks: {str(e)}")

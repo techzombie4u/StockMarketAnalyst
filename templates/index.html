@@ -698,21 +698,12 @@
         }
 
         function loadStocks() {
-            // Prevent multiple simultaneous requests
-            if (isLoading) {
-                console.log('Skipping request - already loading');
-                return;
-            }
-
-            // Throttle requests - minimum interval between requests
+            // Don't prevent loading if called from refresh
             const now = Date.now();
-            if (now - lastRequestTime < minRequestInterval) {
-                console.log('Skipping request - too frequent');
-                return;
-            }
+            
+            console.log('Loading stocks...', { isLoading, timeSinceLastRequest: now - lastRequestTime });
 
             lastRequestTime = now;
-            isLoading = true;
 
             return fetch('/api/stocks')
                 .then(response => {
@@ -725,35 +716,40 @@
                     console.log('API Response received:', {
                         status: data.status, 
                         stockCount: data.stocks ? data.stocks.length : 0,
-                        lastUpdated: data.last_updated
+                        lastUpdated: data.last_updated,
+                        stocks: data.stocks
                     });
 
-                    consecutiveErrors = 0; // Reset consecutive errors on successful response
+                    consecutiveErrors = 0;
                     updateLastUpdated(data.last_updated || data.timestamp);
 
-                    // Handle different statuses
+                    // Handle error status
                     if (data.status === 'error' || data.error) {
+                        console.error('API returned error:', data.error);
                         showError(data.error || 'System error - please try refresh');
                         return;
                     }
 
+                    // Check for actual stock data
                     if (!data.stocks || data.stocks.length === 0) {
-                        if (data.status === 'initial' || data.status === 'screening_triggered' || data.status === 'no_data') {
-                            updateStatus('Screening in progress...', 'loading');
+                        console.log('No stocks data available, status:', data.status);
+                        if (data.status === 'initial' || data.status === 'screening_triggered' || data.status === 'no_data' || data.status === 'initializing') {
+                            updateStatus('Stock screening in progress...', 'loading');
                             showEmpty();
                         } else {
-                            updateStatus('No qualifying stocks found', 'error');
+                            updateStatus('No stocks available', 'error');
                             showEmpty();
                         }
                         return;
                     }
 
-                    // Successfully got data - update table and stats
+                    // Successfully got data
+                    console.log('Displaying stock data:', data.stocks.length);
                     updateStockTable(data.stocks);
                     updateStats(data.stocks, data.backtesting);
                     showData();
-                    updateStatus(`Found ${data.stocks.length} stocks`, 'success');
-                    retryCount = 0; // Reset retry count on success
+                    updateStatus(`Successfully loaded ${data.stocks.length} stocks`, 'success');
+                    retryCount = 0;
                 })
                 .catch(error => {
                     console.error('API Error:', error);
@@ -763,17 +759,15 @@
                     if (retryCount <= maxRetries) {
                         updateStatus(`Connection error (retry ${retryCount}/${maxRetries})...`, 'loading');
                         setTimeout(() => {
-                            isLoading = false;
                             loadStocks();
-                        }, 3000 * retryCount); // Exponential backoff
+                        }, 2000 * retryCount);
                     } else {
-                        showError(`Connection failed after ${maxRetries} attempts: ${error.message}`);
+                        showError(`Failed to load data: ${error.message}`);
                         retryCount = 0;
                     }
                 })
                 .finally(() => {
-                    isLoading = false;
-                    resetRefreshButton(); // Always re-enable refresh button
+                    // Don't reset loading state here if refresh is managing it
                 });
         }
 
@@ -794,52 +788,59 @@
             lastRequestTime = now;
             retryCount = 0;
 
-            // Disable refresh button and update its text
+            // Disable refresh button and update its text IMMEDIATELY
             const refreshBtn = document.getElementById('refreshBtn');
             if (refreshBtn) {
                 refreshBtn.disabled = true;
                 refreshBtn.innerHTML = '<span class="refresh-icon spinning">⏳</span> Refreshing...';
                 refreshBtn.style.opacity = '0.6';
                 refreshBtn.style.cursor = 'not-allowed';
+                refreshBtn.style.pointerEvents = 'none';
             }
 
-            updateStatus('Refreshing data...', 'loading');
+            updateStatus('Starting refresh...', 'loading');
             showLoading();
 
-            // Manual refresh
+            // Manual refresh with better error handling
             fetch('/api/run-now', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                }
+                },
+                timeout: 120000 // 2 minute timeout
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(result => {
                 console.log('Manual refresh result:', result);
 
                 if (result.success) {
-                    updateStatus('Refresh completed successfully', 'success');
-                    // Load updated data after a brief delay
+                    updateStatus('Screening completed - loading results...', 'loading');
+                    // Wait longer for data to be ready, then load
                     setTimeout(() => {
-                        loadStocks();
-                    }, 2000);
+                        loadStocks().finally(() => {
+                            resetRefreshButton();
+                        });
+                    }, 3000);
                 } else {
                     updateStatus(`Refresh failed: ${result.message}`, 'error');
                     setTimeout(() => {
-                        isLoading = false;
                         resetRefreshButton();
                         loadStocks();
-                    }, 3000);
+                    }, 2000);
                 }
             })
             .catch(error => {
                 console.error('Manual refresh error:', error);
-                updateStatus('Manual refresh failed', 'error');
+                updateStatus(`Manual refresh failed: ${error.message}`, 'error');
                 setTimeout(() => {
-                    isLoading = false;
                     resetRefreshButton();
                     loadStocks();
-                }, 3000);
+                }, 2000);
             });
         }
 
@@ -850,7 +851,9 @@
                 refreshBtn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
                 refreshBtn.style.opacity = '1';
                 refreshBtn.style.cursor = 'pointer';
+                refreshBtn.style.pointerEvents = 'auto';
             }
+            isLoading = false;
         }
 
         function startAutoRefresh() {
@@ -868,10 +871,14 @@
             console.log('Stock Market Analyst Dashboard loaded');
             updateStatus('Initializing...', 'initializing');
             
-            // Load initial data
+            // Show loading state immediately
+            showLoading();
+            
+            // Load initial data with longer delay to allow server to start
             setTimeout(() => {
+                console.log('Starting initial data load...');
                 loadStocks();
-            }, 1000);
+            }, 2000);
         });
 
         // Color definitions for growth rates
