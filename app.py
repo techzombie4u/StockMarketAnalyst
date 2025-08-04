@@ -47,7 +47,14 @@ def get_stocks():
             with open('top10.json', 'w', encoding='utf-8') as f:
                 json.dump(initial_data, f, ensure_ascii=False, indent=2)
 
-
+            return jsonify({
+                'stocks': [],
+                'status': 'initial',
+                'last_updated': initial_data['last_updated'],
+                'timestamp': initial_data['timestamp'],
+                'stockCount': 0,
+                'backtesting': {'status': 'no_data'}
+            })
 
 def check_file_integrity():
     """Check and repair file integrity"""
@@ -85,8 +92,9 @@ def check_file_integrity():
         logger.error(f"File integrity check failed: {str(e)}")
         return False
 
-
-            return jsonify({
+        # Read the file safely with performance optimization
+        try:
+            with open('top10.json', 'r', encoding='utf-8') as f:
                 'stocks': [],
                 'status': 'initial',
                 'last_updated': initial_data['last_updated'],
