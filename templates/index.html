@@ -527,31 +527,49 @@
         }
 
         function showError(message) {
-            document.getElementById('loading').style.display = 'none';
+            hideLoading();
+            document.getElementById('noData').style.display = 'none';
             document.getElementById('stockTable').style.display = 'none';
-            document.getElementById('error').style.display = 'block';
-            document.getElementById('empty').style.display = 'none';
-            document.getElementById('statsGrid').style.display = 'none';
-            document.getElementById('errorMessage').textContent = message || 'Unable to load stock data. Please try refreshing.';
-            updateStatus('Connection Error', 'error');
+
+            const errorDiv = document.getElementById('errorMessage') || createErrorDiv();
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `
+                <h3>⚠️ System Error</h3>
+                <p>${message}</p>
+                <p style="color: #666; font-size: 14px;">The system is automatically attempting to recover...</p>
+                <button onclick="refreshData()" class="refresh-btn">Try Manual Refresh</button>
+            `;
+        }
+
+        function createErrorDiv() {
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'errorMessage';
+            errorDiv.className = 'no-data';
+            document.querySelector('.stock-container').appendChild(errorDiv);
+            return errorDiv;
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
         }
 
         function showEmpty() {
-            document.getElementById('loading').style.display = 'none';
+            hideLoading();
+            hideError();
+            document.getElementById('noData').style.display = 'block';
             document.getElementById('stockTable').style.display = 'none';
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('empty').style.display = 'block';
-            document.getElementById('statsGrid').style.display = 'none';
-            updateStatus('No data available', 'error');
+            console.log('Showing empty state');
         }
 
         function showData() {
-            document.getElementById('loading').style.display = 'none';
+            hideLoading();
+            hideError();
+            document.getElementById('noData').style.display = 'none';
             document.getElementById('stockTable').style.display = 'table';
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('empty').style.display = 'none';
-            document.getElementById('statsGrid').style.display = 'grid';
-            updateStatus('Data loaded successfully', 'success');
+            console.log('Stock table should now be visible');
         }
 
         function updateStats(stocks, backtesting) {
@@ -673,108 +691,88 @@
         }
 
         function loadStocks() {
-            // Prevent multiple simultaneous requests
-            const now = Date.now();
-            if (isLoading || (now - lastRequestTime) < minRequestInterval) {
+            // Check rate limiting
+            const currentTime = Date.now();
+            if (isLoading || (currentTime - lastRequestTime < minRequestInterval)) {
                 console.log('Skipping request - too frequent or already loading');
                 return Promise.resolve();
             }
 
-            lastRequestTime = now;
             isLoading = true;
-            showLoading();
+            lastRequestTime = currentTime;
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            return fetch('/api/stocks')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API Response received:', {
+                        status: data.status, 
+                        stockCount: data.stocks ? data.stocks.length : 0,
+                        lastUpdated: data.last_updated
+                    });
 
-            return fetch('/api/stocks', {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Cache-Control': 'no-cache'
-                },
-                signal: controller.signal
-            })
-            .then(response => {
-                clearTimeout(timeoutId);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                isLoading = false;
-                retryCount = 0;
+                    updateLastUpdated(data.last_updated || data.timestamp);
 
-                console.log('API Response received:', {
-                    status: data.status, 
-                    stockCount: data.stocks ? data.stocks.length : 0,
-                    lastUpdated: data.last_updated
-                });
-
-                updateLastUpdated(data.last_updated || data.timestamp);
-
-                // Handle different statuses
-                if (data.status === 'error' || data.error) {
-                    showError(data.error || 'Unknown error occurred');
-                    return;
-                }
-
-                if (!data.stocks || data.stocks.length === 0) {
-                    if (data.status === 'initial' || data.status === 'no_data') {
-                        updateStatus('Screening in progress...', 'loading');
-                        setTimeout(loadStocks, 5000); // Retry in 5 seconds
-                    } else if (data.status === 'success') {
-                        updateStatus('No qualifying stocks found', 'error');
-                        showEmpty();
-                        // Try to trigger a new screening
+                    // Handle different statuses
+                    if (data.status === 'error' || data.error) {
+                        showError(data.error || 'System error - please try refresh');
+                        // Auto-retry after error
                         setTimeout(() => {
                             refreshData();
-                        }, 10000);
-                    } else {
-                        showEmpty();
+                        }, 5000);
+                        return;
                     }
-                    return;
-                }
 
-                // Update table and stats
-                updateStockTable(data.stocks);
-                updateStats(data.stocks, data.backtesting);
-                showData();
-                updateStatus(`Found ${data.stocks.length} stocks`, 'success');
-            })
-            .catch(error => {
-                clearTimeout(timeoutId);
-                isLoading = false;
+                    if (!data.stocks || data.stocks.length === 0) {
+                        if (data.status === 'initial' || data.status === 'no_data') {
+                            updateStatus('Screening in progress...', 'loading');
+                            setTimeout(loadStocks, 5000); // Retry in 5 seconds
+                        } else if (data.status === 'success') {
+                            updateStatus('No qualifying stocks found', 'error');
+                            showEmpty();
+                            // Try to trigger a new screening
+                            setTimeout(() => {
+                                refreshData();
+                            }, 10000);
+                        } else {
+                            showEmpty();
+                        }
+                        return;
+                    }
 
-                console.error('Error loading stocks:', error);
-
-                let errorMessage = 'Unable to load stock data.';
-                if (error.name === 'AbortError') {
-                    errorMessage = 'Request timed out. Please try again.';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMessage = 'Network connection error. Please check your connection.';
-                } else if (error.message.includes('HTTP')) {
-                    errorMessage = `Server error: ${error.message}`;
-                } else {
-                    errorMessage = error.message || 'Unknown error occurred.';
-                }
-
-                // Retry logic
-                if (retryCount < maxRetries && error.name !== 'AbortError') {
+                    // Update table and stats
+                    updateStockTable(data.stocks);
+                    updateStats(data.stocks, data.backtesting);
+                    showData();
+                    updateStatus(`Found ${data.stocks.length} stocks`, 'success');
+                    retryCount = 0; // Reset retry count on success
+                })
+                .catch(error => {
+                    console.error('API Error:', error);
                     retryCount++;
-                    const delay = Math.min(10000 * retryCount, 30000);
-                    updateStatus(`Retrying in ${delay/1000}s... (${retryCount}/${maxRetries})`, 'loading');
-                    setTimeout(loadStocks, delay);
-                } else {
-                    showError(errorMessage);
-                    setTimeout(() => { retryCount = 0; }, 60000);
-                }
-            });
+
+                    if (retryCount <= maxRetries) {
+                        updateStatus(`Connection error (retry ${retryCount}/${maxRetries})...`, 'loading');
+                        setTimeout(loadStocks, 3000 * retryCount); // Exponential backoff
+                    } else {
+                        showError(`Connection failed after ${maxRetries} attempts: ${error.message}`);
+                        retryCount = 0;
+                    }
+                })
+                .finally(() => {
+                    isLoading = false;
+                });
         }
 
         function refreshData() {
+            console.log('Manual refresh requested');
             const btn = document.getElementById('refreshBtn');
+            if (!btn) return;
+
             btn.disabled = true;
             btn.innerHTML = '<span class="refresh-icon">⏳</span> Screening...';
 
