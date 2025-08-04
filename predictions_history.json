@@ -363,5 +363,105 @@
     "score": 66,
     "confidence": 72,
     "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-04T09:55:42.007880",
+    "current_price": 688.3,
+    "predicted_1mo": 15.2,
+    "predicted_price": 792.92,
+    "score": 76,
+    "confidence": 83,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-04T09:55:42.008846",
+    "current_price": 235.0,
+    "predicted_1mo": 14.8,
+    "predicted_price": 269.78,
+    "score": 74,
+    "confidence": 81,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "RECLTD",
+    "timestamp": "2025-08-04T09:55:42.015207",
+    "current_price": 393.95,
+    "predicted_1mo": 14.4,
+    "predicted_price": 450.68,
+    "score": 72,
+    "confidence": 79,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "COALINDIA",
+    "timestamp": "2025-08-04T09:55:42.019946",
+    "current_price": 374.8,
+    "predicted_1mo": 14.2,
+    "predicted_price": 428.02,
+    "score": 71,
+    "confidence": 78,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ITC",
+    "timestamp": "2025-08-04T09:55:42.025744",
+    "current_price": 416.7,
+    "predicted_1mo": 13.8,
+    "predicted_price": 474.2,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-08-04T09:55:42.033368",
+    "current_price": 318.05,
+    "predicted_1mo": 13.8,
+    "predicted_price": 361.94,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-04T09:55:42.036424",
+    "current_price": 174.64,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.74,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "TATASTEEL",
+    "timestamp": "2025-08-04T09:55:42.037788",
+    "current_price": 159.59,
+    "predicted_1mo": 13.6,
+    "predicted_price": 181.29,
+    "score": 68,
+    "confidence": 74,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SBIN",
+    "timestamp": "2025-08-04T09:55:42.045850",
+    "current_price": 796.4,
+    "predicted_1mo": 13.4,
+    "predicted_price": 903.12,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-04T09:55:42.048879",
+    "current_price": 241.38,
+    "predicted_1mo": 13.4,
+    "predicted_price": 273.72,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
   }
 ]
