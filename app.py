@@ -294,8 +294,12 @@ def api_predictions_tracker():
         try:
             if os.path.exists('predictions_history.json'):
                 with open('predictions_history.json', 'r') as f:
-                    historical_predictions = json.load(f)
-                    predictions.extend(historical_predictions.get('predictions', []))
+                    historical_data = json.load(f)
+                    # Handle both list and dict formats
+                    if isinstance(historical_data, list):
+                        predictions.extend(historical_data)
+                    elif isinstance(historical_data, dict) and 'predictions' in historical_data:
+                        predictions.extend(historical_data['predictions'])
         except Exception as e:
             logger.warning(f"Could not load historical predictions: {str(e)}")
 
@@ -721,7 +725,14 @@ def get_predictions_tracker():
         # Load predictions from predictions_history.json
         if os.path.exists('predictions_history.json'):
             with open('predictions_history.json', 'r') as f:
-                predictions = json.load(f)
+                data = json.load(f)
+                # Handle both list and dict formats
+                if isinstance(data, list):
+                    predictions = data
+                elif isinstance(data, dict) and 'predictions' in data:
+                    predictions = data['predictions']
+                else:
+                    predictions = []
 
         # Enrich with additional data if needed
         enriched_predictions = []

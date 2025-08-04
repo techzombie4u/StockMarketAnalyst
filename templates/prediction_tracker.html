@@ -289,8 +289,172 @@
 
         <div id="noPredictions" class="no-predictions" style="display: none;">
             <h3>📋 No Predictions Found</h3>
-            <p>No predictions found for the selected period.</p>
-            <p>Run the stock screener to generate new predictions.</p>
+            <p>No predictions found for tthe selected period.</p>
+            <p>Run the stock screener to generate new predictions and track their accuracy over time.</p>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let refreshInterval;
+
+        function refreshData() {
+            console.log('Refreshing prediction tracker data...');
+            
+            fetch('/api/predictions-tracker')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updatePredictionTable(data.predictions);
+                        updateLastRefresh();
+                    } else {
+                        console.error('API error:', data.error);
+                        showError('Failed to load prediction data: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                    showError('Network error: Could not connect to server');
+                });
+        }
+
+        function updatePredictionTable(predictions) {
+            const tbody = document.querySelector('#predictionsTable tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            if (!predictions || predictions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            <i>No prediction data available. Run the stock screener to generate predictions.</i>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            predictions.slice(0, 20).forEach(pred => {
+                const row = document.createElement('tr');
+                const accuracy = calculateAccuracy(pred);
+                const accuracyClass = getAccuracyClass(accuracy);
+                
+                row.innerHTML = `
+                    <td><strong>${pred.symbol || 'N/A'}</strong></td>
+                    <td>₹${(pred.current_price || 0).toFixed(2)}</td>
+                    <td>₹${(pred.predicted_price || 0).toFixed(2)}</td>
+                    <td>${(pred.pred_5d || 0).toFixed(1)}%</td>
+                    <td>${(pred.predicted_1mo || 0).toFixed(1)}%</td>
+                    <td>
+                        <span class="badge ${accuracyClass}">${accuracy}</span>
+                    </td>
+                    <td>${formatTimestamp(pred.timestamp)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function calculateAccuracy(pred) {
+            if (pred.actual_price && pred.predicted_price && pred.current_price) {
+                const predicted_change = ((pred.predicted_price - pred.current_price) / pred.current_price) * 100;
+                const actual_change = ((pred.actual_price - pred.current_price) / pred.current_price) * 100;
+                const error = Math.abs(predicted_change - actual_change);
+                const accuracy = Math.max(0, 100 - error);
+                return accuracy.toFixed(1) + '%';
+            }
+            return 'Pending';
+        }
+
+        function getAccuracyClass(accuracy) {
+            if (accuracy === 'Pending') return 'bg-secondary';
+            const value = parseFloat(accuracy);
+            if (value >= 80) return 'bg-success';
+            if (value >= 60) return 'bg-warning';
+            return 'bg-danger';
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'N/A';
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            } catch (e) {
+                return 'Invalid Date';
+            }
+        }
+
+        function updateLastRefresh() {
+            const lastRefreshElement = document.getElementById('lastRefresh');
+            if (lastRefreshElement) {
+                lastRefreshElement.textContent = new Date().toLocaleTimeString();
+            }
+        }
+
+        function showError(message) {
+            console.error(message);
+            // Could add a toast notification here
+        }
+
+        function manualRefresh() {
+            const button = document.getElementById('refreshBtn');
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Refreshing...';
+            }
+            
+            refreshData();
+            
+            setTimeout(() => {
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = '🔄 Refresh Data';
+                }
+            }, 2000);
+        }
+
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            if (checkbox && checkbox.checked) {
+                refreshInterval = setInterval(refreshData, 30000); // 30 seconds
+                console.log('Auto-refresh enabled (30s interval)');
+            } else {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
+                console.log('Auto-refresh disabled');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Prediction Tracker initialized');
+            refreshData();
+            
+            // Set up event listeners
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', manualRefresh);
+            }
+            
+            const autoRefreshCheckbox = document.getElementById('autoRefresh');
+            if (autoRefreshCheckbox) {
+                autoRefreshCheckbox.addEventListener('change', toggleAutoRefresh);
+            }
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>tions.</p>
         </div>
     </div>
 
