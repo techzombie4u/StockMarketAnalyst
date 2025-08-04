@@ -581,8 +581,8 @@
             }
             
             // Blue line: ONLY progressive actual data (no future values)
-            // Simulate that only 1-2 days have actually passed (realistic)
-            const currentDay = Math.floor(Math.random() * 2) + 1; // Only 1-2 days have passed
+            // Simulate that only 0-1 days have actually passed (more realistic)
+            const currentDay = Math.random() > 0.5 ? 1 : 0; // Either today only, or 1 day has passed
             
             // Day 0 is always current price
             actual5d[0] = basePrice;
@@ -592,22 +592,16 @@
                 // Only add Day 1 actual if it has completed
                 actual5d[1] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
             }
-            if (currentDay >= 2) {
-                // Only add Day 2 actual if it has completed
-                actual5d[2] = actual5d[1] * (1 + (Math.random() - 0.5) * 0.02);
-            }
-            // Days 3 and 4 remain null (haven't occurred yet)
+            // Days 2, 3, and 4 remain null (haven't occurred yet)
             
             // Red line: Updated predictions (only when >3% change occurred and only for completed days)
-            if (currentDay >= 1 && Math.random() > 0.7) {
+            if (currentDay >= 1 && Math.random() > 0.8) {
                 const changePercent = (Math.random() * 6) + 3; // 3-9% change
                 updated5d[0] = basePrice; // Start from current
-                if (currentDay >= 1) {
-                    updated5d[1] = actual5d[1]; // Match actual for completed days
+                if (currentDay >= 1 && actual5d[1] !== null) {
+                    updated5d[1] = actual5d[1]; // Match actual for completed days only
                 }
-                if (currentDay >= 2) {
-                    updated5d[2] = actual5d[2]; // Match actual for completed days
-                }
+                // No day 2 data since currentDay max is 1
             }
             
             // Generate 30D data (simplified)
@@ -623,14 +617,10 @@
             // Blue line: ONLY progressive actual data (no future values)
             actual30d[0] = basePrice; // Day 0 is current price
             
-            // Only add actual data for days that have realistically passed (1-3 days max)
-            const currentDay30 = Math.floor(Math.random() * 3) + 1; // Only 1-3 days have passed
-            for (let i = 1; i <= Math.min(currentDay30, 3); i++) { // Limit to realistic progression
-                if (i === 1) {
-                    actual30d[i] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
-                } else {
-                    actual30d[i] = actual30d[i-1] * (1 + (Math.random() - 0.5) * 0.015);
-                }
+            // Only add actual data for days that have realistically passed (1-2 days max)
+            const currentDay30 = Math.random() > 0.6 ? 1 : 0; // Either today only, or 1 day has passed
+            if (currentDay30 >= 1) {
+                actual30d[1] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
             }
             // All other days remain null (haven't occurred yet)
             
@@ -763,11 +753,25 @@
             
             // Blue line: Show ONLY actual prices that have occurred (progressive)
             const actualDataRaw = data[actualKey] || Array(days).fill(null);
-            const actualData = [...actualDataRaw]; // Keep only actual progressive data
+            // Filter to show only actual data points that exist (no future values)
+            const actualData = actualDataRaw.map((value, index) => {
+                // Only show values that are not null and realistic (first few days only)
+                if (value !== null && index <= 2) { // Limit to first 3 days max
+                    return value;
+                }
+                return null; // Future days should be null
+            });
             
             // Red line: Show ONLY updated predictions that have occurred (progressive)
             const updatedDataRaw = data[updatedKey] || Array(days).fill(null);
-            const updatedData = [...updatedDataRaw]; // Keep only progressive updated predictions
+            // Filter to show only updated predictions for days that have actual data
+            const updatedData = updatedDataRaw.map((value, index) => {
+                // Only show updated predictions for days where we have actual data
+                if (value !== null && actualData[index] !== null) {
+                    return value;
+                }
+                return null; // No updated prediction if no actual data yet
+            });
             
             // Destroy existing chart
             if (chart) {
