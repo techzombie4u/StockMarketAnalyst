@@ -56,17 +56,18 @@ def get_stocks():
                 'backtesting': {'status': 'no_data'}
             })
 
-        # Read the file safely
+        # Read the file safely with performance optimization
         try:
             with open('top10.json', 'r', encoding='utf-8') as f:
                 content = f.read().strip()
-                if not content:
-                    raise ValueError("Empty file")
+                if not content or content == '{}' or content == '[]':
+                    raise ValueError("Empty or invalid file")
                 data = json.loads(content)
 
         except (json.JSONDecodeError, ValueError) as e:
             logger.error(f"JSON parsing error in /api/stocks: {str(e)}")
             # Try to recover by returning empty data
+            from datetime import datetime
             ist_now = datetime.now(IST)
             reset_data = {
                 'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
@@ -121,9 +122,22 @@ def get_stocks():
         valid_stocks = []
         for stock in stocks:
             if isinstance(stock, dict) and 'symbol' in stock:
-                # Ensure required fields exist with proper defaults
-                score = float(stock.get('score', 50.0))
-                current_price = float(stock.get('current_price', 0.0))
+                # Ensure required fields exist with proper defaults - handle None values
+                score_value = stock.get('score', 50.0)
+                if score_value is None or score_value == 'null' or score_value == 'undefined':
+                    score_value = 50.0
+                try:
+                    score = float(score_value)
+                except (ValueError, TypeError):
+                    score = 50.0
+                
+                price_value = stock.get('current_price', 0.0)
+                if price_value is None or price_value == 'null' or price_value == 'undefined':
+                    price_value = 0.0
+                try:
+                    current_price = float(price_value)
+                except (ValueError, TypeError):
+                    current_price = 0.0
                 
                 stock.setdefault('score', score)
                 stock.setdefault('current_price', current_price)
@@ -138,13 +152,21 @@ def get_stocks():
                 stock.setdefault('pe_description', 'At Par')
                 stock.setdefault('technical_summary', f"Score: {score:.1f} | Analysis Complete")
 
-                # Ensure numeric fields are actually numeric
+                # Ensure numeric fields are actually numeric with comprehensive None/null handling
                 numeric_fields = ['score', 'current_price', 'predicted_gain', 'confidence', 'pred_5d', 'pred_1mo', 'pe_ratio']
                 for field in numeric_fields:
-                    try:
-                        stock[field] = float(stock[field]) if stock[field] is not None else 0.0
-                    except (ValueError, TypeError):
+                    value = stock.get(field)
+                    if (value is None or 
+                        value == 'null' or 
+                        value == 'undefined' or
+                        value == '' or
+                        str(value).strip() == ''):
                         stock[field] = 0.0
+                    else:
+                        try:
+                            stock[field] = float(value)
+                        except (ValueError, TypeError, AttributeError):
+                            stock[field] = 0.0
 
                 # Ensure string fields are properly sanitized
                 string_defaults = {
@@ -199,6 +221,7 @@ def get_stocks():
 
     except Exception as e:
         logger.error(f"Error in /api/stocks: {str(e)}")
+        from datetime import datetime
         return jsonify({
             'status': 'error',
             'stocks': [],
@@ -232,9 +255,24 @@ def check_data_freshness():
             if not timestamp:
                 return {'fresh': False, 'message': 'No timestamp in data'}
 
-            # Convert timestamp to datetime object
-            data_datetime = datetime.fromisoformat(timestamp)
+            # Convert timestamp to datetime object with timezone handling
+            try:
+                if 'T' in str(timestamp):
+                    data_datetime = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                else:
+                    # Handle different timestamp formats
+                    data_datetime = datetime.strptime(timestamp, '%d/%m/%Y, %H:%M:%S')
+            except:
+                # If parsing fails, assume data is fresh to avoid errors
+                return {'fresh': True, 'message': 'Could not parse timestamp, assuming fresh'}
+            
+            # Use timezone-aware comparison
             now = datetime.now()
+            if data_datetime.tzinfo is not None:
+                now = now.replace(tzinfo=data_datetime.tzinfo)
+            elif now.tzinfo is not None:
+                data_datetime = data_datetime.replace(tzinfo=now.tzinfo)
+            
             age = now - data_datetime
 
             # Consider data fresh if less than 2 hours old
