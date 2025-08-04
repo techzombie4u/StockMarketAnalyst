@@ -57,40 +57,34 @@ def get_stocks():
             })
 
 def check_file_integrity():
-    """Check and repair file integrity"""
-    try:
-        # Check top10.json
-        if os.path.exists('top10.json'):
-            try:
-                with open('top10.json', 'r', encoding='utf-8') as f:
+    """Check integrity of critical files"""
+    critical_files = [
+        'top10.json',
+        'predictions_history.json', 
+        'agent_decisions.json',
+        'stable_predictions.json',
+        'signal_history.json'
+    ]
+
+    for file_path in critical_files:
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as f:
                     content = f.read().strip()
                     if content:
-                        data = json.loads(content)
-                        if isinstance(data, dict) and 'stocks' in data:
-                            logger.info("File integrity check passed")
-                            return True
-            except:
+                        json.loads(content)
+            else:
+                # Create empty file
+                with open(file_path, 'w') as f:
+                    json.dump({}, f)
+        except (json.JSONDecodeError, IOError) as e:
+            # Fix corrupted file
+            try:
+                with open(file_path, 'w') as f:
+                    json.dump({}, f)
+            except IOError:
                 pass
-        
-        # File is corrupted or missing, create minimal structure
-        logger.warning("File integrity check failed, creating minimal structure")
-        ist_now = datetime.now(IST)
-        minimal_data = {
-            'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
-            'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
-            'stocks': [],
-            'status': 'file_repaired'
-        }
-        
-        with open('top10.json', 'w', encoding='utf-8') as f:
-            json.dump(minimal_data, f, indent=2, ensure_ascii=False)
-        
-        logger.info("File repaired successfully")
-        return True
-        
-    except Exception as e:
-        logger.error(f"File integrity check failed: {str(e)}")
-        return False
+
 
         # Read the file safely with performance optimization
         try:
@@ -99,42 +93,42 @@ def check_file_integrity():
                 if not content:
                     logger.warning("Empty JSON file detected")
                     raise ValueError("Empty file")
-                
+
                 # Check for common invalid content
                 if content in ['{}', '[]', 'null', 'undefined']:
                     logger.warning(f"Invalid JSON content: {content}")
                     raise ValueError("Invalid file content")
-                
+
                 # Attempt to parse JSON
                 data = json.loads(content)
-                
+
                 # Validate structure
                 if not isinstance(data, dict):
                     logger.warning("JSON is not a dictionary")
                     raise ValueError("Invalid data structure")
-                
+
                 return data
 
         except (json.JSONDecodeError, ValueError, FileNotFoundError) as e:
             logger.error(f"JSON parsing error in /api/stocks: {str(e)}")
-            
+
             # Try to recover by creating fresh data
             try:
                 ist_now = datetime.now(IST)
-                
+
                 # Try to run a quick screening to get fresh data
                 try:
                     logger.info("Attempting to generate fresh data...")
                     from stock_screener import EnhancedStockScreener
                     screener = EnhancedStockScreener()
-                    
+
                     # Get a few stocks quickly for recovery
                     quick_results = []
                     for symbol in ['SBIN', 'BHARTIARTL', 'ITC'][:3]:
                         try:
                             technical = screener.calculate_enhanced_technical_indicators(symbol)
                             fundamentals = screener.scrape_screener_data(symbol)
-                            
+
                             if technical or fundamentals:
                                 stocks_data = {symbol: {'fundamentals': fundamentals, 'technical': technical}}
                                 scored = screener.enhanced_score_and_rank(stocks_data)
@@ -142,7 +136,7 @@ def check_file_integrity():
                                     quick_results.extend(scored)
                         except:
                             continue
-                    
+
                     if quick_results:
                         logger.info(f"Generated {len(quick_results)} recovery stocks")
                         recovery_data = {
@@ -154,7 +148,7 @@ def check_file_integrity():
                         }
                     else:
                         raise Exception("No recovery data generated")
-                        
+
                 except Exception as recovery_error:
                     logger.warning(f"Recovery screening failed: {recovery_error}")
                     # Final fallback to empty structure
@@ -169,7 +163,7 @@ def check_file_integrity():
                 # Save recovery data
                 with open('top10.json', 'w', encoding='utf-8') as f:
                     json.dump(recovery_data, f, ensure_ascii=False, indent=2)
-                
+
                 data = recovery_data
                 logger.info("File recovered successfully")
 
@@ -200,16 +194,16 @@ def check_file_integrity():
         status = data.get('status', 'unknown')
         last_updated = data.get('last_updated', 'Never')
         timestamp = data.get('timestamp')
-        
+
         # Validate stocks array
         if not isinstance(stocks, list):
             logger.warning("Stocks data is not a list, converting...")
             stocks = []
-        
+
         # Validate status
         if not isinstance(status, str):
             status = 'unknown'
-        
+
         # Validate last_updated
         if not isinstance(last_updated, str):
             last_updated = 'Never'
@@ -238,7 +232,7 @@ def check_file_integrity():
                     score = float(score_value)
                 except (ValueError, TypeError):
                     score = 50.0
-                
+
                 price_value = stock.get('current_price', 0.0)
                 if price_value is None or price_value == 'null' or price_value == 'undefined':
                     price_value = 0.0
@@ -246,7 +240,7 @@ def check_file_integrity():
                     current_price = float(price_value)
                 except (ValueError, TypeError):
                     current_price = 0.0
-                
+
                 stock.setdefault('score', score)
                 stock.setdefault('current_price', current_price)
                 stock.setdefault('predicted_gain', score * 0.2)
@@ -285,7 +279,7 @@ def check_file_integrity():
                     'technical_summary': 'Analysis Complete',
                     'risk_level': 'Medium'
                 }
-                
+
                 for field, default_value in string_defaults.items():
                     value = stock.get(field)
                     # Handle all possible problematic values
@@ -306,7 +300,7 @@ def check_file_integrity():
                 # Ensure critical fields exist
                 if not stock.get('symbol'):
                     continue  # Skip stocks without symbol
-                    
+
                 valid_stocks.append(stock)
 
         logger.info(f"API response: {len(valid_stocks)} valid stocks, status: {status}")
@@ -373,14 +367,14 @@ def check_data_freshness():
             except:
                 # If parsing fails, assume data is fresh to avoid errors
                 return {'fresh': True, 'message': 'Could not parse timestamp, assuming fresh'}
-            
+
             # Use timezone-aware comparison
             now = datetime.now()
             if data_datetime.tzinfo is not None:
                 now = now.replace(tzinfo=data_datetime.tzinfo)
             elif now.tzinfo is not None:
                 data_datetime = data_datetime.replace(tzinfo=now.tzinfo)
-            
+
             age = now - data_datetime
 
             # Consider data fresh if less than 2 hours old
@@ -408,35 +402,34 @@ def load_stock_data():
 def api_status():
     """API endpoint for system status"""
     try:
-        # Get scheduler status
-        scheduler_status = get_scheduler_status()
-
-        # Check data freshness
-        data_freshness = check_data_freshness()
-
-        # Get prediction stability status
-        stability_status = {}
-        try:
-            from prediction_stability_manager import PredictionStabilityManager
-            stability_manager = PredictionStabilityManager()
-            stability_status = stability_manager.get_prediction_status()
-        except Exception as e:
-            logger.warning(f"Could not get stability status: {str(e)}")
-            stability_status = {'error': 'Stability manager not available'}
+        check_file_integrity()
 
         status_data = {
             'status': 'healthy',
             'timestamp': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S'),
-            'scheduler': scheduler_status,
-            'data_freshness': data_freshness,
-            'prediction_stability': stability_status,
+            'scheduler': get_scheduler_status(),
+            'data_freshness': check_data_freshness(),
+            'prediction_stability': {},
             'version': '1.3.0'
         }
 
+        # Get prediction stability status
+        try:
+            from prediction_stability_manager import PredictionStabilityManager
+            stability_manager = PredictionStabilityManager()
+            status_data['prediction_stability'] = stability_manager.get_prediction_status()
+        except Exception as e:
+            logger.warning(f"Could not get stability status: {str(e)}")
+            status_data['prediction_stability'] = {'error': 'Stability manager not available'}
+
         return jsonify(status_data)
+
     except Exception as e:
         logger.error(f"Status API error: {str(e)}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 
@@ -526,7 +519,7 @@ def run_now():
                 from stock_screener import EnhancedStockScreener
                 screener = EnhancedStockScreener()
                 results = screener.run_enhanced_screener()
-                
+
                 if results and len(results) > 0:
                     logger.info(f"✅ Standalone manual screening completed with {len(results)} stocks")
                     return jsonify({
@@ -857,8 +850,7 @@ def lookup_stock(symbol):
         # Try to add ML predictions if available
         try:
             from predictor import enrich_with_ml_predictions
-            enhanced_stocks = enrich_with_ml_predictions([stock_result])
-            if enhanced_stocks:
+            enhanced_stocks = enrich_with_ml_predictions([stock_result])            if enhanced_stocks:
                 stock_result = enhanced_stocks[0]
         except Exception as e:
             logger.warning(f"ML predictions failed for {symbol}: {str(e)}")
@@ -930,7 +922,7 @@ def get_predictions_tracker():
                         'source': 'current_screening'
                     }
                     predictions.append(prediction_entry)
-                    
+
         except Exception as e:
             logger.warning(f"Could not load current stock data: {str(e)}")
 
@@ -946,7 +938,7 @@ def get_predictions_tracker():
                         historical_predictions = data['predictions']
                     else:
                         historical_predictions = []
-                    
+
                     # Add source tag to historical predictions
                     for pred in historical_predictions:
                         pred['source'] = 'historical'
@@ -955,9 +947,9 @@ def get_predictions_tracker():
                             pred['predicted_1mo'] = pred['pred_1mo']
                         if 'pred_5d' not in pred:
                             pred['pred_5d'] = pred.get('predicted_1mo', 0) * 0.15  # Estimate
-                    
+
                     predictions.extend(historical_predictions)
-                    
+
         except Exception as e:
             logger.warning(f"Could not load historical predictions: {str(e)}")
 
@@ -981,7 +973,7 @@ def get_predictions_tracker():
                                 'lock_reason': pred_data.get('lock_reason', 'unknown')
                             }
                             predictions.append(prediction_entry)
-                            
+
         except Exception as e:
             logger.warning(f"Could not load stable predictions: {str(e)}")
 
@@ -990,12 +982,12 @@ def get_predictions_tracker():
         for pred in predictions:
             symbol = pred['symbol']
             timestamp = pred.get('timestamp', '')
-            
+
             if symbol not in unique_predictions or timestamp > unique_predictions[symbol].get('timestamp', ''):
                 unique_predictions[symbol] = pred
 
         final_predictions = list(unique_predictions.values())
-        
+
         # Sort by timestamp (newest first)
         final_predictions.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
 
@@ -1024,17 +1016,17 @@ def get_interactive_tracker_data():
     try:
         # Load interactive tracking data
         tracking_data = load_interactive_tracking_data()
-        
+
         # If no tracking data exists, create initial structure
         if not tracking_data:
             tracking_data = initialize_empty_tracking_data()
-        
+
         return jsonify({
             'status': 'success',
             'tracking_data': tracking_data,
             'timestamp': datetime.now(IST).isoformat()
         })
-        
+
     except Exception as e:
         logger.error(f"Error in interactive tracker data API: {str(e)}")
         return jsonify({
@@ -1050,7 +1042,7 @@ def initialize_empty_tracking_data():
         # Load current stock data to initialize tracking
         current_data = load_stock_data()
         stocks = current_data.get('stocks', [])
-        
+
         tracking_data = {}
         for stock in stocks[:5]:  # Initialize tracking for top 5 stocks
             symbol = stock.get('symbol')
@@ -1058,17 +1050,17 @@ def initialize_empty_tracking_data():
                 base_price = stock.get('current_price', 100)
                 pred_5d = stock.get('pred_5d', 0)
                 pred_30d = stock.get('pred_1mo', 0)
-                
+
                 # Generate predicted price arrays
                 predicted_5d = []
                 predicted_30d = []
-                
+
                 for i in range(5):
                     predicted_5d.append(base_price * (1 + (pred_5d/100) * (i+1)/5))
-                
+
                 for i in range(30):
                     predicted_30d.append(base_price * (1 + (pred_30d/100) * (i+1)/30))
-                
+
                 tracking_data[symbol] = {
                     'symbol': symbol,
                     'start_date': datetime.now(IST).strftime('%Y-%m-%d'),
@@ -1090,16 +1082,16 @@ def initialize_empty_tracking_data():
                     'last_updated': datetime.now(IST).isoformat(),
                     'days_tracked': 0
                 }
-        
+
         # Save the initialized tracking data
         try:
             with open('interactive_tracking.json', 'w') as f:
                 json.dump(tracking_data, f, indent=2, ensure_ascii=False)
         except Exception as save_error:
             logger.warning(f"Could not save initialized tracking data: {save_error}")
-        
+
         return tracking_data
-        
+
     except Exception as e:
         logger.error(f"Error initializing empty tracking data: {str(e)}")
         return {}
@@ -1113,13 +1105,13 @@ def update_lock_status():
         period = data.get('period')  # '5d' or '30d'
         locked = data.get('locked', False)
         timestamp = data.get('timestamp')
-        
+
         if not symbol or not period:
             return jsonify({'success': False, 'message': 'Symbol and period required'}), 400
-        
+
         # Save lock status
         success = save_lock_status(symbol, period, locked, timestamp)
-        
+
         if success:
             logger.info(f"Lock status updated: {symbol} {period} = {locked}")
             return jsonify({
@@ -1129,7 +1121,7 @@ def update_lock_status():
             })
         else:
             return jsonify({'success': False, 'message': 'Failed to save lock status'}), 500
-            
+
     except Exception as e:
         logger.error(f"Error updating lock status: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -1161,7 +1153,7 @@ def initialize_app():
     try:
         # Check file integrity first
         check_file_integrity()
-        
+
         # Create initial demo data
         create_initial_demo_data()
 

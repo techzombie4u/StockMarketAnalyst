@@ -1,4 +1,4 @@
-# Applying the changes to fix the syntax error in stock_screener.py
+# Adding generate_fallback_data method to stock screener
 
 """
 Stock Market Analyst - Enhanced Data Collection and Scoring Module
@@ -2043,6 +2043,8 @@ Extract a specific metric value from soup"""
                 summary_parts.append("High Volatility")
             elif volatility_regime == 'low':
                 summary_parts.append("Low Volatility")
+            else:
+                summary_parts.append("Normal Volatility")
 
             return " | ".join(summary_parts[:4])  # Limit to 4 items for space
 
@@ -2146,7 +2148,7 @@ Extract a specific metric value from soup"""
             try:
                 close_open = close - data['Open']
                 high_low = data['High'] - data['Low']
-                
+
                 if len(close_open) > 10:
                     rvi_numerator = close_open.rolling(window=10).sum()
                     rvi_denominator = high_low.rolling(window=10).sum()
@@ -2172,16 +2174,4 @@ Extract a specific metric value from soup"""
             low = data['Low']
             close = data['Close']
 
-            # Calculate pivot points
-            pivot = (high.iloc[-1] + low.iloc[-1] + close.iloc[-1]) / 3
-            support1 = 2 * pivot - high.iloc[-1]
-            resistance1 = 2 * pivot - low.iloc[-1]
-            
-            indicators['pivot_point'] = float(pivot)
-            indicators['support1'] = float(support1)
-            indicators['resistance1'] = float(resistance1)
-
-        except Exception as e:
-            logger.error(f"Error calculating support/resistance levels: {str(e)}")
-
-        return indicators
+            # Calculate
