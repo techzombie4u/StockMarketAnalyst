@@ -56,7 +56,7 @@ class RetryStrategy:
 class GracefulDegradation:
 
     @staticmethod
-    deffallback_data(fallback_value: any):
+    def fallback_data(fallback_value: any):
         """Return fallback data on failure"""
         def decorator(func):
             @wraps(func)
@@ -777,7 +777,8 @@ class EnhancedStockScreener:
             # EMA crossover signals
             current_price = close_prices.iloc[-1] if len(close_prices) > 0 else 0
             indicators['price_above_ema_12'] = float(current_price) > float(indicators.get('ema_12', 0))
-            indicators['price_above_ema_21'] = float(current_price) > float(indicators.get('ema_21', 0))
+            indicators['price_above_ema_21'] = float(current_price) > float(indicators.```python
+get('ema_21', 0))
             indicators['ema_12_above_21'] = float(indicators.get('ema_12', 0)) > float(indicators.get('ema_21', 0))
 
             # EMA trend strength
@@ -1429,25 +1430,6 @@ class EnhancedStockScreener:
 
             # Check for promoter buying indicators
             page_text = soup.get_text().lower()
-            if any(term in pageThe syntax error `deffallback_data` is fixed, and the code is complete now.
-```python
-cells) >= 3:
-                        row_text = cells[0].text.lower()
-
-                        # Revenue growth
-                        if any(term in row_text for term in ['sales', 'revenue', 'income']):
-                            growth = self._calculate_growth_from_cells(cells[1:3])
-                            if growth is not None:
-                                growth_data['revenue_growth'] = growth
-
-                        # Earnings growth
-                        elif any(term in row_text for term in ['net profit', 'earnings', 'pat']):
-                            growth = self._calculate_growth_from_cells(cells[1:3])
-                            if growth is not None:
-                                growth_data['earnings_growth'] = growth
-
-            # Check for promoter buying
-            page_text = soup.get_text().lower()
             if any(term in page_text for term in ['promoter', 'buying', 'increase in holding']):
                 growth_data['promoter_buying'] = True
 
@@ -1457,7 +1439,8 @@ cells) >= 3:
         return growth_data
 
     def _extract_metric_value(self, soup: BeautifulSoup, search_terms: List[str]) -> Optional[float]:
-        """Extract a specific metric value from soup"""
+        """```python
+Extract a specific metric value from soup"""
         try:
             for term in search_terms:
                 elements = soup.find_all(text=lambda text: text and term.lower() in text.lower())
@@ -2174,3 +2157,17 @@ cells) >= 3:
         except Exception as e:
             logger.error(f"Error calculating advanced technical indicators: {str(e)}")
             return {}
+
+    def _calculate_support_resistance_levels(self, data: pd.DataFrame) -> Dict:
+        """Calculate dynamic support and resistance levels"""
+        indicators = {}
+
+        try:
+            high = data['High']
+            low = data['Low']
+            close = data['Close']
+
+            # Calculate pivot points
+            pivot = (high.iloc[-1] + low.iloc[-1] + close.iloc[-1]) / 3
+            support1 = 2 * pivot - high.iloc[-1]
+            resistance1 = 2 * pivot - low.iloc
