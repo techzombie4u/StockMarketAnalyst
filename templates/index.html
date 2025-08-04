@@ -654,7 +654,10 @@
                     <td class="price">₹${(stock.current_price || 0).toFixed(2)}</td>
                     <td class="${getGainClass(pred5d)}">${formatGain(pred5d)}</td>
                     <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
-                    <td><span class="pe-ratio ${getPEClass(stock.pe_description || 'Not Available')}">${stock.pe_ratio ? stock.pe_ratio.toFixed(1) : 'N/A'}</span></td>
+                    <td class="pe-ratio">
+                            <span class="pe-value ${getPEClass(stock.pe_description || 'At Par')}">${stock.pe_ratio && stock.pe_ratio > 0 ? stock.pe_ratio.toFixed(1) : '--'}</span>
+                            <div class="pe-desc">${stock.pe_description || 'At Par'}</div>
+                        </td>
                     <td class="risk-level" data-risk="${stock.risk_level}">${stock.risk_level || 'Medium'}</td>
                         <td class="technical-summary">
                             ${stock.technical_summary || 'Processing...'}
@@ -832,6 +835,8 @@
             loadStocks();
             // startAutoRefresh(); // Disabled as requested
         });
+
+        ```tool_code
 
         // Handle page visibility change
         document.addEventListener('visibilitychange', function() {

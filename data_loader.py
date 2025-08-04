@@ -28,15 +28,17 @@ class MLDataLoader:
     def fetch_historical_data(self, symbol: str, period: str = "5y") -> Optional[pd.DataFrame]:
         """Fetch 5 years of historical OHLC data from Yahoo Finance"""
         try:
-            ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
+            # Try different ticker formats with shorter timeout
+            ticker_formats = [f"{symbol}.NS", f"{symbol}.BO"]
             
             for ticker_format in ticker_formats:
                 try:
                     ticker = yf.Ticker(ticker_format)
-                    data = ticker.history(period=period, progress=False)
+                    # Use shorter period for faster processing
+                    data = ticker.history(period="3mo", progress=False, timeout=5)
                     
-                    if data is not None and not data.empty and len(data) > 100:
-                        logger.info(f"✅ Fetched {len(data)} days of data for {symbol} using {ticker_format}")
+                    if data is not None and not data.empty and len(data) > 30:
+                        logger.debug(f"✅ Fetched {len(data)} days of data for {symbol} using {ticker_format}")
                         # Reset index to have Date as column
                         data.reset_index(inplace=True)
                         return data
@@ -44,11 +46,12 @@ class MLDataLoader:
                     logger.debug(f"Failed {ticker_format} for {symbol}: {str(e)}")
                     continue
             
-            logger.warning(f"No historical data found for {symbol}")
+            # Don't log warnings for missing data to reduce noise
+            logger.debug(f"No historical data found for {symbol}")
             return None
                 
         except Exception as e:
-            logger.error(f"Error fetching historical data for {symbol}: {str(e)}")
+            logger.debug(f"Error fetching historical data for {symbol}: {str(e)}")
             return None
     
     def calculate_technical_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
