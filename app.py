@@ -707,6 +707,11 @@ def prediction_tracker():
     """Prediction tracking dashboard page"""
     return render_template('prediction_tracker.html')
 
+@app.route('/prediction-tracker-interactive')
+def prediction_tracker_interactive():
+    """Interactive prediction tracking page with dual view and charts"""
+    return render_template('prediction_tracker_interactive.html')
+
 @app.route('/api/predictions-tracker')
 def get_predictions_tracker():
     """API endpoint to get prediction tracking data"""
