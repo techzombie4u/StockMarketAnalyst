@@ -2,346 +2,432 @@
 #!/usr/bin/env python3
 """
 Comprehensive Regression Test for Stock Market Analyst
-Tests all major functionality including deployment compatibility
+Tests all critical functionality and potential error scenarios
 """
 
-import json
 import os
 import sys
-import time
+import json
 import requests
-import threading
+import time
+import logging
 from datetime import datetime
+import subprocess
+from pathlib import Path
 
-def test_core_modules():
-    """Test all core modules can be imported and initialized"""
-    print("🧪 Testing Core Module Imports...")
-    
-    try:
-        # Test stock screener
-        from stock_screener import EnhancedStockScreener
-        screener = EnhancedStockScreener()
-        print("✅ Stock screener imported and initialized")
-        
-        # Test scheduler
-        from scheduler import StockAnalystScheduler
-        scheduler = StockAnalystScheduler()
-        print("✅ Scheduler imported and initialized")
-        
-        # Test daily technical analyzer
-        from daily_technical_analyzer import DailyTechnicalAnalyzer
-        analyzer = DailyTechnicalAnalyzer()
-        print("✅ Daily technical analyzer imported and initialized")
-        
-        # Test Flask app
-        from app import app
-        print("✅ Flask app imported successfully")
-        
-        return True
-    except Exception as e:
-        print(f"❌ Core module test failed: {str(e)}")
-        return False
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
+logger = logging.getLogger(__name__)
 
-def test_data_processing():
-    """Test data fetching and processing functionality"""
-    print("\n🧪 Testing Data Processing...")
-    
-    try:
-        from stock_screener import EnhancedStockScreener
-        screener = EnhancedStockScreener()
-        
-        # Test technical indicators
-        test_symbol = 'RELIANCE'
-        technical = screener.calculate_enhanced_technical_indicators(test_symbol)
-        
-        if technical and 'current_price' in technical:
-            print(f"✅ Technical indicators working for {test_symbol}")
-            print(f"   Current price: {technical.get('current_price', 'N/A')}")
-            print(f"   Analysis type: {technical.get('analysis_type', 'N/A')}")
-        else:
-            print(f"❌ Technical indicators failed for {test_symbol}")
-            return False
-        
-        # Test fundamental data
-        fundamentals = screener.scrape_screener_data(test_symbol)
-        if fundamentals and 'pe_ratio' in fundamentals:
-            print(f"✅ Fundamental data working for {test_symbol}")
-            print(f"   PE ratio: {fundamentals.get('pe_ratio', 'N/A')}")
-        else:
-            print(f"⚠️ Fundamental data limited for {test_symbol}")
-        
-        return True
-    except Exception as e:
-        print(f"❌ Data processing test failed: {str(e)}")
-        return False
-
-def test_scoring_algorithm():
-    """Test the stock scoring and ranking system"""
-    print("\n🧪 Testing Scoring Algorithm...")
-    
-    try:
-        from stock_screener import EnhancedStockScreener
-        screener = EnhancedStockScreener()
-        
-        # Test with minimal data
-        test_stocks = ['RELIANCE', 'TCS']
-        results = []
-        
-        for symbol in test_stocks:
-            technical = screener.calculate_enhanced_technical_indicators(symbol)
-            fundamentals = screener.scrape_screener_data(symbol)
-            
-            if technical:
-                # Test scoring
-                score = screener._calculate_base_score(technical, fundamentals, {})
-                print(f"✅ Scoring works for {symbol}: {score} points")
-                results.append({'symbol': symbol, 'score': score})
-        
-        if results:
-            print("✅ Scoring algorithm functional")
-            return True
-        else:
-            print("❌ No scoring results generated")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Scoring algorithm test failed: {str(e)}")
-        return False
-
-def test_api_endpoints():
-    """Test Flask API endpoints"""
-    print("\n🧪 Testing API Endpoints...")
-    
-    try:
-        from app import app
-        
-        with app.test_client() as client:
-            # Test main dashboard
-            response = client.get('/')
-            if response.status_code == 200:
-                print("✅ Dashboard endpoint (/) working")
-            else:
-                print(f"❌ Dashboard endpoint failed: {response.status_code}")
-                return False
-            
-            # Test stocks API
-            response = client.get('/api/stocks')
-            if response.status_code == 200:
-                data = json.loads(response.data)
-                print("✅ Stocks API endpoint (/api/stocks) working")
-                print(f"   Status: {data.get('status', 'unknown')}")
-                print(f"   Stocks count: {len(data.get('stocks', []))}")
-            else:
-                print(f"❌ Stocks API endpoint failed: {response.status_code}")
-                return False
-            
-            # Test status API
-            response = client.get('/api/status')
-            if response.status_code == 200:
-                print("✅ Status API endpoint (/api/status) working")
-            else:
-                print(f"❌ Status API endpoint failed: {response.status_code}")
-                return False
-        
-        return True
-    except Exception as e:
-        print(f"❌ API endpoints test failed: {str(e)}")
-        return False
-
-def test_scheduler_functionality():
-    """Test scheduler functionality"""
-    print("\n🧪 Testing Scheduler Functionality...")
-    
-    try:
-        from scheduler import StockAnalystScheduler
-        scheduler = StockAnalystScheduler()
-        
-        # Test status
-        status = scheduler.get_job_status()
-        if 'running' in status:
-            print("✅ Scheduler status check working")
-            print(f"   Running: {status.get('running', False)}")
-            print(f"   Jobs: {status.get('job_count', 0)}")
-        else:
-            print("❌ Scheduler status check failed")
-            return False
-        
-        return True
-    except Exception as e:
-        print(f"❌ Scheduler test failed: {str(e)}")
-        return False
-
-def test_data_persistence():
-    """Test data file handling"""
-    print("\n🧪 Testing Data Persistence...")
-    
-    try:
-        # Test JSON file operations
-        test_data = {
-            'timestamp': datetime.now().isoformat(),
-            'stocks': [
-                {'symbol': 'TEST', 'score': 85, 'price': 100}
-            ]
+class ComprehensiveRegressionTest:
+    def __init__(self):
+        self.base_url = "http://localhost:5000"
+        self.test_results = {
+            'total_tests': 0,
+            'passed_tests': 0,
+            'failed_tests': 0,
+            'errors': []
         }
         
-        # Write test data
-        with open('test_data.json', 'w') as f:
-            json.dump(test_data, f)
-        
-        # Read test data
-        with open('test_data.json', 'r') as f:
-            loaded_data = json.load(f)
-        
-        if loaded_data['stocks'][0]['symbol'] == 'TEST':
-            print("✅ JSON file operations working")
+    def log_test(self, test_name, passed, message=""):
+        self.test_results['total_tests'] += 1
+        if passed:
+            self.test_results['passed_tests'] += 1
+            print(f"✅ PASS {test_name}")
         else:
-            print("❌ JSON file operations failed")
-            return False
+            self.test_results['failed_tests'] += 1
+            self.test_results['errors'].append(f"{test_name}: {message}")
+            print(f"❌ FAIL {test_name}: {message}")
         
-        # Cleanup
-        os.remove('test_data.json')
+        if message:
+            logger.info(f"{test_name}: {message}")
+
+    def wait_for_server(self, timeout=30):
+        """Wait for server to be ready"""
+        print("🔄 Waiting for server to be ready...")
+        start_time = time.time()
         
-        # Check if main data files exist
-        if os.path.exists('top10.json'):
-            print("✅ Main data file (top10.json) exists")
-        else:
-            print("⚠️ Main data file (top10.json) not found")
-        
-        return True
-    except Exception as e:
-        print(f"❌ Data persistence test failed: {str(e)}")
+        while time.time() - start_time < timeout:
+            try:
+                response = requests.get(f"{self.base_url}/api/health", timeout=5)
+                if response.status_code == 200:
+                    print("✅ Server is ready")
+                    return True
+            except:
+                time.sleep(2)
+                
+        print("❌ Server failed to start within timeout")
         return False
 
-def test_production_compatibility():
-    """Test production deployment compatibility"""
-    print("\n🧪 Testing Production Compatibility...")
-    
-    try:
-        # Test WSGI module
-        from wsgi_optimized import application
-        print("✅ WSGI module imports successfully")
-        
-        # Test that app runs on 0.0.0.0
-        from app import app
-        print("✅ Flask app configured for production")
-        
-        # Test error handling
-        from enhanced_error_handler import safe_execute
-        
-        def test_function():
-            return {'status': 'success'}
-        
-        result = safe_execute(test_function)
-        if result.get('success'):
-            print("✅ Error handling framework working")
-        else:
-            print("❌ Error handling framework failed")
-            return False
-        
-        return True
-    except Exception as e:
-        print(f"❌ Production compatibility test failed: {str(e)}")
-        return False
-
-def test_live_application():
-    """Test the live running application"""
-    print("\n🧪 Testing Live Application...")
-    
-    try:
-        # Give the app a moment to fully start
-        time.sleep(2)
-        
-        # Test if the application is responding
-        base_url = "http://localhost:5000"
-        
-        try:
-            response = requests.get(f"{base_url}/api/stocks", timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                print("✅ Live application responding")
-                print(f"   API Status: {data.get('status', 'unknown')}")
-                print(f"   Last Updated: {data.get('last_updated', 'unknown')}")
-                print(f"   Stock Count: {len(data.get('stocks', []))}")
-                return True
-            else:
-                print(f"❌ Live application not responding: {response.status_code}")
-                return False
-        except requests.exceptions.RequestException as e:
-            print(f"⚠️ Could not connect to live application: {str(e)}")
-            print("   (This may be normal if the app is starting)")
-            return True  # Don't fail the test for connection issues
-        
-    except Exception as e:
-        print(f"❌ Live application test failed: {str(e)}")
-        return False
-
-def run_comprehensive_regression_test():
-    """Run all regression tests"""
-    print("🚀 Starting Comprehensive Regression Test")
-    print("=" * 60)
-    print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * 60)
-    
-    tests = [
-        ("Core Modules", test_core_modules),
-        ("Data Processing", test_data_processing),
-        ("Scoring Algorithm", test_scoring_algorithm),
-        ("API Endpoints", test_api_endpoints),
-        ("Scheduler", test_scheduler_functionality),
-        ("Data Persistence", test_data_persistence),
-        ("Production Compatibility", test_production_compatibility),
-        ("Live Application", test_live_application),
-    ]
-    
-    passed = 0
-    total = len(tests)
-    results = []
-    
-    for test_name, test_func in tests:
-        print(f"\n📋 Running {test_name} Test...")
+    def test_core_modules(self):
+        """Test core module imports and initialization"""
+        print("\n📋 Running Core Modules Test...")
         print("-" * 40)
         
         try:
-            success = test_func()
-            results.append((test_name, success))
-            if success:
-                passed += 1
-                print(f"✅ {test_name} Test: PASSED")
-            else:
-                print(f"❌ {test_name} Test: FAILED")
+            # Test stock screener import
+            from stock_screener import EnhancedStockScreener
+            screener = EnhancedStockScreener()
+            self.log_test("Stock screener imported and initialized", True)
+            
+            # Test scheduler import
+            from scheduler import StockAnalystScheduler
+            scheduler = StockAnalystScheduler()
+            self.log_test("Scheduler imported and initialized", True)
+            
+            # Test daily technical analyzer
+            from daily_technical_analyzer import DailyTechnicalAnalyzer
+            analyzer = DailyTechnicalAnalyzer()
+            self.log_test("Daily technical analyzer imported and initialized", True)
+            
+            # Test Flask app import
+            from app import app
+            self.log_test("Flask app imported successfully", True)
+            
+            self.log_test("Core Modules Test", True)
+            
         except Exception as e:
-            print(f"💥 {test_name} Test: CRASHED - {str(e)}")
-            results.append((test_name, False))
-    
-    # Print summary
-    print("\n" + "=" * 60)
-    print("📊 REGRESSION TEST SUMMARY")
-    print("=" * 60)
-    print(f"Total Tests: {total}")
-    print(f"Passed: {passed}")
-    print(f"Failed: {total - passed}")
-    print(f"Success Rate: {(passed/total)*100:.1f}%")
-    print()
-    
-    for test_name, success in results:
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status} {test_name}")
-    
-    print("=" * 60)
-    
-    if passed == total:
-        print("🎉 ALL TESTS PASSED! Application is functioning correctly.")
-        exit_code = 0
-    elif passed >= total * 0.8:  # 80% pass rate
-        print("⚠️  Most tests passed. Minor issues detected.")
-        exit_code = 0
-    else:
-        print("🚨 Multiple test failures detected. Please investigate.")
-        exit_code = 1
-    
-    print(f"Test completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    return exit_code == 0
+            self.log_test("Core Modules Test", False, str(e))
+
+    def test_data_processing(self):
+        """Test data processing capabilities"""
+        print("\n📋 Running Data Processing Test...")
+        print("-" * 40)
+        
+        try:
+            from stock_screener import EnhancedStockScreener
+            from daily_technical_analyzer import DailyTechnicalAnalyzer
+            
+            # Test technical analysis
+            analyzer = DailyTechnicalAnalyzer()
+            screener = EnhancedStockScreener()
+            
+            # Test with a known stock
+            technical_data = analyzer.get_daily_ohlc_technical_analysis('RELIANCE')
+            if technical_data and 'current_price' in technical_data:
+                self.log_test("Technical indicators working for RELIANCE", True, 
+                            f"Current price: {technical_data['current_price']}")
+            else:
+                self.log_test("Technical indicators working for RELIANCE", False, "No technical data")
+            
+            # Test fundamental data
+            fundamental_data = screener.scrape_screener_data('RELIANCE')
+            if fundamental_data and 'pe_ratio' in fundamental_data:
+                self.log_test("Fundamental data working for RELIANCE", True,
+                            f"PE ratio: {fundamental_data['pe_ratio']}")
+            else:
+                self.log_test("Fundamental data working for RELIANCE", False, "No fundamental data")
+                
+            self.log_test("Data Processing Test", True)
+            
+        except Exception as e:
+            self.log_test("Data Processing Test", False, str(e))
+
+    def test_scoring_algorithm(self):
+        """Test scoring algorithm"""
+        print("\n📋 Running Scoring Algorithm Test...")
+        print("-" * 40)
+        
+        try:
+            from stock_screener import EnhancedStockScreener
+            screener = EnhancedStockScreener()
+            
+            # Test scoring with known stocks
+            test_stocks = ['RELIANCE', 'TCS']
+            stocks_data = {}
+            
+            for symbol in test_stocks:
+                fundamentals = screener.scrape_screener_data(symbol)
+                technical = screener.calculate_enhanced_technical_indicators(symbol)
+                if fundamentals or technical:
+                    stocks_data[symbol] = {
+                        'fundamentals': fundamentals,
+                        'technical': technical
+                    }
+            
+            if stocks_data:
+                scored_stocks = screener.enhanced_score_and_rank(stocks_data)
+                if scored_stocks and len(scored_stocks) > 0:
+                    for stock in scored_stocks:
+                        score = stock.get('score', 0)
+                        symbol = stock.get('symbol', 'Unknown')
+                        self.log_test(f"Scoring works for {symbol}", True, f"{score} points")
+                    self.log_test("Scoring algorithm functional", True)
+                else:
+                    self.log_test("Scoring algorithm functional", False, "No scored results")
+            else:
+                self.log_test("Scoring algorithm functional", False, "No test data available")
+                
+            self.log_test("Scoring Algorithm Test", True)
+            
+        except Exception as e:
+            self.log_test("Scoring Algorithm Test", False, str(e))
+
+    def test_api_endpoints(self):
+        """Test API endpoints"""
+        print("\n📋 Running API Endpoints Test...")
+        print("-" * 40)
+        
+        try:
+            # Test dashboard endpoint
+            response = requests.get(f"{self.base_url}/", timeout=10)
+            if response.status_code == 200:
+                self.log_test("Dashboard endpoint (/) working", True)
+            else:
+                self.log_test("Dashboard endpoint (/) working", False, f"Status: {response.status_code}")
+            
+            # Test stocks API endpoint
+            response = requests.get(f"{self.base_url}/api/stocks", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                status = data.get('status', 'unknown')
+                stock_count = len(data.get('stocks', []))
+                self.log_test("Stocks API endpoint (/api/stocks) working", True,
+                            f"Status: {status}, Stocks count: {stock_count}")
+            else:
+                self.log_test("Stocks API endpoint (/api/stocks) working", False, 
+                            f"Status: {response.status_code}")
+            
+            # Test status API endpoint
+            response = requests.get(f"{self.base_url}/api/status", timeout=10)
+            if response.status_code == 200:
+                self.log_test("Status API endpoint (/api/status) working", True)
+            else:
+                self.log_test("Status API endpoint (/api/status) working", False,
+                            f"Status: {response.status_code}")
+                
+            self.log_test("API Endpoints Test", True)
+            
+        except Exception as e:
+            self.log_test("API Endpoints Test", False, str(e))
+
+    def test_data_structure_validation(self):
+        """Test data structure validation and error handling"""
+        print("\n📋 Running Data Structure Validation Test...")
+        print("-" * 40)
+        
+        try:
+            # Test with API response
+            response = requests.get(f"{self.base_url}/api/stocks", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Check required fields in response
+                required_fields = ['status', 'stocks', 'timestamp']
+                for field in required_fields:
+                    if field in data:
+                        self.log_test(f"API response has {field} field", True)
+                    else:
+                        self.log_test(f"API response has {field} field", False)
+                
+                # Check stock data structure
+                stocks = data.get('stocks', [])
+                if stocks and len(stocks) > 0:
+                    sample_stock = stocks[0]
+                    required_stock_fields = ['symbol', 'score', 'current_price', 'confidence']
+                    
+                    for field in required_stock_fields:
+                        if field in sample_stock:
+                            field_type = type(sample_stock[field]).__name__
+                            self.log_test(f"Stock has {field} field ({field_type})", True)
+                        else:
+                            self.log_test(f"Stock has {field} field", False)
+                            
+                    # Check data types
+                    numeric_fields = ['score', 'current_price', 'confidence', 'pred_5d', 'pred_1mo']
+                    for field in numeric_fields:
+                        if field in sample_stock:
+                            value = sample_stock[field]
+                            if isinstance(value, (int, float)):
+                                self.log_test(f"Stock {field} is numeric", True, f"Value: {value}")
+                            else:
+                                self.log_test(f"Stock {field} is numeric", False, f"Type: {type(value)}")
+                
+                self.log_test("Data Structure Validation Test", True)
+            else:
+                self.log_test("Data Structure Validation Test", False, "API not accessible")
+                
+        except Exception as e:
+            self.log_test("Data Structure Validation Test", False, str(e))
+
+    def test_manual_refresh(self):
+        """Test manual refresh functionality"""
+        print("\n📋 Running Manual Refresh Test...")
+        print("-" * 40)
+        
+        try:
+            # Test manual refresh endpoint
+            response = requests.post(f"{self.base_url}/api/run-now", timeout=60)
+            if response.status_code == 200:
+                data = response.json()
+                success = data.get('success', False)
+                message = data.get('message', 'Unknown')
+                
+                if success:
+                    self.log_test("Manual refresh successful", True, message)
+                    
+                    # Wait a bit and check if data updated
+                    time.sleep(3)
+                    stocks_response = requests.get(f"{self.base_url}/api/stocks", timeout=10)
+                    if stocks_response.status_code == 200:
+                        stocks_data = stocks_response.json()
+                        stock_count = len(stocks_data.get('stocks', []))
+                        self.log_test("Data available after refresh", stock_count > 0, 
+                                    f"Stock count: {stock_count}")
+                else:
+                    self.log_test("Manual refresh successful", False, message)
+            else:
+                self.log_test("Manual refresh successful", False, f"HTTP {response.status_code}")
+                
+            self.log_test("Manual Refresh Test", True)
+            
+        except Exception as e:
+            self.log_test("Manual Refresh Test", False, str(e))
+
+    def test_error_handling(self):
+        """Test error handling scenarios"""
+        print("\n📋 Running Error Handling Test...")
+        print("-" * 40)
+        
+        try:
+            # Test with invalid endpoint
+            response = requests.get(f"{self.base_url}/api/invalid", timeout=10)
+            if response.status_code == 404:
+                self.log_test("Invalid endpoint returns 404", True)
+            else:
+                self.log_test("Invalid endpoint returns 404", False, f"Got {response.status_code}")
+            
+            # Test data file corruption handling
+            if os.path.exists('top10.json'):
+                # Backup original file
+                with open('top10.json', 'r') as f:
+                    original_data = f.read()
+                
+                # Create corrupted file
+                with open('top10.json', 'w') as f:
+                    f.write("invalid json content")
+                
+                # Test API response with corrupted data
+                response = requests.get(f"{self.base_url}/api/stocks", timeout=10)
+                if response.status_code == 200:
+                    self.log_test("Handles corrupted data file", True, "API still responds")
+                else:
+                    self.log_test("Handles corrupted data file", False, f"API failed: {response.status_code}")
+                
+                # Restore original file
+                with open('top10.json', 'w') as f:
+                    f.write(original_data)
+            
+            self.log_test("Error Handling Test", True)
+            
+        except Exception as e:
+            self.log_test("Error Handling Test", False, str(e))
+
+    def test_frontend_functionality(self):
+        """Test frontend functionality through API calls"""
+        print("\n📋 Running Frontend Functionality Test...")
+        print("-" * 40)
+        
+        try:
+            # Test main dashboard
+            response = requests.get(f"{self.base_url}/", timeout=10)
+            if response.status_code == 200:
+                content = response.text
+                
+                # Check for critical elements
+                critical_elements = [
+                    'refreshData',  # JavaScript function
+                    'stock-table',  # Table structure
+                    'api/stocks',   # API endpoint reference
+                    'loadStocks'    # Load function
+                ]
+                
+                for element in critical_elements:
+                    if element in content:
+                        self.log_test(f"Frontend has {element}", True)
+                    else:
+                        self.log_test(f"Frontend has {element}", False)
+            else:
+                self.log_test("Frontend accessible", False, f"Status: {response.status_code}")
+                
+            self.log_test("Frontend Functionality Test", True)
+            
+        except Exception as e:
+            self.log_test("Frontend Functionality Test", False, str(e))
+
+    def run_all_tests(self):
+        """Run all regression tests"""
+        print("🚀 Starting Comprehensive Regression Test")
+        print("=" * 60)
+        print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("=" * 60)
+        
+        # Wait for server
+        if not self.wait_for_server():
+            print("❌ Server not ready, cannot run tests")
+            return False
+        
+        # Run all test suites
+        test_suites = [
+            self.test_core_modules,
+            self.test_data_processing,
+            self.test_scoring_algorithm,
+            self.test_api_endpoints,
+            self.test_data_structure_validation,
+            self.test_manual_refresh,
+            self.test_error_handling,
+            self.test_frontend_functionality
+        ]
+        
+        for test_suite in test_suites:
+            try:
+                test_suite()
+            except Exception as e:
+                suite_name = test_suite.__name__.replace('_', ' ').title()
+                self.log_test(suite_name, False, f"Test suite failed: {str(e)}")
+        
+        # Print summary
+        self.print_summary()
+        
+        return self.test_results['failed_tests'] == 0
+
+    def print_summary(self):
+        """Print test summary"""
+        print("\n" + "=" * 60)
+        print("📊 REGRESSION TEST SUMMARY")
+        print("=" * 60)
+        print(f"Total Tests: {self.test_results['total_tests']}")
+        print(f"Passed: {self.test_results['passed_tests']}")
+        print(f"Failed: {self.test_results['failed_tests']}")
+        
+        if self.test_results['total_tests'] > 0:
+            success_rate = (self.test_results['passed_tests'] / self.test_results['total_tests']) * 100
+            print(f"Success Rate: {success_rate:.1f}%")
+        
+        print()
+        
+        # Print individual test results
+        for suite_name in ['Core Modules', 'Data Processing', 'Scoring Algorithm', 
+                          'API Endpoints', 'Data Structure Validation', 'Manual Refresh',
+                          'Error Handling', 'Frontend Functionality']:
+            if any(suite_name in test for test in self.test_results['errors']):
+                print(f"❌ FAIL {suite_name}")
+            else:
+                print(f"✅ PASS {suite_name}")
+        
+        print("=" * 60)
+        
+        if self.test_results['failed_tests'] == 0:
+            print("🎉 ALL TESTS PASSED! Application is functioning correctly.")
+        else:
+            print("⚠️ SOME TESTS FAILED. Review errors above.")
+            print("\nErrors:")
+            for error in self.test_results['errors']:
+                print(f"  - {error}")
+        
+        print(f"Test completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
-    success = run_comprehensive_regression_test()
+    tester = ComprehensiveRegressionTest()
+    success = tester.run_all_tests()
     sys.exit(0 if success else 1)

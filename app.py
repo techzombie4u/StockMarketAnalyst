@@ -146,6 +146,19 @@ def get_stocks():
                     except (ValueError, TypeError):
                         stock[field] = 0.0
 
+                # Ensure string fields are strings
+                string_fields = ['symbol', 'trend_class', 'trend_visual', 'pe_description', 'technical_summary', 'risk_level']
+                for field in string_fields:
+                    if field in stock:
+                        try:
+                            stock[field] = str(stock[field]) if stock[field] is not None else ''
+                        except (ValueError, TypeError):
+                            stock[field] = ''
+
+                # Ensure critical fields exist
+                if not stock.get('symbol'):
+                    continue  # Skip stocks without symbol
+                    
                 valid_stocks.append(stock)
 
         logger.info(f"API response: {len(valid_stocks)} valid stocks, status: {status}")

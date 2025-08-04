@@ -471,8 +471,10 @@
                 initializing: '⏳'
             };
 
-            status.className = `status-indicator status-${type}`;
-            status.innerHTML = `<span>${icons[type] || '🔄'}</span><span>${message}</span>`;
+            if (status) {
+                status.className = `status-indicator status-${type}`;
+                status.innerHTML = `<span>${icons[type] || '🔄'}</span><span>${message}</span>`;
+            }
             log(`Status: ${message}`, type);
         }
 
@@ -602,6 +604,9 @@
         }
 
         function getPEClass(peDesc) {
+            if (!peDesc || typeof peDesc !== 'string') {
+                return 'pe-na';
+            }
             const peClasses = {
                 'Very Low': 'pe-very-low',
                 'Below Average': 'pe-below-average',
@@ -621,7 +626,10 @@
         }
 
         function getTrendClass(trendClass) {
-            return `trend-${trendClass || 'sideways'}`;
+            if (!trendClass || typeof trendClass !== 'string') {
+                return 'trend-sideways';
+            }
+            return `trend-${trendClass.toLowerCase()}`;
         }
 
         function formatGain(gain) {
@@ -640,30 +648,42 @@
             }
 
             stocks.forEach((stock, index) => {
-                const row = document.createElement('tr');
+                try {
+                    const row = document.createElement('tr');
 
-                const pred5d = stock.pred_5d || 0;
-                const pred1mo = stock.pred_1mo || 0;
-                const confidence = stock.confidence || 0;
-                const trendVisual = stock.trend_visual || '➡️ Sideways';
+                    // Safely extract values with proper defaults
+                    const symbol = String(stock.symbol || 'N/A');
+                    const score = parseFloat(stock.score) || 0;
+                    const pred5d = parseFloat(stock.pred_5d) || 0;
+                    const pred1mo = parseFloat(stock.pred_1mo) || 0;
+                    const confidence = parseFloat(stock.confidence) || 0;
+                    const currentPrice = parseFloat(stock.current_price) || 0;
+                    const peRatio = parseFloat(stock.pe_ratio) || 0;
+                    const trendVisual = String(stock.trend_visual || '➡️ Sideways');
+                    const trendClass = String(stock.trend_class || 'sideways');
+                    const peDescription = String(stock.pe_description || 'At Par');
+                    const technicalSummary = String(stock.technical_summary || 'Processing...');
 
-                row.innerHTML = `
-                    <td class="symbol">${stock.symbol || 'N/A'}</td>
-                    <td><span class="score ${getScoreClass(stock.score || 0)}">${(stock.score || 0).toFixed(1)}</span></td>
-                    <td><span class="confidence ${getConfidenceClass(confidence)}">${confidence.toFixed(1)}%</span></td>
-                    <td><span class="trend ${getTrendClass(stock.trend_class || 'sideways')}">${trendVisual}</span></td>
-                    <td class="price">₹${(stock.current_price || 0).toFixed(2)}</td>
-                    <td class="${getGainClass(pred5d)}">${formatGain(pred5d)}</td>
-                    <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
-                    <td class="pe-ratio">
-                        <span class="pe-value ${getPEClass(stock.pe_description || 'At Par')}">${stock.pe_ratio && stock.pe_ratio > 0 ? stock.pe_ratio.toFixed(1) : '--'}</span>
-                        <div class="pe-desc" style="font-size: 0.8em; margin-top: 2px;">${stock.pe_description || 'At Par'}</div>
-                    </td>
-                    <td class="technical-summary">
-                        ${stock.technical_summary || 'Processing...'}
-                    </td>
-                `;
-                tbody.appendChild(row);
+                    row.innerHTML = `
+                        <td class="symbol">${symbol}</td>
+                        <td><span class="score ${getScoreClass(score)}">${score.toFixed(1)}</span></td>
+                        <td><span class="confidence ${getConfidenceClass(confidence)}">${confidence.toFixed(1)}%</span></td>
+                        <td><span class="trend ${getTrendClass(trendClass)}">${trendVisual}</span></td>
+                        <td class="price">₹${currentPrice.toFixed(2)}</td>
+                        <td class="${getGainClass(pred5d)}">${formatGain(pred5d)}</td>
+                        <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
+                        <td class="pe-ratio">
+                            <span class="pe-value ${getPEClass(peDescription)}">${peRatio > 0 ? peRatio.toFixed(1) : '--'}</span>
+                            <div class="pe-desc" style="font-size: 0.8em; margin-top: 2px;">${peDescription}</div>
+                        </td>
+                        <td class="technical-summary">
+                            ${technicalSummary}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                } catch (error) {
+                    log(`Error processing stock ${index}: ${error.message}`, 'error');
+                }
             });
 
             log(`Stock table updated successfully with ${tbody.children.length} rows`);
@@ -688,8 +708,13 @@
                 return response.json();
             })
             .then(data => {
-                log(`📊 API data received:`, data);
+                log(`📊 API data received`, 'info');
                 consecutiveErrors = 0;
+                
+                // Ensure data is an object
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Invalid API response format');
+                }
                 
                 // Update timestamp
                 updateLastUpdated(data.last_updated || data.timestamp);
@@ -719,10 +744,32 @@
                 // Successfully got data
                 log(`✅ Processing ${data.stocks.length} stocks`);
                 
-                // Validate stock data
-                const validStocks = data.stocks.filter(stock => 
-                    stock && typeof stock === 'object' && stock.symbol
-                );
+                // Validate and clean stock data
+                const validStocks = data.stocks.filter(stock => {
+                    if (!stock || typeof stock !== 'object') return false;
+                    if (!stock.symbol || typeof stock.symbol !== 'string') return false;
+                    
+                    // Ensure all numeric fields are numbers
+                    const numericFields = ['score', 'current_price', 'predicted_gain', 'confidence', 'pred_5d', 'pred_1mo', 'pe_ratio'];
+                    for (const field of numericFields) {
+                        if (stock[field] !== undefined && stock[field] !== null) {
+                            const num = parseFloat(stock[field]);
+                            stock[field] = isNaN(num) ? 0 : num;
+                        } else {
+                            stock[field] = 0;
+                        }
+                    }
+                    
+                    // Ensure string fields are strings
+                    const stringFields = ['trend_class', 'trend_visual', 'pe_description', 'technical_summary'];
+                    for (const field of stringFields) {
+                        if (typeof stock[field] !== 'string') {
+                            stock[field] = stock[field] ? String(stock[field]) : '';
+                        }
+                    }
+                    
+                    return true;
+                });
 
                 if (validStocks.length === 0) {
                     log('⚠️ No valid stocks found');
