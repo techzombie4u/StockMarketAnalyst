@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Emergency Test Data Generator
@@ -12,7 +11,7 @@ import random
 
 def generate_emergency_test_data():
     """Generate emergency test data for frontend testing"""
-    
+
     # Realistic Indian stocks under ₹500
     test_stocks = [
         {
@@ -212,10 +211,10 @@ def generate_emergency_test_data():
             'confidence_grade': 'B'
         }
     ]
-    
+
     # Create data structure
     ist_now = datetime.now()
-    
+
     data = {
         'timestamp': ist_now.isoformat(),
         'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
@@ -230,17 +229,25 @@ def generate_emergency_test_data():
             'correct_predictions': 114
         }
     }
-    
+
     # Save to file
     with open('top10.json', 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    
+
     print(f"✅ Emergency test data generated successfully!")
     print(f"   Created {len(test_stocks)} stock entries")
     print(f"   Status: {data['status']}")
     print(f"   Last updated: {data['last_updated']}")
-    
+
     return True
+
+def generate_working_test_data():
+    """Generate working test data with proper structure"""
+    print("🔧 Generating working test data...")
+
+    import pytz
+    IST = pytz.timezone('Asia/Kolkata')
+    now_ist = datetime.now(IST)
 
 if __name__ == "__main__":
     generate_emergency_test_data()

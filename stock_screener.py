@@ -1074,6 +1074,60 @@ class EnhancedStockScreener:
 
         return indicators
 
+    def enhanced_score_and_rank(self, stocks_data: Dict) -> List[Dict]:
+        """Enhanced scoring and ranking with comprehensive analysis"""
+        try:
+            scored_stocks = []
+            
+            for symbol, data in stocks_data.items():
+                fundamentals = data.get('fundamentals', {})
+                technical = data.get('technical', {})
+                
+                # Calculate base score
+                score = self._calculate_base_score(technical, fundamentals, {})
+                
+                # Get current price
+                current_price = technical.get('current_price', 0)
+                
+                # Calculate predictions
+                predicted_gain = score * 0.2  # Simple prediction model
+                predicted_price = current_price * (1 + predicted_gain / 100) if current_price > 0 else 0
+                
+                # Create stock result
+                stock_result = {
+                    'symbol': symbol,
+                    'score': round(score, 1),
+                    'adjusted_score': round(score * 0.95, 1),  # Slightly lower adjusted score
+                    'confidence': min(95, max(60, int(score * 1.1))),
+                    'current_price': round(current_price, 2),
+                    'predicted_price': round(predicted_price, 2),
+                    'predicted_gain': round(predicted_gain, 2),
+                    'pred_24h': round(predicted_gain * 0.05, 2),
+                    'pred_5d': round(predicted_gain * 0.25, 2),
+                    'pred_1mo': round(predicted_gain, 2),
+                    'volatility': technical.get('atr_volatility', 2.0),
+                    'time_horizon': max(5, min(30, int(100 - score))),
+                    'pe_ratio': fundamentals.get('pe_ratio', 20.0),
+                    'pe_description': self.get_pe_description(fundamentals.get('pe_ratio', 20.0)),
+                    'revenue_growth': fundamentals.get('revenue_growth', 0),
+                    'earnings_growth': fundamentals.get('earnings_growth', 0),
+                    'risk_level': 'Low' if score > 75 else 'Medium' if score > 50 else 'High',
+                    'market_cap': self._estimate_market_cap(symbol),
+                    'technical_summary': f"Score: {score:.1f} | RSI: {technical.get('rsi_14', 50):.0f}",
+                    'last_analyzed': datetime.now().strftime('%d/%m/%Y, %H:%M:%S')
+                }
+                
+                scored_stocks.append(stock_result)
+            
+            # Sort by score (highest first)
+            scored_stocks.sort(key=lambda x: x['score'], reverse=True)
+            
+            return scored_stocks[:10]  # Return top 10
+            
+        except Exception as e:
+            logger.error(f"Error in enhanced_score_and_rank: {str(e)}")
+            return []
+
     def _assess_data_quality(self, data: pd.DataFrame) -> float:
         """Assess the quality of the data"""
         try:
@@ -1159,7 +1213,7 @@ class EnhancedStockScreener:
 
                 response = self.session.get(url, headers=headers, timeout=8)  # Reduced timeout
 
-            if response.status_code == 200:
+                if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
                     result = realistic_data.copy()
                     result['data_source'] = 'screener'
@@ -2200,4 +2254,19 @@ cells) >= 3:
 
             # Relative Vigor Index (RVI) - simplified
             close_open = close - price_data['Open']
-            high_low =
+            high_low = high - low
+            
+            # Simple RVI calculation
+            if len(close_open) > 10:
+                rvi_numerator = close_open.rolling(window=10).sum()
+                rvi_denominator = high_low.rolling(window=10).sum()
+                rvi = rvi_numerator / (rvi_denominator + 1e-10)  # Avoid division by zero
+                indicators['rvi'] = float(rvi.iloc[-1]) if not pd.isna(rvi.iloc[-1]) else 0
+            else:
+                indicators['rvi'] = 0
+
+            return indicators
+
+        except Exception as e:
+            logger.error(f"Error calculating advanced technical indicators: {str(e)}")
+            return {}
