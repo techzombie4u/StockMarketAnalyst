@@ -572,7 +572,7 @@
             
             // Generate 5D data
             const predicted5d = [];
-            const actual5d = [basePrice, null, null, null, null];
+            const actual5d = [basePrice, null, null, null, null]; // Only show actual data that occurred
             const updated5d = [null, null, null, null, null];
             
             // Green line: FULL prediction for all 5 days
@@ -580,29 +580,39 @@
                 predicted5d.push(basePrice * (1 + (pred5d/100) * (i+1)/5));
             }
             
-            // Blue line: Simulate progressive actual data (only days that have passed)
-            // Let's simulate that we have actual data for first 2 days only
-            const currentDay = Math.floor(Math.random() * 3) + 1; // Random between 1-3 days
+            // Blue line: ONLY progressive actual data (no future values)
+            // Simulate that only 1-2 days have actually passed (realistic)
+            const currentDay = Math.floor(Math.random() * 2) + 1; // Only 1-2 days have passed
+            
+            // Day 0 is always current price
+            actual5d[0] = basePrice;
+            
+            // Add actual data ONLY for days that have completed
             if (currentDay >= 1) {
+                // Only add Day 1 actual if it has completed
                 actual5d[1] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
             }
             if (currentDay >= 2) {
+                // Only add Day 2 actual if it has completed
                 actual5d[2] = actual5d[1] * (1 + (Math.random() - 0.5) * 0.02);
             }
+            // Days 3 and 4 remain null (haven't occurred yet)
             
-            // Red line: Updated predictions (only when >3% change occurred)
-            // Simulate an updated prediction starting from day 2 if significant change
-            if (currentDay >= 2 && Math.random() > 0.6) {
+            // Red line: Updated predictions (only when >3% change occurred and only for completed days)
+            if (currentDay >= 1 && Math.random() > 0.7) {
                 const changePercent = (Math.random() * 6) + 3; // 3-9% change
-                updated5d[1] = actual5d[1]; // Start from actual
+                updated5d[0] = basePrice; // Start from current
+                if (currentDay >= 1) {
+                    updated5d[1] = actual5d[1]; // Match actual for completed days
+                }
                 if (currentDay >= 2) {
-                    updated5d[2] = actual5d[2]; // Continue with actual
+                    updated5d[2] = actual5d[2]; // Match actual for completed days
                 }
             }
             
             // Generate 30D data (simplified)
             const predicted30d = [];
-            const actual30d = Array(30).fill(null);
+            const actual30d = Array(30).fill(null); // Start with all null
             const updated30d = Array(30).fill(null);
             
             // Green line: FULL prediction for all 30 days
@@ -610,16 +620,19 @@
                 predicted30d.push(basePrice * (1 + (pred30d/100) * (i+1)/30));
             }
             
-            // Blue line: Progressive actual data (only days that have passed)
-            actual30d[0] = basePrice;
-            const currentDay30 = Math.floor(Math.random() * 5) + 1; // Random between 1-5 days for demo
-            for (let i = 1; i <= Math.min(currentDay30, 30); i++) {
+            // Blue line: ONLY progressive actual data (no future values)
+            actual30d[0] = basePrice; // Day 0 is current price
+            
+            // Only add actual data for days that have realistically passed (1-3 days max)
+            const currentDay30 = Math.floor(Math.random() * 3) + 1; // Only 1-3 days have passed
+            for (let i = 1; i <= Math.min(currentDay30, 3); i++) { // Limit to realistic progression
                 if (i === 1) {
                     actual30d[i] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
                 } else {
                     actual30d[i] = actual30d[i-1] * (1 + (Math.random() - 0.5) * 0.015);
                 }
             }
+            // All other days remain null (haven't occurred yet)
             
             predictionData[symbol] = {
                 ...predictionData[symbol],
