@@ -777,6 +777,7 @@ class EnhancedStockScreener:
             # EMA crossover signals
             current_price = close_prices.iloc[-1] if len(close_prices) > 0 else 0
             indicators['price_above_ema_12'] = float(current_price) > float(indicators.get('ema_12', 0))
+            ```python
             indicators['price_above_ema_21'] = float(current_price) > float(indicators.get('ema_21', 0))
             indicators['ema_12_above_21'] = float(indicators.get('ema_12', 0)) > float(indicators.get('ema_21', 0))
 
@@ -2170,8 +2171,36 @@ Extract a specific metric value from soup"""
         indicators = {}
 
         try:
+            # Calculate dynamic support and resistance levels
             high = data['High']
             low = data['Low']
             close = data['Close']
 
-            # Calculate
+            # Calculate recent highs and lows for support/resistance
+            period = min(20, len(data))
+
+            recent_highs = high.rolling(window=period).max()
+            recent_lows = low.rolling(window=period).min()
+
+            indicators['resistance_level'] = float(recent_highs.iloc[-1]) if not pd.isna(recent_highs.iloc[-1]) else 0
+            indicators['support_level'] = float(recent_lows.iloc[-1]) if not pd.isna(recent_lows.iloc[-1]) else 0
+
+            # Calculate distance from support/resistance
+            current_price = close.iloc[-1]
+            if indicators['resistance_level'] > 0:
+                indicators['distance_to_resistance'] = ((indicators['resistance_level'] - current_price) / current_price * 100)
+            else:
+                indicators['distance_to_resistance'] = 0
+
+            if indicators['support_level'] > 0:
+                indicators['distance_to_support'] = ((current_price - indicators['support_level']) / current_price * 100)
+            else:
+                indicators['distance_to_support'] = 0
+
+            return indicators
+
+        except Exception as e:
+            logger.error(f"Error calculating support and resistance levels: {str(e)}")
+            return {}
+
+# Fixing the syntax error at line 324 in interactive_tracker_manager.py
