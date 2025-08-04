@@ -111,7 +111,7 @@ class MLDataLoader:
             df['RSI'] = (100 - (100 / (1 + rs))).fillna(50)
             
             # Fill any remaining NaN values using proper pandas methods
-            df = df.fillna(method='ffill').fillna(method='bfill').fillna(0)
+            df = df.ffill().bfill().fillna(0)
             
             return df
             
@@ -137,7 +137,7 @@ class MLDataLoader:
             df_clean = data[available_columns].copy()
             
             # Fix: Use proper pandas fillna methods
-            df_clean = df_clean.fillna(method='ffill').fillna(method='bfill').fillna(0)
+            df_clean = df_clean.ffill().bfill().fillna(0)
             
             if len(df_clean) < self.lookback_window + 1:
                 logger.warning(f"Insufficient data for LSTM preparation: {len(df_clean)} < {self.lookback_window + 1}")

@@ -531,10 +531,10 @@
             document.getElementById('empty').style.display = 'none';
             document.getElementById('stockTable').style.display = 'none';
             document.getElementById('statsGrid').style.display = 'none';
-            
+
             const errorDiv = document.getElementById('error');
             const errorMessage = document.getElementById('errorMessage');
-            
+
             errorDiv.style.display = 'block';
             if (errorMessage) {
                 errorMessage.textContent = message;
@@ -763,47 +763,52 @@
                 });
         }
 
-        function refreshData() {
-            console.log('Manual refresh requested');
-            const btn = document.getElementById('refreshBtn');
-            if (!btn) return;
+        // Manual refresh function
+            window.refreshData = function() {
+                console.log('Manual refresh requested');
+                showLoadingState();
 
-            btn.disabled = true;
-            btn.innerHTML = '<span class="refresh-icon">⏳</span> Screening...';
+                // Trigger manual screening
+                fetch('/api/run-now', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Manual screening triggered:', data);
+                        // Wait a moment then reload data
+                        setTimeout(() => {
+                            loadStocks();
+                        }, 2000);
+                    })
+                    .catch(error => {
+                        console.error('Manual screening failed:', error);
+                        hideLoadingState();
+                    });
+            };
 
-            updateStatus('Starting stock screening...', 'loading');
-            showLoading();
+            // Show loading state
+            function showLoadingState() {
+                const loadingDiv = document.getElementById('loading');
+                const stockTable = document.getElementById('stockTable');
 
-            fetch('/api/run-now', { 
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
+                if (loadingDiv) {
+                    loadingDiv.style.display = 'block';
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.data_ready) {
-                    updateStatus('Screening completed, loading results...', 'loading');
-                    // Wait a moment then load fresh data
-                    setTimeout(() => {
-                        loadStocks().then(() => {
-                            btn.disabled = false;
-                            btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
-                        });
-                    }, 1000);
-                } else {
-                    updateStatus(data.message || 'Screening failed', 'error');
-                    btn.disabled = false;
-                    btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
+                if (stockTable) {
+                    stockTable.style.display = 'none';
                 }
-            })
-            .catch(error => {
-                console.error('Refresh error:', error);
-                updateStatus('Failed to refresh: ' + error.message, 'error');
-                btn.disabled = false;
-                btn.innerHTML = '<span class="refresh-icon">🔄</span> Refresh Now';
-            });
-        }
+            }
+
+            // Hide loading state
+            function hideLoadingState() {
+                const loadingDiv = document.getElementById('loading');
+                const stockTable = document.getElementById('stock-table');
+
+                if (loadingDiv) {
+                    loadingDiv.style.display = 'none';
+                }
+                if (stockTable) {
+                    stockTable.style.display = 'table';
+                }
+            }
 
         function startAutoRefresh() {
             // Auto-refresh disabled as requested
