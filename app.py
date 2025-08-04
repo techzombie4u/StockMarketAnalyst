@@ -125,12 +125,12 @@ def get_stocks():
                 def trigger_real_screening():
                     if scheduler:
                         scheduler.run_screening_job_manual()
-                
+
                 import threading
                 threading.Thread(target=trigger_real_screening, daemon=True).start()
             except:
                 pass
-            
+
             # Return minimal response to force refresh
             return jsonify({
                 'stocks': [],
@@ -178,75 +178,143 @@ def get_stocks():
             'backtesting': {'status': 'error'}
         }), 200
 
+def get_scheduler_status():
+    """Get current scheduler status"""
+    global scheduler
+    if scheduler is None:
+        return {'running': False, 'message': 'Scheduler not initialized'}
+    try:
+        return {
+            'running': scheduler.scheduler.running,
+            'message': 'Scheduler active' if scheduler.scheduler.running else 'Scheduler idle'
+        }
+    except Exception as e:
+        logger.error(f"Could not get scheduler status: {str(e)}")
+        return {'running': False, 'message': str(e)}
+
+def check_data_freshness():
+    """Check if data is fresh"""
+    try:
+        if not os.path.exists('top10.json'):
+            return {'fresh': False, 'message': 'No data file found'}
+        with open('top10.json', 'r') as f:
+            data = json.load(f)
+            timestamp = data.get('timestamp')
+            if not timestamp:
+                return {'fresh': False, 'message': 'No timestamp in data'}
+
+            # Convert timestamp to datetime object
+            data_datetime = datetime.fromisoformat(timestamp)
+            now = datetime.now()
+            age = now - data_datetime
+
+            # Consider data fresh if less than 2 hours old
+            if age.total_seconds() < 7200:
+                return {'fresh': True, 'message': 'Data is up to date'}
+            else:
+                return {'fresh': False, 'message': f'Data is {age} old'}
+    except Exception as e:
+        logger.error(f"Could not check data freshness: {str(e)}")
+        return {'fresh': False, 'message': str(e)}
+
+def load_stock_data():
+    """Load current stock data from file"""
+    try:
+        if not os.path.exists('top10.json'):
+            return {'stocks': [], 'status': 'no_data', 'message': 'No data file'}
+        with open('top10.json', 'r') as f:
+            data = json.load(f)
+        return data
+    except Exception as e:
+        logger.error(f"Could not load stock data: {str(e)}")
+        return {'stocks': [], 'status': 'error', 'message': str(e)}
+
 @app.route('/api/status')
 def api_status():
-    """Get API status and screening statistics with confidence filtering info"""
+    """API endpoint for system status"""
     try:
-        # Read current data
+        # Get scheduler status
+        scheduler_status = get_scheduler_status()
+
+        # Check data freshness
+        data_freshness = check_data_freshness()
+
+        # Get prediction stability status
+        stability_status = {}
         try:
-            with open('top10.json', 'r') as f:
-                data = json.load(f)
-                stock_count = len(data.get('stocks', [])) if isinstance(data, dict) else 0
-
-                # Calculate confidence statistics
-                stocks = data.get('stocks', [])
-                if isinstance(stocks, list) and stock_count > 0:
-                    confidences = [stock.get('confidence', 0) for stock in stocks]
-                    avg_confidence = round(sum(confidences) / len(confidences), 1)
-                    high_confidence_count = len([c for c in confidences if c >= 90])
-                    confidence_stats = {
-                        'average_confidence': avg_confidence,
-                        'high_confidence_stocks': high_confidence_count,
-                        'confidence_threshold': 80.0,
-                        'min_confidence': round(min(confidences), 1) if confidences else 0,
-                        'max_confidence': round(max(confidences), 1) if confidences else 0
-                    }
-                else:
-                    confidence_stats = {
-                        'average_confidence': 0,
-                        'high_confidence_stocks': 0,
-                        'confidence_threshold': 80.0,
-                        'min_confidence': 0,
-                        'max_confidence': 0
-                    }
+            from prediction_stability_manager import PredictionStabilityManager
+            stability_manager = PredictionStabilityManager()
+            stability_status = stability_manager.get_prediction_status()
         except Exception as e:
-            stock_count = 0
-            confidence_stats = {
-                'average_confidence': 0,
-                'high_confidence_stocks': 0,
-                'confidence_threshold': 80.0,
-                'min_confidence': 0,
-                'max_confidence': 0
-            }
+            logger.warning(f"Could not get stability status: {str(e)}")
+            stability_status = {'error': 'Stability manager not available'}
 
-        status = {
-            'status': 'active',
-            'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'stock_count': stock_count,
-            'confidence_filtering': confidence_stats,
-            'scheduler_running': True,
-            'next_update': 'Every hour',
-            'data_sources': ['Screener.in', 'Yahoo Finance', 'Daily OHLC'],
-            'features': [
-                'Enhanced Technical Analysis (50+ indicators)',
-                'Dynamic Volatility Classification', 
-                'ML Confidence Scoring (80% threshold)',
-                'Short-term Prediction Enhancement',
-                'Risk Assessment',
-                'Advanced Signal Filtering'
-            ],
-            'enhancements': {
-                'volatility_classification': 'Dynamic ATR-based (Low: <1.5%, Medium: 1.5-3%, High: >3%)',
-                'confidence_filtering': 'ML-style scoring with 80% minimum threshold',
-                'prediction_granularity': 'Enhanced with multi-indicator confirmation'
-            }
+        status_data = {
+            'status': 'healthy',
+            'timestamp': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S'),
+            'scheduler': scheduler_status,
+            'data_freshness': data_freshness,
+            'prediction_stability': stability_status,
+            'version': '1.3.0'
         }
 
-        return jsonify(status)
+        return jsonify(status_data)
+    except Exception as e:
+        logger.error(f"Status API error: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/prediction-tracker')
+def prediction_tracker():
+    """Prediction tracker page"""
+    return render_template('prediction_tracker.html')
+
+@app.route('/api/predictions-tracker')
+def api_predictions_tracker():
+    """API endpoint for prediction tracking data"""
+    try:
+        predictions = []
+
+        # Load current stock data
+        stock_data = load_stock_data()
+        current_stocks = stock_data.get('stocks', [])
+
+        # Add current predictions to tracking
+        for stock in current_stocks:
+            prediction_entry = {
+                'symbol': stock.get('symbol', ''),
+                'timestamp': datetime.now(IST).isoformat(),
+                'current_price': stock.get('current_price', 0),
+                'pred_24h': stock.get('pred_24h', 0),
+                'pred_5d': stock.get('pred_5d', 0),
+                'predicted_1mo': stock.get('pred_1mo', 0),
+                'predicted_price': stock.get('predicted_price', 0),
+                'confidence': stock.get('confidence', 0),
+                'score': stock.get('score', 0)
+            }
+            predictions.append(prediction_entry)
+
+        # Load historical predictions if available
+        try:
+            if os.path.exists('predictions_history.json'):
+                with open('predictions_history.json', 'r') as f:
+                    historical_predictions = json.load(f)
+                    predictions.extend(historical_predictions.get('predictions', []))
+        except Exception as e:
+            logger.warning(f"Could not load historical predictions: {str(e)}")
+
+        return jsonify({
+            'status': 'success',
+            'predictions': predictions,
+            'timestamp': datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S')
+        })
 
     except Exception as e:
-        logger.error(f"Error in API status: {str(e)}")
-        return jsonify({'error': 'Status check failed'}), 500
+        logger.error(f"Predictions tracker API error: {str(e)}")
+        return jsonify({
+            'status': 'error', 
+            'message': str(e),
+            'predictions': []
+        }), 500
 
 @app.route('/api/run-now', methods=['POST'])
 def run_now():
@@ -647,26 +715,26 @@ def get_predictions_tracker():
     """API endpoint to get prediction tracking data"""
     try:
         predictions = []
-        
+
         # Load predictions from predictions_history.json
         if os.path.exists('predictions_history.json'):
             with open('predictions_history.json', 'r') as f:
                 predictions = json.load(f)
-        
+
         # Enrich with additional data if needed
         enriched_predictions = []
         for pred in predictions:
             # Add calculated fields
             current_price = pred.get('current_price', 0)
             predicted_price = pred.get('predicted_price', current_price)
-            
+
             # Calculate 5-day prediction if not present
             pred_5d = pred.get('pred_5d')
             if pred_5d is None and current_price > 0:
                 # Estimate 5-day from 30-day prediction
                 pred_30d = pred.get('predicted_1mo', 0)
                 pred_5d = round(pred_30d * 0.15, 2)  # Rough estimate
-            
+
             enriched_pred = {
                 'symbol': pred.get('symbol', 'N/A'),
                 'timestamp': pred.get('timestamp', datetime.now().isoformat()),
@@ -679,17 +747,17 @@ def get_predictions_tracker():
                 'trend_class': pred.get('trend_class', 'sideways')
             }
             enriched_predictions.append(enriched_pred)
-        
+
         # Sort by timestamp (newest first)
         enriched_predictions.sort(key=lambda x: x['timestamp'], reverse=True)
-        
+
         return jsonify({
             'status': 'success',
             'predictions': enriched_predictions,
             'total_count': len(enriched_predictions),
             'timestamp': datetime.now().isoformat()
         })
-        
+
     except Exception as e:
         logger.error(f"Error in predictions tracker API: {str(e)}")
         return jsonify({

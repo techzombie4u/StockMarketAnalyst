@@ -1496,7 +1496,7 @@ class EnhancedStockScreener:
         except Exception:
             return None
 
-    def _calculate_growth_from_cells(self, cells: List) -> Optional[python
+    def _calculate_growth_from_cells(self, cells: List) -> Optional[float]:
         """Calculate growth rate from table cells"""
         try:
             if len(cells) >= 2:
@@ -2345,6 +2345,15 @@ class EnhancedStockScreener:
                 x['confidence'], 
                 x['adjusted_score']
             ), reverse=True)
+
+            # Apply prediction stability management
+            try:
+                from prediction_stability_manager import PredictionStabilityManager
+                stability_manager = PredictionStabilityManager()
+                all_stocks = stability_manager.stabilize_predictions(all_stocks)
+                logger.info("✅ Prediction stability applied")
+            except Exception as e:
+                logger.warning(f"Prediction stability failed: {str(e)}")
 
             # Return top 10 with enhanced filtering applied
             filtered_count = len(all_stocks)
