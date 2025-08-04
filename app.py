@@ -263,10 +263,7 @@ def api_status():
         logger.error(f"Status API error: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/prediction-tracker')
-def prediction_tracker():
-    """Prediction tracker page"""
-    return render_template('prediction_tracker.html')
+
 
 @app.route('/api/predictions-tracker')
 def api_predictions_tracker():
