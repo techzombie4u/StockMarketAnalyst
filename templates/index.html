@@ -527,48 +527,43 @@
         }
 
         function showError(message) {
-            hideLoading();
-            document.getElementById('noData').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('empty').style.display = 'none';
             document.getElementById('stockTable').style.display = 'none';
-
-            const errorDiv = document.getElementById('errorMessage') || createErrorDiv();
+            document.getElementById('statsGrid').style.display = 'none';
+            
+            const errorDiv = document.getElementById('error');
+            const errorMessage = document.getElementById('errorMessage');
+            
             errorDiv.style.display = 'block';
-            errorDiv.innerHTML = `
-                <h3>⚠️ System Error</h3>
-                <p>${message}</p>
-                <p style="color: #666; font-size: 14px;">The system is automatically attempting to recover...</p>
-                <button onclick="refreshData()" class="refresh-btn">Try Manual Refresh</button>
-            `;
-        }
-
-        function createErrorDiv() {
-            const errorDiv = document.createElement('div');
-            errorDiv.id = 'errorMessage';
-            errorDiv.className = 'no-data';
-            document.querySelector('.stock-container').appendChild(errorDiv);
-            return errorDiv;
-        }
-
-        function hideError() {
-            const errorDiv = document.getElementById('errorMessage');
-            if (errorDiv) {
-                errorDiv.style.display = 'none';
+            if (errorMessage) {
+                errorMessage.textContent = message;
             }
         }
 
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
         function showEmpty() {
-            hideLoading();
-            hideError();
-            document.getElementById('noData').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('empty').style.display = 'block';
             document.getElementById('stockTable').style.display = 'none';
+            document.getElementById('statsGrid').style.display = 'none';
             console.log('Showing empty state');
         }
 
         function showData() {
-            hideLoading();
-            hideError();
-            document.getElementById('noData').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('empty').style.display = 'none';
             document.getElementById('stockTable').style.display = 'table';
+            document.getElementById('statsGrid').style.display = 'grid';
             console.log('Stock table should now be visible');
         }
 
@@ -833,8 +828,6 @@
             loadStocks();
             // startAutoRefresh(); // Disabled as requested
         });
-
-        ```tool_code
 
         // Handle page visibility change
         document.addEventListener('visibilitychange', function() {
