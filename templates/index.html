@@ -604,9 +604,11 @@
         }
 
         function getPEClass(peDesc) {
-            if (!peDesc || typeof peDesc !== 'string') {
+            if (!peDesc) {
                 return 'pe-na';
             }
+            // Ensure it's a string before using it as object key
+            const descStr = String(peDesc);
             const peClasses = {
                 'Very Low': 'pe-very-low',
                 'Below Average': 'pe-below-average',
@@ -616,7 +618,7 @@
                 'Very High': 'pe-very-high',
                 'Not Available': 'pe-na'
             };
-            return peClasses[peDesc] || 'pe-na';
+            return peClasses[descStr] || 'pe-na';
         }
 
         function getConfidenceClass(confidence) {
@@ -626,10 +628,12 @@
         }
 
         function getTrendClass(trendClass) {
-            if (!trendClass || typeof trendClass !== 'string') {
+            if (!trendClass) {
                 return 'trend-sideways';
             }
-            return `trend-${trendClass.toLowerCase()}`;
+            // Ensure it's a string before calling toLowerCase
+            const classStr = String(trendClass);
+            return `trend-${classStr.toLowerCase()}`;
         }
 
         function formatGain(gain) {
@@ -651,18 +655,18 @@
                 try {
                     const row = document.createElement('tr');
 
-                    // Safely extract values with proper defaults
-                    const symbol = String(stock.symbol || 'N/A');
+                    // Safely extract values with proper defaults and type checking
+                    const symbol = stock.symbol ? String(stock.symbol) : 'N/A';
                     const score = parseFloat(stock.score) || 0;
                     const pred5d = parseFloat(stock.pred_5d) || 0;
                     const pred1mo = parseFloat(stock.pred_1mo) || 0;
                     const confidence = parseFloat(stock.confidence) || 0;
                     const currentPrice = parseFloat(stock.current_price) || 0;
                     const peRatio = parseFloat(stock.pe_ratio) || 0;
-                    const trendVisual = String(stock.trend_visual || '➡️ Sideways');
-                    const trendClass = String(stock.trend_class || 'sideways');
-                    const peDescription = String(stock.pe_description || 'At Par');
-                    const technicalSummary = String(stock.technical_summary || 'Processing...');
+                    const trendVisual = stock.trend_visual ? String(stock.trend_visual) : '➡️ Sideways';
+                    const trendClass = stock.trend_class ? String(stock.trend_class) : 'sideways';
+                    const peDescription = stock.pe_description ? String(stock.pe_description) : 'At Par';
+                    const technicalSummary = stock.technical_summary ? String(stock.technical_summary) : 'Processing...';
 
                     row.innerHTML = `
                         <td class="symbol">${symbol}</td>

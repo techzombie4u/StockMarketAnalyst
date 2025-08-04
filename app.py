@@ -146,14 +146,29 @@ def get_stocks():
                     except (ValueError, TypeError):
                         stock[field] = 0.0
 
-                # Ensure string fields are strings
+                # Ensure string fields are strings and handle None/null values
                 string_fields = ['symbol', 'trend_class', 'trend_visual', 'pe_description', 'technical_summary', 'risk_level']
                 for field in string_fields:
                     if field in stock:
-                        try:
-                            stock[field] = str(stock[field]) if stock[field] is not None else ''
-                        except (ValueError, TypeError):
+                        value = stock[field]
+                        if value is None or value == 'null' or value == 'undefined':
                             stock[field] = ''
+                        else:
+                            try:
+                                stock[field] = str(value)
+                            except (ValueError, TypeError, AttributeError):
+                                stock[field] = ''
+                    else:
+                        # Set default values for missing fields
+                        defaults = {
+                            'symbol': 'N/A',
+                            'trend_class': 'sideways',
+                            'trend_visual': '➡️ Sideways',
+                            'pe_description': 'At Par',
+                            'technical_summary': 'Processing...',
+                            'risk_level': 'Medium'
+                        }
+                        stock[field] = defaults.get(field, '')
 
                 # Ensure critical fields exist
                 if not stock.get('symbol'):
