@@ -654,11 +654,13 @@
         }
 
         function updateStockTable(stocks) {
+            console.log('Updating stock table with', stocks.length, 'stocks');
             const tbody = document.getElementById('stockTableBody');
             tbody.innerHTML = '';
 
             if (!stocks || stocks.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;">No stock data available. Click "Refresh Now" to load data.</td></tr>';
+                console.log('No stocks to display');
                 return;
             }
 
@@ -672,29 +674,31 @@
                 const trendVisual = stock.trend_visual || '➡️ Sideways';
 
                 row.innerHTML = `
-                    <td class="symbol">${stock.symbol}</td>
-                    <td><span class="score ${getScoreClass(stock.score)}">${stock.score.toFixed(1)}</span></td>
+                    <td class="symbol">${stock.symbol || 'N/A'}</td>
+                    <td><span class="score ${getScoreClass(stock.score || 0)}">${(stock.score || 0).toFixed(1)}</span></td>
                     <td><span class="confidence ${getConfidenceClass(confidence)}">${confidence.toFixed(1)}%</span></td>
                     <td><span class="trend ${getTrendClass(stock.trend_class || 'sideways')}">${trendVisual}</span></td>
                     <td class="price">₹${(stock.current_price || 0).toFixed(2)}</td>
                     <td class="${getGainClass(pred5d)}">${formatGain(pred5d)}</td>
                     <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
                     <td class="pe-ratio">
-                            <span class="pe-value ${getPEClass(stock.pe_description || 'At Par')}">${stock.pe_ratio && stock.pe_ratio > 0 ? stock.pe_ratio.toFixed(1) : '--'}</span>
-                            <div class="pe-desc">${stock.pe_description || 'At Par'}</div>
-                        </td>
-                    <td class="risk-level" data-risk="${stock.risk_level}">${stock.risk_level || 'Medium'}</td>
-                        <td class="technical-summary">
-                            ${stock.technical_summary || 'Processing...'}
-                            ${stock.agent_recommendation ? `<br><div class="ai-recommendation" title="${stock.agent_explanation || ''}"">
-                                <span class="ai-action" data-action="${stock.agent_recommendation.replace(/[🔼🔽⏸️]\s*/g, '')}">${stock.agent_recommendation}</span>
-                                <span class="ai-confidence">(${stock.agent_confidence}%)</span>
-                                ${stock.agent_locked ? '<span class="ai-locked">🔒</span>' : ''}
-                            </div>` : ''}
-                        </td>
-                    </tr>`;
+                        <span class="pe-value ${getPEClass(stock.pe_description || 'At Par')}">${stock.pe_ratio && stock.pe_ratio > 0 ? stock.pe_ratio.toFixed(1) : '--'}</span>
+                        <div class="pe-desc">${stock.pe_description || 'At Par'}</div>
+                    </td>
+                    <td class="technical-summary">
+                        ${stock.technical_summary || 'Processing...'}
+                        ${stock.agent_recommendation ? `<br><div class="ai-recommendation" title="${stock.agent_explanation || ''}">
+                            <span class="ai-action" data-action="${stock.agent_recommendation.replace(/[🔼🔽⏸️]\s*/g, '')}">${stock.agent_recommendation}</span>
+                            <span class="ai-confidence">(${stock.agent_confidence}%)</span>
+                            ${stock.agent_locked ? '<span class="ai-locked">🔒</span>' : ''}
+                        </div>` : ''}
+                    </td>
+                `;
                 tbody.appendChild(row);
+                console.log(`Added row for ${stock.symbol}`);
             });
+            
+            console.log('Stock table updated with', tbody.children.length, 'rows');
         }
 
         function loadStocks() {
@@ -727,6 +731,7 @@
                     if (data.status === 'error' || data.error) {
                         console.error('API returned error:', data.error);
                         showError(data.error || 'System error - please try refresh');
+                        updateStatus('Error loading data', 'error');
                         return;
                     }
 
@@ -743,18 +748,27 @@
                         return;
                     }
 
-                    // Successfully got data
-                    console.log('Displaying stock data:', data.stocks.length);
+                    // Successfully got data - log this clearly
+                    console.log('✅ Displaying stock data:', data.stocks.length, 'stocks');
+                    console.log('Stock symbols:', data.stocks.map(s => s.symbol));
+                    
                     updateStockTable(data.stocks);
                     updateStats(data.stocks, data.backtesting);
                     showData();
                     updateStatus(`Successfully loaded ${data.stocks.length} stocks`, 'success');
                     retryCount = 0;
+                    
+                    // Ensure table is visible
+                    const table = document.getElementById('stockTable');
+                    const tbody = document.getElementById('stockTableBody');
+                    console.log('Table display:', table.style.display);
+                    console.log('Table body rows:', tbody.children.length);
                 })
                 .catch(error => {
                     console.error('API Error:', error);
                     retryCount++;
                     consecutiveErrors++;
+                    updateStatus('Connection error', 'error');
 
                     if (retryCount <= maxRetries) {
                         updateStatus(`Connection error (retry ${retryCount}/${maxRetries})...`, 'loading');
@@ -763,6 +777,7 @@
                         }, 2000 * retryCount);
                     } else {
                         showError(`Failed to load data: ${error.message}`);
+                        updateStatus('Failed to load data', 'error');
                         retryCount = 0;
                     }
                 })
@@ -886,3 +901,77 @@
             if (growth > 20) return '#2ecc71'; // High growth
             if (growth > 0) return '#f39c12';  // Moderate growth
             return '#e74c3c'; // Decline
+        }
+
+        // Manual refresh function (ensure it's properly defined)
+        function refreshData() {
+            if (isLoading) {
+                console.log('Already loading, skipping refresh request');
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastRequestTime < minRequestInterval) {
+                console.log('Request too frequent, throttling...');
+                return;
+            }
+
+            isLoading = true;
+            lastRequestTime = now;
+            retryCount = 0;
+
+            // Disable refresh button and update its text IMMEDIATELY
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.innerHTML = '<span class="refresh-icon spinning">⏳</span> Refreshing...';
+                refreshBtn.style.opacity = '0.6';
+                refreshBtn.style.cursor = 'not-allowed';
+                refreshBtn.style.pointerEvents = 'none';
+            }
+
+            updateStatus('Starting refresh...', 'loading');
+            showLoading();
+
+            // Manual refresh with better error handling
+            fetch('/api/run-now', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                timeout: 120000 // 2 minute timeout
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                console.log('Manual refresh result:', result);
+
+                if (result.success) {
+                    updateStatus('Screening completed - loading results...', 'loading');
+                    // Wait longer for data to be ready, then load
+                    setTimeout(() => {
+                        loadStocks().finally(() => {
+                            resetRefreshButton();
+                        });
+                    }, 3000);
+                } else {
+                    updateStatus(`Refresh failed: ${result.message}`, 'error');
+                    setTimeout(() => {
+                        resetRefreshButton();
+                        loadStocks();
+                    }, 2000);
+                }
+            })
+            .catch(error => {
+                console.error('Manual refresh error:', error);
+                updateStatus(`Manual refresh failed: ${error.message}`, 'error');
+                setTimeout(() => {
+                    resetRefreshButton();
+                    loadStocks();
+                }, 2000);
+            });
+        }
