@@ -56,36 +56,6 @@ def get_stocks():
                 'backtesting': {'status': 'no_data'}
             })
 
-def check_file_integrity():
-    """Check integrity of critical files"""
-    critical_files = [
-        'top10.json',
-        'predictions_history.json', 
-        'agent_decisions.json',
-        'stable_predictions.json',
-        'signal_history.json'
-    ]
-
-    for file_path in critical_files:
-        try:
-            if os.path.exists(file_path):
-                with open(file_path, 'r') as f:
-                    content = f.read().strip()
-                    if content:
-                        json.loads(content)
-            else:
-                # Create empty file
-                with open(file_path, 'w') as f:
-                    json.dump({}, f)
-        except (json.JSONDecodeError, IOError) as e:
-            # Fix corrupted file
-            try:
-                with open(file_path, 'w') as f:
-                    json.dump({}, f)
-            except IOError:
-                pass
-
-
         # Read the file safely with performance optimization
         try:
             with open('top10.json', 'r', encoding='utf-8') as f:
@@ -331,6 +301,38 @@ def check_file_integrity():
             'timestamp': datetime.now().isoformat(),
             'backtesting': {'status': 'error'}
         }), 200
+
+def check_file_integrity():
+    """Check integrity of critical files"""
+    critical_files = [
+        'top10.json',
+        'predictions_history.json', 
+        'agent_decisions.json',
+        'stable_predictions.json',
+        'signal_history.json'
+    ]
+
+    for file_path in critical_files:
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as f:
+                    content = f.read().strip()
+                    if content:
+                        json.loads(content)
+            else:
+                # Create empty file
+                with open(file_path, 'w') as f:
+                    json.dump({}, f)
+        except (json.JSONDecodeError, IOError) as e:
+            # Fix corrupted file
+            try:
+                with open(file_path, 'w') as f:
+                    json.dump({}, f)
+            except IOError:
+                pass
+
+    # Read the file safely with performance optimization
+
 
 def get_scheduler_status():
     """Get current scheduler status"""
@@ -850,7 +852,8 @@ def lookup_stock(symbol):
         # Try to add ML predictions if available
         try:
             from predictor import enrich_with_ml_predictions
-            enhanced_stocks = enrich_with_ml_predictions([stock_result])            if enhanced_stocks:
+            enhanced_stocks = enrich_with_ml_predictions([stock_result])
+            if enhanced_stocks:
                 stock_result = enhanced_stocks[0]
         except Exception as e:
             logger.warning(f"ML predictions failed for {symbol}: {str(e)}")
