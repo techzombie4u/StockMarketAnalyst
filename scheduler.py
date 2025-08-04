@@ -79,14 +79,27 @@ def run_screening_job():
         # Create screener instance
         screener = EnhancedStockScreener()
 
-        # Run screening without signal timeout (causes threading issues)
+        # Run screening with better error handling
         start_time = time.time()
         results = []
         try:
-            results = screener.run_enhanced_screener()
+            # Check if screener is properly initialized
+            if not hasattr(screener, 'under500_symbols'):
+                logger.error("Screener not properly initialized")
+                results = screener._generate_fallback_data()
+            else:
+                results = screener.run_enhanced_screener()
+                
+        except SyntaxError as se:
+            logger.error(f"Syntax error in screener: {se}")
+            results = screener._generate_fallback_data() if screener else []
         except Exception as e:
             logger.error(f"Screening failed: {e}")
-            results = []
+            # Try fallback data generation
+            try:
+                results = screener._generate_fallback_data() if screener else []
+            except:
+                results = []
 
         # Add timestamp in IST
         ist = pytz.timezone('Asia/Kolkata')

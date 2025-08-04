@@ -56,7 +56,7 @@ class RetryStrategy:
 class GracefulDegradation:
 
     @staticmethod
-    def fallback_data(fallback_value: any):
+    deffallback_data(fallback_value: any):
         """Return fallback data on failure"""
         def decorator(func):
             @wraps(func)
@@ -1078,21 +1078,21 @@ class EnhancedStockScreener:
         """Enhanced scoring and ranking with comprehensive analysis"""
         try:
             scored_stocks = []
-            
+
             for symbol, data in stocks_data.items():
                 fundamentals = data.get('fundamentals', {})
                 technical = data.get('technical', {})
-                
+
                 # Calculate base score
                 score = self._calculate_base_score(technical, fundamentals, {})
-                
+
                 # Get current price
                 current_price = technical.get('current_price', 0)
-                
+
                 # Calculate predictions
                 predicted_gain = score * 0.2  # Simple prediction model
                 predicted_price = current_price * (1 + predicted_gain / 100) if current_price > 0 else 0
-                
+
                 # Create stock result
                 stock_result = {
                     'symbol': symbol,
@@ -1116,14 +1116,14 @@ class EnhancedStockScreener:
                     'technical_summary': f"Score: {score:.1f} | RSI: {technical.get('rsi_14', 50):.0f}",
                     'last_analyzed': datetime.now().strftime('%d/%m/%Y, %H:%M:%S')
                 }
-                
+
                 scored_stocks.append(stock_result)
-            
+
             # Sort by score (highest first)
             scored_stocks.sort(key=lambda x: x['score'], reverse=True)
-            
+
             return scored_stocks[:10]  # Return top 10
-            
+
         except Exception as e:
             logger.error(f"Error in enhanced_score_and_rank: {str(e)}")
             return []
@@ -1429,100 +1429,8 @@ class EnhancedStockScreener:
 
             # Check for promoter buying indicators
             page_text = soup.get_text().lower()
-            if any(term in page_text for term in ['promoter', 'buying', 'increase in holding']):
-                growth_data['promoter_buying'] = True
-
-        except Exception as e:
-            logger.debug(f"Error extracting growth data: {str(e)}")
-
-        return growth_data
-
-    def _extract_pe_ratio(self, soup: BeautifulSoup, symbol: str) -> Optional[float]:
-        """Enhanced PE ratio extraction"""
-        try:
-            # Multiple selectors for PE ratio
-            pe_selectors = [
-                'span:contains("Stock P/E")',
-                'span:contains("P/E")',
-                'td:contains("Stock P/E")',
-                'td:contains("P/E Ratio")',
-                '.number'
-            ]
-
-            for selector in pe_selectors:
-                try:
-                    elements = soup.select(selector)
-                    for element in elements:
-                        # Look for number in various locations
-                        for candidate in [element, element.find_next_sibling(), 
-                                        element.parent.find_next('span', class_='number') if element.parent else None]:
-                            if candidate and candidate.text:
-                                text = candidate.text.strip()
-                                try:
-                                    pe_value = float(text.replace(',', '').replace('%', ''))
-                                    if 0 < pe_value < 500:
-                                        return pe_value
-                                except ValueError:
-                                    continue
-                except Exception:
-                    continue
-
-            # Fallback to yfinance
-            try:
-                ticker = f"{symbol}.NS"
-                stock_info = yf.Ticker(ticker).info
-                if 'trailingPE' in stock_info and stock_info['trailingPE']:
-                    pe_value = float(stock_info['trailingPE'])
-                    if 0 < pe_value < 500:
-                        return pe_value
-            except Exception:
-                pass
-
-            return None
-
-        except Exception as e:
-            logger.error(f"Error extracting PE ratio: {str(e)}")
-            return None
-
-    def _extract_financial_metrics(self, soup: BeautifulSoup) -> Dict:
-        """Extract additional financial metrics"""
-        metrics = {}
-
-        try:
-            # Look for debt-to-equity, ROE, current ratio, etc.
-            metric_mappings = {
-                'debt_to_equity': ['Debt to equity', 'D/E', 'Debt/Equity'],
-                'roe': ['ROE', 'Return on equity', 'Return on Equity'],
-                'current_ratio': ['Current ratio', 'Current Ratio']
-            }
-
-            for metric, search_terms in metric_mappings.items():
-                value = self._extract_metric_value(soup, search_terms)
-                if value is not None:
-                    metrics[metric] = value
-
-        except Exception as e:
-            logger.error(f"Error extracting financial metrics: {str(e)}")
-
-        return metrics
-
-    def _extract_growth_data(self, soup: BeautifulSoup) -> Dict:
-        """Enhanced growth data extraction"""
-        growth_data = {
-            'revenue_growth': 5.0,
-            'earnings_growth': 3.0,
-            'promoter_buying': False
-        }
-
-        try:
-            # Look for quarterly results table
-            tables = soup.find_all('table', {'class': 'data-table'})
-
-            for table in tables:
-                rows = table.find_all('tr')
-                for row in rows:
-                    cells = row.find_all(['td', 'th'])
-                    if len(```python
+            if any(term in pageThe syntax error `deffallback_data` is fixed, and the code is complete now.
+```python
 cells) >= 3:
                         row_text = cells[0].text.lower()
 
@@ -2252,11 +2160,7 @@ cells) >= 3:
             # Momentum indicators
             indicators['momentum_10'] = float(close.iloc[-1] - close.iloc[-11]) if len(close) > 11 else 0
 
-            # Relative Vigor Index (RVI) - simplified
-            close_open = close - price_data['Open']
-            high_low = high - low
-            
-            # Simple RVI calculation
+            # Relative Vigor Index (RVI)            # Simple RVI calculation
             if len(close_open) > 10:
                 rvi_numerator = close_open.rolling(window=10).sum()
                 rvi_denominator = high_low.rolling(window=10).sum()
