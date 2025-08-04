@@ -655,8 +655,16 @@
                     <td class="${getGainClass(pred5d)}">${formatGain(pred5d)}</td>
                     <td class="${getGainClass(pred1mo)}">${formatGain(pred1mo)}</td>
                     <td><span class="pe-ratio ${getPEClass(stock.pe_description || 'Not Available')}">${stock.pe_ratio ? stock.pe_ratio.toFixed(1) : 'N/A'}</span></td>
-                    <td style="font-size: 0.85em; color: #666;">${stock.technical_summary || 'N/A'}</td>
-                `;
+                    <td class="risk-level" data-risk="${stock.risk_level}">${stock.risk_level || 'Medium'}</td>
+                        <td class="technical-summary">
+                            ${stock.technical_summary || 'Processing...'}
+                            ${stock.agent_recommendation ? `<br><div class="ai-recommendation" title="${stock.agent_explanation || ''}"">
+                                <span class="ai-action" data-action="${stock.agent_recommendation.replace(/[🔼🔽⏸️]\s*/g, '')}">${stock.agent_recommendation}</span>
+                                <span class="ai-confidence">(${stock.agent_confidence}%)</span>
+                                ${stock.agent_locked ? '<span class="ai-locked">🔒</span>' : ''}
+                            </div>` : ''}
+                        </td>
+                    </tr>`;
                 tbody.appendChild(row);
             });
         }
