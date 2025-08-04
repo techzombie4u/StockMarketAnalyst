@@ -47,6 +47,45 @@ def get_stocks():
             with open('top10.json', 'w', encoding='utf-8') as f:
                 json.dump(initial_data, f, ensure_ascii=False, indent=2)
 
+
+
+def check_file_integrity():
+    """Check and repair file integrity"""
+    try:
+        # Check top10.json
+        if os.path.exists('top10.json'):
+            try:
+                with open('top10.json', 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    if content:
+                        data = json.loads(content)
+                        if isinstance(data, dict) and 'stocks' in data:
+                            logger.info("File integrity check passed")
+                            return True
+            except:
+                pass
+        
+        # File is corrupted or missing, create minimal structure
+        logger.warning("File integrity check failed, creating minimal structure")
+        ist_now = datetime.now(IST)
+        minimal_data = {
+            'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
+            'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
+            'stocks': [],
+            'status': 'file_repaired'
+        }
+        
+        with open('top10.json', 'w', encoding='utf-8') as f:
+            json.dump(minimal_data, f, indent=2, ensure_ascii=False)
+        
+        logger.info("File repaired successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"File integrity check failed: {str(e)}")
+        return False
+
+
             return jsonify({
                 'stocks': [],
                 'status': 'initial',
@@ -60,34 +99,93 @@ def get_stocks():
         try:
             with open('top10.json', 'r', encoding='utf-8') as f:
                 content = f.read().strip()
-                if not content or content == '{}' or content == '[]':
-                    raise ValueError("Empty or invalid file")
+                if not content:
+                    logger.warning("Empty JSON file detected")
+                    raise ValueError("Empty file")
+                
+                # Check for common invalid content
+                if content in ['{}', '[]', 'null', 'undefined']:
+                    logger.warning(f"Invalid JSON content: {content}")
+                    raise ValueError("Invalid file content")
+                
+                # Attempt to parse JSON
                 data = json.loads(content)
+                
+                # Validate structure
+                if not isinstance(data, dict):
+                    logger.warning("JSON is not a dictionary")
+                    raise ValueError("Invalid data structure")
 
-        except (json.JSONDecodeError, ValueError) as e:
+        except (json.JSONDecodeError, ValueError, FileNotFoundError) as e:
             logger.error(f"JSON parsing error in /api/stocks: {str(e)}")
-            # Try to recover by returning empty data
-            from datetime import datetime
-            ist_now = datetime.now(IST)
-            reset_data = {
-                'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
-                'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
-                'stocks': [],
-                'status': 'file_reset',
-                'backtesting': {'status': 'error'}
-            }
+            
+            # Try to recover by creating fresh data
+            try:
+                from datetime import datetime
+                ist_now = datetime.now(IST)
+                
+                # Try to run a quick screening to get fresh data
+                try:
+                    logger.info("Attempting to generate fresh data...")
+                    from stock_screener import EnhancedStockScreener
+                    screener = EnhancedStockScreener()
+                    
+                    # Get a few stocks quickly for recovery
+                    quick_results = []
+                    for symbol in ['SBIN', 'BHARTIARTL', 'ITC'][:3]:
+                        try:
+                            technical = screener.calculate_enhanced_technical_indicators(symbol)
+                            fundamentals = screener.scrape_screener_data(symbol)
+                            
+                            if technical or fundamentals:
+                                stocks_data = {symbol: {'fundamentals': fundamentals, 'technical': technical}}
+                                scored = screener.enhanced_score_and_rank(stocks_data)
+                                if scored:
+                                    quick_results.extend(scored)
+                        except:
+                            continue
+                    
+                    if quick_results:
+                        logger.info(f"Generated {len(quick_results)} recovery stocks")
+                        recovery_data = {
+                            'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
+                            'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
+                            'stocks': quick_results,
+                            'status': 'recovery_data',
+                            'backtesting': {'status': 'recovery'}
+                        }
+                    else:
+                        raise Exception("No recovery data generated")
+                        
+                except Exception as recovery_error:
+                    logger.warning(f"Recovery screening failed: {recovery_error}")
+                    # Final fallback to empty structure
+                    recovery_data = {
+                        'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
+                        'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
+                        'stocks': [],
+                        'status': 'file_reset',
+                        'backtesting': {'status': 'error'}
+                    }
 
-            with open('top10.json', 'w', encoding='utf-8') as f:
-                json.dump(reset_data, f, ensure_ascii=False, indent=2)
+                # Save recovery data
+                with open('top10.json', 'w', encoding='utf-8') as f:
+                    json.dump(recovery_data, f, ensure_ascii=False, indent=2)
+                
+                data = recovery_data
+                logger.info("File recovered successfully")
 
-            return jsonify({
-                'stocks': [],
-                'status': 'file_reset',
-                'last_updated': reset_data['last_updated'],
-                'timestamp': reset_data['timestamp'],
-                'stockCount': 0,
-                'backtesting': {'status': 'error'}
-            }), 200  # Return 200 instead of 500 to avoid frontend errors
+            except Exception as recovery_error:
+                logger.error(f"File recovery failed: {recovery_error}")
+                return jsonify({
+                    'stocks': [],
+                    'status': 'critical_error',
+                    'last_updated': 'Recovery Failed',
+                    'timestamp': datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S'),
+                    'stockCount': 0,
+                    'backtesting': {'status': 'error'},
+                    'error': str(recovery_error)
+                }), 500
 
 
         # Add backtesting summary
@@ -100,11 +198,24 @@ def get_stocks():
             logger.warning(f"Backtesting data unavailable: {str(bt_error)}")
             data['backtesting'] = {'status': 'unavailable'}
 
-        # Extract and validate data
+        # Extract and validate data with comprehensive checks
         stocks = data.get('stocks', [])
         status = data.get('status', 'unknown')
         last_updated = data.get('last_updated', 'Never')
         timestamp = data.get('timestamp')
+        
+        # Validate stocks array
+        if not isinstance(stocks, list):
+            logger.warning("Stocks data is not a list, converting...")
+            stocks = []
+        
+        # Validate status
+        if not isinstance(status, str):
+            status = 'unknown'
+        
+        # Validate last_updated
+        if not isinstance(last_updated, str):
+            last_updated = 'Never'
 
         # Fix timestamp if it's in wrong format
         if timestamp and 'T' not in str(timestamp):
@@ -917,6 +1028,10 @@ def get_interactive_tracker_data():
         # Load interactive tracking data
         tracking_data = load_interactive_tracking_data()
         
+        # If no tracking data exists, create initial structure
+        if not tracking_data:
+            tracking_data = initialize_empty_tracking_data()
+        
         return jsonify({
             'status': 'success',
             'tracking_data': tracking_data,
@@ -931,6 +1046,66 @@ def get_interactive_tracker_data():
             'tracking_data': {},
             'timestamp': datetime.now(IST).isoformat()
         }), 500
+
+def initialize_empty_tracking_data():
+    """Initialize empty tracking data structure"""
+    try:
+        # Load current stock data to initialize tracking
+        current_data = load_stock_data()
+        stocks = current_data.get('stocks', [])
+        
+        tracking_data = {}
+        for stock in stocks[:5]:  # Initialize tracking for top 5 stocks
+            symbol = stock.get('symbol')
+            if symbol:
+                base_price = stock.get('current_price', 100)
+                pred_5d = stock.get('pred_5d', 0)
+                pred_30d = stock.get('pred_1mo', 0)
+                
+                # Generate predicted price arrays
+                predicted_5d = []
+                predicted_30d = []
+                
+                for i in range(5):
+                    predicted_5d.append(base_price * (1 + (pred_5d/100) * (i+1)/5))
+                
+                for i in range(30):
+                    predicted_30d.append(base_price * (1 + (pred_30d/100) * (i+1)/30))
+                
+                tracking_data[symbol] = {
+                    'symbol': symbol,
+                    'start_date': datetime.now(IST).strftime('%Y-%m-%d'),
+                    'current_price': base_price,
+                    'confidence': stock.get('confidence', 0),
+                    'score': stock.get('score', 0),
+                    'predicted_5d': predicted_5d,
+                    'predicted_30d': predicted_30d,
+                    'actual_progress_5d': [base_price] + [None] * 4,
+                    'actual_progress_30d': [base_price] + [None] * 29,
+                    'updated_prediction_5d': [None] * 5,
+                    'updated_prediction_30d': [None] * 30,
+                    'changed_on_5d': None,
+                    'changed_on_30d': None,
+                    'locked_5d': False,
+                    'locked_30d': False,
+                    'lock_date_5d': None,
+                    'lock_date_30d': None,
+                    'last_updated': datetime.now(IST).isoformat(),
+                    'days_tracked': 0
+                }
+        
+        # Save the initialized tracking data
+        try:
+            with open('interactive_tracking.json', 'w') as f:
+                json.dump(tracking_data, f, indent=2, ensure_ascii=False)
+        except Exception as save_error:
+            logger.warning(f"Could not save initialized tracking data: {save_error}")
+        
+        return tracking_data
+        
+    except Exception as e:
+        logger.error(f"Error initializing empty tracking data: {str(e)}")
+        return {}
 
 @app.route('/api/update-lock-status', methods=['POST'])
 def update_lock_status():
@@ -987,6 +1162,9 @@ def initialize_app():
     global scheduler
 
     try:
+        # Check file integrity first
+        check_file_integrity()
+        
         # Create initial demo data
         create_initial_demo_data()
 
