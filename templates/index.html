@@ -348,6 +348,28 @@
                 padding: 10px 8px;
             }
         }
+
+        .direction[data-direction="UP"] { color: #27ae60; }
+        .direction[data-direction="DOWN"] { color: #e74c3c; }
+        .direction[data-direction="UNKNOWN"] { color: #95a5a6; }
+
+        /* AI Agent Styling */
+        .ai-recommendation {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            padding: 8px;
+            margin: 5px 0;
+        }
+
+        .ai-action[data-action="STRONG_BUY"] { color: #00ff00; font-weight: bold; }
+        .ai-action[data-action="BUY"] { color: #27ae60; font-weight: bold; }
+        .ai-action[data-action="HOLD"] { color: #f39c12; }
+        .ai-action[data-action="WEAK_SELL"] { color: #e67e22; }
+        .ai-action[data-action="STRONG_SELL"] { color: #e74c3c; font-weight: bold; }
+
+        .risk-level[data-risk="LOW"] { color: #27ae60; }
+        .risk-level[data-risk="MEDIUM"] { color: #f39c12; }
+        .risk-level[data-risk="HIGH"] { color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -480,7 +502,7 @@
                     } else {
                         date = new Date(timestamp);
                     }
-                    
+
                     if (isNaN(date.getTime())) {
                         element.textContent = 'Last Updated: Processing...';
                     } else {
