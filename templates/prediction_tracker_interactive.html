@@ -575,15 +575,28 @@
             const actual5d = [basePrice, null, null, null, null];
             const updated5d = [null, null, null, null, null];
             
+            // Green line: FULL prediction for all 5 days
             for (let i = 0; i < 5; i++) {
                 predicted5d.push(basePrice * (1 + (pred5d/100) * (i+1)/5));
             }
             
-            // Simulate some actual progress (2 days)
-            if (Math.random() > 0.5) {
+            // Blue line: Simulate progressive actual data (only days that have passed)
+            // Let's simulate that we have actual data for first 2 days only
+            const currentDay = Math.floor(Math.random() * 3) + 1; // Random between 1-3 days
+            if (currentDay >= 1) {
                 actual5d[1] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
-                if (Math.random() > 0.7) {
-                    actual5d[2] = actual5d[1] * (1 + (Math.random() - 0.5) * 0.02);
+            }
+            if (currentDay >= 2) {
+                actual5d[2] = actual5d[1] * (1 + (Math.random() - 0.5) * 0.02);
+            }
+            
+            // Red line: Updated predictions (only when >3% change occurred)
+            // Simulate an updated prediction starting from day 2 if significant change
+            if (currentDay >= 2 && Math.random() > 0.6) {
+                const changePercent = (Math.random() * 6) + 3; // 3-9% change
+                updated5d[1] = actual5d[1]; // Start from actual
+                if (currentDay >= 2) {
+                    updated5d[2] = actual5d[2]; // Continue with actual
                 }
             }
             
@@ -592,10 +605,21 @@
             const actual30d = Array(30).fill(null);
             const updated30d = Array(30).fill(null);
             
+            // Green line: FULL prediction for all 30 days
             for (let i = 0; i < 30; i++) {
                 predicted30d.push(basePrice * (1 + (pred30d/100) * (i+1)/30));
             }
+            
+            // Blue line: Progressive actual data (only days that have passed)
             actual30d[0] = basePrice;
+            const currentDay30 = Math.floor(Math.random() * 5) + 1; // Random between 1-5 days for demo
+            for (let i = 1; i <= Math.min(currentDay30, 30); i++) {
+                if (i === 1) {
+                    actual30d[i] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
+                } else {
+                    actual30d[i] = actual30d[i-1] * (1 + (Math.random() - 0.5) * 0.015);
+                }
+            }
             
             predictionData[symbol] = {
                 ...predictionData[symbol],
@@ -721,9 +745,16 @@
             const actualKey = `actual_progress_${currentView}`;
             const updatedKey = `updated_prediction_${currentView}`;
             
+            // Green line: Show FULL prediction line for complete period
             const predictedData = data[predictedKey] || Array(days).fill(null);
-            const actualData = data[actualKey] || Array(days).fill(null);
-            const updatedData = data[updatedKey] || Array(days).fill(null);
+            
+            // Blue line: Show ONLY actual prices that have occurred (progressive)
+            const actualDataRaw = data[actualKey] || Array(days).fill(null);
+            const actualData = [...actualDataRaw]; // Keep only actual progressive data
+            
+            // Red line: Show ONLY updated predictions that have occurred (progressive)
+            const updatedDataRaw = data[updatedKey] || Array(days).fill(null);
+            const updatedData = [...updatedDataRaw]; // Keep only progressive updated predictions
             
             // Destroy existing chart
             if (chart) {
@@ -738,7 +769,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Original Prediction',
+                            label: 'Original Prediction (Full)',
                             data: predictedData,
                             borderColor: '#27ae60',
                             backgroundColor: 'rgba(39, 174, 96, 0.1)',
@@ -749,7 +780,7 @@
                             pointHoverRadius: 6
                         },
                         {
-                            label: 'Actual Price',
+                            label: 'Actual Price (Progressive)',
                             data: actualData,
                             borderColor: '#3498db',
                             backgroundColor: 'rgba(52, 152, 219, 0.1)',
@@ -760,7 +791,7 @@
                             spanGaps: false
                         },
                         {
-                            label: 'Updated Prediction',
+                            label: 'Updated Prediction (Progressive)',
                             data: updatedData,
                             borderColor: '#e74c3c',
                             backgroundColor: 'rgba(231, 76, 60, 0.1)',
