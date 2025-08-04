@@ -722,53 +722,99 @@ def get_predictions_tracker():
     try:
         predictions = []
 
-        # Load predictions from predictions_history.json
-        if os.path.exists('predictions_history.json'):
-            with open('predictions_history.json', 'r') as f:
-                data = json.load(f)
-                # Handle both list and dict formats
-                if isinstance(data, list):
-                    predictions = data
-                elif isinstance(data, dict) and 'predictions' in data:
-                    predictions = data['predictions']
-                else:
-                    predictions = []
+        # Load current stock data first and add as predictions
+        try:
+            current_data = load_stock_data()
+            if current_data.get('stocks'):
+                for stock in current_data['stocks']:
+                    prediction_entry = {
+                        'symbol': stock.get('symbol', ''),
+                        'timestamp': current_data.get('timestamp', datetime.now(IST).isoformat()),
+                        'current_price': stock.get('current_price', 0),
+                        'predicted_price': stock.get('predicted_price', stock.get('current_price', 0)),
+                        'pred_5d': stock.get('pred_5d', 0),
+                        'predicted_1mo': stock.get('pred_1mo', 0),
+                        'confidence': stock.get('confidence', 0),
+                        'score': stock.get('score', 0),
+                        'source': 'current_screening'
+                    }
+                    predictions.append(prediction_entry)
+                    
+        except Exception as e:
+            logger.warning(f"Could not load current stock data: {str(e)}")
 
-        # Enrich with additional data if needed
-        enriched_predictions = []
+        # Load historical predictions from predictions_history.json
+        try:
+            if os.path.exists('predictions_history.json'):
+                with open('predictions_history.json', 'r') as f:
+                    data = json.load(f)
+                    # Handle both list and dict formats
+                    if isinstance(data, list):
+                        historical_predictions = data
+                    elif isinstance(data, dict) and 'predictions' in data:
+                        historical_predictions = data['predictions']
+                    else:
+                        historical_predictions = []
+                    
+                    # Add source tag to historical predictions
+                    for pred in historical_predictions:
+                        pred['source'] = 'historical'
+                        # Ensure required fields exist
+                        if 'predicted_1mo' not in pred and 'pred_1mo' in pred:
+                            pred['predicted_1mo'] = pred['pred_1mo']
+                        if 'pred_5d' not in pred:
+                            pred['pred_5d'] = pred.get('predicted_1mo', 0) * 0.15  # Estimate
+                    
+                    predictions.extend(historical_predictions)
+                    
+        except Exception as e:
+            logger.warning(f"Could not load historical predictions: {str(e)}")
+
+        # Load stable predictions if available
+        try:
+            if os.path.exists('stable_predictions.json'):
+                with open('stable_predictions.json', 'r') as f:
+                    stable_data = json.load(f)
+                    for symbol, pred_data in stable_data.items():
+                        if isinstance(pred_data, dict):
+                            prediction_entry = {
+                                'symbol': symbol,
+                                'timestamp': pred_data.get('last_updated', datetime.now(IST).isoformat()),
+                                'current_price': pred_data.get('current_price', 0),
+                                'predicted_price': pred_data.get('predicted_price', pred_data.get('current_price', 0)),
+                                'pred_5d': pred_data.get('pred_5d', 0),
+                                'predicted_1mo': pred_data.get('pred_1mo', 0),
+                                'confidence': pred_data.get('confidence', 0),
+                                'score': pred_data.get('score', 0),
+                                'source': 'stable_predictions',
+                                'lock_reason': pred_data.get('lock_reason', 'unknown')
+                            }
+                            predictions.append(prediction_entry)
+                            
+        except Exception as e:
+            logger.warning(f"Could not load stable predictions: {str(e)}")
+
+        # Remove duplicates (keep most recent per symbol)
+        unique_predictions = {}
         for pred in predictions:
-            # Add calculated fields
-            current_price = pred.get('current_price', 0)
-            predicted_price = pred.get('predicted_price', current_price)
+            symbol = pred['symbol']
+            timestamp = pred.get('timestamp', '')
+            
+            if symbol not in unique_predictions or timestamp > unique_predictions[symbol].get('timestamp', ''):
+                unique_predictions[symbol] = pred
 
-            # Calculate 5-day prediction if not present
-            pred_5d = pred.get('pred_5d')
-            if pred_5d is None and current_price > 0:
-                # Estimate 5-day from 30-day prediction
-                pred_30d = pred.get('predicted_1mo', 0)
-                pred_5d = round(pred_30d * 0.15, 2)  # Rough estimate
-
-            enriched_pred = {
-                'symbol': pred.get('symbol', 'N/A'),
-                'timestamp': pred.get('timestamp', datetime.now().isoformat()),
-                'current_price': current_price,
-                'predicted_price': predicted_price,
-                'predicted_1mo': pred.get('predicted_1mo', 0),
-                'pred_5d': pred_5d or 0,
-                'score': pred.get('score', 0),
-                'confidence': pred.get('confidence', 0),
-                'trend_class': pred.get('trend_class', 'sideways')
-            }
-            enriched_predictions.append(enriched_pred)
-
+        final_predictions = list(unique_predictions.values())
+        
         # Sort by timestamp (newest first)
-        enriched_predictions.sort(key=lambda x: x['timestamp'], reverse=True)
+        final_predictions.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+
+        logger.info(f"Serving {len(final_predictions)} predictions to tracker")
 
         return jsonify({
             'status': 'success',
-            'predictions': enriched_predictions,
-            'total_count': len(enriched_predictions),
-            'timestamp': datetime.now().isoformat()
+            'predictions': final_predictions,
+            'total_count': len(final_predictions),
+            'timestamp': datetime.now(IST).isoformat()
         })
 
     except Exception as e:
@@ -778,7 +824,7 @@ def get_predictions_tracker():
             'error': str(e),
             'predictions': [],
             'total_count': 0,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(IST).isoformat()
         }), 500
 
 def initialize_app():

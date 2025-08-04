@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📊 Prediction Tracker - Today's Forecasts</title>
+    <title>📊 Prediction Tracker - Stock Forecasts</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -197,6 +197,12 @@
             color: #7f8c8d;
         }
 
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--secondary-color);
+        }
+
         @media (max-width: 768px) {
             .predictions-grid {
                 grid-template-columns: 1fr;
@@ -208,20 +214,19 @@
             }
         }
     </style>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>📊 Prediction Tracker</h1>
-            <p>Track Today's Stock Predictions - 5 Day & 30 Day Forecasts</p>
+            <p>Track Stock Predictions - 5 Day & 30 Day Forecasts</p>
 
             <div class="nav-links">
                 <a href="/">🏠 Main Dashboard</a>
                 <a href="/analysis">📈 Analysis</a>
                 <a href="/lookup">🔍 Stock Lookup</a>
-                <button class="refresh-btn" onclick="loadPredictions()">🔄 Refresh</button>
+                <a href="/prediction-tracker-interactive">📊 Interactive Charts</a>
+                <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
             </div>
         </div>
 
@@ -229,36 +234,6 @@
             <div class="period-tab active" onclick="switchPeriod('today')">📅 Today's Predictions</div>
             <div class="period-tab" onclick="switchPeriod('5day')">🔍 5-Day Tracking</div>
             <div class="period-tab" onclick="switchPeriod('30day')">📈 30-Day Tracking</div>
-        </div>
-
-        <div class="stability-status mb-4">
-            <h3>🔒 Prediction Stability Status</h3>
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="card bg-success text-white">
-                        <div class="card-body text-center">
-                            <h4 id="locked-predictions">-</h4>
-                            <small>Locked Predictions</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body text-center">
-                            <h4 id="updateable-predictions">-</h4>
-                            <small>Can Update</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card bg-info text-white">
-                        <div class="card-body text-center">
-                            <h5>Stability Rules</h5>
-                            <small>Predictions locked for 24 hours<br>Updates only if >5% change</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="stats-summary">
@@ -283,178 +258,19 @@
             </div>
         </div>
 
-        <div id="predictionsContainer" class="predictions-grid">
+        <div id="loadingIndicator" class="loading">
+            <h3>⏳ Loading Predictions...</h3>
+            <p>Fetching latest prediction data...</p>
+        </div>
+
+        <div id="predictionsContainer" class="predictions-grid" style="display: none;">
             <!-- Dynamic content will be loaded here -->
         </div>
 
         <div id="noPredictions" class="no-predictions" style="display: none;">
             <h3>📋 No Predictions Found</h3>
-            <p>No predictions found for tthe selected period.</p>
+            <p>No predictions found for the selected period.</p>
             <p>Run the stock screener to generate new predictions and track their accuracy over time.</p>
-        </div>
-    </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        let refreshInterval;
-
-        function refreshData() {
-            console.log('Refreshing prediction tracker data...');
-            
-            fetch('/api/predictions-tracker')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        updatePredictionTable(data.predictions);
-                        updateLastRefresh();
-                    } else {
-                        console.error('API error:', data.error);
-                        showError('Failed to load prediction data: ' + (data.error || 'Unknown error'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Fetch error:', error);
-                    showError('Network error: Could not connect to server');
-                });
-        }
-
-        function updatePredictionTable(predictions) {
-            const tbody = document.querySelector('#predictionsTable tbody');
-            if (!tbody) return;
-
-            tbody.innerHTML = '';
-
-            if (!predictions || predictions.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="text-center text-muted">
-                            <i>No prediction data available. Run the stock screener to generate predictions.</i>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            predictions.slice(0, 20).forEach(pred => {
-                const row = document.createElement('tr');
-                const accuracy = calculateAccuracy(pred);
-                const accuracyClass = getAccuracyClass(accuracy);
-                
-                row.innerHTML = `
-                    <td><strong>${pred.symbol || 'N/A'}</strong></td>
-                    <td>₹${(pred.current_price || 0).toFixed(2)}</td>
-                    <td>₹${(pred.predicted_price || 0).toFixed(2)}</td>
-                    <td>${(pred.pred_5d || 0).toFixed(1)}%</td>
-                    <td>${(pred.predicted_1mo || 0).toFixed(1)}%</td>
-                    <td>
-                        <span class="badge ${accuracyClass}">${accuracy}</span>
-                    </td>
-                    <td>${formatTimestamp(pred.timestamp)}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function calculateAccuracy(pred) {
-            if (pred.actual_price && pred.predicted_price && pred.current_price) {
-                const predicted_change = ((pred.predicted_price - pred.current_price) / pred.current_price) * 100;
-                const actual_change = ((pred.actual_price - pred.current_price) / pred.current_price) * 100;
-                const error = Math.abs(predicted_change - actual_change);
-                const accuracy = Math.max(0, 100 - error);
-                return accuracy.toFixed(1) + '%';
-            }
-            return 'Pending';
-        }
-
-        function getAccuracyClass(accuracy) {
-            if (accuracy === 'Pending') return 'bg-secondary';
-            const value = parseFloat(accuracy);
-            if (value >= 80) return 'bg-success';
-            if (value >= 60) return 'bg-warning';
-            return 'bg-danger';
-        }
-
-        function formatTimestamp(timestamp) {
-            if (!timestamp) return 'N/A';
-            try {
-                const date = new Date(timestamp);
-                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            } catch (e) {
-                return 'Invalid Date';
-            }
-        }
-
-        function updateLastRefresh() {
-            const lastRefreshElement = document.getElementById('lastRefresh');
-            if (lastRefreshElement) {
-                lastRefreshElement.textContent = new Date().toLocaleTimeString();
-            }
-        }
-
-        function showError(message) {
-            console.error(message);
-            // Could add a toast notification here
-        }
-
-        function manualRefresh() {
-            const button = document.getElementById('refreshBtn');
-            if (button) {
-                button.disabled = true;
-                button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Refreshing...';
-            }
-            
-            refreshData();
-            
-            setTimeout(() => {
-                if (button) {
-                    button.disabled = false;
-                    button.innerHTML = '🔄 Refresh Data';
-                }
-            }, 2000);
-        }
-
-        function toggleAutoRefresh() {
-            const checkbox = document.getElementById('autoRefresh');
-            if (checkbox && checkbox.checked) {
-                refreshInterval = setInterval(refreshData, 30000); // 30 seconds
-                console.log('Auto-refresh enabled (30s interval)');
-            } else {
-                if (refreshInterval) {
-                    clearInterval(refreshInterval);
-                    refreshInterval = null;
-                }
-                console.log('Auto-refresh disabled');
-            }
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Prediction Tracker initialized');
-            refreshData();
-            
-            // Set up event listeners
-            const refreshBtn = document.getElementById('refreshBtn');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', manualRefresh);
-            }
-            
-            const autoRefreshCheckbox = document.getElementById('autoRefresh');
-            if (autoRefreshCheckbox) {
-                autoRefreshCheckbox.addEventListener('change', toggleAutoRefresh);
-            }
-        });
-
-        // Clean up on page unload
-        window.addEventListener('beforeunload', function() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-            }
-        });
-    </script>
-</body>
-</html>tions.</p>
         </div>
     </div>
 
@@ -475,17 +291,67 @@
             displayPredictions();
         }
 
+        function refreshData() {
+            console.log('Refreshing prediction data...');
+            loadPredictions();
+        }
+
         function loadPredictions() {
-            fetch('/api/predictions-tracker')
-                .then(response => response.json())
-                .then(data => {
-                    allPredictions = data.predictions || [];
-                    displayPredictions();
-                })
-                .catch(error => {
-                    console.error('Error loading predictions:', error);
-                    document.getElementById('noPredictions').style.display = 'block';
-                });
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const predictionsContainer = document.getElementById('predictionsContainer');
+            const noPredictions = document.getElementById('noPredictions');
+
+            // Show loading
+            loadingIndicator.style.display = 'block';
+            predictionsContainer.style.display = 'none';
+            noPredictions.style.display = 'none';
+
+            // Load current stock data first
+            Promise.all([
+                fetch('/api/stocks').then(response => response.json()),
+                fetch('/api/predictions-tracker').then(response => response.json())
+            ])
+            .then(([stocksData, predictionsData]) => {
+                console.log('Stock data:', stocksData);
+                console.log('Predictions data:', predictionsData);
+
+                let predictions = [];
+
+                // Add current stock data as predictions
+                if (stocksData.status === 'success' && stocksData.stocks) {
+                    stocksData.stocks.forEach(stock => {
+                        predictions.push({
+                            symbol: stock.symbol,
+                            timestamp: stocksData.timestamp || new Date().toISOString(),
+                            current_price: stock.current_price || 0,
+                            predicted_price: stock.predicted_price || stock.current_price,
+                            pred_5d: stock.pred_5d || 0,
+                            predicted_1mo: stock.pred_1mo || 0,
+                            confidence: stock.confidence || 0,
+                            score: stock.score || 0,
+                            source: 'current_screening'
+                        });
+                    });
+                }
+
+                // Add historical predictions if available
+                if (predictionsData.status === 'success' && predictionsData.predictions) {
+                    predictions.push(...predictionsData.predictions.map(pred => ({
+                        ...pred,
+                        source: 'historical'
+                    })));
+                }
+
+                allPredictions = predictions;
+                loadingIndicator.style.display = 'none';
+                displayPredictions();
+            })
+            .catch(error => {
+                console.error('Error loading predictions:', error);
+                loadingIndicator.style.display = 'none';
+                noPredictions.style.display = 'block';
+                updateStats([]);
+            });
         }
 
         function displayPredictions() {
@@ -497,12 +363,14 @@
 
             if (filteredPredictions.length === 0) {
                 container.innerHTML = '';
+                container.style.display = 'none';
                 noPredictions.style.display = 'block';
                 updateStats([]);
                 return;
             }
 
             noPredictions.style.display = 'none';
+            container.style.display = 'grid';
 
             // Generate prediction cards
             container.innerHTML = filteredPredictions.map(pred => `
@@ -511,35 +379,36 @@
                     <div class="prediction-details">
                         <div class="prediction-item">
                             <div class="prediction-label">Current Price</div>
-                            <div class="prediction-value">₹${pred.current_price}</div>
+                            <div class="prediction-value">₹${(pred.current_price || 0).toFixed(2)}</div>
                         </div>
                         <div class="prediction-item">
                             <div class="prediction-label">Score</div>
-                            <div class="prediction-value">${pred.score}</div>
+                            <div class="prediction-value">${(pred.score || 0).toFixed(0)}</div>
                         </div>
                         <div class="prediction-item">
                             <div class="prediction-label">5-Day Prediction</div>
-                            <div class="prediction-value ${pred.pred_5d > 0 ? 'prediction-positive' : 'prediction-negative'}">
-                                ${pred.pred_5d > 0 ? '+' : ''}${pred.pred_5d}%
+                            <div class="prediction-value ${(pred.pred_5d || 0) > 0 ? 'prediction-positive' : 'prediction-negative'}">
+                                ${(pred.pred_5d || 0) > 0 ? '+' : ''}${(pred.pred_5d || 0).toFixed(1)}%
                             </div>
                         </div>
                         <div class="prediction-item">
                             <div class="prediction-label">30-Day Prediction</div>
-                            <div class="prediction-value ${pred.predicted_1mo > 0 ? 'prediction-positive' : 'prediction-negative'}">
-                                ${pred.predicted_1mo > 0 ? '+' : ''}${pred.predicted_1mo}%
+                            <div class="prediction-value ${(pred.predicted_1mo || 0) > 0 ? 'prediction-positive' : 'prediction-negative'}">
+                                ${(pred.predicted_1mo || 0) > 0 ? '+' : ''}${(pred.predicted_1mo || 0).toFixed(1)}%
                             </div>
                         </div>
                         <div class="prediction-item">
                             <div class="prediction-label">Target Price</div>
-                            <div class="prediction-value">₹${pred.predicted_price}</div>
+                            <div class="prediction-value">₹${(pred.predicted_price || pred.current_price || 0).toFixed(2)}</div>
                         </div>
                         <div class="prediction-item">
                             <div class="prediction-label">Confidence</div>
-                            <div class="prediction-value">${pred.confidence}%</div>
+                            <div class="prediction-value">${(pred.confidence || 0).toFixed(0)}%</div>
                         </div>
                     </div>
                     <div class="prediction-timestamp">
-                        Predicted: ${new Date(pred.timestamp).toLocaleString()}
+                        Predicted: ${formatTimestamp(pred.timestamp)}
+                        ${pred.source ? ` (${pred.source})` : ''}
                     </div>
                 </div>
             `).join('');
@@ -590,14 +459,21 @@
             document.getElementById('bullishCount').textContent = bullishCount;
         }
 
-        // Initialize
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'N/A';
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            } catch (e) {
+                return 'Invalid Date';
+            }
+        }
+
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Prediction Tracker initialized');
             loadPredictions();
         });
     </script>
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
