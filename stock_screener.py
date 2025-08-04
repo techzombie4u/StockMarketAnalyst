@@ -1496,7 +1496,7 @@ class EnhancedStockScreener:
         except Exception:
             return None
 
-    def _calculate_growth_from_cells(self, cells: List) -> Optional[float]:
+    def _calculate_growth_from_cells(self, cells: List) -> Optional[python
         """Calculate growth rate from table cells"""
         try:
             if len(cells) >= 2:
@@ -1903,17 +1903,17 @@ class EnhancedStockScreener:
                     import pytz
                     IST = pytz.timezone('Asia/Kolkata')
                     ist_now = datetime.now(IST)
-                    
+
                     result_data = {
                         'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
                         'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
                         'status': 'success',
                         'stocks': scored_stocks
                     }
-                    
+
                     with open('top10.json', 'w', encoding='utf-8') as f:
                         json.dump(result_data, f, indent=2, ensure_ascii=False)
-                    
+
                     logger.info(f"✅ Results saved with {len(scored_stocks)} stocks")
                 except Exception as save_error:
                     logger.error(f"Error saving results: {save_error}")
@@ -2778,6 +2778,30 @@ class EnhancedStockScreener:
             summary_parts.append("Normal Volume")
 
         return " | ".join(summary_parts)
+
+# Apply prediction stability to enhance consistency of stock screener results.
+    def apply_signal_filtering(self, filtered_stocks: List[Dict]) -> List[Dict]:
+        """Apply signal filtering"""
+        # Apply signal filtering
+        if filtered_stocks:
+            # Apply advanced signal filtering
+            try:
+                from advanced_signal_filter import AdvancedSignalFilter
+                filter_manager = AdvancedSignalFilter()
+                filtered_stocks = filter_manager.filter_signals(filtered_stocks)
+            except Exception as e:
+                logger.warning(f"Advanced signal filtering failed: {str(e)}")
+
+        # Apply prediction stability (NEW FEATURE)
+        try:
+            from prediction_stability_manager import PredictionStabilityManager
+            stability_manager = PredictionStabilityManager()
+            filtered_stocks = stability_manager.stabilize_predictions(filtered_stocks)
+            logger.info("✅ Prediction stability applied")
+        except Exception as e:
+            logger.warning(f"Prediction stability failed: {str(e)}")
+
+        return filtered_stocks
 
 # Initialize and run the screener
 if __name__ == "__main__":
