@@ -1,605 +1,5 @@
 [
   {
-    "symbol": "BPCL",
-    "timestamp": "2025-07-31T08:35:28.907139",
-    "current_price": 329.8,
-    "predicted_1mo": 12.91,
-    "predicted_price": 372.37,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATAMOTORS",
-    "timestamp": "2025-07-31T08:38:29.754102",
-    "current_price": 667.85,
-    "predicted_1mo": 14.16,
-    "predicted_price": 762.41,
-    "score": 75,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "IOC",
-    "timestamp": "2025-07-31T08:38:29.755341",
-    "current_price": 147.0,
-    "predicted_1mo": 14.71,
-    "predicted_price": 168.62,
-    "score": 74,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-07-31T08:38:29.757110",
-    "current_price": 178.24,
-    "predicted_1mo": 13.33,
-    "predicted_price": 202.0,
-    "score": 74,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "HINDALCO",
-    "timestamp": "2025-07-31T08:38:29.760020",
-    "current_price": 690.1,
-    "predicted_1mo": 12.32,
-    "predicted_price": 775.09,
-    "score": 73,
-    "confidence": 95,
-    "trend_class": "uptrend"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-07-31T08:38:29.762463",
-    "current_price": 397.3,
-    "predicted_1mo": 11.11,
-    "predicted_price": 441.43,
-    "score": 72,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "PNB",
-    "timestamp": "2025-07-31T08:38:29.764186",
-    "current_price": 106.06,
-    "predicted_1mo": 15.18,
-    "predicted_price": 122.16,
-    "score": 72,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "SAIL",
-    "timestamp": "2025-07-31T08:38:29.765989",
-    "current_price": 124.14,
-    "predicted_1mo": 14.31,
-    "predicted_price": 141.9,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "NTPC",
-    "timestamp": "2025-07-31T08:38:29.767637",
-    "current_price": 338.3,
-    "predicted_1mo": 11.11,
-    "predicted_price": 375.88,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-07-31T08:38:29.769860",
-    "current_price": 329.95,
-    "predicted_1mo": 12.91,
-    "predicted_price": 372.54,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "IOC",
-    "timestamp": "2025-07-31T08:52:44.820481",
-    "current_price": 146.76,
-    "predicted_1mo": 17.55,
-    "predicted_price": 172.52,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATAMOTORS",
-    "timestamp": "2025-07-31T08:52:44.821840",
-    "current_price": 667.55,
-    "predicted_1mo": 14.15,
-    "predicted_price": 762.03,
-    "score": 75,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-07-31T08:52:44.831462",
-    "current_price": 178.16,
-    "predicted_1mo": 13.33,
-    "predicted_price": 201.9,
-    "score": 74,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "HINDALCO",
-    "timestamp": "2025-07-31T08:52:44.834827",
-    "current_price": 687.95,
-    "predicted_1mo": 12.31,
-    "predicted_price": 772.64,
-    "score": 73,
-    "confidence": 95,
-    "trend_class": "uptrend"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-07-31T08:52:44.839886",
-    "current_price": 396.7,
-    "predicted_1mo": 10.66,
-    "predicted_price": 439.0,
-    "score": 72,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "PNB",
-    "timestamp": "2025-07-31T08:52:44.846730",
-    "current_price": 106.22,
-    "predicted_1mo": 15.18,
-    "predicted_price": 122.35,
-    "score": 72,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "SAIL",
-    "timestamp": "2025-07-31T08:52:44.853421",
-    "current_price": 123.96,
-    "predicted_1mo": 14.3,
-    "predicted_price": 141.69,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "NTPC",
-    "timestamp": "2025-07-31T08:52:44.857452",
-    "current_price": 337.9,
-    "predicted_1mo": 12.01,
-    "predicted_price": 378.48,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-07-31T08:52:44.861243",
-    "current_price": 329.75,
-    "predicted_1mo": 12.91,
-    "predicted_price": 372.31,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-07-31T09:52:33.168877",
-    "current_price": 395.1,
-    "predicted_1mo": 14.11,
-    "predicted_price": 450.86,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATAMOTORS",
-    "timestamp": "2025-07-31T09:52:33.189111",
-    "current_price": 666.25,
-    "predicted_1mo": 16.37,
-    "predicted_price": 775.29,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "HINDALCO",
-    "timestamp": "2025-07-31T09:52:33.202982",
-    "current_price": 683.5,
-    "predicted_1mo": 16.19,
-    "predicted_price": 794.14,
-    "score": 76,
-    "confidence": 95,
-    "trend_class": "uptrend"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-07-31T09:52:33.208353",
-    "current_price": 177.49,
-    "predicted_1mo": 14.27,
-    "predicted_price": 202.82,
-    "score": 74,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "PNB",
-    "timestamp": "2025-07-31T09:52:33.219155",
-    "current_price": 105.37,
-    "predicted_1mo": 15.17,
-    "predicted_price": 121.36,
-    "score": 72,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "IOC",
-    "timestamp": "2025-07-31T09:52:33.224101",
-    "current_price": 145.49,
-    "predicted_1mo": 14.57,
-    "predicted_price": 166.69,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "SAIL",
-    "timestamp": "2025-07-31T09:52:33.229045",
-    "current_price": 124.24,
-    "predicted_1mo": 15.14,
-    "predicted_price": 143.04,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ONGC",
-    "timestamp": "2025-07-31T09:52:33.240546",
-    "current_price": 241.2,
-    "predicted_1mo": 12.1,
-    "predicted_price": 270.39,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-07-31T09:52:33.244461",
-    "current_price": 329.1,
-    "predicted_1mo": 14.53,
-    "predicted_price": 376.93,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-07-31T10:52:28.790382",
-    "current_price": 395.2,
-    "predicted_1mo": 14.11,
-    "predicted_price": 450.97,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATAMOTORS",
-    "timestamp": "2025-07-31T10:52:28.792673",
-    "current_price": 665.95,
-    "predicted_1mo": 16.37,
-    "predicted_price": 774.95,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-07-31T10:52:28.795723",
-    "current_price": 177.68,
-    "predicted_1mo": 14.27,
-    "predicted_price": 203.04,
-    "score": 74,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "PNB",
-    "timestamp": "2025-07-31T10:52:28.802390",
-    "current_price": 105.38,
-    "predicted_1mo": 15.17,
-    "predicted_price": 121.37,
-    "score": 72,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "IOC",
-    "timestamp": "2025-07-31T10:52:28.804848",
-    "current_price": 145.62,
-    "predicted_1mo": 14.57,
-    "predicted_price": 166.84,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "SAIL",
-    "timestamp": "2025-07-31T10:52:28.807320",
-    "current_price": 124.2,
-    "predicted_1mo": 15.14,
-    "predicted_price": 143.0,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ONGC",
-    "timestamp": "2025-07-31T10:52:28.810203",
-    "current_price": 241.0,
-    "predicted_1mo": 12.1,
-    "predicted_price": 270.17,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-07-31T10:52:28.812621",
-    "current_price": 329.3,
-    "predicted_1mo": 14.53,
-    "predicted_price": 377.16,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-07-31T11:52:24.267021",
-    "current_price": 395.2,
-    "predicted_1mo": 14.11,
-    "predicted_price": 450.97,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATAMOTORS",
-    "timestamp": "2025-07-31T11:52:24.274476",
-    "current_price": 665.95,
-    "predicted_1mo": 16.37,
-    "predicted_price": 774.95,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-07-31T11:52:24.285957",
-    "current_price": 177.68,
-    "predicted_1mo": 14.27,
-    "predicted_price": 203.04,
-    "score": 74,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "PNB",
-    "timestamp": "2025-07-31T11:52:24.291662",
-    "current_price": 105.38,
-    "predicted_1mo": 15.17,
-    "predicted_price": 121.37,
-    "score": 72,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "IOC",
-    "timestamp": "2025-07-31T11:52:24.298654",
-    "current_price": 145.62,
-    "predicted_1mo": 14.57,
-    "predicted_price": 166.84,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "SAIL",
-    "timestamp": "2025-07-31T11:52:24.303747",
-    "current_price": 124.2,
-    "predicted_1mo": 15.14,
-    "predicted_price": 143.0,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ONGC",
-    "timestamp": "2025-07-31T11:52:24.315919",
-    "current_price": 241.0,
-    "predicted_1mo": 12.1,
-    "predicted_price": 270.17,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-07-31T11:52:24.333524",
-    "current_price": 329.3,
-    "predicted_1mo": 14.53,
-    "predicted_price": 377.16,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-07-31T12:52:24.089533",
-    "current_price": 395.2,
-    "predicted_1mo": 14.11,
-    "predicted_price": 450.97,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATAMOTORS",
-    "timestamp": "2025-07-31T12:52:24.091978",
-    "current_price": 665.95,
-    "predicted_1mo": 16.37,
-    "predicted_price": 774.95,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-07-31T12:52:24.100495",
-    "current_price": 177.68,
-    "predicted_1mo": 14.27,
-    "predicted_price": 203.04,
-    "score": 74,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "PNB",
-    "timestamp": "2025-07-31T12:52:24.105089",
-    "current_price": 105.38,
-    "predicted_1mo": 15.17,
-    "predicted_price": 121.37,
-    "score": 72,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "IOC",
-    "timestamp": "2025-07-31T12:52:24.115685",
-    "current_price": 145.62,
-    "predicted_1mo": 14.57,
-    "predicted_price": 166.84,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "SAIL",
-    "timestamp": "2025-07-31T12:52:24.119909",
-    "current_price": 124.2,
-    "predicted_1mo": 15.14,
-    "predicted_price": 143.0,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ONGC",
-    "timestamp": "2025-07-31T12:52:24.130299",
-    "current_price": 241.0,
-    "predicted_1mo": 12.1,
-    "predicted_price": 270.17,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-07-31T12:52:24.134397",
-    "current_price": 329.3,
-    "predicted_1mo": 14.53,
-    "predicted_price": 377.16,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-07-31T13:52:25.587387",
-    "current_price": 395.2,
-    "predicted_1mo": 14.11,
-    "predicted_price": 450.97,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATAMOTORS",
-    "timestamp": "2025-07-31T13:52:25.589301",
-    "current_price": 665.95,
-    "predicted_1mo": 16.37,
-    "predicted_price": 774.95,
-    "score": 77,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-07-31T13:52:25.594092",
-    "current_price": 177.68,
-    "predicted_1mo": 14.27,
-    "predicted_price": 203.04,
-    "score": 74,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "PNB",
-    "timestamp": "2025-07-31T13:52:25.598777",
-    "current_price": 105.38,
-    "predicted_1mo": 15.17,
-    "predicted_price": 121.37,
-    "score": 72,
-    "confidence": 95,
-    "trend_class": "downtrend"
-  },
-  {
-    "symbol": "IOC",
-    "timestamp": "2025-07-31T13:52:25.605950",
-    "current_price": 145.62,
-    "predicted_1mo": 14.57,
-    "predicted_price": 166.84,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "SAIL",
-    "timestamp": "2025-07-31T13:52:25.610385",
-    "current_price": 124.2,
-    "predicted_1mo": 15.14,
-    "predicted_price": 143.0,
-    "score": 71,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ONGC",
-    "timestamp": "2025-07-31T13:52:25.619670",
-    "current_price": 241.0,
-    "predicted_1mo": 12.1,
-    "predicted_price": 270.17,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-07-31T13:52:25.626644",
-    "current_price": 329.3,
-    "predicted_1mo": 14.53,
-    "predicted_price": 377.16,
-    "score": 70,
-    "confidence": 95,
-    "trend_class": "sideways"
-  },
-  {
     "symbol": "ONGC",
     "timestamp": "2025-08-01T15:15:19.351465",
     "current_price": 236.79,
@@ -997,6 +397,606 @@
     "predicted_price": 703.96,
     "score": 70,
     "confidence": 95,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-04T09:00:48.351062",
+    "current_price": 687.45,
+    "predicted_1mo": 15.2,
+    "predicted_price": 791.94,
+    "score": 76,
+    "confidence": 83,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "COALINDIA",
+    "timestamp": "2025-08-04T09:00:48.363813",
+    "current_price": 374.8,
+    "predicted_1mo": 14.2,
+    "predicted_price": 428.02,
+    "score": 71,
+    "confidence": 78,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-08-04T09:00:48.390899",
+    "current_price": 316.5,
+    "predicted_1mo": 13.8,
+    "predicted_price": 360.18,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-04T09:00:48.448812",
+    "current_price": 174.34,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.4,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "PFC",
+    "timestamp": "2025-08-04T09:00:48.534654",
+    "current_price": 412.75,
+    "predicted_1mo": 13.8,
+    "predicted_price": 469.71,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-04T09:00:48.535853",
+    "current_price": 234.9,
+    "predicted_1mo": 13.8,
+    "predicted_price": 267.32,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ITC",
+    "timestamp": "2025-08-04T09:00:48.561986",
+    "current_price": 416.95,
+    "predicted_1mo": 13.6,
+    "predicted_price": 473.66,
+    "score": 68,
+    "confidence": 74,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SBIN",
+    "timestamp": "2025-08-04T09:00:48.590419",
+    "current_price": 793.9,
+    "predicted_1mo": 13.4,
+    "predicted_price": 900.28,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-04T09:00:48.620981",
+    "current_price": 241.25,
+    "predicted_1mo": 13.4,
+    "predicted_price": 273.58,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "TATASTEEL",
+    "timestamp": "2025-08-04T09:00:48.623886",
+    "current_price": 159.24,
+    "predicted_1mo": 13.2,
+    "predicted_price": 180.26,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-04T09:01:10.536372",
+    "current_price": 687.5,
+    "predicted_1mo": 15.2,
+    "predicted_price": 792.0,
+    "score": 76,
+    "confidence": 83,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-04T09:01:10.539176",
+    "current_price": 234.7,
+    "predicted_1mo": 14.8,
+    "predicted_price": 269.44,
+    "score": 74,
+    "confidence": 81,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "COALINDIA",
+    "timestamp": "2025-08-04T09:01:10.547079",
+    "current_price": 374.65,
+    "predicted_1mo": 14.2,
+    "predicted_price": 427.85,
+    "score": 71,
+    "confidence": 78,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-04T09:01:10.559507",
+    "current_price": 174.4,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.47,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ITC",
+    "timestamp": "2025-08-04T09:01:10.564496",
+    "current_price": 416.85,
+    "predicted_1mo": 13.6,
+    "predicted_price": 473.54,
+    "score": 68,
+    "confidence": 74,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "TATASTEEL",
+    "timestamp": "2025-08-04T09:01:10.568278",
+    "current_price": 159.25,
+    "predicted_1mo": 13.2,
+    "predicted_price": 180.27,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "VEDL",
+    "timestamp": "2025-08-04T09:01:10.582345",
+    "current_price": 431.7,
+    "predicted_1mo": 12.8,
+    "predicted_price": 486.96,
+    "score": 64,
+    "confidence": 70,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BHARTIARTL",
+    "timestamp": "2025-08-04T09:01:10.592159",
+    "current_price": 1918.7,
+    "predicted_1mo": 12.4,
+    "predicted_price": 2156.62,
+    "score": 62,
+    "confidence": 68,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-04T09:01:10.598402",
+    "current_price": 241.39,
+    "predicted_1mo": 11.8,
+    "predicted_price": 269.87,
+    "score": 59,
+    "confidence": 64,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "POWERGRID",
+    "timestamp": "2025-08-04T09:01:10.600524",
+    "current_price": 288.85,
+    "predicted_1mo": 11.8,
+    "predicted_price": 322.93,
+    "score": 59,
+    "confidence": 64,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-04T09:01:13.655960",
+    "current_price": 687.55,
+    "predicted_1mo": 14.0,
+    "predicted_price": 783.81,
+    "score": 70,
+    "confidence": 77,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-04T09:01:13.657571",
+    "current_price": 174.4,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.47,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ITC",
+    "timestamp": "2025-08-04T09:01:13.666481",
+    "current_price": 416.85,
+    "predicted_1mo": 13.6,
+    "predicted_price": 473.54,
+    "score": 68,
+    "confidence": 74,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "TATASTEEL",
+    "timestamp": "2025-08-04T09:01:13.680534",
+    "current_price": 159.25,
+    "predicted_1mo": 13.0,
+    "predicted_price": 179.95,
+    "score": 65,
+    "confidence": 71,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "RECLTD",
+    "timestamp": "2025-08-04T09:01:13.692289",
+    "current_price": 393.0,
+    "predicted_1mo": 12.8,
+    "predicted_price": 443.3,
+    "score": 64,
+    "confidence": 70,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "VEDL",
+    "timestamp": "2025-08-04T09:01:13.695898",
+    "current_price": 431.7,
+    "predicted_1mo": 12.8,
+    "predicted_price": 486.96,
+    "score": 64,
+    "confidence": 70,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SAIL",
+    "timestamp": "2025-08-04T09:01:13.718111",
+    "current_price": 125.12,
+    "predicted_1mo": 12.6,
+    "predicted_price": 140.89,
+    "score": 63,
+    "confidence": 69,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "IOC",
+    "timestamp": "2025-08-04T09:01:13.727213",
+    "current_price": 142.08,
+    "predicted_1mo": 12.2,
+    "predicted_price": 159.41,
+    "score": 61,
+    "confidence": 67,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-04T09:01:13.733972",
+    "current_price": 241.39,
+    "predicted_1mo": 11.8,
+    "predicted_price": 269.87,
+    "score": 59,
+    "confidence": 64,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-04T09:01:13.744401",
+    "current_price": 234.7,
+    "predicted_1mo": 11.8,
+    "predicted_price": 262.39,
+    "score": 59,
+    "confidence": 64,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-04T09:01:16.945626",
+    "current_price": 234.73,
+    "predicted_1mo": 14.8,
+    "predicted_price": 269.47,
+    "score": 74,
+    "confidence": 81,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ITC",
+    "timestamp": "2025-08-04T09:01:16.947204",
+    "current_price": 416.85,
+    "predicted_1mo": 14.0,
+    "predicted_price": 475.21,
+    "score": 70,
+    "confidence": 77,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-04T09:01:16.956811",
+    "current_price": 687.5,
+    "predicted_1mo": 14.0,
+    "predicted_price": 783.75,
+    "score": 70,
+    "confidence": 77,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-08-04T09:01:16.961529",
+    "current_price": 316.5,
+    "predicted_1mo": 13.8,
+    "predicted_price": 360.18,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-04T09:01:16.964121",
+    "current_price": 174.36,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.42,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SBIN",
+    "timestamp": "2025-08-04T09:01:16.973357",
+    "current_price": 794.2,
+    "predicted_1mo": 13.4,
+    "predicted_price": 900.62,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-04T09:01:16.990357",
+    "current_price": 241.39,
+    "predicted_1mo": 13.4,
+    "predicted_price": 273.74,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "TATASTEEL",
+    "timestamp": "2025-08-04T09:01:16.993998",
+    "current_price": 159.2,
+    "predicted_1mo": 13.2,
+    "predicted_price": 180.21,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "M&M",
+    "timestamp": "2025-08-04T09:01:17.000377",
+    "current_price": 3205.0,
+    "predicted_1mo": 12.8,
+    "predicted_price": 3615.24,
+    "score": 64,
+    "confidence": 70,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "VEDL",
+    "timestamp": "2025-08-04T09:01:17.005250",
+    "current_price": 431.7,
+    "predicted_1mo": 12.8,
+    "predicted_price": 486.96,
+    "score": 64,
+    "confidence": 70,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-04T09:02:27.271331",
+    "current_price": 687.65,
+    "predicted_1mo": 15.2,
+    "predicted_price": 792.17,
+    "score": 76,
+    "confidence": 83,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-04T09:02:27.275043",
+    "current_price": 234.83,
+    "predicted_1mo": 14.8,
+    "predicted_price": 269.58,
+    "score": 74,
+    "confidence": 81,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "COALINDIA",
+    "timestamp": "2025-08-04T09:02:27.281554",
+    "current_price": 374.6,
+    "predicted_1mo": 14.2,
+    "predicted_price": 427.79,
+    "score": 71,
+    "confidence": 78,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-08-04T09:02:27.287155",
+    "current_price": 316.65,
+    "predicted_1mo": 13.8,
+    "predicted_price": 360.35,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-04T09:02:27.298575",
+    "current_price": 174.5,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.58,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "PFC",
+    "timestamp": "2025-08-04T09:02:27.310300",
+    "current_price": 412.85,
+    "predicted_1mo": 13.8,
+    "predicted_price": 469.82,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ITC",
+    "timestamp": "2025-08-04T09:02:27.322107",
+    "current_price": 416.8,
+    "predicted_1mo": 13.6,
+    "predicted_price": 473.48,
+    "score": 68,
+    "confidence": 74,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SBIN",
+    "timestamp": "2025-08-04T09:02:27.325665",
+    "current_price": 795.05,
+    "predicted_1mo": 13.4,
+    "predicted_price": 901.59,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-04T09:02:27.331768",
+    "current_price": 241.57,
+    "predicted_1mo": 13.4,
+    "predicted_price": 273.94,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "TATASTEEL",
+    "timestamp": "2025-08-04T09:02:27.336831",
+    "current_price": 159.25,
+    "predicted_1mo": 13.2,
+    "predicted_price": 180.27,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-04T09:06:41.307744",
+    "current_price": 686.8,
+    "predicted_1mo": 15.2,
+    "predicted_price": 791.19,
+    "score": 76,
+    "confidence": 83,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "COALINDIA",
+    "timestamp": "2025-08-04T09:06:41.309382",
+    "current_price": 374.7,
+    "predicted_1mo": 14.2,
+    "predicted_price": 427.91,
+    "score": 71,
+    "confidence": 78,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-08-04T09:06:41.311967",
+    "current_price": 316.75,
+    "predicted_1mo": 13.8,
+    "predicted_price": 360.46,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-04T09:06:41.316480",
+    "current_price": 174.35,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.41,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "PFC",
+    "timestamp": "2025-08-04T09:06:41.321066",
+    "current_price": 413.15,
+    "predicted_1mo": 13.8,
+    "predicted_price": 470.16,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-04T09:06:41.323402",
+    "current_price": 234.99,
+    "predicted_1mo": 13.8,
+    "predicted_price": 267.42,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ITC",
+    "timestamp": "2025-08-04T09:06:41.325393",
+    "current_price": 416.9,
+    "predicted_1mo": 13.6,
+    "predicted_price": 473.6,
+    "score": 68,
+    "confidence": 74,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SBIN",
+    "timestamp": "2025-08-04T09:06:41.327751",
+    "current_price": 795.0,
+    "predicted_1mo": 13.4,
+    "predicted_price": 901.53,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-04T09:06:41.329879",
+    "current_price": 241.57,
+    "predicted_1mo": 13.4,
+    "predicted_price": 273.94,
+    "score": 67,
+    "confidence": 73,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "TATASTEEL",
+    "timestamp": "2025-08-04T09:06:41.331984",
+    "current_price": 159.22,
+    "predicted_1mo": 13.2,
+    "predicted_price": 180.24,
+    "score": 66,
+    "confidence": 72,
     "trend_class": "sideways"
   }
 ]
