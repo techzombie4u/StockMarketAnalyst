@@ -37,6 +37,22 @@
             padding: 20px;
         }
 
+        .main-content {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stocks-sidebar {
+            width: 300px;
+            flex-shrink: 0;
+        }
+
+        .chart-section {
+            flex: 1;
+            min-width: 0;
+        }
+
         .header {
             background: var(--card-bg);
             border-radius: 15px;
@@ -183,23 +199,24 @@
         }
 
         .predictions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
         .prediction-card {
             background: var(--card-bg);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
             cursor: pointer;
+            border: 2px solid transparent;
         }
 
         .prediction-card:hover {
-            transform: translateY(-5px);
+            transform: translateX(5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         }
 
         .prediction-card.selected {
@@ -274,6 +291,19 @@
         }
 
         @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .stocks-sidebar {
+                width: 100%;
+                order: 2;
+            }
+
+            .chart-section {
+                order: 1;
+            }
+
             .control-group {
                 flex-direction: column;
                 align-items: stretch;
@@ -289,6 +319,12 @@
 
             .info-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .predictions-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 15px;
             }
         }
     </style>
@@ -314,61 +350,77 @@
                     <button class="view-btn active" data-view="5d" onclick="switchView('5d')">📍 5D View</button>
                     <button class="view-btn" data-view="30d" onclick="switchView('30d')">📍 30D View</button>
                 </div>
+            </div>
+        </div>
 
-                <select id="stockSelector" class="stock-selector" onchange="selectStock()">
-                    <option value="">Select a stock to chart...</option>
-                </select>
+        <div class="main-content">
+            <div class="stocks-sidebar">
+                <div class="controls-section" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: var(--primary-color);">📊 Select Stock</h3>
+                    <select id="stockSelector" class="stock-selector" onchange="selectStock()" style="width: 100%; margin-bottom: 15px;">
+                        <option value="">Select a stock to chart...</option>
+                    </select>
+                    
+                    <div class="lock-controls" style="justify-content: center; margin-bottom: 15px;">
+                        <div class="lock-toggle">
+                            <input type="checkbox" id="lockToggle" class="lock-checkbox" onchange="toggleLock()">
+                            <label for="lockToggle">🔐 Lock Prediction</label>
+                        </div>
+                    </div>
+                </div>
 
-                <div class="lock-controls">
-                    <div class="lock-toggle">
-                        <input type="checkbox" id="lockToggle" class="lock-checkbox" onchange="toggleLock()">
-                        <label for="lockToggle">🔐 Lock Prediction</label>
+                <div id="loadingIndicator" class="loading" style="padding: 20px;">
+                    <h4>⏳ Loading...</h4>
+                    <p>Fetching stock data...</p>
+                </div>
+
+                <div id="predictionsGrid" class="predictions-grid" style="display: none;">
+                    <!-- Dynamic prediction cards will be loaded here -->
+                </div>
+
+                <div id="noData" class="no-data" style="display: none; padding: 20px;">
+                    <h4>📋 No Data</h4>
+                    <p>No predictions available.</p>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <div id="chartContainer" class="chart-container" style="display: none;">
+                    <h3 id="chartTitle">📈 Stock Prediction Chart</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="predictionChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-info">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Current Day</div>
+                                <div id="currentDay" class="info-value">--</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Prediction Change</div>
+                                <div id="predictionChange" class="info-value">--</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Target Progress</div>
+                                <div id="targetProgress" class="info-value">--</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Lock Status</div>
+                                <div id="lockStatus" class="info-value">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chartPlaceholder" class="chart-container" style="display: block;">
+                    <div style="text-align: center; padding: 60px 20px; color: #7f8c8d;">
+                        <h3>📊 Interactive Chart View</h3>
+                        <p>Select a stock from the left sidebar to view its prediction chart</p>
+                        <p>Charts show original predictions, actual progress, and updated predictions</p>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div id="chartContainer" class="chart-container" style="display: none;">
-            <h3 id="chartTitle">📈 Stock Prediction Chart</h3>
-            <div class="chart-wrapper">
-                <canvas id="predictionChart"></canvas>
-            </div>
-            
-            <div class="chart-info">
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">Current Day</div>
-                        <div id="currentDay" class="info-value">--</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Prediction Change</div>
-                        <div id="predictionChange" class="info-value">--</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Target Progress</div>
-                        <div id="targetProgress" class="info-value">--</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Lock Status</div>
-                        <div id="lockStatus" class="info-value">--</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="loadingIndicator" class="loading">
-            <h3>⏳ Loading Prediction Data...</h3>
-            <p>Fetching stock predictions and tracking data...</p>
-        </div>
-
-        <div id="predictionsGrid" class="predictions-grid" style="display: none;">
-            <!-- Dynamic prediction cards will be loaded here -->
-        </div>
-
-        <div id="noData" class="no-data" style="display: none;">
-            <h3>📋 No Prediction Data Found</h3>
-            <p>No predictions available for interactive tracking.</p>
-            <p>Run the stock screener to generate predictions and start tracking.</p>
         </div>
     </div>
 
@@ -636,10 +688,12 @@
 
         function showChart() {
             document.getElementById('chartContainer').style.display = 'block';
+            document.getElementById('chartPlaceholder').style.display = 'none';
         }
 
         function hideChart() {
             document.getElementById('chartContainer').style.display = 'none';
+            document.getElementById('chartPlaceholder').style.display = 'block';
         }
 
         function updateChart() {
@@ -651,7 +705,17 @@
             
             // Prepare chart data
             const days = currentView === '5d' ? 5 : 30;
-            const labels = Array.from({length: days}, (_, i) => `Day ${i + 1}`);
+            
+            // Generate actual date labels
+            const startDate = new Date(data.start_date || new Date());
+            const labels = Array.from({length: days}, (_, i) => {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + i);
+                return date.toLocaleDateString('en-IN', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            });
             
             const predictedKey = `predicted_${currentView}`;
             const actualKey = `actual_progress_${currentView}`;
@@ -745,7 +809,7 @@
                         x: {
                             title: {
                                 display: true,
-                                text: 'Trading Days'
+                                text: 'Date'
                             }
                         }
                     },
