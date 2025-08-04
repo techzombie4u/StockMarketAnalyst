@@ -95,17 +95,6 @@ def check_file_integrity():
         # Read the file safely with performance optimization
         try:
             with open('top10.json', 'r', encoding='utf-8') as f:
-                'stocks': [],
-                'status': 'initial',
-                'last_updated': initial_data['last_updated'],
-                'timestamp': initial_data['timestamp'],
-                'stockCount': 0,
-                'backtesting': {'status': 'no_data'}
-            })
-
-        # Read the file safely with performance optimization
-        try:
-            with open('top10.json', 'r', encoding='utf-8') as f:
                 content = f.read().strip()
                 if not content:
                     logger.warning("Empty JSON file detected")
@@ -194,7 +183,6 @@ def check_file_integrity():
                     'backtesting': {'status': 'error'},
                     'error': str(recovery_error)
                 }), 500
-
 
         # Add backtesting summary
         try:

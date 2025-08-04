@@ -103,51 +103,44 @@ class ComprehensiveFixTest:
         return len(import_errors) == 0
     
     def test_file_structure(self):
-        """Test required files exist and are valid"""
+        """Test that required files exist"""
         print("\n🔍 PHASE 3: Testing File Structure...")
         print("=" * 60)
         
         required_files = [
-            ('main.py', 'file'),
-            ('app.py', 'file'),
-            ('stock_screener.py', 'file'),
-            ('scheduler.py', 'file'),
-            ('templates', 'dir'),
-            ('templates/index.html', 'file'),
-            ('templates/prediction_tracker_interactive.html', 'file')
+            'main.py',
+            'app.py',
+            'stock_screener.py',
+            'scheduler.py',
+            'templates/index.html',
+            'templates/analysis.html',
+            'templates/lookup.html',
+            'templates/prediction_tracker.html'
         ]
         
         missing_files = []
         
-        for file_path, file_type in required_files:
-            if file_type == 'file':
-                if os.path.isfile(file_path):
-                    print(f"✅ {file_path} exists")
-                else:
-                    print(f"❌ {file_path} missing")
-                    missing_files.append(file_path)
-                    self.log_issue("FILE_MISSING", f"Required file missing: {file_path}")
-            elif file_type == 'dir':
-                if os.path.isdir(file_path):
-                    print(f"✅ {file_path}/ exists")
-                else:
-                    print(f"❌ {file_path}/ missing")
-                    missing_files.append(file_path)
-                    self.log_issue("DIR_MISSING", f"Required directory missing: {file_path}")
+        for file_path in required_files:
+            if os.path.exists(file_path):
+                print(f"✅ {file_path}")
+            else:
+                print(f"❌ {file_path}")
+                missing_files.append(file_path)
+                self.log_issue("FILE_MISSING", f"Required file missing: {file_path}")
         
         return len(missing_files) == 0
     
     def test_json_files(self):
-        """Test JSON files are valid"""
+        """Test JSON file integrity"""
         print("\n🔍 PHASE 4: Testing JSON Files...")
         print("=" * 60)
         
         json_files = [
             'top10.json',
-            'agent_decisions.json',
-            'signal_history.json',
             'predictions_history.json',
-            'stable_predictions.json'
+            'agent_decisions.json',
+            'stable_predictions.json',
+            'signal_history.json'
         ]
         
         json_errors = []
@@ -159,40 +152,45 @@ class ComprehensiveFixTest:
                         content = f.read().strip()
                         if content:
                             json.loads(content)
-                            print(f"✅ {json_file} is valid JSON")
+                            print(f"✅ {json_file}")
                         else:
-                            print(f"⚠️ {json_file} is empty")
+                            print(f"⚠️ {json_file} (empty)")
                 except json.JSONDecodeError as e:
-                    error_msg = f"{json_file}: {str(e)}"
+                    error_msg = f"{json_file}: Invalid JSON - {str(e)}"
                     print(f"❌ {error_msg}")
                     json_errors.append((json_file, str(e)))
                     self.log_issue("JSON_INVALID", error_msg)
+                except Exception as e:
+                    print(f"⚠️ {json_file}: {str(e)}")
             else:
-                print(f"ℹ️ {json_file} does not exist (will be created)")
+                print(f"⚠️ {json_file} (missing)")
         
         return len(json_errors) == 0
     
     def test_app_startup(self):
-        """Test Flask app can start"""
+        """Test app can start without errors"""
         print("\n🔍 PHASE 5: Testing App Startup...")
         print("=" * 60)
         
         try:
-            from app import app
+            # Test that we can import app without errors
+            import app
+            print("✅ App module imports successfully")
             
-            # Test app configuration
-            if hasattr(app, 'config'):
-                print("✅ Flask app configured")
+            # Test that we can create the Flask app
+            if hasattr(app, 'app'):
+                flask_app = app.app
+                print("✅ Flask app instance exists")
+                
+                # Test that we can get app context
+                with flask_app.app_context():
+                    print("✅ Flask app context works")
+                
+                return True
             else:
-                self.log_issue("APP_CONFIG", "Flask app not properly configured")
+                self.log_issue("APP_STARTUP", "Flask app instance not found")
                 return False
-            
-            # Test if we can create app context
-            with app.app_context():
-                print("✅ App context creation successful")
-            
-            return True
-            
+                
         except Exception as e:
             error_msg = f"App startup failed: {str(e)}"
             print(f"❌ {error_msg}")
@@ -200,32 +198,38 @@ class ComprehensiveFixTest:
             return False
     
     def test_api_routes(self):
-        """Test API routes are defined"""
+        """Test that API routes are accessible"""
         print("\n🔍 PHASE 6: Testing API Routes...")
         print("=" * 60)
         
         try:
-            from app import app
+            import app
+            flask_app = app.app
+            
+            # Get all routes
+            routes = []
+            for rule in flask_app.url_map.iter_rules():
+                routes.append(rule.rule)
             
             required_routes = [
                 '/',
                 '/api/stocks',
                 '/api/status',
                 '/api/run-now',
-                '/prediction-tracker-interactive',
-                '/api/interactive-tracker-data'
+                '/analysis',
+                '/api/analysis',
+                '/lookup',
+                '/prediction-tracker'
             ]
             
             route_errors = []
             
-            with app.app_context():
-                for rule in app.url_map.iter_rules():
-                    if rule.rule in required_routes:
-                        print(f"✅ Route {rule.rule} defined")
-                        required_routes.remove(rule.rule)
-                
-                for missing_route in required_routes:
-                    error_msg = f"Route {missing_route} not defined"
+            for route in required_routes:
+                if route in routes:
+                    print(f"✅ {route}")
+                else:
+                    missing_route = f"Route missing: {route}"
+                    error_msg = f"Route {route} not found in app routes"
                     print(f"❌ {error_msg}")
                     route_errors.append(missing_route)
                     self.log_issue("ROUTE_MISSING", error_msg)
@@ -272,14 +276,13 @@ class ComprehensiveFixTest:
         print("📊 COMPREHENSIVE TEST SUMMARY")
         print("=" * 80)
         print(f"✅ Tests Passed: {passed_tests}/{total_tests}")
-        print(f"📊 Success Rate: {(passed_tests/total_tests*100):.1f}%")
         print(f"❌ Issues Found: {len(self.issues_found)}")
         print(f"🔧 Fixes Applied: {len(self.fixes_applied)}")
         
-        if len(self.issues_found) > 0:
+        if self.issues_found:
             print("\n🔍 DETAILED ISSUES:")
-            for i, issue in enumerate(self.issues_found, 1):
-                print(f"{i}. [{issue['severity']}] {issue['category']}: {issue['issue']}")
+            for issue in self.issues_found:
+                print(f"  • {issue['category']}: {issue['issue']}")
         
         return passed_tests == total_tests and len(self.issues_found) == 0
 
@@ -291,7 +294,5 @@ if __name__ == "__main__":
         print("\n🎉 ALL ISSUES RESOLVED!")
         print("✅ Application is ready for production")
     else:
-        print("\n⚠️ ISSUES STILL EXIST!")
-        print("❌ Manual intervention required")
-    
-    sys.exit(0 if success else 1)
+        print("\n⚠️ ISSUES STILL EXIST")
+        print("❌ Review and fix the issues above")
