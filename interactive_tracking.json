@@ -1,7 +1,7 @@
 {
   "TESTSTOCK": {
     "symbol": "TESTSTOCK",
-    "start_date": "2025-08-04",
+    "start_date": "2025-08-05",
     "current_price": 100.0,
     "confidence": 85,
     "score": 75,
@@ -128,7 +128,7 @@
     "locked_30d": false,
     "lock_date_5d": null,
     "lock_date_30d": null,
-    "last_updated": "2025-08-04T21:49:45.562929+05:30",
+    "last_updated": "2025-08-05T06:58:47.716349+05:30",
     "days_tracked": 0
   }
 }
