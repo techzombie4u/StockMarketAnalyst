@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 # Global set to track alerted stocks (avoid duplicate alerts)
 alerted_stocks = set()
 
+# Global variables for session tracking
+total_sessions_run = 0
+successful_sessions = 0
+
 def convert_numpy_types(obj):
     """Convert numpy types to native Python types for JSON serialization"""
     if isinstance(obj, np.integer):
@@ -34,7 +38,7 @@ def convert_numpy_types(obj):
     elif isinstance(obj, dict):
         return {key: convert_numpy_types(value) for key, value in obj.items()}
     elif isinstance(obj, list):
-        return [convert_numpy_types(item) for item in obj]
+        return [convert_numpy_types(item) for item in obj.tolist()]
     else:
         return obj
 
@@ -66,9 +70,17 @@ def send_alerts(stocks):
     for stock in stocks:
         logger.info(f"🚨 HIGH SCORE ALERT: {stock['symbol']} - Score: {stock['score']}")
 
+def record_successful_session(num_stocks, status):
+    """Records a successful screening session."""
+    global total_sessions_run, successful_sessions
+    total_sessions_run += 1
+    if status == 'success' and num_stocks > 0:
+        successful_sessions += 1
+    logger.info(f"Session recorded: Total runs={total_sessions_run}, Successful runs={successful_sessions}")
+
 def run_screening_job():
     """Execute stock screening and save results (standalone function)"""
-    global alerted_stocks
+    global alerted_stocks, total_sessions_run, successful_sessions
 
     try:
         logger.info("Starting scheduled stock screening...")
@@ -82,24 +94,30 @@ def run_screening_job():
         # Run screening with better error handling
         start_time = time.time()
         results = []
+        session_status = 'error' # Default status
         try:
             # Check if screener is properly initialized
             if not hasattr(screener, 'under500_symbols'):
                 logger.error("Screener not properly initialized")
                 results = screener._generate_fallback_data()
+                session_status = 'fallback_error'
             else:
                 results = screener.run_enhanced_screener()
+                session_status = 'success' # Assuming success if no exception
 
         except SyntaxError as se:
             logger.error(f"Syntax error in screener: {se}")
             results = screener._generate_fallback_data() if screener else []
+            session_status = 'syntax_error'
         except Exception as e:
             logger.error(f"Screening failed: {e}")
             # Try fallback data generation
             try:
                 results = screener._generate_fallback_data() if screener else []
+                session_status = 'fallback_generated'
             except:
                 results = []
+                session_status = 'failed'
 
         # Add timestamp in IST
         ist = pytz.timezone('Asia/Kolkata')
@@ -128,13 +146,16 @@ def run_screening_job():
             if valid_results:
                 # Save results with timestamp
                 results_data = {
-                    'status': 'success',
+                    'status': session_status, # Use the determined session status
                     'stocks': valid_results,
                     'last_updated': now_ist.strftime('%d/%m/%Y, %H:%M:%S'),
                     'timestamp': now_ist.isoformat(),
                     'total_stocks': len(valid_results),
                     'screening_time': f"{time.time() - start_time:.2f} seconds"
                 }
+
+                # Record successful session based on status and number of stocks
+                record_successful_session(len(valid_results), results_data.get('status'))
 
                 # Record predictions for backtesting
                 try:
@@ -167,15 +188,21 @@ def run_screening_job():
 
             else:
                 logger.warning("No valid results after processing")
+                session_status = 'no_valid_results' # Update status if no valid results
+
         else:
             logger.warning("No results from screening")
+            session_status = 'no_results' # Update status if no results
+
+        # Record session outcome even if there were no results or valid results
+        record_successful_session(len(results) if 'results' in locals() and results is not None else 0, session_status)
 
         # Save empty/error state
         error_data = {
             'timestamp': now_ist.isoformat(),
             'last_updated': now_ist.strftime('%d/%m/%Y, %H:%M:%S'),
             'stocks': [],
-            'status': 'no_data'
+            'status': session_status if 'session_status' in locals() else 'unknown_error'
         }
 
         try:
@@ -197,7 +224,7 @@ def run_screening_job():
                 'timestamp': now_ist.isoformat(),
                 'last_updated': now_ist.strftime('%d/%m/%Y, %H:%M:%S'),
                 'stocks': [],
-                'status': 'error',
+                'status': 'critical_error',
                 'error': str(e)[:200]
             }
 
