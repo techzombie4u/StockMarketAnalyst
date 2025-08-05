@@ -160,6 +160,32 @@
             padding: 25px;
             margin-bottom: 30px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .chart-container.locked {
+            border: 3px solid #ffd700;
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(135deg, #ffffff 0%, #fffef7 100%);
+        }
+
+        .chart-container {
+            position: relative;
+        }
+
+        .chart-container.locked::before {
+            content: "🔒 DATES LOCKED";
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ffd700;
+            color: #8b6914;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .chart-wrapper {
@@ -473,6 +499,7 @@
             const lockToggle = document.getElementById('lockToggle');
             const isLocked = lockToggle.checked;
             const lockKey = `locked_${currentView}`;
+            const lockStartDateKey = `lock_start_date_${currentView}`;
             
             // Update prediction data
             if (!predictionData[selectedStock]) {
@@ -482,12 +509,22 @@
             predictionData[selectedStock][lockKey] = isLocked;
             predictionData[selectedStock][`lock_date_${currentView}`] = isLocked ? new Date().toISOString().split('T')[0] : null;
             
+            // Store lock start date for fixed date ranges
+            if (isLocked) {
+                predictionData[selectedStock][lockStartDateKey] = new Date().toISOString().split('T')[0];
+                console.log(`🔒 Locking ${selectedStock} ${currentView} with start date: ${predictionData[selectedStock][lockStartDateKey]}`);
+            } else {
+                predictionData[selectedStock][lockStartDateKey] = null;
+                console.log(`🔓 Unlocking ${selectedStock} ${currentView} - dates will revert to dynamic`);
+            }
+            
             // Save to backend
             saveLockStatus(selectedStock, currentView, isLocked);
             
-            // Update UI
+            // Update UI and chart
             updateLockStatus();
             updatePredictionCards();
+            updateChart(); // Refresh chart to show new date behavior
             
             console.log(`${isLocked ? 'Locked' : 'Unlocked'} ${selectedStock} for ${currentView}`);
         }
@@ -646,6 +683,8 @@
                 locked_30d: false,
                 lock_date_5d: null,
                 lock_date_30d: null,
+                lock_start_date_5d: null,
+                lock_start_date_30d: null,
                 trading_days_completed: tradingDaysCompleted,
                 last_market_update: marketClosedToday ? new Date().toISOString() : null
             };
@@ -738,28 +777,60 @@
             
             const data = predictionData[selectedStock];
             const chartTitle = document.getElementById('chartTitle');
-            chartTitle.textContent = `📈 ${selectedStock} - ${currentView.toUpperCase()} Prediction Tracking`;
+            
+            // Check if prediction is locked for current view
+            const isLocked = data[`locked_${currentView}`] || false;
+            const lockStartDate = data[`lock_start_date_${currentView}`];
+            
+            // Update title with lock indicator
+            const lockIndicator = isLocked ? ' 🔒 LOCKED' : '';
+            chartTitle.textContent = `📈 ${selectedStock} - ${currentView.toUpperCase()} Prediction Tracking${lockIndicator}`;
             
             // Prepare chart data
             const days = currentView === '5d' ? 5 : 30;
             
-            // Generate real calendar date labels (excluding weekends for trading days)
-            const startDate = new Date(data.start_date || new Date());
-            const labels = [];
-            let currentDate = new Date(startDate);
-            let addedDays = 0;
+            let labels = [];
             
-            while (addedDays < days) {
-                // Only add trading days (Monday to Friday)
-                if (currentDate.getDay() >= 1 && currentDate.getDay() <= 5) {
-                    labels.push(currentDate.toLocaleDateString('en-IN', { 
-                        month: 'short', 
-                        day: 'numeric',
-                        weekday: 'short'
-                    }));
-                    addedDays++;
+            // Generate date labels based on lock status
+            if (isLocked && lockStartDate) {
+                // Use FIXED dates from lock start date
+                const startDate = new Date(lockStartDate);
+                let currentDate = new Date(startDate);
+                let addedDays = 0;
+                
+                while (addedDays < days) {
+                    // Only add trading days (Monday to Friday)
+                    if (currentDate.getDay() >= 1 && currentDate.getDay() <= 5) {
+                        labels.push(currentDate.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric'
+                        })); // e.g., "Aug 4"
+                        addedDays++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
                 }
-                currentDate.setDate(currentDate.getDate() + 1);
+                
+                console.log(`🔒 Using LOCKED dates for ${selectedStock} ${currentView}: ${lockStartDate} -> ${labels[0]} to ${labels[labels.length-1]}`);
+            } else {
+                // Use DYNAMIC dates from current date (normal behavior)
+                const startDate = new Date(data.start_date || new Date());
+                let currentDate = new Date(startDate);
+                let addedDays = 0;
+                
+                while (addedDays < days) {
+                    // Only add trading days (Monday to Friday)
+                    if (currentDate.getDay() >= 1 && currentDate.getDay() <= 5) {
+                        labels.push(currentDate.toLocaleDateString('en-IN', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            weekday: 'short'
+                        }));
+                        addedDays++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                console.log(`🔓 Using DYNAMIC dates for ${selectedStock} ${currentView}`);
             }
             
             const predictedKey = `predicted_${currentView}`;
@@ -790,6 +861,14 @@
                 }
                 return null; // No updated prediction if no actual data yet
             });
+            
+            // Update chart container styling based on lock status
+            const chartContainer = document.getElementById('chartContainer');
+            if (isLocked) {
+                chartContainer.classList.add('locked');
+            } else {
+                chartContainer.classList.remove('locked');
+            }
             
             // Destroy existing chart
             if (chart) {

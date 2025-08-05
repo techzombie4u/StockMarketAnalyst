@@ -1082,6 +1082,8 @@ def initialize_empty_tracking_data():
                     'locked_30d': False,
                     'lock_date_5d': None,
                     'lock_date_30d': None,
+                    'lock_start_date_5d': None,
+                    'lock_start_date_30d': None,
                     'last_updated': datetime.now(IST).isoformat(),
                     'days_tracked': 0
                 }

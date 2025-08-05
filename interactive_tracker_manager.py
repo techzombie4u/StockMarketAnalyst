@@ -178,7 +178,7 @@ class InteractiveTrackerManager:
             return False
 
     def update_lock_status(self, symbol, period, locked, timestamp=None):
-        """Update lock status for a stock prediction"""
+        """Update lock status for a stock prediction with date-locking functionality"""
         try:
             if symbol not in self.tracking_data:
                 logger.warning(f"Stock {symbol} not found in tracking data")
@@ -187,13 +187,23 @@ class InteractiveTrackerManager:
             stock_data = self.tracking_data[symbol]
             lock_key = f'locked_{period}'
             lock_date_key = f'lock_date_{period}'
+            lock_start_date_key = f'lock_start_date_{period}'
 
             stock_data[lock_key] = locked
 
             if locked:
-                stock_data[lock_date_key] = timestamp or datetime.now(IST).isoformat()
+                current_time = datetime.now(IST)
+                stock_data[lock_date_key] = timestamp or current_time.isoformat()
+                
+                # Store the exact date when locking occurred for fixed date ranges
+                stock_data[lock_start_date_key] = current_time.strftime('%Y-%m-%d')
+                
+                logger.info(f"🔒 Locked {symbol} {period} with start date: {stock_data[lock_start_date_key]}")
             else:
                 stock_data[lock_date_key] = None
+                stock_data[lock_start_date_key] = None
+                
+                logger.info(f"🔓 Unlocked {symbol} {period} - dates will revert to dynamic")
 
             stock_data['last_updated'] = datetime.now(IST).isoformat()
 
@@ -378,6 +388,45 @@ class InteractiveTrackerManager:
         except Exception as e:
             logger.error(f"Error in cleanup: {str(e)}")
             return 0
+
+    def generate_locked_date_labels(self, symbol, period):
+        """Generate fixed date labels for locked predictions"""
+        try:
+            if symbol not in self.tracking_data:
+                return []
+
+            stock_data = self.tracking_data[symbol]
+            lock_start_date_key = f'lock_start_date_{period}'
+            locked_key = f'locked_{period}'
+
+            # Only generate locked dates if prediction is actually locked
+            if not stock_data.get(locked_key, False) or not stock_data.get(lock_start_date_key):
+                return []
+
+            # Parse the lock start date
+            lock_start_date = datetime.strptime(stock_data[lock_start_date_key], '%Y-%m-%d')
+            
+            # Determine number of days based on period
+            days = 5 if period == '5d' else 30
+            
+            # Generate absolute date labels from lock start date
+            labels = []
+            current_date = lock_start_date
+            added_days = 0
+            
+            while added_days < days:
+                # Only add trading days (Monday to Friday)
+                if current_date.weekday() < 5:  # Monday = 0, Friday = 4
+                    labels.append(current_date.strftime('%b %d'))  # e.g., "Aug 4"
+                    added_days += 1
+                current_date += timedelta(days=1)
+            
+            logger.info(f"📅 Generated locked date labels for {symbol} {period}: {lock_start_date_key} -> {len(labels)} dates")
+            return labels
+
+        except Exception as e:
+            logger.error(f"Error generating locked date labels for {symbol}: {str(e)}")
+            return []
 
     def get_summary_stats(self):
         """Get summary statistics for tracking"""
