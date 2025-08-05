@@ -84,6 +84,7 @@ def get_stocks():
 
             # Try to recover by creating fresh data
             try:
+                logger.info("Attempting to recover from JSON parsing error...")
                 ist_now = datetime.now(IST)
 
                 # Try to run a quick screening to get fresh data
@@ -104,7 +105,8 @@ def get_stocks():
                                 scored = screener.enhanced_score_and_rank(stocks_data)
                                 if scored:
                                     quick_results.extend(scored)
-                        except:
+                        except Exception as recovery_symbol_error:
+                            logger.warning(f"Error processing symbol for recovery {symbol}: {recovery_symbol_error}")
                             continue
 
                     if quick_results:
@@ -187,8 +189,12 @@ def get_stocks():
                     from datetime import datetime
                     parsed_date = datetime.strptime(timestamp.split(',')[0], '%d/%m/%Y')
                     timestamp = parsed_date.strftime('%Y-%m-%dT%H:%M:%S')
-            except:
+            except Exception as ts_error:
+                logger.warning(f"Timestamp format issue: {ts_error}")
                 timestamp = datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S')
+        elif not timestamp:
+            timestamp = datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S')
+
 
         # Validate stocks data and ensure all required fields
         valid_stocks = []
@@ -196,7 +202,7 @@ def get_stocks():
             if isinstance(stock, dict) and 'symbol' in stock:
                 # Ensure required fields exist with proper defaults - handle None values
                 score_value = stock.get('score', 50.0)
-                if score_value is None or score_value == 'null' or score_value == 'undefined':
+                if score_value is None or str(score_value).strip().lower() in ['null', 'undefined', '']:
                     score_value = 50.0
                 try:
                     score = float(score_value)
@@ -204,7 +210,7 @@ def get_stocks():
                     score = 50.0
 
                 price_value = stock.get('current_price', 0.0)
-                if price_value is None or price_value == 'null' or price_value == 'undefined':
+                if price_value is None or str(price_value).strip().lower() in ['null', 'undefined', '']:
                     price_value = 0.0
                 try:
                     current_price = float(price_value)
@@ -228,16 +234,15 @@ def get_stocks():
                 numeric_fields = ['score', 'current_price', 'predicted_gain', 'confidence', 'pred_5d', 'pred_1mo', 'pe_ratio']
                 for field in numeric_fields:
                     value = stock.get(field)
-                    if (value is None or 
-                        value == 'null' or 
-                        value == 'undefined' or
-                        value == '' or
+                    if (value is None or
+                        str(value).strip().lower() in ['null', 'undefined', ''] or
                         str(value).strip() == ''):
                         stock[field] = 0.0
                     else:
                         try:
                             stock[field] = float(value)
                         except (ValueError, TypeError, AttributeError):
+                            logger.warning(f"Could not convert {field} to float for symbol {stock.get('symbol')}, value: {value}")
                             stock[field] = 0.0
 
                 # Ensure string fields are properly sanitized
@@ -253,10 +258,8 @@ def get_stocks():
                 for field, default_value in string_defaults.items():
                     value = stock.get(field)
                     # Handle all possible problematic values
-                    if (value is None or 
-                        value == 'null' or 
-                        value == 'undefined' or 
-                        value == '' or
+                    if (value is None or
+                        str(value).strip().lower() in ['null', 'undefined', ''] or
                         str(value).strip() == ''):
                         stock[field] = default_value
                     else:
@@ -265,10 +268,11 @@ def get_stocks():
                             str_value = str(value).strip()
                             stock[field] = str_value if str_value else default_value
                         except (ValueError, TypeError, AttributeError):
+                            logger.warning(f"Could not process string field {field} for symbol {stock.get('symbol')}, value: {value}")
                             stock[field] = default_value
 
                 # Ensure critical fields exist
-                if not stock.get('symbol'):
+                if not stock.get('symbol') or stock.get('symbol') == 'UNKNOWN':
                     continue  # Skip stocks without symbol
 
                 valid_stocks.append(stock)
@@ -293,7 +297,6 @@ def get_stocks():
 
     except Exception as e:
         logger.error(f"Error in /api/stocks: {str(e)}")
-        from datetime import datetime
         return jsonify({
             'status': 'error',
             'stocks': [],
@@ -306,7 +309,7 @@ def check_file_integrity():
     """Check integrity of critical files"""
     critical_files = [
         'top10.json',
-        'predictions_history.json', 
+        'predictions_history.json',
         'agent_decisions.json',
         'stable_predictions.json',
         'signal_history.json'
@@ -324,15 +327,13 @@ def check_file_integrity():
                 with open(file_path, 'w') as f:
                     json.dump({}, f)
         except (json.JSONDecodeError, IOError) as e:
+            logger.warning(f"File integrity issue with {file_path}: {e}. Attempting to fix.")
             # Fix corrupted file
             try:
                 with open(file_path, 'w') as f:
                     json.dump({}, f)
             except IOError:
-                pass
-
-    # Read the file safely with performance optimization
-
+                logger.error(f"Failed to fix corrupted file: {file_path}")
 
 def get_scheduler_status():
     """Get current scheduler status"""
@@ -340,10 +341,14 @@ def get_scheduler_status():
     if scheduler is None:
         return {'running': False, 'message': 'Scheduler not initialized'}
     try:
-        return {
-            'running': scheduler.scheduler.running,
-            'message': 'Scheduler active' if scheduler.scheduler.running else 'Scheduler idle'
-        }
+        # Safely access scheduler attributes
+        if hasattr(scheduler, 'scheduler') and scheduler.scheduler:
+            return {
+                'running': scheduler.scheduler.running,
+                'message': 'Scheduler active' if scheduler.scheduler.running else 'Scheduler idle'
+            }
+        else:
+            return {'running': False, 'message': 'Scheduler internal state unavailable'}
     except Exception as e:
         logger.error(f"Could not get scheduler status: {str(e)}")
         return {'running': False, 'message': str(e)}
@@ -355,35 +360,39 @@ def check_data_freshness():
             return {'fresh': False, 'message': 'No data file found'}
         with open('top10.json', 'r') as f:
             data = json.load(f)
-            timestamp = data.get('timestamp')
-            if not timestamp:
+            timestamp_str = data.get('timestamp')
+            if not timestamp_str:
                 return {'fresh': False, 'message': 'No timestamp in data'}
 
             # Convert timestamp to datetime object with timezone handling
             try:
-                if 'T' in str(timestamp):
-                    data_datetime = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                # Attempt to parse ISO format first (YYYY-MM-DDTHH:MM:SS)
+                if 'T' in timestamp_str:
+                    # Handle potential timezone info like 'Z' or '+00:00'
+                    if timestamp_str.endswith('Z'):
+                        timestamp_str = timestamp_str[:-1] + '+00:00'
+                    data_datetime = datetime.fromisoformat(timestamp_str)
                 else:
-                    # Handle different timestamp formats
-                    data_datetime = datetime.strptime(timestamp, '%d/%m/%Y, %H:%M:%S')
-            except:
-                # If parsing fails, assume data is fresh to avoid errors
+                    # Handle fallback format like 'DD/MM/YYYY, HH:MM:SS'
+                    data_datetime = datetime.strptime(timestamp_str, '%d/%m/%Y, %H:%M:%S')
+            except ValueError as ts_parse_error:
+                logger.warning(f"Could not parse timestamp '{timestamp_str}': {ts_parse_error}")
+                # If parsing fails, assume data is fresh to avoid errors in dashboard
                 return {'fresh': True, 'message': 'Could not parse timestamp, assuming fresh'}
 
-            # Use timezone-aware comparison
-            now = datetime.now()
-            if data_datetime.tzinfo is not None:
-                now = now.replace(tzinfo=data_datetime.tzinfo)
-            elif now.tzinfo is not None:
-                data_datetime = data_datetime.replace(tzinfo=now.tzinfo)
+            # Ensure timezone awareness for comparison
+            now_dt = datetime.now(IST) # Use IST for comparison
+            if data_datetime.tzinfo is None:
+                # If data_datetime is naive, assume it's in IST and make it aware
+                data_datetime = IST.localize(data_datetime)
 
-            age = now - data_datetime
+            age = now_dt - data_datetime
 
             # Consider data fresh if less than 2 hours old
             if age.total_seconds() < 7200:
-                return {'fresh': True, 'message': 'Data is up to date'}
+                return {'fresh': True, 'message': f'Data is up to date (age: {age})'}
             else:
-                return {'fresh': False, 'message': f'Data is {age} old'}
+                return {'fresh': False, 'message': f'Data is stale (age: {age})'}
     except Exception as e:
         logger.error(f"Could not check data freshness: {str(e)}")
         return {'fresh': False, 'message': str(e)}
@@ -393,7 +402,7 @@ def load_stock_data():
     try:
         if not os.path.exists('top10.json'):
             return {'stocks': [], 'status': 'no_data', 'message': 'No data file'}
-        with open('top10.json', 'r') as f:
+        with open('top10.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
         return data
     except Exception as e:
@@ -404,23 +413,23 @@ def load_screening_sessions_count():
     """Load and count successful screening sessions"""
     try:
         sessions_file = 'screening_sessions.json'
-        
+
         if os.path.exists(sessions_file):
             with open(sessions_file, 'r') as f:
                 sessions_data = json.load(f)
                 # Count only successful sessions
-                successful_sessions = [s for s in sessions_data.get('sessions', []) 
+                successful_sessions = [s for s in sessions_data.get('sessions', [])
                                      if s.get('status') == 'success' and s.get('stocks_count', 0) > 0]
                 return len(successful_sessions)
-        
+
         # Fallback: count based on existing data and estimate from console logs
         current_data = load_stock_data()
         if current_data.get('status') == 'success' and current_data.get('stocks'):
             # Initialize with at least 1 session if we have successful data
             return max(1, estimate_sessions_from_logs())
-        
+
         return 0
-        
+
     except Exception as e:
         logger.error(f"Error loading sessions count: {str(e)}")
         return 0
@@ -431,13 +440,13 @@ def estimate_sessions_from_logs():
         # Check for prediction history files which indicate screening activity
         files_to_check = [
             'predictions_history.json',
-            'agent_decisions.json', 
+            'agent_decisions.json',
             'signal_history.json',
             'stable_predictions.json'
         ]
-        
+
         estimated_sessions = 0
-        
+
         for file_path in files_to_check:
             if os.path.exists(file_path):
                 try:
@@ -447,12 +456,13 @@ def estimate_sessions_from_logs():
                             estimated_sessions += len(data)
                         elif isinstance(data, dict):
                             estimated_sessions += len(data.keys())
-                except:
+                except Exception as file_read_error:
+                    logger.warning(f"Error reading {file_path} for session estimation: {file_read_error}")
                     continue
-        
+
         # Conservative estimate: each 5 history entries = 1 successful session
         return max(1, estimated_sessions // 5)
-        
+
     except Exception as e:
         logger.error(f"Error estimating sessions: {str(e)}")
         return 1
@@ -462,10 +472,10 @@ def calculate_historical_accuracy(sessions_count, high_score_count, total_stocks
     try:
         if sessions_count == 0 or total_stocks == 0:
             return 0
-        
+
         # Base accuracy from current session
         current_accuracy = (high_score_count / total_stocks) * 100
-        
+
         # Adjust based on session maturity
         if sessions_count >= 20:
             # Mature system - use realistic accuracy
@@ -479,9 +489,9 @@ def calculate_historical_accuracy(sessions_count, high_score_count, total_stocks
         else:
             # Very new system
             historical_accuracy = min(55, current_accuracy * 0.9)
-        
+
         return round(historical_accuracy, 1)
-        
+
     except Exception as e:
         logger.error(f"Error calculating accuracy: {str(e)}")
         return 30.0
@@ -490,7 +500,7 @@ def generate_real_time_insights(sessions_count, total_stocks, high_score_stocks,
     """Generate insights based on real session data"""
     try:
         insights = []
-        
+
         # Session-based insights
         if sessions_count >= 20:
             insights.append(f"🎯 Excellent! {sessions_count} successful screening sessions completed")
@@ -504,18 +514,18 @@ def generate_real_time_insights(sessions_count, total_stocks, high_score_stocks,
         else:
             insights.append(f"🌱 Early stage: {sessions_count} sessions recorded")
             insights.append("⏳ Run more screenings to build prediction confidence")
-        
+
         # Current performance insights
         if total_stocks > 0:
             insights.append(f"📈 Current analysis: {total_stocks} stocks, {high_score_stocks} high-quality")
-            
+
             if avg_score >= 70:
                 insights.append("⭐ Excellent average score - strong market conditions")
             elif avg_score >= 60:
                 insights.append("✅ Good average score - stable market performance")
             else:
                 insights.append("⚠️ Lower scores detected - cautious market conditions")
-        
+
         # Quality assessment
         if sessions_count >= 15:
             insights.append("🎖️ High-confidence predictions based on extensive history")
@@ -523,9 +533,9 @@ def generate_real_time_insights(sessions_count, total_stocks, high_score_stocks,
             insights.append("📊 Moderate confidence - good historical foundation")
         else:
             insights.append("🔄 Building confidence - continue regular screening")
-        
+
         return insights
-        
+
     except Exception as e:
         logger.error(f"Error generating insights: {str(e)}")
         return [
@@ -616,7 +626,7 @@ def api_predictions_tracker():
     except Exception as e:
         logger.error(f"Predictions tracker API error: {str(e)}")
         return jsonify({
-            'status': 'error', 
+            'status': 'error',
             'message': str(e),
             'predictions': []
         }), 500
@@ -636,7 +646,7 @@ def run_now():
                 if success:
                     logger.info("✅ Manual screening completed successfully via scheduler")
                     return jsonify({
-                        'success': True, 
+                        'success': True,
                         'message': 'Screening completed successfully',
                         'data_ready': True,
                         'timestamp': datetime.now(IST).isoformat()
@@ -644,7 +654,7 @@ def run_now():
                 else:
                     logger.warning("⚠️ Manual screening completed with issues via scheduler")
                     return jsonify({
-                        'success': False, 
+                        'success': False,
                         'message': 'Screening completed with issues',
                         'data_ready': False,
                         'timestamp': datetime.now(IST).isoformat()
@@ -654,44 +664,43 @@ def run_now():
                 logger.info("Using standalone screening")
                 from stock_screener import EnhancedStockScreener
                 screener = EnhancedStockScreener()
-                results = screener.run_enhanced_screener()
-
-                if results and len(results) > 0:
-                    logger.info(f"✅ Standalone manual screening completed with {len(results)} stocks")
+                success = screener.run_screening() # Corrected method call
+                if success:
+                    logger.info("✅ Manual screening completed successfully standalone")
                     return jsonify({
-                        'success': True, 
-                        'message': f'Screening completed successfully - {len(results)} stocks analyzed',
+                        'success': True,
+                        'message': 'Screening completed successfully',
                         'data_ready': True,
-                        'stock_count': len(results),
                         'timestamp': datetime.now(IST).isoformat()
                     })
                 else:
-                    logger.warning("⚠️ Standalone screening returned no results")
+                    logger.warning("⚠️ Manual screening completed with issues standalone")
                     return jsonify({
-                        'success': False, 
-                        'message': 'Screening completed but no results generated',
+                        'success': False,
+                        'message': 'Screening completed with issues',
                         'data_ready': False,
                         'timestamp': datetime.now(IST).isoformat()
                     })
 
         except Exception as e:
-            logger.error(f"❌ Manual screening failed: {str(e)}")
+            logger.error(f"Error during manual screening: {str(e)}")
+            error_message = str(e)
             return jsonify({
-                'success': False, 
-                'message': f'Screening failed: {str(e)}',
-                'data_ready': False,
-                'error': str(e),
+                'success': False,
+                'message': f'Manual screening error: {error_message}',
+                'error': error_message,
                 'timestamp': datetime.now(IST).isoformat()
             })
 
     except Exception as e:
         logger.error(f"Manual refresh error: {str(e)}")
+        error_message = str(e)
         return jsonify({
-            'success': False, 
-            'message': f'Manual refresh error: {str(e)}',
-            'error': str(e),
+            'success': False,
+            'message': f'Manual refresh error: {error_message}',
+            'error': error_message,
             'timestamp': datetime.now(IST).isoformat()
-        })
+        }), 500
 
 @app.route('/api/health')
 def health_check():
@@ -717,7 +726,7 @@ def health_check():
         'status': 'healthy',
         'service': 'Stock Market Analyst',
         'port': 5000,
-        'scheduler_running': scheduler is not None and hasattr(scheduler, 'scheduler') and scheduler.scheduler.running,
+        'scheduler_running': scheduler is not None and hasattr(scheduler, 'scheduler') and scheduler.scheduler.running if scheduler and hasattr(scheduler, 'scheduler') else False,
         'data_status': data_status,
         'stock_count': stock_count,
         'last_updated': last_updated
@@ -817,7 +826,7 @@ def analysis_dashboard():
     """Analysis dashboard page"""
     return render_template('analysis.html')
 
-@app.route('/api/analysis')  
+@app.route('/api/analysis')
 def get_analysis():
     """API endpoint to get historical analysis data with real session tracking"""
     try:
@@ -1245,17 +1254,17 @@ def update_market_data():
     """API endpoint to manually trigger market data update"""
     try:
         logger.info("🔄 Manual market data update triggered")
-        
+
         from interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
-        
+
         # Update actual prices with real market data
         update_summary = tracker_manager.update_daily_actual_prices()
-        
+
         if update_summary and 'error' not in update_summary:
             updated_count = len(update_summary.get('updated_stocks', []))
             failed_count = len(update_summary.get('failed_stocks', []))
-            
+
             return jsonify({
                 'success': True,
                 'message': f'Market data updated: {updated_count} stocks updated, {failed_count} failed',
