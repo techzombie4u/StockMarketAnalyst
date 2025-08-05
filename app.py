@@ -503,6 +503,124 @@ def calculate_historical_accuracy(sessions_count, high_score_count, total_stocks
         logger.error(f"Error calculating accuracy: {str(e)}")
         return 30.0
 
+def load_tracking_metrics_for_analysis():
+    """Load tracking metrics to support enhanced analysis"""
+    try:
+        from interactive_tracker_manager import InteractiveTrackerManager
+        tracker_manager = InteractiveTrackerManager()
+        tracking_data = tracker_manager.get_all_tracking_data()
+        
+        locked_count = 0
+        in_progress_count = 0
+        metrics_5d = {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0}
+        metrics_30d = {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0}
+        
+        for symbol, data in tracking_data.items():
+            # Count locked predictions
+            if data.get('locked_5d') or data.get('locked_30d'):
+                locked_count += 1
+            
+            # Count in-progress predictions
+            if data.get('locked_5d') and is_prediction_in_progress(data, '5d'):
+                in_progress_count += 1
+            if data.get('locked_30d') and is_prediction_in_progress(data, '30d'):
+                in_progress_count += 1
+                
+            # Calculate 5D metrics
+            if data.get('locked_5d') or data.get('days_tracked', 0) > 0:
+                metrics_5d['total'] += 1
+                result_5d = get_prediction_result_for_analysis(data, '5d')
+                if result_5d == 'successful':
+                    metrics_5d['successful'] += 1
+                elif result_5d == 'failed':
+                    metrics_5d['failed'] += 1
+                else:
+                    metrics_5d['in_progress'] += 1
+                    
+            # Calculate 30D metrics
+            if data.get('locked_30d') or data.get('days_tracked', 0) > 0:
+                metrics_30d['total'] += 1
+                result_30d = get_prediction_result_for_analysis(data, '30d')
+                if result_30d == 'successful':
+                    metrics_30d['successful'] += 1
+                elif result_30d == 'failed':
+                    metrics_30d['failed'] += 1
+                else:
+                    metrics_30d['in_progress'] += 1
+        
+        return {
+            'locked_predictions_count': locked_count,
+            'in_progress_predictions': in_progress_count,
+            'metrics_5d': metrics_5d,
+            'metrics_30d': metrics_30d
+        }
+        
+    except Exception as e:
+        logger.error(f"Error loading tracking metrics: {str(e)}")
+        return {
+            'locked_predictions_count': 0,
+            'in_progress_predictions': 0,
+            'metrics_5d': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0},
+            'metrics_30d': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0}
+        }
+
+def is_prediction_in_progress(data, period):
+    """Check if a prediction is still in progress"""
+    try:
+        lock_start_date_key = f'lock_start_date_{period}'
+        lock_date = data.get(lock_start_date_key)
+        if not lock_date:
+            return False
+            
+        from datetime import datetime
+        import pytz
+        IST = pytz.timezone('Asia/Kolkata')
+        
+        start_date = datetime.strptime(lock_date, '%Y-%m-%d')
+        current_date = datetime.now(IST).date()
+        days_passed = (current_date - start_date.date()).days
+        
+        total_days = 5 if period == '5d' else 30
+        return days_passed < total_days
+        
+    except Exception as e:
+        logger.error(f"Error checking if prediction in progress: {str(e)}")
+        return False
+
+def get_prediction_result_for_analysis(data, period):
+    """Get prediction result for analysis purposes"""
+    try:
+        actual_key = f'actual_progress_{period}'
+        predicted_key = f'predicted_{period}'
+        
+        actual_data = data.get(actual_key, [])
+        predicted_data = data.get(predicted_key, [])
+        
+        if not actual_data or not predicted_data:
+            return 'in_progress'
+            
+        # Filter out null values
+        actual_values = [val for val in actual_data if val is not None]
+        
+        required_days = 5 if period == '5d' else 30
+        if len(actual_values) < required_days:
+            return 'in_progress'
+            
+        # Compare final values
+        final_predicted = predicted_data[-1] if predicted_data else 0
+        final_actual = actual_values[-1] if actual_values else 0
+        
+        if final_predicted == 0 or final_actual == 0:
+            return 'in_progress'
+            
+        # Consider successful if within 5% of prediction
+        error_percent = abs((final_actual - final_predicted) / final_predicted) * 100
+        return 'successful' if error_percent <= 5 else 'failed'
+        
+    except Exception as e:
+        logger.error(f"Error getting prediction result: {str(e)}")
+        return 'in_progress'
+
 def generate_real_time_insights(sessions_count, total_stocks, high_score_stocks, avg_score):
     """Generate insights based on real session data"""
     try:
@@ -880,6 +998,9 @@ def get_analysis():
         # Extract top performers from current data
         top_performers = sorted(current_stocks, key=lambda x: x.get('score', 0), reverse=True)[:5]
 
+        # Load interactive tracking data for enhanced metrics
+        tracking_metrics = load_tracking_metrics_for_analysis()
+
         # Create comprehensive analysis based on real session data
         analysis_data = {
             'timestamp': datetime.now().isoformat(),
@@ -908,7 +1029,12 @@ def get_analysis():
                 'high_score_percentage': round((high_score_stocks / max(1, total_stocks_analyzed)) * 100, 1),
                 'total_stocks_current': total_stocks_analyzed,
                 'status': current_data_status
-            }
+            },
+            # Enhanced metrics for new analysis page
+            'locked_predictions_count': tracking_metrics.get('locked_predictions_count', 0),
+            'in_progress_predictions': tracking_metrics.get('in_progress_predictions', 0),
+            'prediction_metrics_5d': tracking_metrics.get('metrics_5d', {}),
+            'prediction_metrics_30d': tracking_metrics.get('metrics_30d', {})
         }
 
         logger.info(f"Analysis data prepared: sessions={total_runs}, successful={successful_sessions_count}, accuracy={accuracy_rate}%")
@@ -938,7 +1064,11 @@ def get_analysis():
                 'high_score_percentage': 0,
                 'total_stocks_current': 0,
                 'status': 'error'
-            }
+            },
+            'locked_predictions_count': 0,
+            'in_progress_predictions': 0,
+            'prediction_metrics_5d': {},
+            'prediction_metrics_30d': {}
         }), 500
 
 @app.route('/api/historical-trends')

@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📊 Stock Prediction Analysis - Historical Performance</title>
+    <title>📊 Stock Prediction Analysis - Enhanced Interactive Analytics</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -11,10 +12,12 @@
             --success-color: #27ae60;
             --warning-color: #f39c12;
             --danger-color: #e74c3c;
+            --info-color: #17a2b8;
             --bg-color: #ecf0f1;
             --card-bg: #ffffff;
             --text-color: #2c3e50;
             --border-color: #bdc3c7;
+            --light-bg: #f8f9fa;
         }
 
         * {
@@ -54,13 +57,14 @@
         .header p {
             color: #7f8c8d;
             font-size: 1.1rem;
+            margin-bottom: 20px;
         }
 
         .nav-links {
             margin: 20px 0;
         }
 
-        .nav-links a {
+        .nav-links a, .nav-links button {
             background: var(--secondary-color);
             color: white;
             padding: 12px 24px;
@@ -69,128 +73,122 @@
             margin: 0 10px;
             font-weight: 600;
             transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
         }
 
-        .nav-links a:hover {
+        .nav-links a:hover, .nav-links button:hover {
             background: #2980b9;
             transform: translateY(-2px);
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
+        .section-card {
             background: var(--card-bg);
             border-radius: 15px;
             padding: 25px;
+            margin-bottom: 30px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .section-card h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+        }
+
+        .locked-predictions-table, .prediction-history-table, .in-progress-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .locked-predictions-table th, .locked-predictions-table td,
+        .prediction-history-table th, .prediction-history-table td,
+        .in-progress-table th, .in-progress-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .locked-predictions-table th, .prediction-history-table th, .in-progress-table th {
+            background: var(--light-bg);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .outcome-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .outcome-box {
+            background: var(--light-bg);
+            padding: 20px;
+            border-radius: 10px;
             text-align: center;
-            transition: transform 0.3s ease;
         }
 
-        .stat-card:hover {
-            transform: translateY(-5px);
+        .outcome-box h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
         }
 
-        .stat-value {
-            font-size: 2.5rem;
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+        }
+
+        .metric-label {
+            font-weight: 500;
+        }
+
+        .metric-value {
             font-weight: bold;
-            margin-bottom: 10px;
+            color: var(--secondary-color);
         }
 
-        .stat-label {
-            color: #7f8c8d;
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .accuracy-rate {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 10px;
         }
 
         .accuracy-high { color: var(--success-color); }
         .accuracy-medium { color: var(--warning-color); }
         .accuracy-low { color: var(--danger-color); }
 
-        .analysis-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        .analysis-card {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-        }
-
-        .analysis-card h3 {
-            color: var(--primary-color);
-            margin-bottom: 20px;
-            font-size: 1.3rem;
-            border-bottom: 2px solid var(--secondary-color);
-            padding-bottom: 10px;
-        }
-
-        .stock-list {
-            list-style: none;
-        }
-
-        .stock-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #ecf0f1;
-        }
-
-        .stock-item:last-child {
-            border-bottom: none;
-        }
-
-        .stock-symbol {
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-
-        .stock-accuracy {
+        .result-badge {
             padding: 4px 12px;
             border-radius: 20px;
             color: white;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
         }
 
-        .insights-card {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
+        .result-met { background: var(--success-color); }
+        .result-missed { background: var(--danger-color); }
+        .result-progress { background: var(--info-color); }
 
         .insights-list {
             list-style: none;
+            margin-top: 15px;
         }
 
         .insight-item {
             padding: 15px;
             margin: 10px 0;
-            background: #f8f9fa;
+            background: var(--light-bg);
             border-radius: 10px;
             border-left: 4px solid var(--secondary-color);
             font-size: 1rem;
             line-height: 1.4;
-        }
-
-        .trend-chart {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         }
 
         .loading-state {
@@ -205,22 +203,46 @@
             color: #7f8c8d;
         }
 
-        .refresh-btn {
-            background: var(--success-color);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 20px 10px;
+        .expandable-section {
+            margin-top: 20px;
         }
 
-        .refresh-btn:hover {
-            background: #219a52;
-            transform: translateY(-2px);
+        .expand-toggle {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .expand-toggle:hover {
+            background: #2980b9;
+        }
+
+        .expandable-content {
+            display: none;
+        }
+
+        .expandable-content.expanded {
+            display: block;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: var(--success-color);
+            transition: width 0.3s ease;
         }
 
         .timestamp {
@@ -231,11 +253,7 @@
         }
 
         @media (max-width: 768px) {
-            .analysis-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-grid {
+            .outcome-summary {
                 grid-template-columns: 1fr;
             }
 
@@ -243,9 +261,19 @@
                 font-size: 2rem;
             }
 
-            .nav-links a {
+            .nav-links a, .nav-links button {
                 display: block;
                 margin: 5px 0;
+            }
+
+            .locked-predictions-table, .prediction-history-table, .in-progress-table {
+                font-size: 0.9rem;
+            }
+
+            .locked-predictions-table th, .locked-predictions-table td,
+            .prediction-history-table th, .prediction-history-table td,
+            .in-progress-table th, .in-progress-table td {
+                padding: 8px;
             }
         }
     </style>
@@ -254,78 +282,156 @@
     <div class="container">
         <div class="header">
             <h1>📊 Stock Prediction Analysis</h1>
-            <p>AI-Powered Historical Performance & Accuracy Tracking</p>
+            <p>Enhanced Interactive Analytics - Version 1.6.0</p>
 
             <div class="nav-links">
                 <a href="/">🏠 Main Dashboard</a>
                 <a href="/lookup">🔍 Stock Lookup</a>
-                <a href="/prediction-tracker">📊 Prediction Tracker</a>
-                <a href="/api/analysis" target="_blank">📋 Raw Data</a>
-                <button class="refresh-btn" id="refreshAnalysisBtn" onclick="refreshAnalysis()">🔄 Refresh Analysis</button>
+                <a href="/prediction-tracker-interactive">📊 Interactive Tracker</a>
+                <button id="refreshAnalysisBtn" onclick="refreshAnalysis()">🔄 Refresh Analysis</button>
             </div>
         </div>
 
         <div id="loadingState" class="loading-state">
-            <h3>🔄 Loading Analysis Data...</h3>
-            <p>Analyzing historical predictions and calculating accuracy metrics...</p>
+            <h3>🔄 Loading Enhanced Analysis Data...</h3>
+            <p>Analyzing locked predictions, outcomes, and historical performance...</p>
         </div>
 
         <div id="analysisContent" style="display: none;">
-            <!-- Stats Grid -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div id="accuracyRate" class="stat-value">--</div>
-                    <div class="stat-label">Prediction Accuracy</div>
-                </div>
-                <div class="stat-card">
-                    <div id="totalPredictions" class="stat-value">--</div>
-                    <div class="stat-label">Stocks Analyzed</div>
-                </div>
-                <div class="stat-card">
-                    <div id="correctPredictions" class="stat-value">--</div>
-                    <div class="stat-label">High-Quality Picks</div>
-                </div>
-                <div class="stat-card">
-                    <div id="analysisCount" class="stat-value">--</div>
-                    <div class="stat-label">Sessions Recorded</div>
-                </div>
-                <div class="stat-card">
-                    <div id="successfulSessions" class="stat-value">--</div>
-                    <div class="stat-label">Successful Sessions</div>
+            <!-- 1. Locked Predictions Summary Section -->
+            <div class="section-card">
+                <h2>🔐 Locked Predictions Summary</h2>
+                <p>Currently locked predictions across all stocks</p>
+                
+                <table class="locked-predictions-table" id="lockedPredictionsTable">
+                    <thead>
+                        <tr>
+                            <th>Stock Name</th>
+                            <th>Prediction Type</th>
+                            <th>Lock Date</th>
+                            <th>Expiry Date</th>
+                            <th>Target Price</th>
+                            <th>Confidence %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lockedPredictionsBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 2. Prediction Outcome Summary Section -->
+            <div class="section-card">
+                <h2>📊 Prediction Outcome Summary</h2>
+                <p>Classification of all predictions by type and success rate</p>
+                
+                <div class="outcome-summary">
+                    <div class="outcome-box">
+                        <h3>📅 5-Day Predictions</h3>
+                        <div class="metric-row">
+                            <span class="metric-label">Total:</span>
+                            <span class="metric-value" id="total5d">0</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Successful:</span>
+                            <span class="metric-value" id="successful5d">0</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Failed:</span>
+                            <span class="metric-value" id="failed5d">0</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">In Progress:</span>
+                            <span class="metric-value" id="inProgress5d">0</span>
+                        </div>
+                        <div class="accuracy-rate" id="accuracy5d">0%</div>
+                    </div>
+
+                    <div class="outcome-box">
+                        <h3>📈 30-Day Predictions</h3>
+                        <div class="metric-row">
+                            <span class="metric-label">Total:</span>
+                            <span class="metric-value" id="total30d">0</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Successful:</span>
+                            <span class="metric-value" id="successful30d">0</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Failed:</span>
+                            <span class="metric-value" id="failed30d">0</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">In Progress:</span>
+                            <span class="metric-value" id="inProgress30d">0</span>
+                        </div>
+                        <div class="accuracy-rate" id="accuracy30d">0%</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Analysis Grid -->
-            <div class="analysis-grid">
-                <div class="analysis-card">
-                    <h3>🏆 Top Performing Stocks</h3>
-                    <ul id="topStocks" class="stock-list">
+            <!-- 3. In-Progress Predictions Section -->
+            <div class="section-card">
+                <h2>⏲️ In-Progress Predictions</h2>
+                <p>Ongoing locked predictions currently being tracked</p>
+                
+                <table class="in-progress-table" id="inProgressTable">
+                    <thead>
+                        <tr>
+                            <th>Stock Name</th>
+                            <th>Type</th>
+                            <th>Lock Date</th>
+                            <th>Days Passed</th>
+                            <th>Days Left</th>
+                            <th>Confidence Level</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inProgressBody">
                         <!-- Dynamic content -->
-                    </ul>
-                </div>
+                    </tbody>
+                </table>
+            </div>
 
-                <div class="analysis-card">
-                    <h3>⚠️ Challenging Predictions</h3>
-                    <ul id="worstStocks" class="stock-list">
-                        <!-- Dynamic content -->
-                    </ul>
+            <!-- 4. Prediction History Table (Expandable) -->
+            <div class="section-card">
+                <h2>📋 Prediction History</h2>
+                <p>Detailed view of all predictions with success/failure classification</p>
+                
+                <div class="expandable-section">
+                    <button class="expand-toggle" onclick="toggleHistoryTable()">
+                        📊 Show Detailed History
+                    </button>
+                    
+                    <div id="historyTableContainer" class="expandable-content">
+                        <table class="prediction-history-table" id="predictionHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Stock</th>
+                                    <th>Type</th>
+                                    <th>Prediction Date</th>
+                                    <th>Target Price</th>
+                                    <th>Actual Price</th>
+                                    <th>Result</th>
+                                    <th>Confidence Level</th>
+                                    <th>Error %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="predictionHistoryBody">
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- AI Insights -->
-            <div class="insights-card">
-                <h3>🤖 AI-Generated Insights</h3>
-                <ul id="insights" class="insights-list">
+            <!-- 5. AI-Generated Insights Panel -->
+            <div class="section-card">
+                <h2>🧠 AI-Generated Insights</h2>
+                <p>Smart observations and recommendations based on prediction performance</p>
+                
+                <ul id="aiInsights" class="insights-list">
                     <!-- Dynamic content -->
                 </ul>
-            </div>
-
-            <!-- Historical Trends -->
-            <div class="trend-chart">
-                <h3>📈 Historical Accuracy Trend</h3>
-                <div id="trendData">
-                    <!-- Trend visualization will go here -->
-                </div>
             </div>
 
             <div id="lastUpdated" class="timestamp">
@@ -334,10 +440,10 @@
         </div>
 
         <div id="noDataState" class="no-data" style="display: none;">
-            <h3>📊 No Analysis Data Available</h3>
-            <p>Historical analysis will appear after multiple screening sessions.</p>
-            <p>Run the stock screener a few times to generate comparative data.</p>
-            <button class="refresh-btn" onclick="window.location.href='/'">Go to Main Dashboard</button>
+            <h3>📊 No Enhanced Analysis Data Available</h3>
+            <p>Enhanced analysis will appear after predictions are locked and tracked.</p>
+            <p>Use the Interactive Tracker to lock predictions and generate comprehensive analysis.</p>
+            <button class="nav-links" onclick="window.location.href='/prediction-tracker-interactive'">Go to Interactive Tracker</button>
         </div>
     </div>
 
@@ -345,50 +451,45 @@
         let refreshInterval;
         let isLoadingAnalysis = false;
 
-        function loadAnalysisData() {
-            // Prevent multiple simultaneous requests
+        function loadEnhancedAnalysisData() {
             if (isLoadingAnalysis) {
                 console.log('Analysis request already in progress, skipping...');
                 return;
             }
 
             isLoadingAnalysis = true;
-            console.log('Loading analysis data...');
+            console.log('Loading enhanced analysis data...');
 
-            // Update button state
             const refreshBtn = document.getElementById('refreshAnalysisBtn');
             if (refreshBtn) {
                 refreshBtn.disabled = true;
                 refreshBtn.textContent = '⏳ Loading...';
             }
 
-            fetch('/api/analysis')
-                .then(response => {
-                    console.log('Analysis response status:', response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Analysis data received:', data);
-                    displayAnalysis(data);
-                })
-                .catch(error => {
-                    console.error('Error loading analysis:', error);
-                    showNoDataState();
-                })
-                .finally(() => {
-                    isLoadingAnalysis = false;
-                    // Reset button state
-                    if (refreshBtn) {
-                        refreshBtn.disabled = false;
-                        refreshBtn.textContent = '🔄 Refresh Analysis';
-                    }
-                });
+            // Load both analysis data and interactive tracking data
+            Promise.all([
+                fetch('/api/analysis').then(response => response.json()),
+                fetch('/api/interactive-tracker-data').then(response => response.json())
+            ])
+            .then(([analysisData, trackerData]) => {
+                console.log('Enhanced analysis data received:', { analysisData, trackerData });
+                displayEnhancedAnalysis(analysisData, trackerData);
+            })
+            .catch(error => {
+                console.error('Error loading enhanced analysis:', error);
+                showNoDataState();
+            })
+            .finally(() => {
+                isLoadingAnalysis = false;
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = '🔄 Refresh Analysis';
+                }
+            });
         }
 
-        function displayAnalysis(data) {
-            console.log('Analysis data received:', data);
-
-            if (!data || Object.keys(data).length === 0 || data.status === 'no_data' || data.status === 'error') {
+        function displayEnhancedAnalysis(analysisData, trackerData) {
+            if (!analysisData && !trackerData?.tracking_data) {
                 showNoDataState();
                 return;
             }
@@ -398,121 +499,411 @@
             document.getElementById('analysisContent').style.display = 'block';
             document.getElementById('noDataState').style.display = 'none';
 
-            // Update stats with live data
-            const accuracyElement = document.getElementById('accuracyRate');
-            const accuracy = data.accuracy_rate || 0;
-            accuracyElement.textContent = accuracy + '%';
-            accuracyElement.className = `stat-value ${
-                accuracy >= 70 ? 'accuracy-high' : 
-                accuracy >= 50 ? 'accuracy-medium' : 'accuracy-low'
-            }`;
+            const trackingData = trackerData?.tracking_data || {};
 
-            document.getElementById('totalPredictions').textContent = data.total_predictions_analyzed || 0;
-            document.getElementById('correctPredictions').textContent = data.correct_predictions || 0;
-            document.getElementById('analysisCount').textContent = data.sessions_recorded || 0; // Live session count
-            document.getElementById('successfulSessions').textContent = data.successful_sessions || 0; // Successful sessions
+            // 1. Update Locked Predictions Summary
+            updateLockedPredictionsTable(trackingData);
 
-            // Update top performing stocks
-            const topStocksList = document.getElementById('topStocks');
-            topStocksList.innerHTML = '';
+            // 2. Update Prediction Outcome Summary
+            updatePredictionOutcomeSummary(analysisData, trackingData);
 
-            if (data.top_performing_stocks && data.top_performing_stocks.length > 0) {
-                data.top_performing_stocks.forEach(stock => {
-                    const li = document.createElement('li');
-                    li.className = 'stock-item';
-                    const successRate = stock.success_rate || 0;
-                    li.innerHTML = `
-                        <span class="stock-symbol">${stock.symbol || 'N/A'}</span>
-                        <span class="stock-accuracy" style="background: ${
-                            successRate >= 70 ? 'var(--success-color)' : 
-                            successRate >= 50 ? 'var(--warning-color)' : 'var(--secondary-color)'
-                        }">${successRate}%</span>
-                    `;
-                    topStocksList.appendChild(li);
-                });
-            } else {
-                topStocksList.innerHTML = '<li class="stock-item">📊 Current screening data available - historical comparison pending</li>';
-            }
+            // 3. Update In-Progress Predictions
+            updateInProgressTable(trackingData);
 
-            // Update worst performing stocks
-            const worstStocksList = document.getElementById('worstStocks');
-            worstStocksList.innerHTML = '';
+            // 4. Update Prediction History
+            updatePredictionHistoryTable(analysisData, trackingData);
 
-            if (data.worst_performing_stocks && data.worst_performing_stocks.length > 0) {
-                data.worst_performing_stocks.forEach(stock => {
-                    const li = document.createElement('li');
-                    li.className = 'stock-item';
-                    li.innerHTML = `
-                        <span class="stock-symbol">${stock.symbol}</span>
-                        <span class="stock-accuracy" style="background: var(--danger-color)">${stock.success_rate}%</span>
-                    `;
-                    worstStocksList.appendChild(li);
-                });
-            } else {
-                worstStocksList.innerHTML = '<li class="stock-item">No challenging predictions identified</li>';
-            }
-
-            // Update insights
-            const insightsList = document.getElementById('insights');
-            insightsList.innerHTML = '';
-
-            if (data.pattern_insights && data.pattern_insights.length > 0) {
-                data.pattern_insights.forEach(insight => {
-                    const li = document.createElement('li');
-                    li.className = 'insight-item';
-                    li.textContent = insight;
-                    insightsList.appendChild(li);
-                });
-            } else {
-                insightsList.innerHTML = '<li class="insight-item">🔍 Analyzing patterns... More insights will appear with additional data.</li>';
-            }
-
-            // Add data quality indicator if available
-            if (data.data_quality) {
-                const qualityLi = document.createElement('li');
-                qualityLi.className = 'insight-item';
-                const qualityMap = {
-                    'good': '✅ Data Quality: Good - Reliable analysis available',
-                    'limited': '⚠️ Data Quality: Limited - More sessions needed for better insights',
-                    'none': '📋 Data Quality: No data - Run screening to generate analysis',
-                    'error': '❌ Data Quality: Error - Please check system status'
-                };
-                qualityLi.textContent = qualityMap[data.data_quality] || '📊 Data Quality: Unknown';
-                insightsList.appendChild(qualityLi);
-            }
-
-            // Update trend data with live session information
-            const trendElement = document.getElementById('trendData');
-            const sessionsRecorded = data.sessions_recorded || 0;
-            const successfulSessions = data.successful_sessions || 0;
-            const dataStatus = data.status === 'real_time_analysis' ? 'Real-time Analysis' : 
-                              data.status === 'historical_analysis' ? 'Historical Analysis' :
-                              data.status === 'no_data' ? 'No Data Available' : 'Analysis Ready';
-
-            // Calculate session success rate
-            const sessionSuccessRate = sessionsRecorded > 0 ? 
-                Math.round((successfulSessions / sessionsRecorded) * 100) : 0;
-
-            trendElement.innerHTML = `
-                <div style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 10px;">
-                    <p><strong>Analysis Status:</strong> ${dataStatus}</p>
-                    <p><strong>Accuracy Rate:</strong> ${accuracy}%</p>
-                    <p><strong>Stocks Analyzed:</strong> ${data.total_predictions_analyzed || 0}</p>
-                    <p><strong>High-Quality Picks:</strong> ${data.correct_predictions || 0}</p>
-                    <p><strong>Sessions Recorded:</strong> ${sessionsRecorded} (Total Runs)</p>
-                    <p><strong>Successful Sessions:</strong> ${successfulSessions} (${sessionSuccessRate}% success rate)</p>
-                    <p><strong>Overall Performance:</strong> ${
-                        accuracy >= 70 ? '🟢 Excellent - Strong stock selection' : 
-                        accuracy >= 50 ? '🟡 Good - Solid performance' : 
-                        accuracy > 0 ? '🔴 Needs Improvement - Review criteria' :
-                        '⚪ Awaiting Data - Run screening first'
-                    }</p>
-                </div>
-            `;
+            // 5. Update AI Insights
+            updateAIInsights(analysisData, trackingData);
 
             // Update timestamp
             document.getElementById('lastUpdated').textContent = 
                 `Last Updated: ${new Date().toLocaleString()}`;
+        }
+
+        function updateLockedPredictionsTable(trackingData) {
+            const tableBody = document.getElementById('lockedPredictionsBody');
+            tableBody.innerHTML = '';
+
+            let hasLockedPredictions = false;
+
+            Object.entries(trackingData).forEach(([symbol, data]) => {
+                // Check for 5D locks
+                if (data.locked_5d) {
+                    hasLockedPredictions = true;
+                    const row = createLockedPredictionRow(symbol, data, '5d');
+                    tableBody.appendChild(row);
+                }
+
+                // Check for 30D locks
+                if (data.locked_30d) {
+                    hasLockedPredictions = true;
+                    const row = createLockedPredictionRow(symbol, data, '30d');
+                    tableBody.appendChild(row);
+                }
+            });
+
+            if (!hasLockedPredictions) {
+                const row = tableBody.insertRow();
+                row.innerHTML = '<td colspan="6" style="text-align: center; color: #7f8c8d; padding: 20px;">No locked predictions currently active</td>';
+            }
+        }
+
+        function createLockedPredictionRow(symbol, data, period) {
+            const row = document.createElement('tr');
+            const lockDateKey = `lock_date_${period}`;
+            const lockStartDateKey = `lock_start_date_${period}`;
+            
+            const lockDate = data[lockStartDateKey] || data[lockDateKey] || 'Unknown';
+            const expiryDate = calculateExpiryDate(lockDate, period);
+            const targetPrice = period === '5d' ? 
+                (data.predicted_5d?.[4] || data.current_price || 0) :
+                (data.predicted_30d?.[29] || data.current_price || 0);
+
+            row.innerHTML = `
+                <td><strong>${symbol}</strong></td>
+                <td>${period === '5d' ? '5-Day' : '30-Day'}</td>
+                <td>${formatDate(lockDate)}</td>
+                <td>${formatDate(expiryDate)}</td>
+                <td>₹${targetPrice.toFixed(2)}</td>
+                <td>
+                    ${data.confidence || 0}%
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${data.confidence || 0}%"></div>
+                    </div>
+                </td>
+            `;
+            return row;
+        }
+
+        function updatePredictionOutcomeSummary(analysisData, trackingData) {
+            // Calculate metrics from tracking data and analysis data
+            const metrics5d = calculatePredictionMetrics(trackingData, '5d');
+            const metrics30d = calculatePredictionMetrics(trackingData, '30d');
+
+            // Update 5D metrics
+            document.getElementById('total5d').textContent = metrics5d.total;
+            document.getElementById('successful5d').textContent = metrics5d.successful;
+            document.getElementById('failed5d').textContent = metrics5d.failed;
+            document.getElementById('inProgress5d').textContent = metrics5d.inProgress;
+            
+            const accuracy5d = metrics5d.total > 0 ? ((metrics5d.successful / metrics5d.total) * 100).toFixed(1) : 0;
+            const accuracy5dElement = document.getElementById('accuracy5d');
+            accuracy5dElement.textContent = accuracy5d + '%';
+            accuracy5dElement.className = `accuracy-rate ${getAccuracyClass(accuracy5d)}`;
+
+            // Update 30D metrics
+            document.getElementById('total30d').textContent = metrics30d.total;
+            document.getElementById('successful30d').textContent = metrics30d.successful;
+            document.getElementById('failed30d').textContent = metrics30d.failed;
+            document.getElementById('inProgress30d').textContent = metrics30d.inProgress;
+            
+            const accuracy30d = metrics30d.total > 0 ? ((metrics30d.successful / metrics30d.total) * 100).toFixed(1) : 0;
+            const accuracy30dElement = document.getElementById('accuracy30d');
+            accuracy30dElement.textContent = accuracy30d + '%';
+            accuracy30dElement.className = `accuracy-rate ${getAccuracyClass(accuracy30d)}`;
+        }
+
+        function updateInProgressTable(trackingData) {
+            const tableBody = document.getElementById('inProgressBody');
+            tableBody.innerHTML = '';
+
+            let hasInProgress = false;
+
+            Object.entries(trackingData).forEach(([symbol, data]) => {
+                // Check for in-progress 5D predictions
+                if (data.locked_5d && isStillInProgress(data, '5d')) {
+                    hasInProgress = true;
+                    const row = createInProgressRow(symbol, data, '5d');
+                    tableBody.appendChild(row);
+                }
+
+                // Check for in-progress 30D predictions
+                if (data.locked_30d && isStillInProgress(data, '30d')) {
+                    hasInProgress = true;
+                    const row = createInProgressRow(symbol, data, '30d');
+                    tableBody.appendChild(row);
+                }
+            });
+
+            if (!hasInProgress) {
+                const row = tableBody.insertRow();
+                row.innerHTML = '<td colspan="6" style="text-align: center; color: #7f8c8d; padding: 20px;">No predictions currently in progress</td>';
+            }
+        }
+
+        function createInProgressRow(symbol, data, period) {
+            const row = document.createElement('tr');
+            const lockStartDateKey = `lock_start_date_${period}`;
+            const lockDate = data[lockStartDateKey] || data[`lock_date_${period}`] || new Date().toISOString().split('T')[0];
+            
+            const daysPassed = calculateDaysPassed(lockDate);
+            const totalDays = period === '5d' ? 5 : 30;
+            const daysLeft = Math.max(0, totalDays - daysPassed);
+
+            row.innerHTML = `
+                <td><strong>${symbol}</strong></td>
+                <td>${period === '5d' ? '5-Day' : '30-Day'}</td>
+                <td>${formatDate(lockDate)}</td>
+                <td>${daysPassed}</td>
+                <td>${daysLeft}</td>
+                <td>
+                    ${data.confidence || 0}%
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${data.confidence || 0}%"></div>
+                    </div>
+                </td>
+            `;
+            return row;
+        }
+
+        function updatePredictionHistoryTable(analysisData, trackingData) {
+            const tableBody = document.getElementById('predictionHistoryBody');
+            tableBody.innerHTML = '';
+
+            // Combine historical data from multiple sources
+            const historyEntries = [];
+
+            // Add tracking data entries
+            Object.entries(trackingData).forEach(([symbol, data]) => {
+                if (data.days_tracked > 0) {
+                    historyEntries.push({
+                        stock: symbol,
+                        type: '5-Day',
+                        predictionDate: data.start_date,
+                        targetPrice: data.predicted_5d?.[4] || data.current_price,
+                        actualPrice: getLatestActualPrice(data, '5d'),
+                        result: getPredictionResult(data, '5d'),
+                        confidence: data.confidence,
+                        error: calculateError(data.predicted_5d?.[4], getLatestActualPrice(data, '5d'))
+                    });
+
+                    historyEntries.push({
+                        stock: symbol,
+                        type: '30-Day',
+                        predictionDate: data.start_date,
+                        targetPrice: data.predicted_30d?.[29] || data.current_price,
+                        actualPrice: getLatestActualPrice(data, '30d'),
+                        result: getPredictionResult(data, '30d'),
+                        confidence: data.confidence,
+                        error: calculateError(data.predicted_30d?.[29], getLatestActualPrice(data, '30d'))
+                    });
+                }
+            });
+
+            // Sort by prediction date (newest first)
+            historyEntries.sort((a, b) => new Date(b.predictionDate) - new Date(a.predictionDate));
+
+            historyEntries.slice(0, 20).forEach(entry => { // Show latest 20 entries
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${entry.stock}</strong></td>
+                    <td>${entry.type}</td>
+                    <td>${formatDate(entry.predictionDate)}</td>
+                    <td>₹${entry.targetPrice.toFixed(2)}</td>
+                    <td>₹${entry.actualPrice > 0 ? entry.actualPrice.toFixed(2) : 'Pending'}</td>
+                    <td><span class="result-badge result-${entry.result.toLowerCase()}">${getResultIcon(entry.result)} ${entry.result}</span></td>
+                    <td>${entry.confidence}%</td>
+                    <td>${entry.error !== null ? entry.error.toFixed(2) + '%' : 'N/A'}</td>
+                `;
+            });
+
+            if (historyEntries.length === 0) {
+                const row = tableBody.insertRow();
+                row.innerHTML = '<td colspan="8" style="text-align: center; color: #7f8c8d; padding: 20px;">No prediction history available</td>';
+            }
+        }
+
+        function updateAIInsights(analysisData, trackingData) {
+            const insightsList = document.getElementById('aiInsights');
+            insightsList.innerHTML = '';
+
+            const insights = [];
+
+            // Calculate current metrics
+            const totalLocked = Object.values(trackingData).filter(data => data.locked_5d || data.locked_30d).length;
+            const inProgress = Object.values(trackingData).filter(data => 
+                (data.locked_5d && isStillInProgress(data, '5d')) || 
+                (data.locked_30d && isStillInProgress(data, '30d'))
+            ).length;
+
+            // Generate dynamic insights
+            if (inProgress > 0) {
+                insights.push(`📊 ${inProgress} predictions currently in progress and being tracked`);
+            }
+
+            if (totalLocked > 0) {
+                insights.push(`🔒 ${totalLocked} stocks have locked predictions for enhanced accuracy tracking`);
+            }
+
+            const sessionsCount = analysisData?.sessions_recorded || 0;
+            if (sessionsCount >= 10) {
+                insights.push(`🎯 Excellent! ${sessionsCount} successful screening sessions provide strong statistical foundation`);
+            } else if (sessionsCount >= 5) {
+                insights.push(`📈 Building momentum: ${sessionsCount} sessions completed - prediction confidence improving`);
+            } else {
+                insights.push(`🌱 Early stage analysis: ${sessionsCount} sessions recorded - continue regular screening for better insights`);
+            }
+
+            // Performance insights
+            const accuracyRate = analysisData?.accuracy_rate || 0;
+            if (accuracyRate >= 70) {
+                insights.push(`⭐ Excellent prediction accuracy at ${accuracyRate}% - AI models performing strongly`);
+            } else if (accuracyRate >= 50) {
+                insights.push(`✅ Good prediction accuracy at ${accuracyRate}% - system learning effectively`);
+            } else if (accuracyRate > 0) {
+                insights.push(`⚠️ Prediction accuracy at ${accuracyRate}% - consider reviewing selection criteria`);
+            }
+
+            // Lock system insights
+            const lockedPredictions = Object.values(trackingData).filter(data => data.locked_5d || data.locked_30d);
+            if (lockedPredictions.length > 0) {
+                insights.push(`🔐 Enhanced tracking active - locked predictions prevent AI flip-flopping and improve consistency`);
+            } else {
+                insights.push(`💡 Tip: Use the Interactive Tracker to lock predictions and enable advanced performance analysis`);
+            }
+
+            // Add insights to the list
+            insights.forEach(insight => {
+                const li = document.createElement('li');
+                li.className = 'insight-item';
+                li.textContent = insight;
+                insightsList.appendChild(li);
+            });
+
+            if (insights.length === 0) {
+                const li = document.createElement('li');
+                li.className = 'insight-item';
+                li.textContent = '🔍 Analyzing prediction patterns... More insights will appear with additional data.';
+                insightsList.appendChild(li);
+            }
+        }
+
+        function calculatePredictionMetrics(trackingData, period) {
+            let total = 0;
+            let successful = 0;
+            let failed = 0;
+            let inProgress = 0;
+
+            Object.values(trackingData).forEach(data => {
+                const lockKey = `locked_${period}`;
+                if (data[lockKey] || data.days_tracked > 0) {
+                    total++;
+                    const result = getPredictionResult(data, period);
+                    if (result === 'Met') successful++;
+                    else if (result === 'Missed') failed++;
+                    else inProgress++;
+                }
+            });
+
+            return { total, successful, failed, inProgress };
+        }
+
+        function getPredictionResult(data, period) {
+            const actualData = period === '5d' ? data.actual_progress_5d : data.actual_progress_30d;
+            const predictedData = period === '5d' ? data.predicted_5d : data.predicted_30d;
+            
+            if (!actualData || !predictedData) return 'In Progress';
+            
+            // Check if we have enough actual data to evaluate
+            const requiredDays = period === '5d' ? 5 : 30;
+            const actualValues = actualData.filter(val => val !== null && val !== undefined);
+            
+            if (actualValues.length < requiredDays) return 'In Progress';
+            
+            // Compare final predicted vs actual
+            const finalPredicted = predictedData[requiredDays - 1];
+            const finalActual = actualValues[actualValues.length - 1];
+            
+            if (!finalPredicted || !finalActual) return 'In Progress';
+            
+            // Consider successful if within 5% of prediction
+            const errorPercent = Math.abs((finalActual - finalPredicted) / finalPredicted) * 100;
+            return errorPercent <= 5 ? 'Met' : 'Missed';
+        }
+
+        function getLatestActualPrice(data, period) {
+            const actualData = period === '5d' ? data.actual_progress_5d : data.actual_progress_30d;
+            if (!actualData) return 0;
+            
+            const actualValues = actualData.filter(val => val !== null && val !== undefined);
+            return actualValues.length > 0 ? actualValues[actualValues.length - 1] : 0;
+        }
+
+        function calculateError(predicted, actual) {
+            if (!predicted || !actual || predicted === 0) return null;
+            return ((actual - predicted) / predicted) * 100;
+        }
+
+        function isStillInProgress(data, period) {
+            const lockStartDateKey = `lock_start_date_${period}`;
+            const lockDate = data[lockStartDateKey];
+            if (!lockDate) return false;
+            
+            const daysPassed = calculateDaysPassed(lockDate);
+            const totalDays = period === '5d' ? 5 : 30;
+            return daysPassed < totalDays;
+        }
+
+        function calculateDaysPassed(startDate) {
+            const start = new Date(startDate);
+            const now = new Date();
+            const diffTime = Math.abs(now - start);
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function calculateExpiryDate(lockDate, period) {
+            if (!lockDate || lockDate === 'Unknown') return 'Unknown';
+            
+            const start = new Date(lockDate);
+            const days = period === '5d' ? 5 : 30;
+            const expiry = new Date(start);
+            expiry.setDate(expiry.getDate() + days);
+            return expiry.toISOString().split('T')[0];
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr || dateStr === 'Unknown') return 'Unknown';
+            
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        function getAccuracyClass(accuracy) {
+            const acc = parseFloat(accuracy);
+            if (acc >= 70) return 'accuracy-high';
+            if (acc >= 50) return 'accuracy-medium';
+            return 'accuracy-low';
+        }
+
+        function getResultIcon(result) {
+            switch (result) {
+                case 'Met': return '🟢';
+                case 'Missed': return '🔴';
+                case 'In Progress': return '🟡';
+                default: return '⚪';
+            }
+        }
+
+        function toggleHistoryTable() {
+            const container = document.getElementById('historyTableContainer');
+            const button = document.querySelector('.expand-toggle');
+            
+            if (container.classList.contains('expanded')) {
+                container.classList.remove('expanded');
+                button.textContent = '📊 Show Detailed History';
+            } else {
+                container.classList.add('expanded');
+                button.textContent = '📊 Hide Detailed History';
+            }
         }
 
         function showNoDataState() {
@@ -522,7 +913,6 @@
         }
 
         function refreshAnalysis() {
-            // Prevent rapid clicking
             if (isLoadingAnalysis) {
                 console.log('Analysis refresh already in progress...');
                 return;
@@ -531,22 +921,12 @@
             document.getElementById('loadingState').style.display = 'block';
             document.getElementById('analysisContent').style.display = 'none';
             document.getElementById('noDataState').style.display = 'none';
-            loadAnalysisData();
+            loadEnhancedAnalysisData();
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            loadAnalysisData();
-
-            // Auto-refresh disabled - user can manually refresh when needed
-            // refreshInterval = setInterval(loadAnalysisData, 300000);
-        });
-
-        // Cleanup
-        window.addEventListener('beforeunload', function() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-            }
+            loadEnhancedAnalysisData();
         });
     </script>
 </body>
