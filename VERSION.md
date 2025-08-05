@@ -3,9 +3,44 @@
 
 # Stock Market Analyst - Version History
 
-## Version 1.5.0 - SmartStockAgent Release (2025-08-04)
+## Version 1.6.0 - Enhanced Interactive Analytics Release (2025-08-05)
 
 ### 🎯 PRODUCTION-READY STATUS - CURRENT VERSION
+- **✅ FULLY OPERATIONAL**: 20/20 stocks consistently processing with 100% success rate
+- **✅ REAL-TIME ANALYTICS**: Dynamic session tracking with live accuracy calculations
+- **✅ PERSISTENT GRAPH LOCKS**: Trading day-based lock system for prediction stability
+- **✅ ENHANCED USER EXPERIENCE**: Improved interactive tracking with lock persistence
+- **✅ ML PREDICTIONS**: LSTM and Random Forest models working seamlessly
+- **✅ SMART AGENT**: Intelligent prediction agent validating all data sources
+- **✅ COMPREHENSIVE TESTING**: All regression tests passing
+- **✅ 24/7 OPERATION**: Continuous monitoring with APScheduler persistence
+
+### Major Achievements in v1.6.0
+- **Persistent Graph Locks**: Interactive graphs maintain lock status across refreshes and deployments
+- **Trading Day Lock System**: Locks persist for specified trading days (5D/30D) only
+- **Real-Time Analysis Updates**: Dynamic session counting and accuracy calculations
+- **Enhanced Lock Management**: Lock status preserved during data updates and new stock additions
+- **Improved User Experience**: Lock behavior consistent with user expectations
+- **Dynamic Performance Metrics**: Live calculation of accuracy rates and performance status
+
+### New Features in v1.6.0
+- **Trading Day-Based Locks**: Locks expire only after specified trading days, not calendar days
+- **Lock Persistence**: Graph locks survive page refreshes, server restarts, and new deployments
+- **Dynamic Session Tracking**: Real-time session count updates in analysis page
+- **Live Accuracy Calculation**: Performance metrics calculated from actual session data
+- **Enhanced Lock UI**: Clear visual feedback for lock status and duration
+- **Intelligent Lock Management**: Existing locks preserved during stock data updates
+
+### Interactive Analytics Enhancements
+- **Persistent Lock State**: Lock status maintained in JSON storage with trading day calculation
+- **Real-Time Session Metrics**: Live updates to "Sessions Recorded" field
+- **Dynamic Performance Status**: Performance indicators based on actual data
+- **Enhanced User Feedback**: Clear indication of lock duration and status
+- **Improved Data Consistency**: Lock behavior consistent across all user interactions
+
+## Version 1.5.0 - SmartStockAgent Release (2025-08-04)
+
+### 🎯 PRODUCTION-READY STATUS - PREVIOUS VERSION
 - **✅ FULLY OPERATIONAL**: 20/20 stocks consistently processing with 100% success rate
 - **✅ REAL-TIME DASHBOARD**: Auto-refreshing interface with sub-second API responses
 - **✅ ML PREDICTIONS**: LSTM and Random Forest models working seamlessly
