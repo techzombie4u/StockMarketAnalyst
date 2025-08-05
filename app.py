@@ -1290,21 +1290,36 @@ def update_market_data():
         }), 500
 
 def load_interactive_tracking_data():
-    """Load enhanced tracking data for interactive charts"""
+    """Load enhanced tracking data for interactive charts with persistence"""
     try:
         from interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
-        return tracker_manager.load_tracking_data()
+        tracking_data = tracker_manager.load_tracking_data()
+        
+        # Always ensure tracking data includes current stocks
+        tracker_manager._ensure_current_stocks_tracked()
+        
+        return tracker_manager.get_all_tracking_data()
     except Exception as e:
         logger.warning(f"Could not load interactive tracking data: {str(e)}")
         return {}
 
 def save_lock_status(symbol, period, locked, timestamp):
-    """Save lock status for a stock prediction"""
+    """Save lock status for a stock prediction with persistence"""
     try:
         from interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
-        return tracker_manager.update_lock_status(symbol, period, locked, timestamp)
+        
+        # Ensure current stocks are tracked before saving lock status
+        tracker_manager._ensure_current_stocks_tracked()
+        
+        success = tracker_manager.update_lock_status(symbol, period, locked, timestamp)
+        if success:
+            logger.info(f"✅ Lock status saved: {symbol} {period} = {locked}")
+        else:
+            logger.error(f"❌ Failed to save lock status for {symbol}")
+        
+        return success
     except Exception as e:
         logger.error(f"Error saving lock status: {str(e)}")
         return False
