@@ -128,7 +128,7 @@
     "locked_30d": false,
     "lock_date_5d": null,
     "lock_date_30d": null,
-    "last_updated": "2025-08-05T10:12:36.034263+05:30",
+    "last_updated": "2025-08-05T21:31:09.415886+05:30",
     "days_tracked": 0
   },
   "HINDALCO": {
@@ -522,12 +522,14 @@
     ],
     "changed_on_5d": null,
     "changed_on_30d": null,
-    "locked_5d": false,
+    "locked_5d": true,
     "locked_30d": false,
-    "lock_date_5d": null,
+    "lock_date_5d": "2025-08-05T16:10:16.849Z",
     "lock_date_30d": null,
-    "last_updated": "2025-08-05T10:57:49.885283+05:30",
-    "days_tracked": 0
+    "last_updated": "2025-08-05T21:40:16.999450+05:30",
+    "days_tracked": 0,
+    "lock_start_date_5d": "2025-08-05",
+    "lock_trading_days_remaining_5d": 5
   },
   "BHARTIARTL": {
     "symbol": "BHARTIARTL",
