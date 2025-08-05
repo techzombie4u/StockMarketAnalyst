@@ -580,28 +580,24 @@
                 predicted5d.push(basePrice * (1 + (pred5d/100) * (i+1)/5));
             }
             
-            // Blue line: ONLY progressive actual data (no future values)
-            // Simulate that only 0-1 days have actually passed (more realistic)
-            const currentDay = Math.random() > 0.5 ? 1 : 0; // Either today only, or 1 day has passed
+            // Blue line: CONSISTENT progressive actual data (no future values)
+            // Always show exactly Day 0 and Day 1 for all stocks consistently
+            const currentDay = 1; // Consistently show 1 day has passed for all stocks
             
-            // Day 0 is always current price
+            // Day 0 is always current price for all stocks
             actual5d[0] = basePrice;
             
-            // Add actual data ONLY for days that have completed
-            if (currentDay >= 1) {
-                // Only add Day 1 actual if it has completed
-                actual5d[1] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
-            }
-            // Days 2, 3, and 4 remain null (haven't occurred yet)
+            // Day 1: Always add for consistency across all stocks
+            actual5d[1] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
             
-            // Red line: Updated predictions (only when >3% change occurred and only for completed days)
-            if (currentDay >= 1 && Math.random() > 0.8) {
-                const changePercent = (Math.random() * 6) + 3; // 3-9% change
+            // Days 2, 3, and 4 remain null (haven't occurred yet) - CONSISTENT for all stocks
+            
+            // Red line: Updated predictions (only when significant change occurred)
+            // Show updated predictions for some stocks but consistently
+            if (Math.random() > 0.7) { // 30% chance for updated prediction
                 updated5d[0] = basePrice; // Start from current
-                if (currentDay >= 1 && actual5d[1] !== null) {
-                    updated5d[1] = actual5d[1]; // Match actual for completed days only
-                }
-                // No day 2 data since currentDay max is 1
+                updated5d[1] = actual5d[1]; // Match actual for completed Day 1
+                // Days 2-4 remain null (no future predictions)
             }
             
             // Generate 30D data (simplified)
@@ -614,15 +610,15 @@
                 predicted30d.push(basePrice * (1 + (pred30d/100) * (i+1)/30));
             }
             
-            // Blue line: ONLY progressive actual data (no future values)
-            actual30d[0] = basePrice; // Day 0 is current price
+            // Blue line: CONSISTENT progressive actual data (no future values)
+            actual30d[0] = basePrice; // Day 0 is current price for all stocks
             
-            // Only add actual data for days that have realistically passed (1-2 days max)
-            const currentDay30 = Math.random() > 0.6 ? 1 : 0; // Either today only, or 1 day has passed
-            if (currentDay30 >= 1) {
-                actual30d[1] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
+            // Consistently show 1-2 days for all stocks in 30D view
+            actual30d[1] = basePrice * (1 + (Math.random() - 0.5) * 0.02);
+            if (Math.random() > 0.5) { // 50% chance for Day 2 data
+                actual30d[2] = actual30d[1] * (1 + (Math.random() - 0.5) * 0.015);
             }
-            // All other days remain null (haven't occurred yet)
+            // All other days remain null (haven't occurred yet) - CONSISTENT
             
             predictionData[symbol] = {
                 ...predictionData[symbol],
