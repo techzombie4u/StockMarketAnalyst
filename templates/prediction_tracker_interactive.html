@@ -154,6 +154,25 @@
             cursor: pointer;
         }
 
+        .batch-lock-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .batch-lock-btn {
+            width: 100%;
+            font-size: 0.9rem !important;
+            padding: 8px 12px !important;
+            margin: 0 !important;
+            transition: all 0.3s ease;
+        }
+
+        .batch-lock-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
         .chart-container {
             background: var(--card-bg);
             border-radius: 15px;
@@ -391,6 +410,21 @@
                         <div class="lock-toggle">
                             <input type="checkbox" id="lockToggle" class="lock-checkbox" onchange="toggleLock()">
                             <label for="lockToggle">🔐 Lock Prediction</label>
+                        </div>
+                    </div>
+
+                    <div class="batch-lock-section" style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
+                        <h4 style="margin-bottom: 10px; color: var(--primary-color); font-size: 1rem;">🔒 Batch Lock Controls</h4>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button class="btn batch-lock-btn" onclick="lockAllStocks('5d')" style="padding: 8px 12px; font-size: 0.9rem;">
+                                🔒 Lock All 5D
+                            </button>
+                            <button class="btn batch-lock-btn" onclick="lockAllStocks('30d')" style="padding: 8px 12px; font-size: 0.9rem; background: var(--warning-color);">
+                                🔒 Lock All 30D
+                            </button>
+                            <button class="btn batch-lock-btn" onclick="unlockAllStocks()" style="padding: 8px 12px; font-size: 0.9rem; background: var(--danger-color);">
+                                🔓 Unlock All
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1008,6 +1042,158 @@
         function getActualDaysCount(actualData) {
             if (!actualData) return 0;
             return actualData.filter(val => val !== null && val !== undefined).length;
+        }
+
+        function lockAllStocks(period) {
+            if (!predictionData || Object.keys(predictionData).length === 0) {
+                alert('⚠️ No stocks available to lock. Please load data first.');
+                return;
+            }
+
+            const stockSymbols = Object.keys(predictionData);
+            const lockPromises = [];
+
+            console.log(`🔒 Starting batch lock for ${stockSymbols.length} stocks (${period})`);
+
+            stockSymbols.forEach(symbol => {
+                // Update local data
+                const lockKey = `locked_${period}`;
+                const lockStartDateKey = `lock_start_date_${period}`;
+                
+                if (!predictionData[symbol]) {
+                    predictionData[symbol] = {};
+                }
+                
+                predictionData[symbol][lockKey] = true;
+                predictionData[symbol][`lock_date_${period}`] = new Date().toISOString().split('T')[0];
+                predictionData[symbol][lockStartDateKey] = new Date().toISOString().split('T')[0];
+                
+                console.log(`🔒 Locking ${symbol} ${period} with start date: ${predictionData[symbol][lockStartDateKey]}`);
+
+                // Save to backend
+                const lockPromise = fetch('/api/update-lock-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        period: period,
+                        locked: true,
+                        timestamp: new Date().toISOString()
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(`✅ ${symbol} ${period} locked successfully`);
+                    return { symbol, success: true };
+                })
+                .catch(error => {
+                    console.error(`❌ Error locking ${symbol} ${period}:`, error);
+                    return { symbol, success: false, error };
+                });
+
+                lockPromises.push(lockPromise);
+            });
+
+            // Wait for all locks to complete
+            Promise.all(lockPromises)
+                .then(results => {
+                    const successful = results.filter(r => r.success).length;
+                    const failed = results.filter(r => !r.success).length;
+                    
+                    alert(`🔒 Batch Lock Complete:\n✅ ${successful} stocks locked successfully\n❌ ${failed} stocks failed`);
+                    
+                    // Update UI
+                    updatePredictionCards();
+                    if (selectedStock && currentView === period) {
+                        updateLockToggle();
+                        updateChart();
+                    }
+                    
+                    console.log(`🎉 Batch lock completed: ${successful} successful, ${failed} failed`);
+                })
+                .catch(error => {
+                    console.error('❌ Batch lock error:', error);
+                    alert('❌ Batch lock failed. Please try again.');
+                });
+        }
+
+        function unlockAllStocks() {
+            if (!predictionData || Object.keys(predictionData).length === 0) {
+                alert('⚠️ No stocks available to unlock. Please load data first.');
+                return;
+            }
+
+            const stockSymbols = Object.keys(predictionData);
+            const unlockPromises = [];
+
+            console.log(`🔓 Starting batch unlock for ${stockSymbols.length} stocks`);
+
+            stockSymbols.forEach(symbol => {
+                // Update local data for both periods
+                ['5d', '30d'].forEach(period => {
+                    const lockKey = `locked_${period}`;
+                    const lockStartDateKey = `lock_start_date_${period}`;
+                    
+                    if (!predictionData[symbol]) {
+                        predictionData[symbol] = {};
+                    }
+                    
+                    predictionData[symbol][lockKey] = false;
+                    predictionData[symbol][`lock_date_${period}`] = null;
+                    predictionData[symbol][lockStartDateKey] = null;
+                    
+                    console.log(`🔓 Unlocking ${symbol} ${period} - dates will revert to dynamic`);
+
+                    // Save to backend
+                    const unlockPromise = fetch('/api/update-lock-status', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            symbol: symbol,
+                            period: period,
+                            locked: false,
+                            timestamp: new Date().toISOString()
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(`✅ ${symbol} ${period} unlocked successfully`);
+                        return { symbol, period, success: true };
+                    })
+                    .catch(error => {
+                        console.error(`❌ Error unlocking ${symbol} ${period}:`, error);
+                        return { symbol, period, success: false, error };
+                    });
+
+                    unlockPromises.push(unlockPromise);
+                });
+            });
+
+            // Wait for all unlocks to complete
+            Promise.all(unlockPromises)
+                .then(results => {
+                    const successful = results.filter(r => r.success).length;
+                    const failed = results.filter(r => !r.success).length;
+                    
+                    alert(`🔓 Batch Unlock Complete:\n✅ ${successful} operations successful\n❌ ${failed} operations failed`);
+                    
+                    // Update UI
+                    updatePredictionCards();
+                    if (selectedStock) {
+                        updateLockToggle();
+                        updateChart();
+                    }
+                    
+                    console.log(`🎉 Batch unlock completed: ${successful} successful, ${failed} failed`);
+                })
+                .catch(error => {
+                    console.error('❌ Batch unlock error:', error);
+                    alert('❌ Batch unlock failed. Please try again.');
+                });
         }
 
         function saveLockStatus(symbol, period, isLocked) {
