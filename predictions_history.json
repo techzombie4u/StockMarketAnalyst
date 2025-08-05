@@ -1,406 +1,6 @@
 [
   {
     "symbol": "ONGC",
-    "timestamp": "2025-08-04T23:00:28.564094",
-    "current_price": 234.83,
-    "predicted_1mo": 15.8,
-    "predicted_price": 271.93,
-    "score": 79,
-    "confidence": 86,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "HINDALCO",
-    "timestamp": "2025-08-04T23:00:28.565530",
-    "current_price": 687.7,
-    "predicted_1mo": 15.2,
-    "predicted_price": 792.23,
-    "score": 76,
-    "confidence": 83,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "COALINDIA",
-    "timestamp": "2025-08-04T23:00:28.567663",
-    "current_price": 374.7,
-    "predicted_1mo": 14.2,
-    "predicted_price": 427.91,
-    "score": 71,
-    "confidence": 78,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ITC",
-    "timestamp": "2025-08-04T23:00:28.569327",
-    "current_price": 416.85,
-    "predicted_1mo": 13.8,
-    "predicted_price": 474.38,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-08-04T23:00:28.570960",
-    "current_price": 317.85,
-    "predicted_1mo": 13.8,
-    "predicted_price": 361.71,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-08-04T23:00:28.572516",
-    "current_price": 174.54,
-    "predicted_1mo": 13.8,
-    "predicted_price": 198.63,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATASTEEL",
-    "timestamp": "2025-08-04T23:00:28.574170",
-    "current_price": 159.56,
-    "predicted_1mo": 13.6,
-    "predicted_price": 181.26,
-    "score": 68,
-    "confidence": 74,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "SBIN",
-    "timestamp": "2025-08-04T23:00:28.575707",
-    "current_price": 795.7,
-    "predicted_1mo": 13.4,
-    "predicted_price": 902.32,
-    "score": 67,
-    "confidence": 73,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "PFC",
-    "timestamp": "2025-08-04T23:00:28.577397",
-    "current_price": 413.75,
-    "predicted_1mo": 13.2,
-    "predicted_price": 468.37,
-    "score": 66,
-    "confidence": 72,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-08-04T23:00:28.579395",
-    "current_price": 393.55,
-    "predicted_1mo": 12.8,
-    "predicted_price": 443.92,
-    "score": 64,
-    "confidence": 70,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ONGC",
-    "timestamp": "2025-08-05T00:00:26.044613",
-    "current_price": 234.83,
-    "predicted_1mo": 15.8,
-    "predicted_price": 271.93,
-    "score": 79,
-    "confidence": 86,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "HINDALCO",
-    "timestamp": "2025-08-05T00:00:26.046467",
-    "current_price": 687.7,
-    "predicted_1mo": 15.2,
-    "predicted_price": 792.23,
-    "score": 76,
-    "confidence": 83,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "COALINDIA",
-    "timestamp": "2025-08-05T00:00:26.048169",
-    "current_price": 374.7,
-    "predicted_1mo": 14.2,
-    "predicted_price": 427.91,
-    "score": 71,
-    "confidence": 78,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ITC",
-    "timestamp": "2025-08-05T00:00:26.049810",
-    "current_price": 416.85,
-    "predicted_1mo": 13.8,
-    "predicted_price": 474.38,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-08-05T00:00:26.051521",
-    "current_price": 317.85,
-    "predicted_1mo": 13.8,
-    "predicted_price": 361.71,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-08-05T00:00:26.053355",
-    "current_price": 174.54,
-    "predicted_1mo": 13.8,
-    "predicted_price": 198.63,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATASTEEL",
-    "timestamp": "2025-08-05T00:00:26.055244",
-    "current_price": 159.56,
-    "predicted_1mo": 13.6,
-    "predicted_price": 181.26,
-    "score": 68,
-    "confidence": 74,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "SBIN",
-    "timestamp": "2025-08-05T00:00:26.057134",
-    "current_price": 795.7,
-    "predicted_1mo": 13.4,
-    "predicted_price": 902.32,
-    "score": 67,
-    "confidence": 73,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "PFC",
-    "timestamp": "2025-08-05T00:00:26.059372",
-    "current_price": 413.75,
-    "predicted_1mo": 13.2,
-    "predicted_price": 468.37,
-    "score": 66,
-    "confidence": 72,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-08-05T00:00:26.061093",
-    "current_price": 393.55,
-    "predicted_1mo": 12.8,
-    "predicted_price": 443.92,
-    "score": 64,
-    "confidence": 70,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ONGC",
-    "timestamp": "2025-08-05T01:00:25.860385",
-    "current_price": 234.83,
-    "predicted_1mo": 15.8,
-    "predicted_price": 271.93,
-    "score": 79,
-    "confidence": 86,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "HINDALCO",
-    "timestamp": "2025-08-05T01:00:25.861690",
-    "current_price": 687.7,
-    "predicted_1mo": 15.2,
-    "predicted_price": 792.23,
-    "score": 76,
-    "confidence": 83,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "COALINDIA",
-    "timestamp": "2025-08-05T01:00:25.863612",
-    "current_price": 374.7,
-    "predicted_1mo": 14.2,
-    "predicted_price": 427.91,
-    "score": 71,
-    "confidence": 78,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ITC",
-    "timestamp": "2025-08-05T01:00:25.866248",
-    "current_price": 416.85,
-    "predicted_1mo": 13.8,
-    "predicted_price": 474.38,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-08-05T01:00:25.868608",
-    "current_price": 317.85,
-    "predicted_1mo": 13.8,
-    "predicted_price": 361.71,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-08-05T01:00:25.870224",
-    "current_price": 174.54,
-    "predicted_1mo": 13.8,
-    "predicted_price": 198.63,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATASTEEL",
-    "timestamp": "2025-08-05T01:00:25.872603",
-    "current_price": 159.56,
-    "predicted_1mo": 13.6,
-    "predicted_price": 181.26,
-    "score": 68,
-    "confidence": 74,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "SBIN",
-    "timestamp": "2025-08-05T01:00:25.874866",
-    "current_price": 795.7,
-    "predicted_1mo": 13.4,
-    "predicted_price": 902.32,
-    "score": 67,
-    "confidence": 73,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "PFC",
-    "timestamp": "2025-08-05T01:00:25.877132",
-    "current_price": 413.75,
-    "predicted_1mo": 13.2,
-    "predicted_price": 468.37,
-    "score": 66,
-    "confidence": 72,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-08-05T01:00:25.879364",
-    "current_price": 393.55,
-    "predicted_1mo": 12.8,
-    "predicted_price": 443.92,
-    "score": 64,
-    "confidence": 70,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ONGC",
-    "timestamp": "2025-08-05T01:32:28.366426",
-    "current_price": 234.83,
-    "predicted_1mo": 15.8,
-    "predicted_price": 271.93,
-    "score": 79,
-    "confidence": 86,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "HINDALCO",
-    "timestamp": "2025-08-05T01:32:28.367990",
-    "current_price": 687.7,
-    "predicted_1mo": 15.2,
-    "predicted_price": 792.23,
-    "score": 76,
-    "confidence": 83,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "COALINDIA",
-    "timestamp": "2025-08-05T01:32:28.380102",
-    "current_price": 374.7,
-    "predicted_1mo": 14.2,
-    "predicted_price": 427.91,
-    "score": 71,
-    "confidence": 78,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ITC",
-    "timestamp": "2025-08-05T01:32:28.386242",
-    "current_price": 416.85,
-    "predicted_1mo": 13.8,
-    "predicted_price": 474.38,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "BPCL",
-    "timestamp": "2025-08-05T01:32:28.396810",
-    "current_price": 317.85,
-    "predicted_1mo": 13.8,
-    "predicted_price": 361.71,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "GAIL",
-    "timestamp": "2025-08-05T01:32:28.402025",
-    "current_price": 174.54,
-    "predicted_1mo": 13.8,
-    "predicted_price": 198.63,
-    "score": 69,
-    "confidence": 75,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "TATASTEEL",
-    "timestamp": "2025-08-05T01:32:28.419988",
-    "current_price": 159.56,
-    "predicted_1mo": 13.6,
-    "predicted_price": 181.26,
-    "score": 68,
-    "confidence": 74,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "SBIN",
-    "timestamp": "2025-08-05T01:32:28.425674",
-    "current_price": 795.7,
-    "predicted_1mo": 13.4,
-    "predicted_price": 902.32,
-    "score": 67,
-    "confidence": 73,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "PFC",
-    "timestamp": "2025-08-05T01:32:28.429708",
-    "current_price": 413.75,
-    "predicted_1mo": 13.2,
-    "predicted_price": 468.37,
-    "score": 66,
-    "confidence": 72,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "RECLTD",
-    "timestamp": "2025-08-05T01:32:28.435662",
-    "current_price": 393.55,
-    "predicted_1mo": 12.8,
-    "predicted_price": 443.92,
-    "score": 64,
-    "confidence": 70,
-    "trend_class": "sideways"
-  },
-  {
-    "symbol": "ONGC",
     "timestamp": "2025-08-05T01:36:49.039979",
     "current_price": 234.83,
     "predicted_1mo": 15.8,
@@ -997,6 +597,406 @@
     "predicted_price": 443.92,
     "score": 64,
     "confidence": 70,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "RECLTD",
+    "timestamp": "2025-08-05T04:03:46.665659",
+    "current_price": 396.2,
+    "predicted_1mo": 16.2,
+    "predicted_price": 460.38,
+    "score": 81,
+    "confidence": 89,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-05T04:03:46.667515",
+    "current_price": 685.75,
+    "predicted_1mo": 15.2,
+    "predicted_price": 789.98,
+    "score": 76,
+    "confidence": 83,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "PFC",
+    "timestamp": "2025-08-05T04:03:46.679767",
+    "current_price": 415.05,
+    "predicted_1mo": 15.0,
+    "predicted_price": 477.31,
+    "score": 75,
+    "confidence": 82,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SBIN",
+    "timestamp": "2025-08-05T04:03:46.684350",
+    "current_price": 799.8,
+    "predicted_1mo": 14.4,
+    "predicted_price": 914.97,
+    "score": 72,
+    "confidence": 79,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BHARTIARTL",
+    "timestamp": "2025-08-05T04:03:46.689272",
+    "current_price": 1921.8,
+    "predicted_1mo": 14.0,
+    "predicted_price": 2190.85,
+    "score": 70,
+    "confidence": 77,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ITC",
+    "timestamp": "2025-08-05T04:03:46.693552",
+    "current_price": 416.3,
+    "predicted_1mo": 13.8,
+    "predicted_price": 473.75,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-08-05T04:03:46.697098",
+    "current_price": 312.9,
+    "predicted_1mo": 13.8,
+    "predicted_price": 356.08,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-05T04:03:46.702873",
+    "current_price": 174.01,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.02,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-05T04:03:46.706825",
+    "current_price": 234.05,
+    "predicted_1mo": 13.8,
+    "predicted_price": 266.35,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "COALINDIA",
+    "timestamp": "2025-08-05T04:03:46.710692",
+    "current_price": 376.7,
+    "predicted_1mo": 13.2,
+    "predicted_price": 426.42,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "RECLTD",
+    "timestamp": "2025-08-05T04:04:38.959887",
+    "current_price": 396.7,
+    "predicted_1mo": 16.2,
+    "predicted_price": 460.97,
+    "score": 81,
+    "confidence": 89,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-05T04:04:38.961608",
+    "current_price": 687.2,
+    "predicted_1mo": 15.2,
+    "predicted_price": 791.65,
+    "score": 76,
+    "confidence": 83,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "PFC",
+    "timestamp": "2025-08-05T04:04:38.969851",
+    "current_price": 415.1,
+    "predicted_1mo": 15.0,
+    "predicted_price": 477.37,
+    "score": 75,
+    "confidence": 82,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SBIN",
+    "timestamp": "2025-08-05T04:04:38.975958",
+    "current_price": 800.0,
+    "predicted_1mo": 14.4,
+    "predicted_price": 915.2,
+    "score": 72,
+    "confidence": 79,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BHARTIARTL",
+    "timestamp": "2025-08-05T04:04:38.980018",
+    "current_price": 1921.9,
+    "predicted_1mo": 14.0,
+    "predicted_price": 2190.97,
+    "score": 70,
+    "confidence": 77,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-08-05T04:04:38.985932",
+    "current_price": 313.4,
+    "predicted_1mo": 13.8,
+    "predicted_price": 356.65,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-05T04:04:38.994849",
+    "current_price": 174.16,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.19,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-05T04:04:39.002637",
+    "current_price": 234.04,
+    "predicted_1mo": 13.8,
+    "predicted_price": 266.34,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "COALINDIA",
+    "timestamp": "2025-08-05T04:04:39.006371",
+    "current_price": 376.95,
+    "predicted_1mo": 13.2,
+    "predicted_price": 426.71,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-05T04:04:39.012334",
+    "current_price": 240.96,
+    "predicted_1mo": 13.2,
+    "predicted_price": 272.77,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "RECLTD",
+    "timestamp": "2025-08-05T04:05:55.750417",
+    "current_price": 396.7,
+    "predicted_1mo": 16.2,
+    "predicted_price": 460.97,
+    "score": 81,
+    "confidence": 89,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-05T04:05:55.752092",
+    "current_price": 687.85,
+    "predicted_1mo": 15.2,
+    "predicted_price": 792.4,
+    "score": 76,
+    "confidence": 83,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "PFC",
+    "timestamp": "2025-08-05T04:05:55.754321",
+    "current_price": 415.25,
+    "predicted_1mo": 15.0,
+    "predicted_price": 477.54,
+    "score": 75,
+    "confidence": 82,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SBIN",
+    "timestamp": "2025-08-05T04:05:55.756953",
+    "current_price": 800.55,
+    "predicted_1mo": 14.4,
+    "predicted_price": 915.83,
+    "score": 72,
+    "confidence": 79,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BHARTIARTL",
+    "timestamp": "2025-08-05T04:05:55.758940",
+    "current_price": 1921.3,
+    "predicted_1mo": 14.0,
+    "predicted_price": 2190.28,
+    "score": 70,
+    "confidence": 77,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-08-05T04:05:55.760964",
+    "current_price": 314.4,
+    "predicted_1mo": 13.8,
+    "predicted_price": 357.79,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-05T04:05:55.763362",
+    "current_price": 174.11,
+    "predicted_1mo": 13.8,
+    "predicted_price": 198.14,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-05T04:05:55.765414",
+    "current_price": 234.24,
+    "predicted_1mo": 13.8,
+    "predicted_price": 266.57,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "COALINDIA",
+    "timestamp": "2025-08-05T04:05:55.767350",
+    "current_price": 377.45,
+    "predicted_1mo": 13.2,
+    "predicted_price": 427.27,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-05T04:05:55.769290",
+    "current_price": 241.26,
+    "predicted_1mo": 13.2,
+    "predicted_price": 273.11,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "RECLTD",
+    "timestamp": "2025-08-05T04:13:15.449848",
+    "current_price": 395.1,
+    "predicted_1mo": 15.8,
+    "predicted_price": 457.53,
+    "score": 79,
+    "confidence": 86,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "HINDALCO",
+    "timestamp": "2025-08-05T04:13:15.450994",
+    "current_price": 687.5,
+    "predicted_1mo": 15.2,
+    "predicted_price": 792.0,
+    "score": 76,
+    "confidence": 83,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "ONGC",
+    "timestamp": "2025-08-05T04:13:15.452592",
+    "current_price": 233.7,
+    "predicted_1mo": 14.8,
+    "predicted_price": 268.29,
+    "score": 74,
+    "confidence": 81,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "SBIN",
+    "timestamp": "2025-08-05T04:13:15.454558",
+    "current_price": 800.25,
+    "predicted_1mo": 14.4,
+    "predicted_price": 915.49,
+    "score": 72,
+    "confidence": 79,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BHARTIARTL",
+    "timestamp": "2025-08-05T04:13:15.456667",
+    "current_price": 1924.2,
+    "predicted_1mo": 14.0,
+    "predicted_price": 2193.59,
+    "score": 70,
+    "confidence": 77,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BPCL",
+    "timestamp": "2025-08-05T04:13:15.458278",
+    "current_price": 312.7,
+    "predicted_1mo": 13.8,
+    "predicted_price": 355.85,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "GAIL",
+    "timestamp": "2025-08-05T04:13:15.460224",
+    "current_price": 173.84,
+    "predicted_1mo": 13.8,
+    "predicted_price": 197.83,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "PFC",
+    "timestamp": "2025-08-05T04:13:15.463814",
+    "current_price": 413.4,
+    "predicted_1mo": 13.8,
+    "predicted_price": 470.45,
+    "score": 69,
+    "confidence": 75,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "COALINDIA",
+    "timestamp": "2025-08-05T04:13:15.467728",
+    "current_price": 375.65,
+    "predicted_1mo": 13.2,
+    "predicted_price": 425.24,
+    "score": 66,
+    "confidence": 72,
+    "trend_class": "sideways"
+  },
+  {
+    "symbol": "BANKBARODA",
+    "timestamp": "2025-08-05T04:13:15.469629",
+    "current_price": 240.92,
+    "predicted_1mo": 13.2,
+    "predicted_price": 272.72,
+    "score": 66,
+    "confidence": 72,
     "trend_class": "sideways"
   }
 ]
