@@ -1129,6 +1129,46 @@ def update_lock_status():
         logger.error(f"Error updating lock status: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@app.route('/api/update-market-data', methods=['POST'])
+def update_market_data():
+    """API endpoint to manually trigger market data update"""
+    try:
+        logger.info("🔄 Manual market data update triggered")
+        
+        from interactive_tracker_manager import InteractiveTrackerManager
+        tracker_manager = InteractiveTrackerManager()
+        
+        # Update actual prices with real market data
+        update_summary = tracker_manager.update_daily_actual_prices()
+        
+        if update_summary and 'error' not in update_summary:
+            updated_count = len(update_summary.get('updated_stocks', []))
+            failed_count = len(update_summary.get('failed_stocks', []))
+            
+            return jsonify({
+                'success': True,
+                'message': f'Market data updated: {updated_count} stocks updated, {failed_count} failed',
+                'updated_stocks': update_summary.get('updated_stocks', []),
+                'failed_stocks': update_summary.get('failed_stocks', []),
+                'update_time': update_summary.get('update_time'),
+                'timestamp': datetime.now(IST).isoformat()
+            })
+        else:
+            error_msg = update_summary.get('error', 'Unknown error') if update_summary else 'No response'
+            return jsonify({
+                'success': False,
+                'message': f'Market data update failed: {error_msg}',
+                'timestamp': datetime.now(IST).isoformat()
+            }), 500
+
+    except Exception as e:
+        logger.error(f"Error in manual market data update: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Market data update error: {str(e)}',
+            'timestamp': datetime.now(IST).isoformat()
+        }), 500
+
 def load_interactive_tracking_data():
     """Load enhanced tracking data for interactive charts"""
     try:

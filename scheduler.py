@@ -218,44 +218,75 @@ class StockAnalystScheduler:
         self.scheduler = BackgroundScheduler()
         self.scheduler.configure(timezone=pytz.timezone('Asia/Kolkata'))
 
-    def start_scheduler(self, interval_minutes=60):
-        """Start the scheduler with specified interval"""
-        try:
-            # Clear any existing jobs
-            self.scheduler.remove_all_jobs()
+    def configure_scheduler(self):
+        """Configure the scheduler timezone"""
+        self.scheduler.configure(timezone=pytz.timezone('Asia/Kolkata'))
 
-            # Add screening job
+    def run_initial_screening(self):
+        """Run an initial screening job when the scheduler starts"""
+        def delayed_initial_run():
+            time.sleep(10)  # Wait 10 seconds for app to fully initialize
+            try:
+                logger.info("Running initial screening...")
+                success = run_screening_job()
+                if success:
+                    logger.info("✅ Initial screening completed successfully")
+                else:
+                    logger.warning("⚠️ Initial screening had issues")
+            except Exception as e:
+                logger.error(f"Initial screening failed: {e}")
+        threading.Thread(target=delayed_initial_run, daemon=True).start()
+
+    def schedule_market_close_update(self):
+        """Schedule the daily job to fetch market close prices"""
+        try:
+            self.scheduler.add_job(
+                func=self.run_daily_tracker_update,
+                trigger='cron',
+                hour=16,  # 4:00 PM IST
+                minute=0,
+                id='daily_market_close_update',
+                name='Daily Market Close Data Update',
+                replace_existing=True,
+                misfire_grace_time=600 # 10 minutes grace period
+            )
+            logger.info("Scheduled daily market close update for 4:00 PM IST.")
+        except Exception as e:
+            logger.error(f"❌ Error scheduling market close update: {str(e)}")
+
+    def start_scheduler(self, interval_minutes=60):
+        """Start the APScheduler with specified interval"""
+        try:
+            # Configure scheduler
+            self.configure_scheduler()
+
+            # Add the main screening job
             self.scheduler.add_job(
                 func=run_screening_job,
                 trigger=IntervalTrigger(minutes=interval_minutes),
                 id='stock_screening',
                 name='Stock Screening Job',
                 replace_existing=True,
-                max_instances=1
+                max_instances=1,
+                misfire_grace_time=300  # 5 minutes grace period
             )
 
+            # Schedule daily market close data update
+            self.schedule_market_close_update()
+
             # Start scheduler
-            if not self.scheduler.running:
-                self.scheduler.start()
-                logger.info(f"✅ Scheduler started with {interval_minutes} minute intervals")
+            self.scheduler.start()
+            logger.info(f"✅ Scheduler started with {interval_minutes} minute intervals")
+            logger.info("✅ Market close data update scheduled for 4:00 PM IST daily")
 
-            # Run initial screening after a short delay
-            def delayed_initial_run():
-                time.sleep(10)  # Wait 10 seconds for app to fully initialize
-                try:
-                    logger.info("Running initial screening...")
-                    success = run_screening_job()
-                    if success:
-                        logger.info("✅ Initial screening completed successfully")
-                    else:
-                        logger.warning("⚠️ Initial screening had issues")
-                except Exception as e:
-                    logger.error(f"Initial screening failed: {e}")
+            # Run initial screening
+            self.run_initial_screening()
 
-            threading.Thread(target=delayed_initial_run, daemon=True).start()
+            return True
 
         except Exception as e:
-            logger.error(f"Error starting scheduler: {str(e)}")
+            logger.error(f"❌ Error starting scheduler: {str(e)}")
+            return False
 
     def stop_scheduler(self):
         """Stop the scheduler"""

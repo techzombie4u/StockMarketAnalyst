@@ -213,39 +213,142 @@ class InteractiveTrackerManager:
         """Get all tracking data"""
         return self.tracking_data
 
-    def daily_update(self):
-        """Daily update to fetch actual prices and update tracking"""
+    def update_daily_actual_prices(self):
+        """Fetch real market closing prices and update tracking data"""
         try:
-            updated_count = 0
-
+            logger.info("🔄 Starting daily actual price update from market data...")
+            
+            current_ist = datetime.now(IST)
+            updated_stocks = []
+            failed_stocks = []
+            
             for symbol, stock_data in self.tracking_data.items():
                 try:
-                    # Calculate which day we're on
+                    # Calculate which trading day we're on
                     start_date = datetime.strptime(stock_data['start_date'], '%Y-%m-%d')
-                    days_elapsed = (datetime.now() - start_date).days
-
-                    if days_elapsed > 0 and days_elapsed <= 30:
-                        # Fetch current price
-                        ticker = yf.Ticker(f"{symbol}.NS")
-                        hist = ticker.history(period="1d")
-
-                        if not hist.empty:
-                            current_price = float(hist['Close'].iloc[-1])
-
-                            # Update actual price
-                            if self.update_actual_price(symbol, days_elapsed, current_price):
-                                updated_count += 1
-
+                    start_date_ist = IST.localize(start_date)
+                    
+                    # Calculate trading days elapsed (excluding weekends)
+                    trading_days_elapsed = self.calculate_trading_days(start_date_ist, current_ist)
+                    
+                    if trading_days_elapsed > 0 and trading_days_elapsed <= 30:
+                        # Check if market has closed today (after 3:30 PM IST)
+                        market_close_time = current_ist.replace(hour=15, minute=30, second=0, microsecond=0)
+                        
+                        if current_ist >= market_close_time or current_ist.weekday() >= 5:
+                            # Fetch real closing price from Yahoo Finance
+                            real_price = self.fetch_real_closing_price(symbol)
+                            
+                            if real_price:
+                                # Update actual price for this trading day
+                                success = self.update_actual_price(symbol, trading_days_elapsed - 1, real_price)
+                                
+                                if success:
+                                    updated_stocks.append({
+                                        'symbol': symbol,
+                                        'day': trading_days_elapsed - 1,
+                                        'price': real_price,
+                                        'timestamp': current_ist.isoformat()
+                                    })
+                                    logger.info(f"✅ {symbol}: Updated Day {trading_days_elapsed-1} with real price ₹{real_price:.2f}")
+                                else:
+                                    failed_stocks.append(symbol)
+                            else:
+                                failed_stocks.append(symbol)
+                                logger.warning(f"⚠️ {symbol}: Could not fetch real price")
+                        else:
+                            logger.info(f"⏳ {symbol}: Market hasn't closed yet (current: {current_ist.strftime('%H:%M')})")
+                    
                 except Exception as e:
-                    logger.warning(f"Error updating {symbol}: {str(e)}")
+                    logger.warning(f"❌ Error updating {symbol}: {str(e)}")
+                    failed_stocks.append(symbol)
                     continue
 
-            logger.info(f"Daily update completed: {updated_count} stocks updated")
-            return updated_count > 0
+            logger.info(f"📊 Daily update completed: {len(updated_stocks)} updated, {len(failed_stocks)} failed")
+            
+            return {
+                'updated_stocks': updated_stocks,
+                'failed_stocks': failed_stocks,
+                'update_time': current_ist.isoformat(),
+                'total_updated': len(updated_stocks)
+            }
 
         except Exception as e:
-            logger.error(f"Error in daily update: {str(e)}")
-            return False
+            logger.error(f"❌ Error in daily actual price update: {str(e)}")
+            return {'error': str(e)}
+
+    def fetch_real_closing_price(self, symbol):
+        """Fetch real closing price from Yahoo Finance"""
+        try:
+            # Try different ticker formats for Indian stocks
+            ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
+            
+            for ticker_format in ticker_formats:
+                try:
+                    ticker = yf.Ticker(ticker_format)
+                    # Get last 2 days to ensure we get the latest closing price
+                    hist = ticker.history(period="2d", interval="1d")
+                    
+                    if not hist.empty and len(hist) > 0:
+                        # Get the most recent closing price
+                        latest_close = float(hist['Close'].iloc[-1])
+                        logger.info(f"  📈 {symbol}: Fetched real price ₹{latest_close:.2f} using {ticker_format}")
+                        return latest_close
+                        
+                except Exception as e:
+                    logger.debug(f"  Failed {ticker_format}: {str(e)}")
+                    continue
+            
+            logger.warning(f"  ❌ All ticker formats failed for {symbol}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error fetching real price for {symbol}: {str(e)}")
+            return None
+
+    def calculate_trading_days(self, start_date, end_date):
+        """Calculate number of trading days between two dates (excluding weekends)"""
+        try:
+            trading_days = 0
+            current = start_date
+            
+            while current.date() < end_date.date():
+                # Monday = 0, Sunday = 6. Trading days are Mon-Fri (0-4)
+                if current.weekday() < 5:  # Monday to Friday
+                    trading_days += 1
+                current += timedelta(days=1)
+            
+            return trading_days
+            
+        except Exception as e:
+            logger.error(f"Error calculating trading days: {str(e)}")
+            return 0
+
+    def is_market_open_today(self):
+        """Check if market is open today (weekdays only)"""
+        current_ist = datetime.now(IST)
+        return current_ist.weekday() < 5  # Monday = 0, Friday = 4
+
+    def get_next_market_close_time(self):
+        """Get next market close time (3:30 PM IST on next trading day)"""
+        current_ist = datetime.now(IST)
+        
+        # If today is a trading day and market hasn't closed
+        if self.is_market_open_today():
+            market_close_today = current_ist.replace(hour=15, minute=30, second=0, microsecond=0)
+            if current_ist < market_close_today:
+                return market_close_today
+        
+        # Find next trading day
+        next_day = current_ist + timedelta(days=1)
+        while next_day.weekday() >= 5:  # Skip weekends
+            next_day += timedelta(days=1)
+            
+        return next_day.replace(hour=15, minute=30, second=0, microsecond=0)
+
+    def daily_update(self):
+        """Legacy method - redirects to new real market data update"""
+        return self.update_daily_actual_prices()
 
     def cleanup_old_tracking(self, days_threshold=35):
         """Remove tracking data older than threshold"""
