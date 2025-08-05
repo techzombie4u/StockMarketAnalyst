@@ -279,15 +279,19 @@
                 </div>
                 <div class="stat-card">
                     <div id="totalPredictions" class="stat-value">--</div>
-                    <div class="stat-label">Total Predictions</div>
+                    <div class="stat-label">Stocks Analyzed</div>
                 </div>
                 <div class="stat-card">
                     <div id="correctPredictions" class="stat-value">--</div>
-                    <div class="stat-label">Correct Predictions</div>
+                    <div class="stat-label">High-Quality Picks</div>
                 </div>
                 <div class="stat-card">
                     <div id="analysisCount" class="stat-value">--</div>
-                    <div class="stat-label">Analysis Sessions</div>
+                    <div class="stat-label">Sessions Recorded</div>
+                </div>
+                <div class="stat-card">
+                    <div id="successfulSessions" class="stat-value">--</div>
+                    <div class="stat-label">Successful Sessions</div>
                 </div>
             </div>
 
@@ -394,7 +398,7 @@
             document.getElementById('analysisContent').style.display = 'block';
             document.getElementById('noDataState').style.display = 'none';
 
-            // Update stats
+            // Update stats with live data
             const accuracyElement = document.getElementById('accuracyRate');
             const accuracy = data.accuracy_rate || 0;
             accuracyElement.textContent = accuracy + '%';
@@ -405,7 +409,8 @@
 
             document.getElementById('totalPredictions').textContent = data.total_predictions_analyzed || 0;
             document.getElementById('correctPredictions').textContent = data.correct_predictions || 0;
-            document.getElementById('analysisCount').textContent = '1'; // Current analysis
+            document.getElementById('analysisCount').textContent = data.sessions_recorded || 0; // Live session count
+            document.getElementById('successfulSessions').textContent = data.successful_sessions || 0; // Successful sessions
 
             // Update top performing stocks
             const topStocksList = document.getElementById('topStocks');
@@ -476,12 +481,17 @@
                 insightsList.appendChild(qualityLi);
             }
 
-            // Update trend data with more detailed information
+            // Update trend data with live session information
             const trendElement = document.getElementById('trendData');
-            const sessionsCount = data.sessions_analyzed || data.sessions_count || 0;
-            const dataStatus = data.status === 'current_analysis' ? 'Real-time Analysis' : 
+            const sessionsRecorded = data.sessions_recorded || 0;
+            const successfulSessions = data.successful_sessions || 0;
+            const dataStatus = data.status === 'real_time_analysis' ? 'Real-time Analysis' : 
                               data.status === 'historical_analysis' ? 'Historical Analysis' :
                               data.status === 'no_data' ? 'No Data Available' : 'Analysis Ready';
+
+            // Calculate session success rate
+            const sessionSuccessRate = sessionsRecorded > 0 ? 
+                Math.round((successfulSessions / sessionsRecorded) * 100) : 0;
 
             trendElement.innerHTML = `
                 <div style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 10px;">
@@ -489,7 +499,8 @@
                     <p><strong>Accuracy Rate:</strong> ${accuracy}%</p>
                     <p><strong>Stocks Analyzed:</strong> ${data.total_predictions_analyzed || 0}</p>
                     <p><strong>High-Quality Picks:</strong> ${data.correct_predictions || 0}</p>
-                    <p><strong>Sessions Recorded:</strong> ${sessionsCount}</p>
+                    <p><strong>Sessions Recorded:</strong> ${sessionsRecorded} (Total Runs)</p>
+                    <p><strong>Successful Sessions:</strong> ${successfulSessions} (${sessionSuccessRate}% success rate)</p>
                     <p><strong>Overall Performance:</strong> ${
                         accuracy >= 70 ? '🟢 Excellent - Strong stock selection' : 
                         accuracy >= 50 ? '🟡 Good - Solid performance' : 
