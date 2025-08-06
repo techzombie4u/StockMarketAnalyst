@@ -330,11 +330,11 @@
             <div class="filter-row">
                 <div class="filter-group">
                     <label>Min ROI %:</label>
-                    <input type="number" class="filter-input" id="minROI" value="5" min="0" max="100">
+                    <input type="number" class="filter-input" id="minROI" value="0" min="0" max="100">
                 </div>
                 <div class="filter-group">
                     <label>Min Confidence %:</label>
-                    <input type="number" class="filter-input" id="minConfidence" value="60" min="0" max="100">
+                    <input type="number" class="filter-input" id="minConfidence" value="0" min="0" max="100">
                 </div>
                 <div class="filter-group">
                     <label>Max Margin ₹:</label>
@@ -518,18 +518,39 @@
 
             log(`Applying filters: minROI=${minROI}, minConfidence=${minConfidence}, maxMargin=${maxMargin}, type=${strategyType}`);
 
+            let roiFiltered = 0, confidenceFiltered = 0, marginFiltered = 0, typeFiltered = 0;
+
             const filtered = data.filter(option => {
-                if (option.expected_roi < minROI) return false;
-                if (option.confidence < minConfidence) return false;
-                if (option.margin_required > maxMargin) return false;
+                if (option.expected_roi < minROI) {
+                    roiFiltered++;
+                    return false;
+                }
+                if (option.confidence < minConfidence) {
+                    confidenceFiltered++;
+                    return false;
+                }
+                if (option.margin_required > maxMargin) {
+                    marginFiltered++;
+                    return false;
+                }
                 
-                if (strategyType === 'conservative' && option.expected_roi > 20) return false;
-                if (strategyType === 'moderate' && (option.expected_roi < 15 || option.expected_roi > 30)) return false;
-                if (strategyType === 'aggressive' && option.expected_roi < 25) return false;
+                if (strategyType === 'conservative' && option.expected_roi > 20) {
+                    typeFiltered++;
+                    return false;
+                }
+                if (strategyType === 'moderate' && (option.expected_roi < 15 || option.expected_roi > 30)) {
+                    typeFiltered++;
+                    return false;
+                }
+                if (strategyType === 'aggressive' && option.expected_roi < 25) {
+                    typeFiltered++;
+                    return false;
+                }
                 
                 return true;
             });
 
+            log(`Filter results: ROI filtered: ${roiFiltered}, Confidence filtered: ${confidenceFiltered}, Margin filtered: ${marginFiltered}, Type filtered: ${typeFiltered}`);
             log(`Filtered ${data.length} strategies down to ${filtered.length}`);
             return filtered;
         }
@@ -582,15 +603,28 @@
                 }
 
                 const result = await response.json();
-                log(`Received response: ${JSON.stringify(result)}`);
+                log(`Received response status: ${result.status}`);
                 log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies`);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
                     optionsData = result.strategies;
                     log(`✅ Options data loaded: ${optionsData.length} strategies`);
                     
+                    // Log first strategy for debugging
+                    if (optionsData.length > 0) {
+                        log(`Sample strategy: ${JSON.stringify(optionsData[0])}`);
+                    }
+                    
                     const filteredData = applyFilters(optionsData);
                     log(`📊 After filtering: ${filteredData.length} strategies`);
+                    
+                    // Log current filter values for debugging
+                    const currentFilters = {
+                        minROI: parseFloat(document.getElementById('minROI').value) || 0,
+                        minConfidence: parseFloat(document.getElementById('minConfidence').value) || 0,
+                        maxMargin: parseFloat(document.getElementById('maxMargin').value) || 999999
+                    };
+                    log(`Current filters: ${JSON.stringify(currentFilters)}`);
                     
                     if (filteredData.length > 0) {
                         updateOptionsTable(filteredData);
@@ -598,9 +632,11 @@
                         showData();
                         log('🎉 Fresh options strategies loaded successfully');
                     } else {
-                        log('⚠️ No strategies passed filters');
-                        updateMetrics([]);
-                        showEmpty();
+                        log('⚠️ No strategies passed filters - showing all data instead');
+                        // If no strategies pass filters, show all data anyway for debugging
+                        updateOptionsTable(optionsData);
+                        updateMetrics(optionsData);
+                        showData();
                     }
                 } else {
                     log(`❌ No strategies available. Status: ${result.status}, Strategies count: ${result.strategies ? result.strategies.length : 'undefined'}`);
