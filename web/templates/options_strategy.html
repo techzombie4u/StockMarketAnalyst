@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💰 Options Income Strategy - Stock Market Analyst</title>
+    <title>💰 Options - Stock Market Analyst</title>
     <style>
         * {
             margin: 0;
@@ -288,13 +287,14 @@
 </head>
 <body>
     <div class="header">
-        <h1>💰 Options Income Strategy</h1>
+        <h1>💰 Options</h1>
         <p>Short Strangle Strategy using AI-Enhanced Stock Predictions</p>
-        
+
         <div class="navigation">
             <a href="/" class="nav-btn home">🏠 Dashboard</a>
             <a href="/analysis" class="nav-btn analysis">📊 Analysis</a>
             <a href="/lookup" class="nav-btn lookup" target="_blank">🔍 Stock Lookup</a>
+            <a href="/options-strategy" style="background: #f39c12; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">💰 Options</a>
         </div>
     </div>
 
@@ -533,7 +533,7 @@
                     marginFiltered++;
                     return false;
                 }
-                
+
                 if (strategyType === 'conservative' && option.expected_roi > 20) {
                     typeFiltered++;
                     return false;
@@ -546,7 +546,7 @@
                     typeFiltered++;
                     return false;
                 }
-                
+
                 return true;
             });
 
@@ -557,7 +557,7 @@
 
         async function loadOptionsData() {
             if (isLoading) return;
-            
+
             isLoading = true;
             setButtonState(true);
             showLoading();
@@ -609,15 +609,15 @@
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
                     optionsData = result.strategies;
                     log(`✅ Options data loaded: ${optionsData.length} strategies`);
-                    
+
                     // Log first strategy for debugging
                     if (optionsData.length > 0) {
                         log(`Sample strategy: ${JSON.stringify(optionsData[0])}`);
                     }
-                    
+
                     const filteredData = applyFilters(optionsData);
                     log(`📊 After filtering: ${filteredData.length} strategies`);
-                    
+
                     // Log current filter values for debugging
                     const currentFilters = {
                         minROI: parseFloat(document.getElementById('minROI').value) || 0,
@@ -625,7 +625,7 @@
                         maxMargin: parseFloat(document.getElementById('maxMargin').value) || 999999
                     };
                     log(`Current filters: ${JSON.stringify(currentFilters)}`);
-                    
+
                     if (filteredData.length > 0) {
                         updateOptionsTable(filteredData);
                         updateMetrics(filteredData);
