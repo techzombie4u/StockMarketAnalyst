@@ -1965,6 +1965,100 @@ Extract a specific metric value from soup"""
         except Exception as e:
             logger.error(f"Error during screening: {str(e)}")
             return []
+    
+    def run_enhanced_screener(self):
+        """Main enhanced screening function with real-time data"""
+        logger.info("Starting enhanced stock screening process...")
+
+        try:
+            # Step 1: Scrape bulk deals (with timeout)
+            logger.info("Fetching bulk deals data...")
+            try:
+                self.bulk_deals = self.scrape_bulk_deals()
+                bulk_deal_symbols = [deal['symbol'] for deal in self.bulk_deals]
+                logger.info(f"Found {len(self.bulk_deals)} bulk deals")
+            except Exception as e:
+                logger.warning(f"Bulk deals failed: {str(e)}")
+                self.bulk_deals = []
+                bulk_deal_symbols = []
+
+            # Step 2: Collect stock data (process top 20 stocks for speed)
+            stocks_data = {}
+
+            # Prioritize high-potential stocks for faster processing
+            priority_symbols = [
+                'SBIN', 'BHARTIARTL', 'ITC', 'NTPC', 'COALINDIA', 'TATASTEEL', 
+                'HINDALCO', 'BPCL', 'GAIL', 'IOC', 'BANKBARODA', 'PFC', 
+                'RECLTD', 'IRCTC', 'HAL', 'M&M', 'POWERGRID', 'ONGC', 'VEDL', 'SAIL'
+            ]
+
+            for i, symbol in enumerate(priority_symbols[:20]):  # Process top 20 stocks
+                try:
+                    logger.info(f"Processing {symbol} ({i+1}/20)...")
+
+                    # Get fundamental data
+                    fundamentals = self.scrape_screener_data(symbol)
+
+                    # Get technical indicators
+                    technical = self.calculate_enhanced_technical_indicators(symbol)
+
+                    if fundamentals or technical:
+                        stocks_data[symbol] = {
+                            'fundamentals': fundamentals,
+                            'technical': technical,
+                            'bulk_deals': symbol in bulk_deal_symbols
+                        }
+                        logger.info(f"✅ {symbol}: Got data")
+                    else:
+                        logger.warning(f"⚠️ {symbol}: No data available")
+
+                    # Add delay to avoid rate limiting
+                    time.sleep(1)
+
+                except Exception as e:
+                    logger.error(f"Error processing {symbol}: {str(e)}")
+                    continue
+
+            # Step 3: Score and rank stocks
+            logger.info("Scoring and ranking stocks...")
+            scored_stocks = self.enhanced_score_and_rank(stocks_data)
+
+            # Step 4: Add ML predictions if available
+            try:
+                from src.models.predictor import enrich_with_ml_predictions
+                scored_stocks = enrich_with_ml_predictions(scored_stocks)
+                logger.info("✅ ML predictions added")
+            except Exception as e:
+                logger.warning(f"ML predictions failed: {str(e)}")
+
+            # Step 5: Save results with proper timestamp
+            if scored_stocks:
+                try:
+                    import pytz
+                    IST = pytz.timezone('Asia/Kolkata')
+                    ist_now = datetime.now(IST)
+
+                    result_data = {
+                        'timestamp': ist_now.strftime('%Y-%m-%dT%H:%M:%S'),
+                        'last_updated': ist_now.strftime('%d/%m/%Y, %H:%M:%S'),
+                        'status': 'success',
+                        'stocks': scored_stocks
+                    }
+
+                    with open('top10.json', 'w', encoding='utf-8') as f:
+                        json.dump(result_data, f, indent=2, ensure_ascii=False)
+
+                    logger.info(f"✅ Results saved with {len(scored_stocks)} stocks")
+                except Exception as save_error:
+                    logger.error(f"Error saving results: {save_error}")
+
+            logger.info(f"✅ Successfully screened {len(scored_stocks)} stocks")
+            return scored_stocks
+
+        except Exception as e:
+            logger.error(f"Critical error in screening: {str(e)}")
+            # Fallback to demo data if real screening fails
+            return self._generate_fallback_data()
     def calculate_predicted_price(self, current_price, score):
         """Calculate predicted price based on score"""
         try:

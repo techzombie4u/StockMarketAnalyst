@@ -812,7 +812,7 @@ def run_now():
                 logger.info("Using standalone screening")
                 from src.analyzers.stock_screener import EnhancedStockScreener
                 screener = EnhancedStockScreener()
-                success = screener.run_screening() # Corrected method call
+                success = screener.run_enhanced_screener() # Corrected method call
                 if success:
                     logger.info("✅ Manual screening completed successfully standalone")
                     return jsonify({

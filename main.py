@@ -19,27 +19,27 @@ else:
     print("❌ Backup directory not found, using current organized structure")
 
 try:
-    # Try to import and run from backup first
-    if backup_dir in sys.path:
-        print("🚀 Starting Stock Market Analyst - Version 1.7.1 (Backup Version)")
-        import main as backup_main
-        # Execute the backup version
-        if hasattr(backup_main, 'main'):
-            backup_main.main()
-        else:
-            # If no main function, just import and let it run
-            pass
-    else:
-        # Fallback to organized structure
-        from src.core.main import main
-        main()
+    # Try to run from organized structure first
+    print("🚀 Starting Stock Market Analyst - Version 1.7.1 (Organized Version)")
+    from src.core.main import main
+    main()
 
 except Exception as e:
-    print(f"❌ Error starting backup version: {e}")
-    print("🔄 Falling back to organized structure...")
+    print(f"❌ Error starting organized version: {e}")
+    print("🔄 Falling back to backup version...")
     try:
-        from src.core.main import main
-        main()
+        # Try to import and run from backup
+        if backup_dir in sys.path:
+            print("🚀 Starting Stock Market Analyst - Version 1.7.1 (Backup Version)")
+            import main as backup_main
+            # Execute the backup version
+            if hasattr(backup_main, 'main'):
+                backup_main.main()
+            else:
+                # If no main function, just import and let it run
+                pass
+        else:
+            raise Exception("Backup directory not in path")
     except Exception as fallback_error:
         print(f"❌ Fallback also failed: {fallback_error}")
         print("🆘 Please check the application structure")

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Stock Market Analyst - Main Application Entry Point
 
@@ -71,7 +70,7 @@ def main():
         # Run the Flask application
         import socket
         port = 5000
-        
+
         # Check if port is available, find alternative if needed
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -93,7 +92,7 @@ def main():
                         continue
         except:
             pass
-        
+
         app.run(
             host='0.0.0.0',
             port=port,
@@ -121,7 +120,7 @@ def run_system_health_check():
             'src/core/app.py', 
             'web/templates/templates/index.html'
         ]
-        
+
         all_exist = True
         for file in required_files:
             if not os.path.exists(file):
@@ -129,7 +128,7 @@ def run_system_health_check():
                 all_exist = False
             else:
                 print(f"✅ Found: {file}")
-        
+
         if not all_exist:
             return False
 
