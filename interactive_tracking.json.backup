@@ -1485,12 +1485,14 @@
     "changed_on_5d": null,
     "changed_on_30d": null,
     "locked_5d": true,
-    "locked_30d": false,
+    "locked_30d": true,
     "lock_date_5d": "2025-08-06T06:43:30.927Z",
-    "lock_date_30d": null,
-    "last_updated": "2025-08-06T12:13:30.966678+05:30",
+    "lock_date_30d": "2025-08-06T06:43:39.541Z",
+    "last_updated": "2025-08-06T12:13:39.608154+05:30",
     "days_tracked": 0,
     "persistent_lock_5d": true,
-    "lock_start_date_5d": "2025-08-06"
+    "lock_start_date_5d": "2025-08-06",
+    "persistent_lock_30d": true,
+    "lock_start_date_30d": "2025-08-06"
   }
 }
