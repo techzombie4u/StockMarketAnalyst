@@ -1938,6 +1938,10 @@ Extract a specific metric value from soup"""
         fallback_stocks.sort(key=lambda x: x['score'], reverse=True)
         return fallback_stocks[:10]
 
+    def generate_fallback_data(self) -> List[Dict]:
+        """Public method to generate fallback data"""
+        return self._generate_fallback_data()
+
     def is_market_hours(self) -> bool:
         """Check if the current time is within market hours (9 AM - 4 PM IST)"""
         now_utc = datetime.utcnow()

@@ -13,7 +13,7 @@ import logging
 import pytz
 from src.analyzers.historical_analyzer import HistoricalAnalyzer
 from src.analyzers.daily_technical_analyzer import DailyTechnicalAnalyzer
-from src.analyzers.stock_screener import StockScreener
+from src.analyzers.stock_screener import EnhancedStockScreener
 from src.analyzers.short_strangle_engine import ShortStrangleEngine
 from src.models.predictor import StockPredictor
 from src.managers.interactive_tracker_manager import InteractiveTrackerManager
