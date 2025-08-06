@@ -765,6 +765,7 @@
         }
 
         function loadPredictionData() {
+            console.log('🔄 Starting loadPredictionData...');
             const loadingIndicator = document.getElementById('loadingIndicator');
             const predictionsGrid = document.getElementById('predictionsGrid');
             const noData = document.getElementById('noData');
@@ -1015,11 +1016,16 @@
             
             // Green line: STRAIGHT line from current price to predicted end price
             for (let i = 0; i < 5; i++) {
-                // Linear interpolation from current price to final predicted price
-                const progress = i / 4; // 0 to 1
-                const predictedPrice = basePrice + (predicted5dFinalPrice - basePrice) * progress;
-                predicted5d.push(predictedPrice);
-                console.log(`  Day ${i}: ${predictedPrice.toFixed(2)} (${progress.toFixed(2)} progress)`);
+                if (i === 0) {
+                    // Day 0 starts at current price
+                    predicted5d.push(basePrice);
+                } else {
+                    // Linear interpolation from current price to final predicted price
+                    const progress = i / 4; // 0 to 1
+                    const predictedPrice = basePrice + (predicted5dFinalPrice - basePrice) * progress;
+                    predicted5d.push(predictedPrice);
+                }
+                console.log(`  Day ${i}: ${predicted5d[i].toFixed(2)}`);
             }
             
             // Blue line: REAL MARKET DATA - Progressive actual closing prices
@@ -1071,9 +1077,14 @@
             
             // Green line: STRAIGHT line from current price to predicted end price
             for (let i = 0; i < 30; i++) {
-                // Linear interpolation from current price to final predicted price
-                const progress = i / 29; // 0 to 1
-                predicted30d.push(basePrice + (predicted30dFinalPrice - basePrice) * progress);
+                if (i === 0) {
+                    // Day 0 starts at current price
+                    predicted30d.push(basePrice);
+                } else {
+                    // Linear interpolation from current price to final predicted price
+                    const progress = i / 29; // 0 to 1
+                    predicted30d.push(basePrice + (predicted30dFinalPrice - basePrice) * progress);
+                }
             }
             
             // Blue line: REAL MARKET DATA for 30D view
@@ -1344,9 +1355,58 @@
             // Ensure all data arrays have the correct length
             const expectedLength = currentView === '5d' ? 5 : 30;
             
-            // Pad arrays to expected length without overwriting existing data
+            console.log(`📊 Processing chart data for ${selectedStock} ${currentView}:`, {
+                raw_predicted: predictedData,
+                raw_actual: actualData,
+                raw_updated: updatedData,
+                expected_length: expectedLength
+            });
+            
+            // FORCE generate predicted data if missing or invalid
+            if (!predictedData || !Array.isArray(predictedData) || predictedData.length === 0 || 
+                predictedData.every(val => val === null || val === undefined || isNaN(val))) {
+                
+                console.log('🔧 FORCE generating predicted data line');
+                const currentPrice = data.current_price || 100;
+                const prediction = currentView === '5d' ? 
+                    (data.pred_5d || data.predicted_gain * 0.2 || 2) : 
+                    (data.pred_1mo || data.predicted_gain || 8);
+                const finalPrice = currentPrice * (1 + prediction / 100);
+                
+                console.log(`🔧 Prediction calculation: ${currentPrice} -> ${finalPrice} (${prediction}%)`);
+                
+                predictedData = [];
+                for (let i = 0; i < expectedLength; i++) {
+                    const progress = expectedLength === 1 ? 1 : i / (expectedLength - 1);
+                    const predictedPrice = currentPrice + (finalPrice - currentPrice) * progress;
+                    predictedData.push(predictedPrice);
+                }
+                
+                console.log(`✅ Generated predicted data:`, predictedData);
+            }
+            
+            // FORCE generate actual data if missing
+            if (!actualData || !Array.isArray(actualData) || actualData.length === 0) {
+                actualData = Array(expectedLength).fill(null);
+                actualData[0] = data.current_price || 100;
+                console.log('🔧 FORCE generated actual data with starting price:', actualData[0]);
+            } else {
+                // Ensure first actual price exists
+                if (actualData[0] === null || actualData[0] === undefined || isNaN(actualData[0])) {
+                    actualData[0] = data.current_price || 100;
+                    console.log('🔧 Set starting actual price:', actualData[0]);
+                }
+            }
+            
+            // FORCE generate updated data array
+            if (!updatedData || !Array.isArray(updatedData) || updatedData.length === 0) {
+                updatedData = Array(expectedLength).fill(null);
+                console.log('🔧 FORCE generated empty updated data array');
+            }
+            
+            // Ensure all arrays have correct length
             while (predictedData.length < expectedLength) {
-                predictedData.push(null);
+                predictedData.push(predictedData[predictedData.length - 1] || 100);
             }
             while (actualData.length < expectedLength) {
                 actualData.push(null);
@@ -1355,17 +1415,31 @@
                 updatedData.push(null);
             }
             
-            // Ensure arrays don't exceed expected length
+            // Truncate if too long
             predictedData = predictedData.slice(0, expectedLength);
             actualData = actualData.slice(0, expectedLength);
             updatedData = updatedData.slice(0, expectedLength);
             
-            console.log(`📊 Final data arrays for chart:`, {
+            // FINAL VALIDATION - ensure we have numeric data
+            for (let i = 0; i < predictedData.length; i++) {
+                if (predictedData[i] === null || predictedData[i] === undefined || isNaN(predictedData[i])) {
+                    const basePrice = data.current_price || 100;
+                    const progress = expectedLength === 1 ? 1 : i / (expectedLength - 1);
+                    const prediction = currentView === '5d' ? (data.pred_5d || 2) : (data.pred_1mo || 8);
+                    const finalPrice = basePrice * (1 + prediction / 100);
+                    predictedData[i] = basePrice + (finalPrice - basePrice) * progress;
+                    console.log(`🔧 Fixed predicted data at index ${i}:`, predictedData[i]);
+                }
+            }
+            
+            console.log(`📊 Final validated data arrays:`, {
                 predicted_length: predictedData.length,
                 actual_length: actualData.length,
                 updated_length: updatedData.length,
-                predicted_sample: predictedData.slice(0, 3),
-                actual_sample: actualData.slice(0, 3)
+                predicted_sample: predictedData.slice(0, Math.min(3, predictedData.length)),
+                actual_sample: actualData.slice(0, Math.min(3, actualData.length)),
+                has_valid_predicted: predictedData.some(val => val !== null && !isNaN(val)),
+                has_valid_actual: actualData.some(val => val !== null && !isNaN(val))
             });
             
             // Update chart container styling based on lock status
@@ -1379,61 +1453,25 @@
             // Destroy existing chart
             if (chart) {
                 chart.destroy();
+                chart = null;
             }
             
-            // Final validation log
-            console.log(`📈 Final chart data for ${selectedStock}:`, {
-                predicted: predictedData.slice(0, 5).map((v, i) => `${i}: ${v ? v.toFixed(2) : 'null'}`),
-                actual: actualData.slice(0, 5).map((v, i) => `${i}: ${v ? v.toFixed(2) : 'null'}`),
-                updated: updatedData.slice(0, 5).map((v, i) => `${i}: ${v ? v.toFixed(2) : 'null'}`),
-                labels: labels.slice(0, 5)
-            });
-
-            // Ensure we have valid data arrays
-            if (!Array.isArray(predictedData) || predictedData.length === 0) {
-                console.error('❌ Invalid predicted data for chart');
+            // Validate we have data before creating chart
+            if (!predictedData.some(val => val !== null && !isNaN(val))) {
+                console.error('❌ No valid predicted data for chart after all fixes');
                 return;
             }
 
-            // Check if we have data arrays
-            console.log(`📊 Data validation check for ${selectedStock} ${currentView}`);
-            console.log(`📊 Predicted data:`, predictedData);
-            console.log(`📊 Actual data:`, actualData);
-            console.log(`📊 Updated data:`, updatedData);
-            
-            // Ensure we always have predicted data for the chart
-            if (!predictedData || predictedData.length === 0 || predictedData.every(val => val === null || val === undefined)) {
-                console.log('🔧 Generating predicted data line');
-                const currentPrice = data.current_price || 100;
-                const prediction = currentView === '5d' ? 
-                    (data.pred_5d || 2) : (data.pred_1mo || 5);
-                const finalPrice = currentPrice * (1 + prediction / 100);
-                
-                console.log(`🔧 Generating prediction line: ${currentPrice} -> ${finalPrice} (${prediction}%)`);
-                
-                predictedData = [];
-                for (let i = 0; i < expectedLength; i++) {
-                    const progress = i / (expectedLength - 1);
-                    predictedData[i] = currentPrice + (finalPrice - currentPrice) * progress;
-                }
-            }
-            
-            // Ensure we have at least starting actual price
-            if (!actualData || actualData.length === 0) {
-                actualData = Array(expectedLength).fill(null);
-            }
-            if (actualData[0] === null || actualData[0] === undefined || isNaN(actualData[0])) {
-                console.log('🔧 Setting initial actual price');
-                actualData[0] = data.current_price || 100;
-            }
-            
-            // Ensure updated data array exists
-            if (!updatedData || updatedData.length === 0) {
-                updatedData = Array(expectedLength).fill(null);
-            }
-
-            // Create new chart
+            // Create new chart with enhanced configuration
             const ctx = document.getElementById('predictionChart').getContext('2d');
+            
+            console.log(`📈 Creating chart with data:`, {
+                labels: labels,
+                predicted_count: predictedData.filter(v => v !== null && !isNaN(v)).length,
+                actual_count: actualData.filter(v => v !== null && !isNaN(v)).length,
+                updated_count: updatedData.filter(v => v !== null && !isNaN(v)).length
+            });
+            
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -1449,7 +1487,8 @@
                             pointRadius: 4,
                             pointHoverRadius: 6,
                             spanGaps: true,
-                            tension: 0 // Ensures straight lines
+                            tension: 0, // Ensures straight lines
+                            hidden: false // Force visible
                         },
                         {
                             label: 'Actual Price (Progressive)',
@@ -1461,7 +1500,8 @@
                             pointRadius: 6,
                             pointHoverRadius: 8,
                             spanGaps: false,
-                            tension: 0.1 // Slight curve for actual data
+                            tension: 0.1, // Slight curve for actual data
+                            hidden: false // Force visible
                         },
                         {
                             label: 'Updated Prediction (Incremental)',
@@ -1473,26 +1513,39 @@
                             pointRadius: 5,
                             pointHoverRadius: 7,
                             spanGaps: true,
-                            tension: 0 // Ensures straight lines for updated predictions
+                            tension: 0, // Ensures straight lines for updated predictions
+                            hidden: false // Force visible
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    },
                     plugins: {
                         legend: {
                             position: 'top',
                             labels: {
                                 usePointStyle: true,
-                                padding: 20
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                }
                             }
                         },
                         tooltip: {
+                            mode: 'index',
+                            intersect: false,
                             callbacks: {
                                 label: function(context) {
                                     const value = context.parsed.y;
-                                    return value !== null ? `${context.dataset.label}: ₹${value.toFixed(2)}` : null;
+                                    if (value !== null && !isNaN(value)) {
+                                        return `${context.dataset.label}: ₹${value.toFixed(2)}`;
+                                    }
+                                    return null;
                                 }
                             }
                         }
@@ -1502,18 +1555,40 @@
                             beginAtZero: false,
                             title: {
                                 display: true,
-                                text: 'Price (₹)'
+                                text: 'Price (₹)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
                             },
                             ticks: {
                                 callback: function(value) {
                                     return '₹' + value.toFixed(0);
+                                },
+                                font: {
+                                    size: 11
                                 }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
                             }
                         },
                         x: {
                             title: {
                                 display: true,
-                                text: 'Date'
+                                text: 'Trading Days',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
                             }
                         }
                     },
@@ -1521,9 +1596,26 @@
                         point: {
                             hoverBackgroundColor: '#ffffff',
                             hoverBorderWidth: 3
+                        },
+                        line: {
+                            borderJoinStyle: 'round'
                         }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
                     }
                 }
+            });
+            
+            // Force chart update
+            chart.update('active');
+            
+            console.log(`✅ Chart created successfully for ${selectedStock} ${currentView}:`, {
+                datasets: chart.data.datasets.length,
+                labels: chart.data.labels.length,
+                chart_instance: !!chart
             });
             
             updateChartInfo();

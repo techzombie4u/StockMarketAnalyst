@@ -168,16 +168,26 @@ class InteractiveTrackerManager:
             # Generate 5-day predictions (straight line from start to end)
             final_price_5d = current_price * (1 + pred_5d / 100)
             for i in range(5):
-                progress = i / 4  # Linear progression from day 0 to day 4
-                predicted_price = current_price + (final_price_5d - current_price) * progress
-                predicted_5d.append(predicted_price)
+                if i == 0:
+                    # First day is current price
+                    predicted_5d.append(current_price)
+                else:
+                    # Linear progression from day 1 to day 4
+                    progress = i / 4  # Linear progression from day 0 to day 4
+                    predicted_price = current_price + (final_price_5d - current_price) * progress
+                    predicted_5d.append(predicted_price)
 
             # Generate 30-day predictions (straight line from start to end)
             final_price_30d = current_price * (1 + pred_30d / 100)
             for i in range(30):
-                progress = i / 29  # Linear progression from day 0 to day 29
-                predicted_price = current_price + (final_price_30d - current_price) * progress
-                predicted_30d.append(predicted_price)
+                if i == 0:
+                    # First day is current price
+                    predicted_30d.append(current_price)
+                else:
+                    # Linear progression from day 1 to day 29
+                    progress = i / 29  # Linear progression from day 0 to day 29
+                    predicted_price = current_price + (final_price_30d - current_price) * progress
+                    predicted_30d.append(predicted_price)
                 
             logger.info(f"Generated prediction arrays: 5d={len(predicted_5d)} points ({predicted_5d[0]:.2f} -> {predicted_5d[-1]:.2f}), 30d={len(predicted_30d)} points ({predicted_30d[0]:.2f} -> {predicted_30d[-1]:.2f})")
 

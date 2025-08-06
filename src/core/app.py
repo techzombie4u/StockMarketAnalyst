@@ -1472,6 +1472,50 @@ def update_market_data():
             'timestamp': datetime.now(IST).isoformat()
         }), 500
 
+@app.route('/api/debug-chart-data/<symbol>')
+def debug_chart_data(symbol):
+    """Debug endpoint to check chart data for a specific stock"""
+    try:
+        from src.managers.interactive_tracker_manager import InteractiveTrackerManager
+        tracker_manager = InteractiveTrackerManager()
+        
+        # Get stock data
+        stock_data = tracker_manager.get_stock_data(symbol.upper())
+        
+        if not stock_data:
+            return jsonify({
+                'error': f'No data found for {symbol}',
+                'available_stocks': list(tracker_manager.get_all_tracking_data().keys())
+            }), 404
+        
+        # Extract chart-relevant data
+        debug_info = {
+            'symbol': symbol.upper(),
+            'current_price': stock_data.get('current_price'),
+            'predicted_5d': stock_data.get('predicted_5d', []),
+            'predicted_30d': stock_data.get('predicted_30d', []),
+            'actual_progress_5d': stock_data.get('actual_progress_5d', []),
+            'actual_progress_30d': stock_data.get('actual_progress_30d', []),
+            'updated_prediction_5d': stock_data.get('updated_prediction_5d', []),
+            'updated_prediction_30d': stock_data.get('updated_prediction_30d', []),
+            'locked_5d': stock_data.get('locked_5d', False),
+            'locked_30d': stock_data.get('locked_30d', False),
+            'data_validation': {
+                'predicted_5d_length': len(stock_data.get('predicted_5d', [])),
+                'predicted_30d_length': len(stock_data.get('predicted_30d', [])),
+                'predicted_5d_valid_count': len([x for x in stock_data.get('predicted_5d', []) if x is not None and not (isinstance(x, float) and x != x)]),
+                'predicted_30d_valid_count': len([x for x in stock_data.get('predicted_30d', []) if x is not None and not (isinstance(x, float) and x != x)]),
+                'actual_5d_valid_count': len([x for x in stock_data.get('actual_progress_5d', []) if x is not None and not (isinstance(x, float) and x != x)]),
+                'actual_30d_valid_count': len([x for x in stock_data.get('actual_progress_30d', []) if x is not None and not (isinstance(x, float) and x != x)])
+            }
+        }
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        logger.error(f"Error in debug chart data: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 def load_interactive_tracking_data():
     """Load enhanced tracking data for interactive charts with persistence"""
     try:
