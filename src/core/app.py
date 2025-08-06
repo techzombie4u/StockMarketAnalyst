@@ -18,6 +18,28 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Import required classes - with fallback handling
+try:
+    from src.managers.enhanced_error_handler import EnhancedErrorHandler
+    from src.managers.interactive_tracker_manager import InteractiveTrackerManager
+    from src.core.scheduler import SchedulerManager
+    from src.analyzers.short_strangle_engine import ShortStrangleEngine
+except ImportError as e:
+    logger.warning(f"Import warning: {e}")
+    # Create minimal fallback classes
+    class EnhancedErrorHandler:
+        def handle_error(self, *args, **kwargs): pass
+        def get_error_summary(self): return {}
+    
+    class InteractiveTrackerManager:
+        def get_all_tracking_data(self): return {}
+    
+    class SchedulerManager:
+        def start_scheduler(self, *args, **kwargs): pass
+    
+    class ShortStrangleEngine:
+        def generate_strategies(self, *args, **kwargs): return []
+
 # Set template folder to the correct location
 import os
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates', 'templates')

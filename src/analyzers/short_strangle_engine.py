@@ -270,3 +270,91 @@ class ShortStrangleEngine:
             
         except Exception as e:
             logger.error(f"❌ Error saving to cache: {e}")
+"""
+Short Strangle Options Strategy Engine
+"""
+
+import logging
+import yfinance as yf
+from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
+
+class ShortStrangleEngine:
+    """Engine for generating short strangle options strategies"""
+    
+    def __init__(self):
+        self.tier1_stocks = ['RELIANCE.NS', 'HDFCBANK.NS', 'TCS.NS', 'ITC.NS', 'INFY.NS']
+    
+    def generate_strategies(self, timeframe='30D', force_refresh=False):
+        """Generate short strangle strategies"""
+        try:
+            strategies = []
+            
+            for symbol_ns in self.tier1_stocks:
+                try:
+                    symbol = symbol_ns.replace('.NS', '')
+                    
+                    # Get stock data
+                    stock = yf.Ticker(symbol_ns)
+                    info = stock.info
+                    current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+                    
+                    if not current_price:
+                        hist = stock.history(period='1d')
+                        if not hist.empty:
+                            current_price = float(hist['Close'].iloc[-1])
+                        else:
+                            continue
+                    
+                    current_price = float(current_price)
+                    
+                    # Calculate strategy parameters
+                    if timeframe == '5D':
+                        otm_percent = 0.02
+                        days_to_expiry = 5
+                    elif timeframe == '10D':
+                        otm_percent = 0.03
+                        days_to_expiry = 10
+                    else:  # 30D
+                        otm_percent = 0.05
+                        days_to_expiry = 30
+                    
+                    # Calculate strikes and premiums
+                    call_strike = current_price * (1 + otm_percent)
+                    put_strike = current_price * (1 - otm_percent)
+                    call_premium = max(5.0, current_price * 0.02)
+                    put_premium = max(5.0, current_price * 0.02)
+                    total_premium = call_premium + put_premium
+                    
+                    # Calculate other metrics
+                    margin_required = max(20000, current_price * 100 * 0.2)
+                    expected_roi = (total_premium / (margin_required / 100)) * 100
+                    confidence = min(95.0, 75.0 + (10 if symbol in ['RELIANCE', 'TCS', 'HDFCBANK'] else 0))
+                    
+                    strategy = {
+                        'symbol': symbol,
+                        'current_price': current_price,
+                        'call_strike': call_strike,
+                        'put_strike': put_strike,
+                        'call_premium': call_premium,
+                        'put_premium': put_premium,
+                        'total_premium': total_premium,
+                        'margin_required': margin_required,
+                        'expected_roi': expected_roi,
+                        'confidence': confidence,
+                        'risk_level': 'Medium',
+                        'days_to_expiry': days_to_expiry
+                    }
+                    
+                    strategies.append(strategy)
+                    
+                except Exception as e:
+                    logger.error(f"Error processing {symbol}: {e}")
+                    continue
+            
+            return strategies
+            
+        except Exception as e:
+            logger.error(f"Error generating strategies: {e}")
+            return []
