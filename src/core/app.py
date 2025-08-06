@@ -1313,7 +1313,7 @@ def get_predictions_tracker():
 
 @app.route('/api/interactive-tracker-data')
 def get_interactive_tracker_data():
-    """API endpoint for interactive tracker enhanced data"""
+    """API endpoint for interactive tracker enhanced data with validation"""
     try:
         # Load interactive tracking data
         tracking_data = load_interactive_tracking_data()
@@ -1322,9 +1322,76 @@ def get_interactive_tracker_data():
         if not tracking_data:
             tracking_data = initialize_empty_tracking_data()
 
+        # Validate tracking data structure for charts
+        validated_data = {}
+        for symbol, data in tracking_data.items():
+            try:
+                # Ensure all required arrays exist and have correct lengths
+                validated_data[symbol] = {
+                    'symbol': symbol,
+                    'current_price': float(data.get('current_price', 100)),
+                    'confidence': data.get('confidence', 75),
+                    'score': data.get('score', 65),
+                    'pred_5d': float(data.get('pred_5d', 2.0)),
+                    'pred_1mo': float(data.get('pred_1mo', 8.0)),
+                    'predicted_5d': data.get('predicted_5d', []) if isinstance(data.get('predicted_5d'), list) and len(data.get('predicted_5d', [])) == 5 else [],
+                    'predicted_30d': data.get('predicted_30d', []) if isinstance(data.get('predicted_30d'), list) and len(data.get('predicted_30d', [])) == 30 else [],
+                    'actual_progress_5d': data.get('actual_progress_5d', []) if isinstance(data.get('actual_progress_5d'), list) and len(data.get('actual_progress_5d', [])) == 5 else [],
+                    'actual_progress_30d': data.get('actual_progress_30d', []) if isinstance(data.get('actual_progress_30d'), list) and len(data.get('actual_progress_30d', [])) == 30 else [],
+                    'updated_prediction_5d': data.get('updated_prediction_5d', []) if isinstance(data.get('updated_prediction_5d'), list) and len(data.get('updated_prediction_5d', [])) == 5 else [],
+                    'updated_prediction_30d': data.get('updated_prediction_30d', []) if isinstance(data.get('updated_prediction_30d'), list) and len(data.get('updated_prediction_30d', [])) == 30 else [],
+                    'changed_on_5d': data.get('changed_on_5d'),
+                    'changed_on_30d': data.get('changed_on_30d'),
+                    'locked_5d': data.get('locked_5d', False),
+                    'locked_30d': data.get('locked_30d', False),
+                    'persistent_lock_5d': data.get('persistent_lock_5d', False),
+                    'persistent_lock_30d': data.get('persistent_lock_30d', False),
+                    'lock_date_5d': data.get('lock_date_5d'),
+                    'lock_date_30d': data.get('lock_date_30d'),
+                    'lock_start_date_5d': data.get('lock_start_date_5d'),
+                    'lock_start_date_30d': data.get('lock_start_date_30d'),
+                    'start_date': data.get('start_date', datetime.now(IST).strftime('%Y-%m-%d')),
+                    'last_updated': data.get('last_updated', datetime.now(IST).isoformat()),
+                    'days_tracked': data.get('days_tracked', 0),
+                    'timestamp': data.get('timestamp', datetime.now(IST).isoformat())
+                }
+                
+                # If arrays are empty, regenerate them
+                if (not validated_data[symbol]['predicted_5d'] or 
+                    not validated_data[symbol]['predicted_30d'] or
+                    not validated_data[symbol]['actual_progress_5d'] or
+                    not validated_data[symbol]['actual_progress_30d']):
+                    
+                    logger.info(f"🔧 Regenerating arrays for {symbol} - some arrays were empty or invalid")
+                    
+                    # Use the tracker manager to regenerate data
+                    from src.managers.interactive_tracker_manager import InteractiveTrackerManager
+                    tracker_manager = InteractiveTrackerManager()
+                    
+                    # Create prediction data structure
+                    pred_data = {
+                        'current_price': validated_data[symbol]['current_price'],
+                        'pred_5d': validated_data[symbol]['pred_5d'],
+                        'pred_1mo': validated_data[symbol]['pred_1mo'],
+                        'confidence': validated_data[symbol]['confidence'],
+                        'score': validated_data[symbol]['score']
+                    }
+                    
+                    regenerated_data = tracker_manager.generate_sample_tracking_data(symbol, pred_data, validated_data[symbol])
+                    if regenerated_data:
+                        validated_data[symbol] = regenerated_data
+                        logger.info(f"✅ Regenerated data for {symbol}")
+                
+            except Exception as stock_error:
+                logger.warning(f"Error validating data for {symbol}: {stock_error}")
+                continue
+
+        logger.info(f"📊 Serving validated tracking data for {len(validated_data)} stocks")
+
         return jsonify({
             'status': 'success',
-            'tracking_data': tracking_data,
+            'tracking_data': validated_data,
+            'data_count': len(validated_data),
             'timestamp': datetime.now(IST).isoformat()
         })
 

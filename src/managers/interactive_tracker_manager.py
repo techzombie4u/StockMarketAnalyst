@@ -782,7 +782,7 @@ class InteractiveTrackerManager:
             return {}
 
     def generate_sample_tracking_data(self, symbol, pred, existing_data=None):
-        """Generate comprehensive sample tracking data with proper numeric arrays"""
+        """Generate comprehensive sample tracking data with proper numeric arrays and guaranteed structure"""
         try:
             base_price = float(pred.get('current_price', 100))
             pred_5d = float(pred.get('pred_5d', 2.0))
@@ -790,72 +790,87 @@ class InteractiveTrackerManager:
 
             logger.info(f"🔧 Generating sample data for {symbol}: base={base_price}, 5d={pred_5d}%, 30d={pred_30d}%")
 
+            # CRITICAL FIX: Ensure exact array lengths with proper structure
+            
             # Calculate predicted final prices
             predicted_5d_final_price = base_price * (1 + pred_5d/100)
             predicted_30d_final_price = base_price * (1 + pred_30d/100)
 
-            # Generate 5D predicted data - STRAIGHT line
+            # Generate 5D predicted data - EXACTLY 5 elements, STRAIGHT line
             predicted_5d = []
             for i in range(5):
-                if i == 0:
-                    predicted_5d.append(float(base_price))
-                else:
-                    progress = i / 4.0  # Linear progression 0 to 1
-                    price = base_price + (predicted_5d_final_price - base_price) * progress
-                    predicted_5d.append(round(float(price), 2))
+                progress = i / 4.0 if i > 0 else 0  # Linear progression 0 to 1
+                price = base_price + (predicted_5d_final_price - base_price) * progress
+                predicted_5d.append(round(float(price), 2))
 
-            # Generate 30D predicted data - STRAIGHT line
+            # Generate 30D predicted data - EXACTLY 30 elements, STRAIGHT line
             predicted_30d = []
             for i in range(30):
-                if i == 0:
-                    predicted_30d.append(float(base_price))
-                else:
-                    progress = i / 29.0  # Linear progression 0 to 1
-                    price = base_price + (predicted_30d_final_price - base_price) * progress
-                    predicted_30d.append(round(float(price), 2))
+                progress = i / 29.0 if i > 0 else 0  # Linear progression 0 to 1
+                price = base_price + (predicted_30d_final_price - base_price) * progress
+                predicted_30d.append(round(float(price), 2))
 
-            # Generate actual progress data (progressive real market data)
-            actual_5d = [float(base_price), None, None, None, None]
-            actual_30d = [float(base_price)] + [None] * 29
+            # Generate actual progress data - EXACTLY matching lengths
+            actual_5d = [round(float(base_price), 2)]  # First day is always actual
+            for i in range(4):  # Add 4 more elements (total 5)
+                actual_5d.append(None)
+                
+            actual_30d = [round(float(base_price), 2)]  # First day is always actual
+            for i in range(29):  # Add 29 more elements (total 30)
+                actual_30d.append(None)
 
-            # Simulate some actual market data for demonstration
+            # Add some sample actual data for demonstration
             current_date = datetime.now(IST)
             market_closed = current_date.hour >= 15 and current_date.minute >= 30
 
             if market_closed and current_date.weekday() < 5:  # Market closed on trading day
-                # Add one day of actual data
-                actual_price = base_price * (0.98 + 0.04 * (hash(symbol) % 100) / 100)
-                actual_5d[1] = round(float(actual_price), 2)
-                actual_30d[1] = actual_5d[1]
+                # Add one day of actual data (day 1)
+                variance = 0.98 + 0.04 * (hash(symbol) % 100) / 100
+                actual_price = round(float(base_price * variance), 2)
+                if len(actual_5d) > 1:
+                    actual_5d[1] = actual_price
+                if len(actual_30d) > 1:
+                    actual_30d[1] = actual_price
 
-            # Generate updated predictions (red line) - incremental from change day
-            updated_5d = [None] * 5
-            updated_30d = [None] * 30
+            # Generate updated predictions - EXACTLY matching lengths
+            updated_5d = []
+            for i in range(5):
+                updated_5d.append(None)
+                
+            updated_30d = []
+            for i in range(30):
+                updated_30d.append(None)
 
-            # Some stocks get prediction updates
+            # Some stocks get prediction updates for demonstration
             stock_hash = hash(symbol) % 4
             if stock_hash == 0:  # 25% of stocks get prediction updates
+                # 5D updates from day 1
                 change_day_5d = 1
                 new_final_5d = predicted_5d_final_price * 1.08  # 8% higher prediction
 
                 for i in range(change_day_5d, 5):
-                    if actual_5d[change_day_5d] is not None:
-                        remaining_days = 4 - change_day_5d
-                        if remaining_days > 0:
-                            day_progress = (i - change_day_5d) / remaining_days
-                            updated_5d[i] = actual_5d[change_day_5d] + (new_final_5d - actual_5d[change_day_5d]) * day_progress
+                    progress = (i - change_day_5d) / (4 - change_day_5d) if (4 - change_day_5d) > 0 else 0
+                    start_price = actual_5d[change_day_5d] if actual_5d[change_day_5d] is not None else base_price
+                    updated_5d[i] = round(float(start_price + (new_final_5d - start_price) * progress), 2)
 
+                # 30D updates from day 3
                 change_day_30d = 3
                 new_final_30d = predicted_30d_final_price * 0.92  # 8% lower prediction
 
                 for i in range(change_day_30d, 30):
-                    if actual_30d[change_day_30d] is not None:
-                        remaining_days = 29 - change_day_30d
-                        if remaining_days > 0:
-                            day_progress = (i - change_day_30d) / remaining_days
-                            updated_30d[i] = actual_30d[change_day_30d] + (new_final_30d - actual_30d[change_day_30d]) * day_progress
+                    progress = (i - change_day_30d) / (29 - change_day_30d) if (29 - change_day_30d) > 0 else 0
+                    start_price = actual_30d[change_day_30d] if actual_30d[change_day_30d] is not None else base_price
+                    updated_30d[i] = round(float(start_price + (new_final_30d - start_price) * progress), 2)
 
-            logger.info(f"✅ Generated arrays: 5d_pred={len(predicted_5d)}, 30d_pred={len(predicted_30d)}, valid_5d={sum(1 for x in predicted_5d if x is not None)}, valid_30d={sum(1 for x in predicted_30d if x is not None)}")
+            # VALIDATION: Ensure all arrays have correct lengths
+            assert len(predicted_5d) == 5, f"predicted_5d length {len(predicted_5d)} != 5"
+            assert len(predicted_30d) == 30, f"predicted_30d length {len(predicted_30d)} != 30"
+            assert len(actual_5d) == 5, f"actual_5d length {len(actual_5d)} != 5"
+            assert len(actual_30d) == 30, f"actual_30d length {len(actual_30d)} != 30"
+            assert len(updated_5d) == 5, f"updated_5d length {len(updated_5d)} != 5"
+            assert len(updated_30d) == 30, f"updated_30d length {len(updated_30d)} != 30"
+
+            logger.info(f"✅ Generated arrays with correct lengths: 5d_pred={len(predicted_5d)}, 30d_pred={len(predicted_30d)}, all validated")
 
             # Merge with existing data if provided, preserving lock states
             base_data = existing_data or predictionData.get(symbol, {})
@@ -894,7 +909,7 @@ class InteractiveTrackerManager:
             # Update global prediction data
             predictionData[symbol] = stock_data
 
-            logger.info(f"✅ Generated complete sample data for {symbol} with {len(predicted_5d)} 5D and {len(predicted_30d)} 30D points")
+            logger.info(f"✅ Generated complete sample data for {symbol} with validated arrays: 5D={len(predicted_5d)}, 30D={len(predicted_30d)}")
             return stock_data
 
         except Exception as e:
