@@ -356,6 +356,26 @@
             font-size: 0.9em;
         }
 
+        .nav-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .nav-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .nav-btn.analysis { background: #27ae60; color: white; }
+        .nav-btn.options { background: #f39c12; color: white; }
+        .nav-btn.lookup { background: #667eea; color: white; }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.6em;
@@ -393,6 +413,14 @@
                 width: 80%;
                 margin: 0 auto;
             }
+
+            .navigation {
+                margin-top: 10px !important;
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
         }
     </style>
 </head>
@@ -401,9 +429,9 @@
         <h1>📈 Stock Market Analyst</h1>
         <p>AI-Enhanced Real-Time Indian Stock Screening Dashboard</p>
         <div style="margin-top: 15px;">
-            <a href="/analysis" style="background: #27ae60; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-right: 10px;">📊 View Analysis</a>
-            <a href="/lookup" target="_blank" style="background: #667eea; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-right: 10px;">🔍 Stock Lookup</a>
-            <a href="/options-strategy" style="background: #f39c12; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">💰 Options Income</a>
+            <a href="/analysis" class="nav-btn analysis">📊 Analysis</a>
+            <a href="/options-strategy" class="nav-btn options">💰 Options Income</a>
+            <a href="/lookup" target="_blank" class="nav-btn lookup">🔍 Stock Lookup</a>
         </div>
 
         <div class="header-info">
