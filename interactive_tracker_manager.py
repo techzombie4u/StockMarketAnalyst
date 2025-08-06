@@ -99,30 +99,58 @@ class InteractiveTrackerManager:
             logger.warning(f"Could not ensure current stocks tracked: {str(e)}")
 
     def save_tracking_data(self):
-        """Save tracking data to file with atomic write to prevent corruption"""
+        """Save tracking data to file with improved atomic write and backup strategy"""
         try:
             import tempfile
             import shutil
             
-            # Write to temporary file first
-            temp_file = f"{self.data_file}.tmp"
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(self.tracking_data, f, indent=2, ensure_ascii=False)
+            # Create backup before saving
+            if os.path.exists(self.data_file):
+                backup_file = f"{self.data_file}.backup"
+                try:
+                    shutil.copy2(self.data_file, backup_file)
+                except Exception as backup_error:
+                    logger.warning(f"Could not create backup: {backup_error}")
             
-            # Atomic move to replace original file
-            shutil.move(temp_file, self.data_file)
-            logger.info("Tracking data saved successfully")
-            return True
+            # Use a unique temporary file to avoid conflicts
+            import time
+            temp_file = f"{self.data_file}.tmp_{int(time.time())}"
+            
+            try:
+                # Write to temporary file with validation
+                with open(temp_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.tracking_data, f, indent=2, ensure_ascii=False)
+                
+                # Validate the written file
+                with open(temp_file, 'r', encoding='utf-8') as f:
+                    test_data = json.load(f)
+                    if not isinstance(test_data, dict):
+                        raise ValueError("Invalid data structure in temp file")
+                
+                # Atomic move to replace original file
+                if os.path.exists(self.data_file):
+                    # On Windows, remove target file first
+                    try:
+                        os.remove(self.data_file)
+                    except OSError:
+                        pass
+                
+                shutil.move(temp_file, self.data_file)
+                logger.info(f"Tracking data saved successfully with {len(self.tracking_data)} stocks")
+                return True
+                
+            except Exception as write_error:
+                logger.error(f"Error during file write: {write_error}")
+                # Clean up temp file
+                try:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                except:
+                    pass
+                raise write_error
+                
         except Exception as e:
             logger.error(f"Error saving tracking data: {str(e)}")
-            # Clean up temp file if it exists
-            try:
-                import os
-                temp_file = f"{self.data_file}.tmp"
-                if os.path.exists(temp_file):
-                    os.remove(temp_file)
-            except:
-                pass
             return False
 
     def initialize_stock_tracking(self, symbol, current_price, predictions):
@@ -249,15 +277,18 @@ class InteractiveTrackerManager:
             return False
 
     def update_lock_status(self, symbol, period, locked, timestamp=None, persistent=True):
-        """Update lock status for a stock prediction with indefinite persistence"""
+        """Update lock status for a stock prediction with indefinite persistence and robust error handling"""
         try:
             # Ensure stock is tracked before updating lock status
             if symbol not in self.tracking_data:
                 logger.warning(f"Stock {symbol} not found - auto-initializing...")
-                self._auto_initialize_stock(symbol)
+                success = self._auto_initialize_stock(symbol)
+                if not success:
+                    logger.error(f"Failed to initialize tracking for {symbol}")
+                    return False
                 
             if symbol not in self.tracking_data:
-                logger.error(f"Failed to initialize tracking for {symbol}")
+                logger.error(f"Still no tracking data for {symbol} after initialization")
                 return False
 
             stock_data = self.tracking_data[symbol]
@@ -266,35 +297,71 @@ class InteractiveTrackerManager:
             lock_start_date_key = f'lock_start_date_{period}'
             persistent_key = f'persistent_lock_{period}'
 
-            stock_data[lock_key] = locked
-            stock_data[persistent_key] = persistent  # Mark as persistent lock
+            # Store previous state for rollback
+            previous_state = {
+                lock_key: stock_data.get(lock_key, False),
+                lock_date_key: stock_data.get(lock_date_key),
+                lock_start_date_key: stock_data.get(lock_start_date_key),
+                persistent_key: stock_data.get(persistent_key, False)
+            }
 
-            if locked:
-                current_time = datetime.now(IST)
-                stock_data[lock_date_key] = timestamp or current_time.isoformat()
-                
-                # Store the exact date when locking occurred
-                stock_data[lock_start_date_key] = current_time.strftime('%Y-%m-%d')
-                
-                if persistent:
-                    logger.info(f"🔒 PERSISTENT LOCK: {symbol} {period} with start date: {stock_data[lock_start_date_key]} - will survive restarts")
+            try:
+                # Update lock status
+                stock_data[lock_key] = locked
+                stock_data[persistent_key] = persistent
+
+                if locked:
+                    current_time = datetime.now(IST)
+                    stock_data[lock_date_key] = timestamp or current_time.isoformat()
+                    
+                    # Store the exact date when locking occurred for fixed date ranges
+                    stock_data[lock_start_date_key] = current_time.strftime('%Y-%m-%d')
+                    
+                    logger.info(f"🔒 {'PERSISTENT' if persistent else 'TEMPORARY'} LOCK: {symbol} {period} with start date: {stock_data[lock_start_date_key]}")
                 else:
-                    logger.info(f"🔒 Temporary lock: {symbol} {period} with start date: {stock_data[lock_start_date_key]}")
-            else:
-                stock_data[lock_date_key] = None
-                stock_data[lock_start_date_key] = None
-                stock_data[persistent_key] = False
+                    stock_data[lock_date_key] = None
+                    stock_data[lock_start_date_key] = None
+                    stock_data[persistent_key] = False
+                    
+                    logger.info(f"🔓 Unlocked {symbol} {period} - dates will revert to dynamic")
+
+                stock_data['last_updated'] = datetime.now(IST).isoformat()
+
+                # Save with retry mechanism
+                save_attempts = 0
+                max_attempts = 3
                 
-                logger.info(f"🔓 Unlocked {symbol} {period} - dates will revert to dynamic")
+                while save_attempts < max_attempts:
+                    save_success = self.save_tracking_data()
+                    if save_success:
+                        break
+                    
+                    save_attempts += 1
+                    logger.warning(f"Save attempt {save_attempts} failed for {symbol} {period}")
+                    
+                    if save_attempts < max_attempts:
+                        import time
+                        time.sleep(0.5)  # Wait before retry
+                
+                if save_attempts >= max_attempts:
+                    # Rollback changes
+                    for key, value in previous_state.items():
+                        stock_data[key] = value
+                    logger.error(f"Failed to save lock status for {symbol} {period} after {max_attempts} attempts")
+                    return False
 
-            stock_data['last_updated'] = datetime.now(IST).isoformat()
+                logger.info(f"✅ Successfully updated lock status for {symbol} {period}: {locked} (persistent: {persistent})")
+                return True
 
-            self.save_tracking_data()
-            logger.info(f"✅ Updated lock status for {symbol} {period}: {locked} (persistent: {persistent})")
-            return True
+            except Exception as update_error:
+                # Rollback changes
+                for key, value in previous_state.items():
+                    stock_data[key] = value
+                logger.error(f"Error during lock status update for {symbol} {period}: {update_error}")
+                return False
 
         except Exception as e:
-            logger.error(f"Error updating lock status for {symbol}: {str(e)}")
+            logger.error(f"Critical error updating lock status for {symbol} {period}: {str(e)}")
             return False
 
     def _auto_initialize_stock(self, symbol):

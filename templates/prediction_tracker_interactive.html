@@ -781,11 +781,13 @@
                 fetch('/api/interactive-tracker-data').then(response => response.json().catch(() => ({status: 'no_data'})))
             ])
             .then(([basicData, enhancedData]) => {
-                console.log('Basic prediction data:', basicData);
-                console.log('Enhanced tracker data:', enhancedData);
+                console.log('📊 Loading prediction data - Basic:', basicData?.status, 'Enhanced:', enhancedData?.status);
 
-                // Process and merge data
+                // Process and merge data with lock state preservation
                 processTrackingData(basicData, enhancedData);
+                
+                // Verify and log lock states after processing
+                verifyLockStates();
                 
                 loadingIndicator.style.display = 'none';
                 
@@ -805,24 +807,41 @@
                         showChart();
                         updateChart();
                         
-                        // Ensure lock toggle reflects actual lock status with delay for DOM update
+                        // Ensure lock toggle reflects actual lock status with comprehensive verification
                         setTimeout(() => {
                             updateLockToggle();
                             highlightSelectedCard();
                             
-                            // Additional verification of lock status
+                            // Comprehensive lock status verification
                             const stockData = predictionData[selectedStock];
                             const lockKey = `locked_${currentView}`;
-                            const actualLockStatus = stockData[lockKey] || false;
-                            console.log(`🔍 Lock verification for ${selectedStock} ${currentView}: ${actualLockStatus}`);
+                            const persistentKey = `persistent_lock_${currentView}`;
+                            const lockStartDateKey = `lock_start_date_${currentView}`;
                             
-                            // Force UI update if needed
+                            const actualLockStatus = stockData[lockKey] || false;
+                            const isPersistent = stockData[persistentKey] || false;
+                            const lockStartDate = stockData[lockStartDateKey];
+                            
+                            console.log(`🔍 Comprehensive lock verification for ${selectedStock} ${currentView}:`);
+                            console.log(`  - Locked: ${actualLockStatus}`);
+                            console.log(`  - Persistent: ${isPersistent}`);
+                            console.log(`  - Start Date: ${lockStartDate}`);
+                            
+                            // Force UI update to match backend state
                             const lockToggle = document.getElementById('lockToggle');
                             if (lockToggle.checked !== actualLockStatus) {
                                 lockToggle.checked = actualLockStatus;
-                                console.log(`🔧 Corrected lock toggle to: ${actualLockStatus}`);
+                                console.log(`🔧 Corrected lock toggle from ${!actualLockStatus} to ${actualLockStatus}`);
                             }
-                        }, 200);
+                            
+                            // Update chart container styling
+                            const chartContainer = document.getElementById('chartContainer');
+                            if (actualLockStatus) {
+                                chartContainer.classList.add('locked');
+                            } else {
+                                chartContainer.classList.remove('locked');
+                            }
+                        }, 300);
                         
                         console.log('🔄 Restored stock selection:', selectedStock);
                     }
@@ -831,87 +850,154 @@
                 }
             })
             .catch(error => {
-                console.error('Error loading prediction data:', error);
+                console.error('❌ Error loading prediction data:', error);
                 loadingIndicator.style.display = 'none';
                 noData.style.display = 'block';
             });
         }
 
+        function verifyLockStates() {
+            let locked5dCount = 0;
+            let locked30dCount = 0;
+            let persistentCount = 0;
+            
+            for (const [symbol, data] of Object.entries(predictionData)) {
+                const locked5d = data.locked_5d || false;
+                const locked30d = data.locked_30d || false;
+                const persistent5d = data.persistent_lock_5d || false;
+                const persistent30d = data.persistent_lock_30d || false;
+                
+                if (locked5d) locked5dCount++;
+                if (locked30d) locked30dCount++;
+                if (persistent5d || persistent30d) persistentCount++;
+                
+                // Log any inconsistencies
+                if ((locked5d && !data.lock_start_date_5d) || (locked30d && !data.lock_start_date_30d)) {
+                    console.warn(`⚠️ Lock inconsistency for ${symbol}: locked but no start date`);
+                }
+            }
+            
+            console.log(`🔒 Lock state verification: ${locked5dCount} 5D locks, ${locked30dCount} 30D locks, ${persistentCount} persistent locks`);
+        }
+
         function processTrackingData(basicData, enhancedData) {
-            // Store existing lock states before processing
+            // Store existing lock states before processing with deep copy
             const existingLockStates = {};
             for (const [symbol, data] of Object.entries(predictionData)) {
                 existingLockStates[symbol] = {
-                    locked_5d: data.locked_5d,
-                    locked_30d: data.locked_30d,
+                    locked_5d: data.locked_5d || false,
+                    locked_30d: data.locked_30d || false,
                     lock_date_5d: data.lock_date_5d,
                     lock_date_30d: data.lock_date_30d,
                     lock_start_date_5d: data.lock_start_date_5d,
                     lock_start_date_30d: data.lock_start_date_30d,
-                    persistent_lock_5d: data.persistent_lock_5d,
-                    persistent_lock_30d: data.persistent_lock_30d
+                    persistent_lock_5d: data.persistent_lock_5d || false,
+                    persistent_lock_30d: data.persistent_lock_30d || false
                 };
             }
             
-            predictionData = {};
+            // Clear current data but preserve structure
+            const newPredictionData = {};
             
-            // Process enhanced data FIRST (this contains the real lock states from backend)
+            // Process enhanced data FIRST (this contains the authoritative lock states from backend)
             if (enhancedData.status === 'success' && enhancedData.tracking_data) {
-                console.log('📡 Processing enhanced tracking data with lock states');
+                console.log('📡 Processing enhanced tracking data with persistent lock states');
                 for (const [symbol, backendData] of Object.entries(enhancedData.tracking_data)) {
-                    predictionData[symbol] = { ...backendData };
+                    // Deep copy backend data to avoid reference issues
+                    newPredictionData[symbol] = JSON.parse(JSON.stringify(backendData));
                     
-                    // Log lock status for debugging
+                    // Ensure lock persistence flags are properly set
                     const locked5d = backendData.locked_5d || false;
                     const locked30d = backendData.locked_30d || false;
+                    
+                    // Verify persistent lock flags
+                    if (locked5d && !backendData.persistent_lock_5d) {
+                        newPredictionData[symbol].persistent_lock_5d = true;
+                    }
+                    if (locked30d && !backendData.persistent_lock_30d) {
+                        newPredictionData[symbol].persistent_lock_30d = true;
+                    }
+                    
                     if (locked5d || locked30d) {
-                        console.log(`🔒 Backend lock state for ${symbol}: 5d=${locked5d}, 30d=${locked30d}`);
+                        console.log(`🔒 Persistent lock state for ${symbol}: 5d=${locked5d} (persistent: ${newPredictionData[symbol].persistent_lock_5d}), 30d=${locked30d} (persistent: ${newPredictionData[symbol].persistent_lock_30d})`);
                     }
                 }
             }
             
-            // Process basic prediction data and merge without overwriting locks
+            // Process basic prediction data and merge without overwriting persistent locks
             if (basicData.status === 'success' && basicData.predictions) {
                 basicData.predictions.forEach(pred => {
                     const symbol = pred.symbol;
-                    if (!predictionData[symbol]) {
-                        // Stock not in enhanced data, create basic structure
-                        predictionData[symbol] = {
+                    if (!newPredictionData[symbol]) {
+                        // Stock not in enhanced data, create basic structure with no locks
+                        newPredictionData[symbol] = {
                             symbol: symbol,
                             current_price: pred.current_price || 0,
                             confidence: pred.confidence || 0,
                             score: pred.score || 0,
                             timestamp: pred.timestamp,
                             locked_5d: false,
-                            locked_30d: false
+                            locked_30d: false,
+                            persistent_lock_5d: false,
+                            persistent_lock_30d: false,
+                            lock_date_5d: null,
+                            lock_date_30d: null,
+                            lock_start_date_5d: null,
+                            lock_start_date_30d: null
                         };
                         
-                        // Generate sample tracking data for demo
-                        generateSampleTrackingData(symbol, pred);
+                        // Generate sample tracking data for new stocks
+                        generateSampleTrackingData(symbol, pred, newPredictionData[symbol]);
                     } else {
-                        // Stock exists in enhanced data, update basic info without touching locks
-                        predictionData[symbol].current_price = pred.current_price || predictionData[symbol].current_price;
-                        predictionData[symbol].confidence = pred.confidence || predictionData[symbol].confidence;
-                        predictionData[symbol].score = pred.score || predictionData[symbol].score;
-                        predictionData[symbol].timestamp = pred.timestamp || predictionData[symbol].timestamp;
+                        // Stock exists in enhanced data, update basic info without touching lock states
+                        newPredictionData[symbol].current_price = pred.current_price || newPredictionData[symbol].current_price;
+                        newPredictionData[symbol].confidence = pred.confidence || newPredictionData[symbol].confidence;
+                        newPredictionData[symbol].score = pred.score || newPredictionData[symbol].score;
+                        newPredictionData[symbol].timestamp = pred.timestamp || newPredictionData[symbol].timestamp;
+                        
+                        // Preserve all lock-related fields from backend
+                        const lockFields = ['locked_5d', 'locked_30d', 'persistent_lock_5d', 'persistent_lock_30d', 
+                                          'lock_date_5d', 'lock_date_30d', 'lock_start_date_5d', 'lock_start_date_30d'];
+                        lockFields.forEach(field => {
+                            if (newPredictionData[symbol].hasOwnProperty(field)) {
+                                // Keep the backend value
+                            } else if (existingLockStates[symbol] && existingLockStates[symbol].hasOwnProperty(field)) {
+                                newPredictionData[symbol][field] = existingLockStates[symbol][field];
+                            } else {
+                                newPredictionData[symbol][field] = field.includes('locked') || field.includes('persistent') ? false : null;
+                            }
+                        });
                     }
                 });
             }
             
-            // Final verification of lock states
-            let totalLocked = 0;
+            // Update global prediction data
+            predictionData = newPredictionData;
+            
+            // Final verification and logging of persistent lock states
+            let totalLocked5d = 0;
+            let totalLocked30d = 0;
+            let totalPersistent = 0;
+            
             for (const [symbol, data] of Object.entries(predictionData)) {
                 const locked5d = data.locked_5d || false;
                 const locked30d = data.locked_30d || false;
+                const persistent5d = data.persistent_lock_5d || false;
+                const persistent30d = data.persistent_lock_30d || false;
+                
+                if (locked5d) totalLocked5d++;
+                if (locked30d) totalLocked30d++;
+                if (persistent5d || persistent30d) totalPersistent++;
+                
                 if (locked5d || locked30d) {
-                    totalLocked++;
-                    console.log(`✅ Final lock state for ${symbol}: 5d=${locked5d}, 30d=${locked30d}`);
+                    console.log(`✅ Final persistent lock state for ${symbol}: 5d=${locked5d} (p:${persistent5d}), 30d=${locked30d} (p:${persistent30d})`);
                 }
             }
-            console.log(`🔒 Total locked predictions after processing: ${totalLocked}`);
+            
+            console.log(`🔒 Lock summary: ${totalLocked5d} 5D locks, ${totalLocked30d} 30D locks, ${totalPersistent} persistent locks`);
         }
 
-        function generateSampleTrackingData(symbol, pred) {
+        function generateSampleTrackingData(symbol, pred, existingData = null) {
             const basePrice = pred.current_price || 100;
             const pred5d = pred.pred_5d || 0;
             const pred30d = pred.predicted_1mo || 0;
@@ -978,22 +1064,28 @@
                 actual30d[i] = basePrice * (0.95 + Math.random() * 0.1); // Realistic market movement
             }
             
+            // Merge with existing data if provided, otherwise use defaults
+            const baseData = existingData || predictionData[symbol] || {};
+            
             predictionData[symbol] = {
-                ...predictionData[symbol],
+                ...baseData,
                 predicted_5d: predicted5d,
                 predicted_30d: predicted30d,
                 actual_progress_5d: actual5d,
                 actual_progress_30d: actual30d,
                 updated_prediction_5d: updated5d,
                 updated_prediction_30d: updated30d,
-                changed_on_5d: null,
-                changed_on_30d: null,
-                locked_5d: false,
-                locked_30d: false,
-                lock_date_5d: null,
-                lock_date_30d: null,
-                lock_start_date_5d: null,
-                lock_start_date_30d: null,
+                changed_on_5d: baseData.changed_on_5d || null,
+                changed_on_30d: baseData.changed_on_30d || null,
+                // Preserve existing lock states or use defaults
+                locked_5d: baseData.locked_5d || false,
+                locked_30d: baseData.locked_30d || false,
+                persistent_lock_5d: baseData.persistent_lock_5d || false,
+                persistent_lock_30d: baseData.persistent_lock_30d || false,
+                lock_date_5d: baseData.lock_date_5d || null,
+                lock_date_30d: baseData.lock_date_30d || null,
+                lock_start_date_5d: baseData.lock_start_date_5d || null,
+                lock_start_date_30d: baseData.lock_start_date_30d || null,
                 trading_days_completed: tradingDaysCompleted,
                 last_market_update: marketClosedToday ? new Date().toISOString() : null
             };
@@ -1354,27 +1446,56 @@
             }
 
             const stockSymbols = Object.keys(predictionData);
-            const lockPromises = [];
-
             console.log(`🔒 Starting batch lock for ${stockSymbols.length} stocks (${period})`);
 
-            stockSymbols.forEach(symbol => {
-                // Update local data
+            // Show loading indicator
+            const loadingMessage = `🔄 Locking all stocks for ${period.toUpperCase()}...`;
+            showLoadingMessage(loadingMessage);
+
+            // Process locks sequentially to avoid concurrent write issues
+            let successCount = 0;
+            let failCount = 0;
+            
+            const processNextStock = (index) => {
+                if (index >= stockSymbols.length) {
+                    // All stocks processed
+                    hideLoadingMessage();
+                    
+                    const message = `🔒 Batch Lock ${period.toUpperCase()} Complete:\n✅ ${successCount} stocks locked\n${failCount > 0 ? `❌ ${failCount} failed` : ''}`;
+                    alert(message);
+                    
+                    // Force UI refresh
+                    setTimeout(() => {
+                        updatePredictionCards();
+                        if (selectedStock) {
+                            updateLockToggle();
+                            updateChart();
+                        }
+                        console.log(`🎉 Batch lock ${period} completed: ${successCount} successful, ${failCount} failed`);
+                    }, 500);
+                    
+                    return;
+                }
+
+                const symbol = stockSymbols[index];
                 const lockKey = `locked_${period}`;
                 const lockStartDateKey = `lock_start_date_${period}`;
+                const persistentKey = `persistent_lock_${period}`;
                 
+                // Update local data immediately
                 if (!predictionData[symbol]) {
                     predictionData[symbol] = {};
                 }
                 
                 predictionData[symbol][lockKey] = true;
+                predictionData[symbol][persistentKey] = true;
                 predictionData[symbol][`lock_date_${period}`] = new Date().toISOString().split('T')[0];
                 predictionData[symbol][lockStartDateKey] = new Date().toISOString().split('T')[0];
                 
                 console.log(`🔒 Locking ${symbol} ${period} with start date: ${predictionData[symbol][lockStartDateKey]}`);
 
-                // Save to backend
-                const lockPromise = fetch('/api/update-lock-status', {
+                // Save to backend with persistence
+                fetch('/api/update-lock-status', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1383,43 +1504,74 @@
                         symbol: symbol,
                         period: period,
                         locked: true,
+                        persistent: true,
                         timestamp: new Date().toISOString()
                     })
                 })
                 .then(response => response.json())
                 .then(data => {
-                    console.log(`✅ ${symbol} ${period} locked successfully`);
-                    return { symbol, success: true };
-                })
-                .catch(error => {
-                    console.error(`❌ Error locking ${symbol} ${period}:`, error);
-                    return { symbol, success: false, error };
-                });
-
-                lockPromises.push(lockPromise);
-            });
-
-            // Wait for all locks to complete
-            Promise.all(lockPromises)
-                .then(results => {
-                    const successful = results.filter(r => r.success).length;
-                    const failed = results.filter(r => !r.success).length;
-                    
-                    alert(`🔒 Batch Lock Complete:\n✅ ${successful} stocks locked successfully\n❌ ${failed} stocks failed`);
-                    
-                    // Update UI
-                    updatePredictionCards();
-                    if (selectedStock && currentView === period) {
-                        updateLockToggle();
-                        updateChart();
+                    if (data.success) {
+                        successCount++;
+                        console.log(`✅ ${symbol} ${period} locked successfully`);
+                    } else {
+                        failCount++;
+                        console.error(`❌ ${symbol} ${period} lock failed:`, data.message);
                     }
-                    
-                    console.log(`🎉 Batch lock completed: ${successful} successful, ${failed} failed`);
                 })
                 .catch(error => {
-                    console.error('❌ Batch lock error:', error);
-                    alert('❌ Batch lock failed. Please try again.');
+                    failCount++;
+                    console.error(`❌ Error locking ${symbol} ${period}:`, error);
+                })
+                .finally(() => {
+                    // Process next stock after a short delay
+                    setTimeout(() => processNextStock(index + 1), 200);
                 });
+            };
+
+            // Start processing from first stock
+            processNextStock(0);
+        }
+
+        function showLoadingMessage(message) {
+            const existingModal = document.getElementById('loadingModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const modalHtml = `
+                <div id="loadingModal" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10001;
+                ">
+                    <div style="
+                        background: white;
+                        border-radius: 15px;
+                        padding: 30px;
+                        text-align: center;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    ">
+                        <h3 style="margin: 0; color: #3498db;">${message}</h3>
+                        <p style="margin: 10px 0 0 0; color: #666;">Please wait...</p>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function hideLoadingMessage() {
+            const modal = document.getElementById('loadingModal');
+            if (modal) {
+                modal.remove();
+            }
         }
 
         function unlockAllStocks() {
