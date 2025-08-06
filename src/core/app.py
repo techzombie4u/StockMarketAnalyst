@@ -970,14 +970,17 @@ def get_analysis():
         
         # Get successful sessions count from scheduler globals
         successful_sessions_count = 0
+        successful_refresh_count = 0
         try:
             from src.core.scheduler import successful_sessions, total_sessions_run
             successful_sessions_count = successful_sessions
             total_runs = total_sessions_run
+            successful_refresh_count = successful_sessions_count  # Use successful sessions as refresh count
             logger.info(f"Live session data: total_runs={total_runs}, successful={successful_sessions_count}")
         except ImportError:
             successful_sessions_count = sessions_count
             total_runs = sessions_count
+            successful_refresh_count = sessions_count
 
         # Load current screening results
         current_stocks = []
@@ -1020,6 +1023,7 @@ def get_analysis():
             'accuracy_rate': accuracy_rate,
             'sessions_recorded': total_runs,  # Use real session count
             'successful_sessions': successful_sessions_count,
+            'successful_refreshes': successful_refresh_count,  # Add refresh counter
             'top_performing_stocks': [
                 {
                     'symbol': stock.get('symbol', 'N/A'),
@@ -1060,6 +1064,7 @@ def get_analysis():
             'accuracy_rate': 0,
             'sessions_recorded': 0,
             'successful_sessions': 0,
+            'successful_refreshes': 0,
             'top_performing_stocks': [],
             'worst_performing_stocks': [],
             'pattern_insights': [
