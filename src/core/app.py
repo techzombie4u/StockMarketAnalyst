@@ -15,7 +15,14 @@ from src.analyzers.historical_analyzer import HistoricalAnalyzer
 
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+# Set template folder to the correct location
+import os
+template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates')
+if not os.path.exists(template_dir):
+    # Fallback to backup templates
+    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '_backup_before_organization', 'templates')
+
+app = Flask(__name__, template_folder=template_dir)
 CORS(app)  # Enable CORS for all routes
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 
