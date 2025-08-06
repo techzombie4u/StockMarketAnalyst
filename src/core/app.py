@@ -1220,37 +1220,67 @@ def options_strategy():
 
 @app.route('/api/options-strategies')
 def api_options_strategies():
-    """API endpoint for options strategies"""
+    """API endpoint for options strategies with real-time data"""
     try:
         timeframe = request.args.get('timeframe', '30D')
+        refresh_requested = request.args.get('refresh', 'false').lower() == 'true'
+        force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
+        
+        logger.info(f"Options API called: timeframe={timeframe}, refresh={refresh_requested}, force_realtime={force_realtime}")
         
         # Import here to avoid circular imports
         from src.analyzers.short_strangle_engine import ShortStrangleEngine
         strangle_engine = ShortStrangleEngine()
 
-        # Get current stock data for Tier 1 stocks
+        # Always try to generate real-time strategies for Tier 1 stocks
+        logger.info("Generating real-time options strategies for Tier 1 stocks")
+        
+        # First, try to get current stock data
         stock_data = load_stock_data()
-
+        tier1_stocks = []
+        
         if stock_data and stock_data.get('stocks'):
             # Filter for Tier 1 stocks only
-            tier1_stocks = []
             tier1_symbols = ['RELIANCE', 'HDFCBANK', 'TCS', 'ITC', 'INFY', 'HINDUNILVR']
 
             for stock in stock_data['stocks']:
-                if any(t1_symbol in stock.get('symbol', '').upper() for t1_symbol in tier1_symbols):
+                stock_symbol = stock.get('symbol', '').upper()
+                if any(t1_symbol in stock_symbol for t1_symbol in tier1_symbols):
                     tier1_stocks.append(stock)
 
-            if tier1_stocks:
-                logger.info(f"Generating real-time options strategies for {len(tier1_stocks)} Tier 1 stocks")
-                # Generate fresh strategies with real-time prices
-                strategies = strangle_engine.generate_all_strategies(tier1_stocks, timeframe)
+        # If we don't have enough Tier 1 stocks from screening, create fallback data with real-time prices
+        if len(tier1_stocks) < 3 or force_realtime:
+            logger.info("Creating Tier 1 fallback data with real-time prices from Yahoo Finance")
+            tier1_stocks = []
+            
+            for yf_symbol, info in strangle_engine.TIER_1_STOCKS.items():
+                real_price = strangle_engine.get_real_time_price(yf_symbol)
+                if real_price and real_price > 0:
+                    logger.info(f"Real-time price for {info['name']}: ₹{real_price:.2f}")
+                    tier1_stocks.append({
+                        'symbol': info['name'],
+                        'current_price': real_price,
+                        'confidence': 78.0,
+                        'pred_5d': 2.1,
+                        'pred_1mo': 8.5,
+                        'score': 75.0
+                    })
+                else:
+                    logger.warning(f"Could not fetch real-time price for {yf_symbol}")
 
+        if tier1_stocks:
+            logger.info(f"Generating strategies for {len(tier1_stocks)} Tier 1 stocks with real-time data")
+            strategies = strangle_engine.generate_all_strategies(tier1_stocks, timeframe)
+            
+            if strategies:
                 # Calculate summary metrics
                 total_opportunities = len(strategies)
                 high_confidence = len([s for s in strategies if s.get('confidence', 0) >= 80])
                 avg_roi = sum(s.get('expected_roi', 0) for s in strategies) / max(1, total_opportunities)
                 total_premium = sum(s.get('total_premium', 0) for s in strategies)
 
+                logger.info(f"✅ Generated {total_opportunities} real-time strategies with avg ROI {avg_roi:.1f}%")
+                
                 return jsonify({
                     'status': 'success',
                     'strategies': strategies,
@@ -1265,34 +1295,19 @@ def api_options_strategies():
                     'data_source': 'real_time_yahoo_finance'
                 })
 
-        # Fallback: Generate strategies for Tier 1 stocks with real-time prices
-        logger.info("No stock data available, generating strategies with real-time prices for Tier 1 stocks")
+        # Final fallback with demo data using real-time prices
+        logger.warning("Falling back to demo data with real-time prices")
+        demo_strategies = strangle_engine.generate_demo_strategies(timeframe)
         
-        # Create minimal stock data structure for Tier 1 stocks
-        tier1_fallback = []
-        for yf_symbol, info in strangle_engine.TIER_1_STOCKS.items():
-            real_price = strangle_engine.get_real_time_price(yf_symbol)
-            if real_price:
-                tier1_fallback.append({
-                    'symbol': info['name'],
-                    'current_price': real_price,
-                    'confidence': 75.0,
-                    'pred_5d': 2.0,
-                    'pred_1mo': 8.0,
-                    'score': 70.0
-                })
-
-        if tier1_fallback:
-            strategies = strangle_engine.generate_all_strategies(tier1_fallback, timeframe)
-            
-            total_opportunities = len(strategies)
-            high_confidence = len([s for s in strategies if s.get('confidence', 0) >= 80])
-            avg_roi = sum(s.get('expected_roi', 0) for s in strategies) / max(1, total_opportunities)
-            total_premium = sum(s.get('total_premium', 0) for s in strategies)
+        if demo_strategies:
+            total_opportunities = len(demo_strategies)
+            high_confidence = len([s for s in demo_strategies if s.get('confidence', 0) >= 80])
+            avg_roi = sum(s.get('expected_roi', 0) for s in demo_strategies) / max(1, total_opportunities)
+            total_premium = sum(s.get('total_premium', 0) for s in demo_strategies)
 
             return jsonify({
                 'status': 'success',
-                'strategies': strategies,
+                'strategies': demo_strategies,
                 'summary': {
                     'total_opportunities': total_opportunities,
                     'high_confidence_count': high_confidence,
@@ -1301,39 +1316,21 @@ def api_options_strategies():
                 },
                 'timeframe': timeframe,
                 'last_updated': datetime.now().isoformat(),
-                'data_source': 'real_time_fallback'
+                'data_source': 'demo_with_realtime_prices'
             })
 
-        # Final fallback with demo data if real-time fails
-        logger.warning("Real-time data fetch failed, using demo data for options strategies")s)s)
-                total_premium = sum(s.get('total_premium', 0) for s in strategies)
-
-                return jsonify({
-                    'status': 'success',
-                    'strategies': strategies,
-                    'summary': {
-                        'total_opportunities': total_opportunities,
-                        'high_confidence_count': high_confidence,
-                        'average_roi': round(avg_roi, 1),
-                        'total_premium_potential': round(total_premium, 0)
-                    },
-                    'timeframe': timeframe,
-                    'last_updated': datetime.now().isoformat()
-                })
-
-        # Fallback to saved data
-        saved_data = strangle_engine.load_strategies(timeframe)
+        # Last resort - return empty result
+        logger.error("No options strategies could be generated")
         return jsonify({
-            'status': 'success',
-            'strategies': saved_data.get('strategies', []),
+            'status': 'error',
+            'message': 'Unable to generate options strategies',
+            'strategies': [],
             'summary': {
-                'total_opportunities': saved_data.get('total_opportunities', 0),
-                'high_confidence_count': saved_data.get('high_confidence_count', 0),
+                'total_opportunities': 0,
+                'high_confidence_count': 0,
                 'average_roi': 0,
                 'total_premium_potential': 0
-            },
-            'timeframe': timeframe,
-            'last_updated': saved_data.get('last_updated', datetime.now().isoformat())
+            }
         })
 
     except Exception as e:

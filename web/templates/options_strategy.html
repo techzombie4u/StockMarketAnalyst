@@ -360,6 +360,10 @@
                     <span id="refreshIcon">🔄</span>
                     <span id="refreshText">Generate Strategies</span>
                 </button>
+                <button class="refresh-btn" id="manualRefreshBtn" onclick="manualRefreshData()" style="margin-left: 15px; background: linear-gradient(45deg, #27ae60, #2ecc71);">
+                    <span id="manualRefreshIcon">⚡</span>
+                    <span id="manualRefreshText">Refresh Data</span>
+                </button>
             </div>
         </div>
 
@@ -447,6 +451,24 @@
                 btn.disabled = false;
                 icon.textContent = '🔄';
                 text.textContent = 'Generate Strategies';
+                btn.style.opacity = '1';
+            }
+        }
+
+        function setManualButtonState(loading) {
+            const btn = document.getElementById('manualRefreshBtn');
+            const icon = document.getElementById('manualRefreshIcon');
+            const text = document.getElementById('manualRefreshText');
+
+            if (loading) {
+                btn.disabled = true;
+                icon.textContent = '⏳';
+                text.textContent = 'Refreshing...';
+                btn.style.opacity = '0.6';
+            } else {
+                btn.disabled = false;
+                icon.textContent = '⚡';
+                text.textContent = 'Refresh Data';
                 btn.style.opacity = '1';
             }
         }
@@ -606,11 +628,74 @@
             showLoading();
 
             const timeframe = document.getElementById('timeframeSelect').value;
-            log(`Starting manual screening for fresh options strategies (${timeframe})...`);
+            log(`Loading fresh options strategies (${timeframe}) with real-time prices...`);
 
             try {
-                // First, trigger manual screening like Refresh Now button
-                log('🔄 Triggering manual screening...');
+                // Load options strategies with real-time data
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&refresh=true`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                log(`Received response status: ${result.status}`);
+                log(`Received ${result.strategies ? result.strategies.length : 0} strategies for ${timeframe}`);
+
+                if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
+                    log(`✅ Received ${result.strategies.length} real-time strategies from ${result.data_source || 'unknown'}`);
+                    optionsData = result.strategies;
+
+                    // Update metrics from summary
+                    if (result.summary) {
+                        document.getElementById('totalOpportunities').textContent = result.summary.total_opportunities || optionsData.length;
+                        document.getElementById('avgROI').textContent = (result.summary.average_roi || 0).toFixed(1) + '%';
+                        document.getElementById('highConfidence').textContent = result.summary.high_confidence_count || 0;
+                        document.getElementById('totalPremium').textContent = '₹' + new Intl.NumberFormat('en-IN').format(result.summary.total_premium_potential || 0);
+                    }
+
+                    const filteredData = applyFilters(optionsData);
+                    log(`📊 After filtering: ${filteredData.length} strategies`);
+
+                    updateOptionsTable(filteredData);
+                    updateMetrics(filteredData);
+                    if (filteredData.length > 0) showData(); else showEmpty();
+                    log('🎉 Real-time options strategies loaded successfully');
+                } else {
+                    log(`❌ No strategies available. Status: ${result.status}`);
+                    updateMetrics([]);
+                    showEmpty();
+                }
+
+            } catch (error) {
+                log(`Error loading strategies: ${error.message}`, 'error');
+                updateMetrics([]);
+                showEmpty();
+            } finally {
+                isLoading = false;
+                setButtonState(false);
+            }
+        }
+
+        async function manualRefreshData() {
+            if (isLoading) return;
+
+            isLoading = true;
+            setManualButtonState(true);
+            showLoading();
+
+            const timeframe = document.getElementById('timeframeSelect').value;
+            log(`Manual refresh: Fetching fresh stock data and generating strategies (${timeframe})...`);
+
+            try {
+                // First, trigger manual screening to get fresh stock data
+                log('🔄 Triggering fresh stock screening...');
                 const screeningResponse = await fetch('/api/run-now', {
                     method: 'POST',
                     headers: {
@@ -627,15 +712,15 @@
                 log(`Screening result: ${screeningResult.message}`);
 
                 if (screeningResult.success) {
-                    log('✅ Screening completed - generating fresh strategies...');
-                    // Wait a bit for data to be processed
+                    log('✅ Fresh screening completed - generating options strategies...');
+                    // Wait for data to be processed
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 } else {
-                    log('⚠️ Screening completed with issues, proceeding with existing data...');
+                    log('⚠️ Screening completed with issues, proceeding anyway...');
                 }
 
-                // Now load the options strategies with fresh data
-                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}`, {
+                // Now load the options strategies with the fresh data
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&refresh=true&force_realtime=true`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -648,15 +733,14 @@
                 }
 
                 const result = await response.json();
-                log(`Received response status: ${result.status}`);
-                log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies for ${timeframe}`);
+                log(`Manual refresh result: ${result.status}`);
+                log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies`);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
-                    log(`✅ Received ${result.strategies.length} fresh strategies from ${result.data_source || 'unknown'}`);
+                    log(`✅ Manual refresh successful: ${result.strategies.length} strategies with real-time prices`);
                     optionsData = result.strategies;
-                    log(`✅ Options data loaded: ${optionsData.length} strategies`);
 
-                    // Update metrics from summary
+                    // Update metrics
                     if (result.summary) {
                         document.getElementById('totalOpportunities').textContent = result.summary.total_opportunities || optionsData.length;
                         document.getElementById('avgROI').textContent = (result.summary.average_roi || 0).toFixed(1) + '%';
@@ -665,33 +749,29 @@
                     }
 
                     const filteredData = applyFilters(optionsData);
-                    log(`📊 After filtering: ${filteredData.length} strategies`);
-
+                    updateOptionsTable(filteredData);
+                    updateMetrics(filteredData);
+                    
                     if (filteredData.length > 0) {
-                        updateOptionsTable(filteredData);
-                        updateMetrics(filteredData);
                         showData();
-                        log('🎉 Fresh options strategies loaded successfully');
+                        log('🎉 Manual refresh completed with fresh real-time data');
                     } else {
-                        log('⚠️ No strategies passed filters - showing all data instead');
-                        // If no strategies pass filters, show all data anyway for debugging
-                        updateOptionsTable(optionsData);
-                        updateMetrics(optionsData);
-                        showData();
+                        showEmpty();
+                        log('⚠️ Manual refresh completed but no strategies passed filters');
                     }
                 } else {
-                    log(`❌ No strategies available. Status: ${result.status}, Strategies count: ${result.strategies ? result.strategies.length : 'undefined'}`);
+                    log(`❌ Manual refresh failed. Status: ${result.status}`);
                     updateMetrics([]);
                     showEmpty();
                 }
 
             } catch (error) {
-                log(`Error generating fresh strategies: ${error.message}`, 'error');
+                log(`Manual refresh error: ${error.message}`, 'error');
                 updateMetrics([]);
                 showEmpty();
             } finally {
                 isLoading = false;
-                setButtonState(false);
+                setManualButtonState(false);
             }
         }
 

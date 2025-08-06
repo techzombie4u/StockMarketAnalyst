@@ -355,3 +355,37 @@ class ShortStrangleEngine:
             return all_data.get(timeframe, {'strategies': [], 'total_opportunities': 0})
         except (FileNotFoundError, json.JSONDecodeError):
             return {'strategies': [], 'total_opportunities': 0, 'high_confidence_count': 0}
+    
+    def generate_demo_strategies(self, timeframe: str = '30D') -> List[Dict]:
+        """Generate demo strategies as fallback"""
+        demo_strategies = []
+        
+        # Create demo data for each Tier 1 stock
+        base_prices = {
+            'RELIANCE': 2800,
+            'HDFC BANK': 1650,
+            'TCS': 3950,
+            'ITC': 465,
+            'INFY': 1720,
+            'HUL': 2420
+        }
+        
+        for symbol, base_price in base_prices.items():
+            # Get real-time price if possible
+            yf_symbol = f"{symbol.replace(' ', '')}.NS" if symbol != 'HDFC BANK' else 'HDFCBANK.NS'
+            real_price = self.get_real_time_price(yf_symbol)
+            current_price = real_price if real_price else base_price
+            
+            predictions = {
+                'confidence': 78.0,
+                'pred_5d': 2.1,
+                'pred_10d': 4.2,
+                'pred_30d': 8.5,
+                'historical_volatility': 18.0
+            }
+            
+            strategy = self.calculate_strangle_metrics(yf_symbol, current_price, predictions, timeframe)
+            if strategy:
+                demo_strategies.append(strategy)
+        
+        return demo_strategies
