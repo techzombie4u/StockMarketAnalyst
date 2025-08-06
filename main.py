@@ -54,8 +54,8 @@ def run_organized_version():
         # Run the Flask application
         logger.info("✅ Running organized Flask application")
         app.run(
-            host='0.0.0.0', 
-            port=5000, 
+            host='0.0.0.0',
+            port=5000,
             debug=False,
             use_reloader=False,
             threaded=True
@@ -78,7 +78,7 @@ def run_backup_version():
             backup_path = os.path.abspath(backup_dir)
             if backup_path not in sys.path:
                 sys.path.insert(0, backup_path)
-            
+
             logger.info(f"🔄 Using backup version from: {backup_path}")
 
             # Clear any existing Flask app instances to prevent route conflicts
@@ -94,8 +94,8 @@ def run_backup_version():
             from app import app
             logger.info("✅ Running backup Flask application")
             app.run(
-                host='0.0.0.0', 
-                port=5000, 
+                host='0.0.0.0',
+                port=5000,
                 debug=False,
                 use_reloader=False,
                 threaded=True
@@ -118,9 +118,9 @@ def run_backup_version():
 def run_emergency_version():
     """Run a minimal emergency version"""
     from flask import Flask, jsonify, render_template_string
-    
+
     emergency_app = Flask(__name__)
-    
+
     @emergency_app.route('/')
     def home():
         return render_template_string('''
@@ -135,11 +135,11 @@ def run_emergency_version():
         </body>
         </html>
         ''')
-    
+
     @emergency_app.route('/api/health')
     def health():
         return jsonify({'status': 'emergency_mode', 'message': 'Application running in emergency mode'})
-    
+
     logger.info("🚨 Running in emergency mode")
     emergency_app.run(host='0.0.0.0', port=5000, debug=False)
 

@@ -403,11 +403,11 @@
                     const callStrike = Number(strategy.call_strike || 0);
                     const putStrike = Number(strategy.put_strike || 0);
                     const totalPremium = Number(strategy.total_premium || 0);
-                    const breakevenLower = Number(strategy.breakeven_lower || 0);
-                    const breakevenUpper = Number(strategy.breakeven_upper || 0);
-                    const marginRequired = Number(strategy.margin_required || 0);
+                    const breakevenLower = Number(strategy.breakeven_lower || putStrike);
+                    const breakevenUpper = Number(strategy.breakeven_upper || callStrike);
+                    const marginRequired = Number(strategy.margin_required || 20000);
                     const expectedRoi = Number(strategy.expected_roi || 0);
-                    const confidence = Number(strategy.confidence || 0);
+                    const confidence = Number(strategy.confidence || 75);
                     const riskLevel = strategy.risk_level || 'Medium';
                     
                     const row = document.createElement('tr');

@@ -330,6 +330,10 @@ class ShortStrangleEngine:
                     put_premium = max(5.0, current_price * 0.02)
                     total_premium = call_premium + put_premium
                     
+                    # Calculate breakeven points
+                    breakeven_upper = call_strike + total_premium
+                    breakeven_lower = put_strike - total_premium
+                    
                     # Calculate other metrics
                     margin_required = max(20000, current_price * 100 * 0.2)
                     expected_roi = (total_premium / (margin_required / 100)) * 100
@@ -343,6 +347,8 @@ class ShortStrangleEngine:
                         'call_premium': call_premium,
                         'put_premium': put_premium,
                         'total_premium': total_premium,
+                        'breakeven_upper': breakeven_upper,
+                        'breakeven_lower': breakeven_lower,
                         'margin_required': margin_required,
                         'expected_roi': expected_roi,
                         'confidence': confidence,
