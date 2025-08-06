@@ -1,0 +1,492 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Stock Lookup - AI Stock Prediction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+
+        .nav-links {
+            margin-top: 15px;
+        }
+
+        .nav-links a {
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            background: #219a52;
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .lookup-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .lookup-form {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .stock-input {
+            padding: 15px 20px;
+            font-size: 1.1em;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            width: 300px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .stock-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .lookup-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .lookup-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .lookup-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status-message {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .results-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        .stock-card {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .score-high { color: #27ae60; }
+        .score-medium { color: #f39c12; }
+        .score-low { color: #e74c3c; }
+
+        .prediction-positive { color: #27ae60; }
+        .prediction-negative { color: #e74c3c; }
+        .prediction-neutral { color: #6c757d; }
+
+        .technical-summary {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .help-section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .help-title {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .help-examples {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .example-symbol {
+            background: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .example-symbol:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .lookup-form {
+                flex-direction: column;
+            }
+
+            .stock-input {
+                width: 100%;
+                max-width: 400px;
+            }
+
+            .stock-card {
+                grid-template-columns: 1fr;
+            }
+
+            .help-examples {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Stock Lookup & Analysis</h1>
+        <p>Get AI-powered predictions for any Indian stock symbol</p>
+        
+        <div class="nav-links">
+            <a href="/">📈 Main Dashboard</a>
+            <a href="/analysis">📊 Historical Analysis</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="lookup-section">
+            <h2>🎯 Enter Stock Symbol</h2>
+            <p>Get the same advanced AI predictions as our main dashboard for any stock</p>
+            
+            <div class="lookup-form">
+                <input 
+                    type="text" 
+                    id="stockInput" 
+                    class="stock-input" 
+                    placeholder="Enter stock symbol (e.g., RELIANCE, TCS, INFY)"
+                    maxlength="20"
+                >
+                <button id="lookupBtn" class="lookup-btn" onclick="lookupStock()">
+                    🔍 Analyze Stock
+                </button>
+            </div>
+
+            <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+            <div class="help-section">
+                <h4 class="help-title">💡 Popular Examples (Click to try):</h4>
+                <div class="help-examples">
+                    <span class="example-symbol" onclick="fillExample('RELIANCE')">RELIANCE</span>
+                    <span class="example-symbol" onclick="fillExample('TCS')">TCS</span>
+                    <span class="example-symbol" onclick="fillExample('INFY')">INFY</span>
+                    <span class="example-symbol" onclick="fillExample('HDFCBANK')">HDFCBANK</span>
+                    <span class="example-symbol" onclick="fillExample('ICICIBANK')">ICICIBANK</span>
+                    <span class="example-symbol" onclick="fillExample('SBIN')">SBIN</span>
+                    <span class="example-symbol" onclick="fillExample('BHARTIARTL')">BHARTIARTL</span>
+                    <span class="example-symbol" onclick="fillExample('ITC')">ITC</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsSection" class="results-section">
+            <div id="stockCard" class="stock-card">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isLoading = false;
+
+        function showStatus(message, type = 'loading') {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.className = `status-message status-${type}`;
+            statusElement.textContent = message;
+            statusElement.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('statusMessage').style.display = 'none';
+        }
+
+        function fillExample(symbol) {
+            document.getElementById('stockInput').value = symbol;
+            lookupStock();
+        }
+
+        function getScoreClass(score) {
+            if (score >= 70) return 'score-high';
+            if (score >= 50) return 'score-medium';
+            return 'score-low';
+        }
+
+        function getPredictionClass(value) {
+            if (value > 0) return 'prediction-positive';
+            if (value < 0) return 'prediction-negative';
+            return 'prediction-neutral';
+        }
+
+        function formatPercentage(value) {
+            const sign = value > 0 ? '+' : '';
+            return `${sign}${value.toFixed(1)}%`;
+        }
+
+        function displayResults(stockData) {
+            const stockCard = document.getElementById('stockCard');
+            const resultsSection = document.getElementById('resultsSection');
+
+            stockCard.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-label">📈 Stock Symbol</div>
+                    <div class="metric-value">${stockData.symbol}</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">⭐ AI Score</div>
+                    <div class="metric-value ${getScoreClass(stockData.score)}">${stockData.score}</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">💰 Current Price</div>
+                    <div class="metric-value">₹${stockData.current_price?.toFixed(2) || 'N/A'}</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">📈 24h Prediction</div>
+                    <div class="metric-value ${getPredictionClass(stockData.pred_24h || 0)}">${formatPercentage(stockData.pred_24h || 0)}</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">📊 5d Prediction</div>
+                    <div class="metric-value ${getPredictionClass(stockData.pred_5d || 0)}">${formatPercentage(stockData.pred_5d || 0)}</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">🎯 1mo Prediction</div>
+                    <div class="metric-value ${getPredictionClass(stockData.pred_1mo || 0)}">${formatPercentage(stockData.pred_1mo || 0)}</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">📉 P/E Ratio</div>
+                    <div class="metric-value">${stockData.pe_description || 'N/A'}</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">🔥 Risk Level</div>
+                    <div class="metric-value">${stockData.risk_level || 'Medium'}</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">📊 Revenue Growth</div>
+                    <div class="metric-value ${getPredictionClass(stockData.revenue_growth || 0)}">${formatPercentage(stockData.revenue_growth || 0)}</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">🎲 Confidence</div>
+                    <div class="metric-value">${stockData.confidence || 0}%</div>
+                </div>
+                
+                <div class="technical-summary">
+                    <h4>📋 Technical Summary</h4>
+                    <p>${stockData.technical_summary || 'Analysis in progress...'}</p>
+                    <small>Market Cap: ${stockData.market_cap || 'Unknown'} | Time Horizon: ${stockData.time_horizon || 'N/A'} days</small>
+                </div>
+            `;
+
+            resultsSection.style.display = 'block';
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function lookupStock() {
+            const stockInput = document.getElementById('stockInput');
+            const lookupBtn = document.getElementById('lookupBtn');
+            const symbol = stockInput.value.trim().toUpperCase();
+
+            if (!symbol) {
+                showStatus('Please enter a stock symbol', 'error');
+                return;
+            }
+
+            if (isLoading) return;
+
+            isLoading = true;
+            lookupBtn.disabled = true;
+            lookupBtn.textContent = '⏳ Analyzing...';
+            
+            showStatus(`Analyzing ${symbol}... This may take a few moments`, 'loading');
+
+            fetch(`/api/lookup/${symbol}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                isLoading = false;
+                lookupBtn.disabled = false;
+                lookupBtn.textContent = '🔍 Analyze Stock';
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                if (data.stock) {
+                    hideStatus();
+                    displayResults(data.stock);
+                } else {
+                    showStatus(`No data found for ${symbol}. Please check the symbol and try again.`, 'error');
+                }
+            })
+            .catch(error => {
+                isLoading = false;
+                lookupBtn.disabled = false;
+                lookupBtn.textContent = '🔍 Analyze Stock';
+
+                console.error('Lookup error:', error);
+                
+                let errorMessage = `Failed to analyze ${symbol}. `;
+                if (error.message.includes('404')) {
+                    errorMessage += 'Stock symbol not found or not supported.';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage += 'Network error. Please check your connection.';
+                } else {
+                    errorMessage += error.message || 'Unknown error occurred.';
+                }
+
+                showStatus(errorMessage, 'error');
+            });
+        }
+
+        // Allow Enter key to trigger lookup
+        document.getElementById('stockInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                lookupStock();
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Stock lookup page initialized');
+        });
+    </script>
+</body>
+</html>

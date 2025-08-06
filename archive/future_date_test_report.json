@@ -1,0 +1,366 @@
+{
+  "test_timestamp": "2025-08-06T10:11:53.618013+05:30",
+  "total_scenarios": 5,
+  "scenarios": [
+    {
+      "name": "past_date",
+      "symbol": "TEST_PAST_DATE",
+      "start_date": "2025-07-27",
+      "base_price": 1387.5999755859375,
+      "predicted_5d_prices": [
+        2303.42,
+        1785.55,
+        1494.71,
+        2641.38,
+        1700.31
+      ],
+      "actual_5d_prices": [
+        1387.5999755859375,
+        1417.0999755859375,
+        1410.0999755859375,
+        1390.199951171875,
+        1393.699951171875
+      ],
+      "predicted_30d_prices": [
+        2567.06,
+        2735.0,
+        2044.64,
+        1404.1,
+        1574.88,
+        1990.21,
+        1850.96,
+        1514.01,
+        2300.46,
+        3373.92
+      ],
+      "actual_30d_prices": [
+        1387.5999755859375,
+        1417.0999755859375,
+        1410.0999755859375,
+        1390.199951171875,
+        1393.699951171875,
+        1411.5,
+        1391.699951171875,
+        1389.0,
+        1361.22,
+        2205.1764000000003
+      ],
+      "locked_status": {
+        "5d": true,
+        "30d": false
+      },
+      "lock_dates": {
+        "5d": "2025-07-27",
+        "30d": null
+      },
+      "date_labels_5d": [
+        "Jul 28",
+        "Jul 29",
+        "Jul 30",
+        "Jul 31",
+        "Aug 01"
+      ],
+      "date_labels_30d": [],
+      "days_tracked": 10,
+      "has_real_data": true
+    },
+    {
+      "name": "current_date",
+      "symbol": "TEST_CURRENT_DATE",
+      "start_date": "2025-08-06",
+      "base_price": 3042.800048828125,
+      "predicted_5d_prices": [
+        5172.76,
+        4752.85,
+        6494.67,
+        10686.32,
+        15309.25
+      ],
+      "actual_5d_prices": [
+        3042.800048828125,
+        null,
+        null,
+        null,
+        null
+      ],
+      "predicted_30d_prices": [
+        5142.33,
+        3380.55,
+        6855.49,
+        7392.59,
+        13372.53,
+        29709.16,
+        37393.26,
+        35361.82,
+        33427.87,
+        52165.89
+      ],
+      "actual_30d_prices": [
+        3042.800048828125,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "locked_status": {
+        "5d": false,
+        "30d": false
+      },
+      "lock_dates": {
+        "5d": null,
+        "30d": null
+      },
+      "date_labels_5d": [],
+      "date_labels_30d": [],
+      "days_tracked": 0,
+      "has_real_data": true
+    },
+    {
+      "name": "future_1week",
+      "symbol": "TEST_FUTURE_1WEEK",
+      "start_date": "2025-08-13",
+      "base_price": 100.0,
+      "predicted_5d_prices": [
+        190.0,
+        163.49,
+        606.25,
+        925.98,
+        977.54
+      ],
+      "actual_5d_prices": [
+        100.0,
+        null,
+        null,
+        null,
+        null
+      ],
+      "predicted_30d_prices": [
+        137.0,
+        181.84,
+        552.01,
+        920.89,
+        1206.96,
+        2628.13,
+        2904.52,
+        3963.36,
+        4610.65,
+        9496.32
+      ],
+      "actual_30d_prices": [
+        100.0,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "locked_status": {
+        "5d": true,
+        "30d": true
+      },
+      "lock_dates": {
+        "5d": "2025-08-13",
+        "30d": "2025-08-13"
+      },
+      "date_labels_5d": [
+        "Aug 13",
+        "Aug 14",
+        "Aug 15",
+        "Aug 18",
+        "Aug 19"
+      ],
+      "date_labels_30d": [
+        "Aug 13",
+        "Aug 14",
+        "Aug 15",
+        "Aug 18",
+        "Aug 19",
+        "Aug 20",
+        "Aug 21",
+        "Aug 22",
+        "Aug 25",
+        "Aug 26",
+        "Aug 27",
+        "Aug 28",
+        "Aug 29",
+        "Sep 01",
+        "Sep 02",
+        "Sep 03",
+        "Sep 04",
+        "Sep 05",
+        "Sep 08",
+        "Sep 09",
+        "Sep 10",
+        "Sep 11",
+        "Sep 12",
+        "Sep 15",
+        "Sep 16",
+        "Sep 17",
+        "Sep 18",
+        "Sep 19",
+        "Sep 22",
+        "Sep 23"
+      ],
+      "days_tracked": 0,
+      "has_real_data": true
+    },
+    {
+      "name": "future_1month",
+      "symbol": "TEST_FUTURE_1MONTH",
+      "start_date": "2025-09-05",
+      "base_price": 100.0,
+      "predicted_5d_prices": [
+        110.0,
+        243.57,
+        555.2,
+        661.41,
+        1416.44
+      ],
+      "actual_5d_prices": [
+        100.0,
+        null,
+        null,
+        null,
+        null
+      ],
+      "predicted_30d_prices": [
+        97.0,
+        201.86,
+        309.51,
+        697.03,
+        1605.96,
+        2971.67,
+        3893.29,
+        3153.33,
+        5956.83,
+        6985.14
+      ],
+      "actual_30d_prices": [
+        100.0,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "locked_status": {
+        "5d": false,
+        "30d": true
+      },
+      "lock_dates": {
+        "5d": null,
+        "30d": "2025-09-05"
+      },
+      "date_labels_5d": [],
+      "date_labels_30d": [
+        "Sep 05",
+        "Sep 08",
+        "Sep 09",
+        "Sep 10",
+        "Sep 11",
+        "Sep 12",
+        "Sep 15",
+        "Sep 16",
+        "Sep 17",
+        "Sep 18",
+        "Sep 19",
+        "Sep 22",
+        "Sep 23",
+        "Sep 24",
+        "Sep 25",
+        "Sep 26",
+        "Sep 29",
+        "Sep 30",
+        "Oct 01",
+        "Oct 02",
+        "Oct 03",
+        "Oct 06",
+        "Oct 07",
+        "Oct 08",
+        "Oct 09",
+        "Oct 10",
+        "Oct 13",
+        "Oct 14",
+        "Oct 15",
+        "Oct 16"
+      ],
+      "days_tracked": 0,
+      "has_real_data": true
+    },
+    {
+      "name": "next_monday",
+      "symbol": "TEST_NEXT_MONDAY",
+      "start_date": "2025-08-11",
+      "base_price": 100.0,
+      "predicted_5d_prices": [
+        162.0,
+        310.3,
+        593.49,
+        864.93,
+        1615.93
+      ],
+      "actual_5d_prices": [
+        100.0,
+        null,
+        null,
+        null,
+        null
+      ],
+      "predicted_30d_prices": [
+        131.5,
+        295.29,
+        590.3,
+        900.54,
+        1765.56,
+        3040.38,
+        2245.33,
+        4426.23,
+        6495.3,
+        7446.96
+      ],
+      "actual_30d_prices": [
+        100.0,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "locked_status": {
+        "5d": true,
+        "30d": false
+      },
+      "lock_dates": {
+        "5d": "2025-08-11",
+        "30d": null
+      },
+      "date_labels_5d": [
+        "Aug 11",
+        "Aug 12",
+        "Aug 13",
+        "Aug 14",
+        "Aug 15"
+      ],
+      "date_labels_30d": [],
+      "days_tracked": 0,
+      "has_real_data": true
+    }
+  ]
+}

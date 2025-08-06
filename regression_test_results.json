@@ -1,0 +1,42 @@
+{
+  "timestamp": 1754457626.291299,
+  "summary": {
+    "passed": 7,
+    "failed": 1,
+    "errors": 0
+  },
+  "details": [
+    {
+      "test": "Import Structure",
+      "status": "PASS"
+    },
+    {
+      "test": "Core Functionality",
+      "status": "PASS"
+    },
+    {
+      "test": "ML Models",
+      "status": "PASS"
+    },
+    {
+      "test": "Data File Access",
+      "status": "PASS"
+    },
+    {
+      "test": "Web Templates",
+      "status": "FAIL"
+    },
+    {
+      "test": "Interactive Tracker",
+      "status": "PASS"
+    },
+    {
+      "test": "Server Startup",
+      "status": "PASS"
+    },
+    {
+      "test": "API Endpoints",
+      "status": "PASS"
+    }
+  ]
+}
