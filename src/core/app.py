@@ -19,6 +19,8 @@ from src.models.predictor import StockPredictor
 from src.managers.interactive_tracker_manager import InteractiveTrackerManager
 from src.managers.enhanced_error_handler import EnhancedErrorHandler
 from src.core.scheduler import SchedulerManager
+from typing import Dict, List, Optional
+from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 

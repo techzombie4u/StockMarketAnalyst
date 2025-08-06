@@ -82,7 +82,6 @@ def run_backup_version():
             logger.info(f"🔄 Using backup version from: {backup_path}")
 
             # Clear any existing Flask app instances to prevent route conflicts
-            import sys
             modules_to_remove = [key for key in sys.modules.keys() if 'src.core.app' in key or key.endswith('.app')]
             for module in modules_to_remove:
                 try:
