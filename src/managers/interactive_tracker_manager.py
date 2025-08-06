@@ -798,25 +798,25 @@ class InteractiveTrackerManager:
             predicted_5d = []
             for i in range(5):
                 if i == 0:
-                    predicted_5d.append(base_price)
+                    predicted_5d.append(float(base_price))
                 else:
                     progress = i / 4.0  # Linear progression 0 to 1
                     price = base_price + (predicted_5d_final_price - base_price) * progress
-                    predicted_5d.append(float(price))
+                    predicted_5d.append(round(float(price), 2))
 
             # Generate 30D predicted data - STRAIGHT line
             predicted_30d = []
             for i in range(30):
                 if i == 0:
-                    predicted_30d.append(base_price)
+                    predicted_30d.append(float(base_price))
                 else:
                     progress = i / 29.0  # Linear progression 0 to 1
                     price = base_price + (predicted_30d_final_price - base_price) * progress
-                    predicted_30d.append(float(price))
+                    predicted_30d.append(round(float(price), 2))
 
             # Generate actual progress data (progressive real market data)
-            actual_5d = [base_price, None, None, None, None]
-            actual_30d = [base_price] + [None] * 29
+            actual_5d = [float(base_price), None, None, None, None]
+            actual_30d = [float(base_price)] + [None] * 29
 
             # Simulate some actual market data for demonstration
             current_date = datetime.now(IST)
@@ -824,7 +824,8 @@ class InteractiveTrackerManager:
 
             if market_closed and current_date.weekday() < 5:  # Market closed on trading day
                 # Add one day of actual data
-                actual_5d[1] = base_price * (0.98 + 0.04 * (hash(symbol) % 100) / 100)
+                actual_price = base_price * (0.98 + 0.04 * (hash(symbol) % 100) / 100)
+                actual_5d[1] = round(float(actual_price), 2)
                 actual_30d[1] = actual_5d[1]
 
             # Generate updated predictions (red line) - incremental from change day
