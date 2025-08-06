@@ -11,6 +11,7 @@ from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import logging
 import pytz
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -29,38 +30,37 @@ except ImportError as e:
     # Create minimal fallback classes
     class HistoricalAnalyzer:
         def get_historical_trends(self): return {}
-    
+
     class DailyTechnicalAnalyzer:
         def analyze(self, *args, **kwargs): return {}
-    
+
     class EnhancedStockScreener:
         def run_enhanced_screener(self): return False
         def scrape_screener_data(self, symbol): return {}
         def calculate_enhanced_technical_indicators(self, symbol): return {}
         def enhanced_score_and_rank(self, data): return []
-    
+
     class ShortStrangleEngine:
         def generate_strategies(self, *args, **kwargs): return []
-    
+
     class StockPredictor:
         def predict(self, *args, **kwargs): return {}
-    
+
     class InteractiveTrackerManager:
         def get_all_tracking_data(self): return {}
         def load_tracking_data(self): return {}
         def update_lock_status(self, *args, **kwargs): return True
         def update_daily_actual_prices(self): return {}
         def _ensure_current_stocks_tracked(self): pass
-    
+
     class EnhancedErrorHandler:
         def handle_error(self, *args, **kwargs): pass
         def get_error_summary(self): return {}
-    
+
     class SchedulerManager:
         def start_scheduler(self, *args, **kwargs): pass
 
 # Set template folder to the correct location
-import os
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates', 'templates')
 if not os.path.exists(template_dir):
     # Fallback to web/templates if templates subfolder doesn't exist
