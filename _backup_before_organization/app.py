@@ -1482,7 +1482,9 @@ def get_options_strategies():
             },
             'timeframe': timeframe,
             'last_updated': datetime.now().isoformat()
-        }), 500ns strategy route removed to prevent conflicts with main app
+        }), 500
+
+# Options strategy route removed to prevent conflicts with main app
 
 @app.route('/api/predictions-tracker')
 def get_predictions_tracker():

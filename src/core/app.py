@@ -11,16 +11,10 @@ from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import logging
 import pytz
-from src.analyzers.historical_analyzer import HistoricalAnalyzer
-from src.analyzers.daily_technical_analyzer import DailyTechnicalAnalyzer
-from src.analyzers.stock_screener import EnhancedStockScreener
-from src.analyzers.short_strangle_engine import ShortStrangleEngine
-from src.models.predictor import StockPredictor
-from src.managers.interactive_tracker_manager import InteractiveTrackerManager
-from src.managers.enhanced_error_handler import EnhancedErrorHandler
-from src.core.scheduler import SchedulerManager
-from typing import Dict, List, Optional
-from collections.abc import Callable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
