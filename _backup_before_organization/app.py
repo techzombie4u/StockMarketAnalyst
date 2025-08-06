@@ -1191,6 +1191,189 @@ def options_strategy():
     return render_template('options_strategy.html')
 
 @app.route('/api/options-strategies')
+def get_options_strategies():
+    """Get short strangle options strategies with real-time data"""
+    try:
+        import yfinance as yf
+        import numpy as np
+        from datetime import datetime, timedelta
+        
+        timeframe = request.args.get('timeframe', '30D')
+        manual_refresh = request.args.get('manual_refresh', 'false').lower() == 'true'
+        force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
+        refresh_flag = request.args.get('refresh', 'false').lower() == 'true'
+
+        force_refresh = manual_refresh or force_realtime or refresh_flag
+
+        logger.info(f"🔄 Options API called: timeframe={timeframe}, force_refresh={force_refresh}")
+
+        # Tier 1 stocks for options strategies
+        tier1_stocks = ['RELIANCE.NS', 'HDFCBANK.NS', 'TCS.NS', 'ITC.NS', 'INFY.NS', 'HINDUNILVR.NS']
+        strategies = []
+
+        for symbol_ns in tier1_stocks:
+            try:
+                symbol = symbol_ns.replace('.NS', '')
+                logger.info(f"📡 Fetching real-time data for {symbol}")
+                
+                # Get real-time data from Yahoo Finance
+                stock = yf.Ticker(symbol_ns)
+                info = stock.info
+                current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+                
+                if not current_price:
+                    hist = stock.history(period='1d')
+                    if not hist.empty:
+                        current_price = float(hist['Close'].iloc[-1])
+                    else:
+                        continue
+                
+                current_price = float(current_price)
+                
+                # Calculate strategy parameters
+                if timeframe == '5D':
+                    otm_percent = 0.02
+                    days_to_expiry = 5
+                    annual_factor = 365 / 5
+                elif timeframe == '10D':
+                    otm_percent = 0.03
+                    days_to_expiry = 10
+                    annual_factor = 365 / 10
+                else:  # 30D
+                    otm_percent = 0.05
+                    days_to_expiry = 30
+                    annual_factor = 365 / 30
+                
+                # Calculate strikes
+                call_strike = current_price * (1 + otm_percent)
+                put_strike = current_price * (1 - otm_percent)
+                
+                # Estimate premiums (simplified model)
+                iv = 25.0  # Default IV
+                call_premium = max(5.0, current_price * 0.02)
+                put_premium = max(5.0, current_price * 0.02)
+                total_premium = call_premium + put_premium
+                
+                # Calculate breakeven points
+                breakeven_upper = call_strike + total_premium
+                breakeven_lower = put_strike - total_premium
+                breakeven_range_pct = ((breakeven_upper - breakeven_lower) / current_price) * 100
+                
+                # Estimate margin requirement
+                margin_required = max(20000, current_price * 100 * 0.2)
+                
+                # Calculate ROI
+                expected_roi = (total_premium / (margin_required / 100)) * 100
+                annualized_roi = expected_roi * annual_factor
+                
+                # Determine confidence and risk level
+                base_confidence = 75.0
+                if symbol in ['RELIANCE', 'TCS', 'HDFCBANK']:
+                    base_confidence += 10
+                
+                confidence = min(95.0, base_confidence)
+                
+                if confidence >= 85 and expected_roi >= 15:
+                    risk_level = 'Safe'
+                    risk_color = 'success'
+                elif confidence >= 75 and expected_roi >= 10:
+                    risk_level = 'Moderate'
+                    risk_color = 'warning'
+                else:
+                    risk_level = 'High'
+                    risk_color = 'danger'
+                
+                strategy = {
+                    'symbol': symbol,
+                    'current_price': current_price,
+                    'call_strike': call_strike,
+                    'put_strike': put_strike,
+                    'call_premium': call_premium,
+                    'put_premium': put_premium,
+                    'total_premium': total_premium,
+                    'breakeven_upper': breakeven_upper,
+                    'breakeven_lower': breakeven_lower,
+                    'breakeven_range_pct': breakeven_range_pct,
+                    'margin_required': margin_required,
+                    'expected_roi': expected_roi,
+                    'annualized_roi': annualized_roi,
+                    'confidence': confidence,
+                    'implied_volatility': iv,
+                    'risk_level': risk_level,
+                    'risk_color': risk_color,
+                    'days_to_expiry': days_to_expiry,
+                    'timeframe': timeframe,
+                    'last_updated': datetime.now().isoformat()
+                }
+                
+                strategies.append(strategy)
+                logger.info(f"✅ Generated strategy for {symbol}: ROI={expected_roi:.1f}%")
+                
+            except Exception as e:
+                logger.error(f"❌ Error processing {symbol}: {e}")
+                continue
+
+        logger.info(f"🎯 Generated {len(strategies)} total strategies")
+
+        if strategies:
+            # Calculate summary
+            summary = {
+                'total_opportunities': len(strategies),
+                'high_confidence_count': len([s for s in strategies if s['confidence'] >= 80]),
+                'average_roi': sum(s['expected_roi'] for s in strategies) / len(strategies),
+                'total_premium_potential': sum(s['total_premium'] for s in strategies)
+            }
+
+            return jsonify({
+                'status': 'success',
+                'strategies': strategies,
+                'count': len(strategies),
+                'data_source': 'real_time_yahoo_finance',
+                'refresh_type': 'manual_refresh' if manual_refresh else 'auto_refresh' if force_refresh else 'cached',
+                'summary': summary,
+                'timeframe': timeframe,
+                'last_updated': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'error_details': 'No strategies generated',
+                'message': 'No options strategies available',
+                'strategies': [],
+                'count': 0,
+                'data_source': 'error',
+                'refresh_type': 'error',
+                'summary': {
+                    'total_opportunities': 0,
+                    'high_confidence_count': 0,
+                    'average_roi': 0,
+                    'total_premium_potential': 0
+                },
+                'timeframe': timeframe,
+                'last_updated': datetime.now().isoformat()
+            })
+
+    except Exception as e:
+        logger.error(f"❌ Error generating options strategies: {e}")
+        return jsonify({
+            'status': 'error',
+            'error_details': str(e),
+            'message': f'Failed to generate options strategies: {str(e)}',
+            'strategies': [],
+            'count': 0,
+            'data_source': 'error',
+            'refresh_type': 'error',
+            'summary': {
+                'total_opportunities': 0,
+                'high_confidence_count': 0,
+                'average_roi': 0,
+                'total_premium_potential': 0
+            },
+            'timeframe': timeframe,
+            'last_updated': datetime.now().isoformat()
+        }), 500eturn render_template('options_strategy.html')
+
+@app.route('/api/options-strategies')
 def api_options_strategies():
     """API endpoint for options strategies"""
     try:
