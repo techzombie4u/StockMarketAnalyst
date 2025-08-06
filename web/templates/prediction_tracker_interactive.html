@@ -1367,10 +1367,10 @@
                 predictedData.every(val => val === null || val === undefined || isNaN(val))) {
                 
                 console.log('🔧 FORCE generating predicted data line');
-                const currentPrice = data.current_price || 100;
+                const currentPrice = parseFloat(data.current_price) || 100;
                 const prediction = currentView === '5d' ? 
-                    (data.pred_5d || data.predicted_gain * 0.2 || 2) : 
-                    (data.pred_1mo || data.predicted_gain || 8);
+                    (parseFloat(data.pred_5d) || parseFloat(data.predicted_gain) * 0.2 || 2) : 
+                    (parseFloat(data.pred_1mo) || parseFloat(data.predicted_gain) || 8);
                 const finalPrice = currentPrice * (1 + prediction / 100);
                 
                 console.log(`🔧 Prediction calculation: ${currentPrice} -> ${finalPrice} (${prediction}%)`);
@@ -1379,23 +1379,50 @@
                 for (let i = 0; i < expectedLength; i++) {
                     const progress = expectedLength === 1 ? 1 : i / (expectedLength - 1);
                     const predictedPrice = currentPrice + (finalPrice - currentPrice) * progress;
-                    predictedData.push(predictedPrice);
+                    predictedData.push(parseFloat(predictedPrice.toFixed(2)));
                 }
                 
                 console.log(`✅ Generated predicted data:`, predictedData);
+            } else {
+                // Ensure all values are valid numbers
+                predictedData = predictedData.map((val, i) => {
+                    if (val === null || val === undefined || isNaN(val)) {
+                        const currentPrice = parseFloat(data.current_price) || 100;
+                        const prediction = currentView === '5d' ? 
+                            (parseFloat(data.pred_5d) || 2) : 
+                            (parseFloat(data.pred_1mo) || 8);
+                        const finalPrice = currentPrice * (1 + prediction / 100);
+                        const progress = expectedLength === 1 ? 1 : i / (expectedLength - 1);
+                        return parseFloat((currentPrice + (finalPrice - currentPrice) * progress).toFixed(2));
+                    }
+                    return parseFloat(parseFloat(val).toFixed(2));
+                });
             }
             
             // FORCE generate actual data if missing
             if (!actualData || !Array.isArray(actualData) || actualData.length === 0) {
                 actualData = Array(expectedLength).fill(null);
-                actualData[0] = data.current_price || 100;
+                actualData[0] = parseFloat(data.current_price) || 100;
                 console.log('🔧 FORCE generated actual data with starting price:', actualData[0]);
             } else {
-                // Ensure first actual price exists
+                // Ensure first actual price exists and is valid
                 if (actualData[0] === null || actualData[0] === undefined || isNaN(actualData[0])) {
-                    actualData[0] = data.current_price || 100;
+                    actualData[0] = parseFloat(data.current_price) || 100;
                     console.log('🔧 Set starting actual price:', actualData[0]);
+                } else {
+                    actualData[0] = parseFloat(actualData[0]);
                 }
+                
+                // Clean up other actual values
+                actualData = actualData.map(val => {
+                    if (val === null || val === undefined) {
+                        return null;
+                    }
+                    if (isNaN(val)) {
+                        return null;
+                    }
+                    return parseFloat(parseFloat(val).toFixed(2));
+                });
             }
             
             // FORCE generate updated data array
@@ -1472,6 +1499,16 @@
                 updated_count: updatedData.filter(v => v !== null && !isNaN(v)).length
             });
             
+            // Final validation before chart creation
+            console.log(`📊 Final chart data validation:`, {
+                labels_count: labels.length,
+                predicted_valid: predictedData.filter(v => v !== null && !isNaN(v)).length,
+                actual_valid: actualData.filter(v => v !== null && !isNaN(v)).length,
+                updated_valid: updatedData.filter(v => v !== null && !isNaN(v)).length,
+                predicted_sample: predictedData.slice(0, 3),
+                actual_sample: actualData.slice(0, 3)
+            });
+
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -1486,7 +1523,7 @@
                             fill: false,
                             pointRadius: 4,
                             pointHoverRadius: 6,
-                            spanGaps: true,
+                            spanGaps: false, // Don't span gaps for predicted data
                             tension: 0, // Ensures straight lines
                             hidden: false // Force visible
                         },
@@ -1549,6 +1586,10 @@
                                 }
                             }
                         }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        intersect: false
                     },
                     scales: {
                         y: {
