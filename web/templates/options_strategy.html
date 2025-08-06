@@ -1,0 +1,630 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 Options Income Strategy - Stock Market Analyst</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn.home { background: #667eea; color: white; }
+        .nav-btn.analysis { background: #27ae60; color: white; }
+        .nav-btn.lookup { background: #667eea; color: white; }
+        .nav-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .strategy-info {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #f39c12;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #2c3e50;
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        .refresh-btn:hover:not(:disabled) {
+            background: linear-gradient(45deg, #e67e22, #d35400);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(230, 126, 34, 0.4);
+        }
+
+        .refresh-btn:disabled {
+            background: #95a5a6 !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+            box-shadow: none !important;
+            opacity: 0.6;
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+            transform: scale(1.01);
+        }
+
+        .symbol {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .roi-high { color: #27ae60; font-weight: 600; }
+        .roi-medium { color: #f39c12; font-weight: 600; }
+        .roi-low { color: #e74c3c; font-weight: 600; }
+
+        .confidence-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .confidence-high { background: #d4edda; color: #155724; }
+        .confidence-medium { background: #fff3cd; color: #856404; }
+        .confidence-low { background: #f8d7da; color: #721c24; }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn { background: #3498db; color: white; }
+        .watch-btn { background: #95a5a6; color: white; margin-left: 5px; }
+        .trade-btn { background: #27ae60; color: white; margin-left: 5px; }
+
+        .action-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .strategy-explanation {
+            background: rgba(52, 152, 219, 0.1);
+            padding: 20px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.6em; }
+            .navigation { flex-direction: column; gap: 10px; }
+            .filter-row { flex-direction: column; align-items: stretch; }
+            .strategy-grid { grid-template-columns: 1fr; }
+            table { font-size: 0.9em; }
+            th, td { padding: 10px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💰 Options Income Strategy</h1>
+        <p>Short Strangle Strategy using AI-Enhanced Stock Predictions</p>
+        
+        <div class="navigation">
+            <a href="/" class="nav-btn home">🏠 Dashboard</a>
+            <a href="/analysis" class="nav-btn analysis">📊 Analysis</a>
+            <a href="/lookup" class="nav-btn lookup" target="_blank">🔍 Stock Lookup</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="strategy-info">
+            <div class="strategy-explanation">
+                <h3>📈 Short Strangle Strategy</h3>
+                <p>This strategy involves selling both a call and put option (out-of-the-money) on stocks with high prediction confidence. 
+                   Profit is maximized when the stock price stays within the breakeven range. Uses your ML predictions to select optimal candidates.</p>
+            </div>
+        </div>
+
+        <div class="strategy-grid" id="metricsGrid">
+            <div class="metric-card">
+                <div class="metric-number" id="totalOpportunities">-</div>
+                <div class="metric-label">Total Opportunities</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-number" id="avgROI">-</div>
+                <div class="metric-label">Avg Expected ROI</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-number" id="highConfidence">-</div>
+                <div class="metric-label">High Confidence (80%+)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-number" id="totalPremium">-</div>
+                <div class="metric-label">Total Premium Potential</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Min ROI %:</label>
+                    <input type="number" class="filter-input" id="minROI" value="15" min="0" max="100">
+                </div>
+                <div class="filter-group">
+                    <label>Min Confidence %:</label>
+                    <input type="number" class="filter-input" id="minConfidence" value="80" min="0" max="100">
+                </div>
+                <div class="filter-group">
+                    <label>Max Margin ₹:</label>
+                    <input type="number" class="filter-input" id="maxMargin" value="50000" min="1000" step="1000">
+                </div>
+                <div class="filter-group">
+                    <label>Strategy Type:</label>
+                    <select class="filter-input" id="strategyType">
+                        <option value="all">All Strategies</option>
+                        <option value="conservative">Conservative</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="aggressive">Aggressive</option>
+                    </select>
+                </div>
+                <button class="refresh-btn" id="refreshBtn" onclick="loadOptionsData()">
+                    <span id="refreshIcon">🔄</span>
+                    <span id="refreshText">Generate Strategies</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div>Analyzing options opportunities...</div>
+                <div style="font-size: 0.9em; margin-top: 10px;">Using ML predictions to find optimal strategies</div>
+            </div>
+
+            <div id="empty" class="empty-state" style="display: none;">
+                <h3>📊 No Opportunities Available</h3>
+                <p>Try adjusting your filters or check back when market conditions improve.</p>
+            </div>
+
+            <table id="optionsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>🏢 Stock</th>
+                        <th>💰 Current Price</th>
+                        <th>📞 Call Strike</th>
+                        <th>📞 Put Strike</th>
+                        <th>💎 Total Premium</th>
+                        <th>📊 Breakeven Range</th>
+                        <th>💰 Margin Req.</th>
+                        <th>📈 Expected ROI</th>
+                        <th>🎯 Confidence</th>
+                        <th>📋 Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="optionsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let isLoading = false;
+        let optionsData = [];
+
+        function log(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${new Date().toLocaleTimeString()}: ${message}`);
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('optionsTable').style.display = 'none';
+            document.getElementById('empty').style.display = 'none';
+            document.getElementById('metricsGrid').style.opacity = '0.5';
+        }
+
+        function showData() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('empty').style.display = 'none';
+            document.getElementById('optionsTable').style.display = 'table';
+            document.getElementById('metricsGrid').style.opacity = '1';
+        }
+
+        function showEmpty() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('optionsTable').style.display = 'none';
+            document.getElementById('empty').style.display = 'block';
+            document.getElementById('metricsGrid').style.opacity = '0.5';
+        }
+
+        function setButtonState(loading) {
+            const btn = document.getElementById('refreshBtn');
+            const icon = document.getElementById('refreshIcon');
+            const text = document.getElementById('refreshText');
+
+            if (loading) {
+                btn.disabled = true;
+                icon.textContent = '⏳';
+                text.textContent = 'Analyzing...';
+                btn.style.opacity = '0.6';
+            } else {
+                btn.disabled = false;
+                icon.textContent = '🔄';
+                text.textContent = 'Generate Strategies';
+                btn.style.opacity = '1';
+            }
+        }
+
+        function updateMetrics(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('totalOpportunities').textContent = '0';
+                document.getElementById('avgROI').textContent = '0%';
+                document.getElementById('highConfidence').textContent = '0';
+                document.getElementById('totalPremium').textContent = '₹0';
+                return;
+            }
+
+            const totalOpportunities = data.length;
+            const avgROI = (data.reduce((sum, item) => sum + item.expected_roi, 0) / totalOpportunities).toFixed(1);
+            const highConfidence = data.filter(item => item.confidence >= 80).length;
+            const totalPremium = data.reduce((sum, item) => sum + item.total_premium, 0).toFixed(0);
+
+            document.getElementById('totalOpportunities').textContent = totalOpportunities;
+            document.getElementById('avgROI').textContent = avgROI + '%';
+            document.getElementById('highConfidence').textContent = highConfidence;
+            document.getElementById('totalPremium').textContent = '₹' + new Intl.NumberFormat('en-IN').format(totalPremium);
+        }
+
+        function getROIClass(roi) {
+            if (roi >= 25) return 'roi-high';
+            if (roi >= 15) return 'roi-medium';
+            return 'roi-low';
+        }
+
+        function getConfidenceClass(confidence) {
+            if (confidence >= 85) return 'confidence-high';
+            if (confidence >= 70) return 'confidence-medium';
+            return 'confidence-low';
+        }
+
+        function updateOptionsTable(data) {
+            const tbody = document.getElementById('optionsTableBody');
+            tbody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #666; padding: 40px;">No options strategies available with current filters.</td></tr>';
+                return;
+            }
+
+            data.forEach((option, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="symbol">${option.symbol}</td>
+                    <td>₹${option.current_price.toFixed(2)}</td>
+                    <td>₹${option.call_strike.toFixed(2)}</td>
+                    <td>₹${option.put_strike.toFixed(2)}</td>
+                    <td style="font-weight: 600; color: #27ae60;">₹${option.total_premium.toFixed(0)}</td>
+                    <td>₹${option.breakeven_lower.toFixed(0)} - ₹${option.breakeven_upper.toFixed(0)}</td>
+                    <td>₹${new Intl.NumberFormat('en-IN').format(option.margin_required)}</td>
+                    <td class="${getROIClass(option.expected_roi)}">${option.expected_roi.toFixed(1)}%</td>
+                    <td><span class="confidence-badge ${getConfidenceClass(option.confidence)}">${option.confidence.toFixed(0)}%</span></td>
+                    <td>
+                        <button class="action-btn view-btn" onclick="viewDetails('${option.symbol}')">View</button>
+                        <button class="action-btn watch-btn" onclick="addToWatchlist('${option.symbol}')">Watch</button>
+                        <button class="action-btn trade-btn" onclick="paperTrade('${option.symbol}')">Paper</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function applyFilters(data) {
+            const minROI = parseFloat(document.getElementById('minROI').value) || 0;
+            const minConfidence = parseFloat(document.getElementById('minConfidence').value) || 0;
+            const maxMargin = parseFloat(document.getElementById('maxMargin').value) || 999999;
+            const strategyType = document.getElementById('strategyType').value;
+
+            return data.filter(option => {
+                if (option.expected_roi < minROI) return false;
+                if (option.confidence < minConfidence) return false;
+                if (option.margin_required > maxMargin) return false;
+                
+                if (strategyType === 'conservative' && option.expected_roi > 20) return false;
+                if (strategyType === 'moderate' && (option.expected_roi < 15 || option.expected_roi > 30)) return false;
+                if (strategyType === 'aggressive' && option.expected_roi < 25) return false;
+                
+                return true;
+            });
+        }
+
+        async function loadOptionsData() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            setButtonState(true);
+            showLoading();
+            log('Loading options strategies...');
+
+            try {
+                const response = await fetch('/api/options-strategies', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                log(`Received ${result.strategies ? result.strategies.length : 0} strategies`);
+
+                if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
+                    optionsData = result.strategies;
+                    const filteredData = applyFilters(optionsData);
+                    
+                    if (filteredData.length > 0) {
+                        updateOptionsTable(filteredData);
+                        updateMetrics(filteredData);
+                        showData();
+                    } else {
+                        updateMetrics([]);
+                        showEmpty();
+                    }
+                } else {
+                    updateMetrics([]);
+                    showEmpty();
+                }
+
+            } catch (error) {
+                log(`Error loading strategies: ${error.message}`, 'error');
+                updateMetrics([]);
+                showEmpty();
+            } finally {
+                isLoading = false;
+                setButtonState(false);
+            }
+        }
+
+        function viewDetails(symbol) {
+            alert(`Viewing details for ${symbol} - Feature coming soon!`);
+        }
+
+        function addToWatchlist(symbol) {
+            alert(`Added ${symbol} to watchlist - Feature coming soon!`);
+        }
+
+        function paperTrade(symbol) {
+            alert(`Starting paper trade for ${symbol} - Feature coming soon!`);
+        }
+
+        // Event listeners
+        document.getElementById('minROI').addEventListener('change', () => {
+            if (optionsData.length > 0) {
+                const filteredData = applyFilters(optionsData);
+                updateOptionsTable(filteredData);
+                updateMetrics(filteredData);
+                if (filteredData.length > 0) showData(); else showEmpty();
+            }
+        });
+
+        document.getElementById('minConfidence').addEventListener('change', () => {
+            if (optionsData.length > 0) {
+                const filteredData = applyFilters(optionsData);
+                updateOptionsTable(filteredData);
+                updateMetrics(filteredData);
+                if (filteredData.length > 0) showData(); else showEmpty();
+            }
+        });
+
+        document.getElementById('maxMargin').addEventListener('change', () => {
+            if (optionsData.length > 0) {
+                const filteredData = applyFilters(optionsData);
+                updateOptionsTable(filteredData);
+                updateMetrics(filteredData);
+                if (filteredData.length > 0) showData(); else showEmpty();
+            }
+        });
+
+        document.getElementById('strategyType').addEventListener('change', () => {
+            if (optionsData.length > 0) {
+                const filteredData = applyFilters(optionsData);
+                updateOptionsTable(filteredData);
+                updateMetrics(filteredData);
+                if (filteredData.length > 0) showData(); else showEmpty();
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Options Strategy page loaded');
+            // Auto-load data on page load
+            setTimeout(loadOptionsData, 1000);
+        });
+    </script>
+</body>
+</html>

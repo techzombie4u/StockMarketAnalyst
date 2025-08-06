@@ -1200,6 +1200,11 @@ def prediction_tracker_interactive():
     """Interactive prediction tracking page with dual view and charts"""
     return render_template('prediction_tracker_interactive.html')
 
+@app.route('/options-strategy')
+def options_strategy():
+    """Options income strategy page for short strangle trading"""
+    return render_template('options_strategy.html')
+
 @app.route('/api/predictions-tracker')
 def get_predictions_tracker():
     """API endpoint to get prediction tracking data"""
@@ -1582,6 +1587,116 @@ def debug_chart_data(symbol):
     except Exception as e:
         logger.error(f"Error in debug chart data: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/options-strategies')
+def get_options_strategies():
+    """API endpoint for options trading strategies based on ML predictions"""
+    try:
+        # Load current stock data
+        current_data = load_stock_data()
+        stocks = current_data.get('stocks', [])
+        
+        if not stocks:
+            return jsonify({
+                'status': 'success',
+                'strategies': [],
+                'message': 'No stock data available for options analysis',
+                'timestamp': datetime.now(IST).isoformat()
+            })
+        
+        strategies = []
+        
+        for stock in stocks:
+            try:
+                symbol = stock.get('symbol', '')
+                current_price = stock.get('current_price', 0)
+                confidence = stock.get('confidence', 0)
+                pred_5d = stock.get('pred_5d', 0)
+                pred_1mo = stock.get('pred_1mo', 0)
+                score = stock.get('score', 0)
+                
+                if not symbol or current_price <= 0:
+                    continue
+                
+                # Only consider stocks with reasonable confidence and price movement predictions
+                if confidence < 60 or abs(pred_5d) > 10 or abs(pred_1mo) > 25:
+                    continue
+                
+                # Calculate option strikes (OTM by 5-7%)
+                otm_percentage = 0.05 + (score / 1000)  # 5-7% based on score
+                call_strike = current_price * (1 + otm_percentage)
+                put_strike = current_price * (1 - otm_percentage)
+                
+                # Estimate premiums (simplified calculation)
+                # In real implementation, this would use live options data
+                volatility_factor = abs(pred_5d) / 100 + 0.02  # Minimum 2% volatility
+                call_premium = current_price * volatility_factor * 0.3
+                put_premium = current_price * volatility_factor * 0.3
+                total_premium = call_premium + put_premium
+                
+                # Calculate breakeven points
+                breakeven_upper = call_strike + total_premium
+                breakeven_lower = put_strike - total_premium
+                
+                # Estimate margin requirement (simplified)
+                margin_required = current_price * 0.2 * 100  # 20% of stock price per lot
+                
+                # Calculate expected ROI based on prediction confidence
+                days_to_expiry = 30  # Assume monthly options
+                probability_success = confidence / 100 * 0.8  # Conservative estimate
+                expected_roi = (total_premium / margin_required) * probability_success * (365 / days_to_expiry) * 100
+                
+                strategy = {
+                    'symbol': symbol,
+                    'current_price': current_price,
+                    'call_strike': call_strike,
+                    'put_strike': put_strike,
+                    'call_premium': call_premium,
+                    'put_premium': put_premium,
+                    'total_premium': total_premium,
+                    'breakeven_upper': breakeven_upper,
+                    'breakeven_lower': breakeven_lower,
+                    'margin_required': margin_required,
+                    'expected_roi': expected_roi,
+                    'confidence': confidence,
+                    'score': score,
+                    'pred_5d': pred_5d,
+                    'pred_1mo': pred_1mo,
+                    'strategy_type': 'short_strangle',
+                    'days_to_expiry': days_to_expiry,
+                    'probability_success': probability_success * 100
+                }
+                
+                strategies.append(strategy)
+                
+            except Exception as stock_error:
+                logger.warning(f"Error processing options for {stock.get('symbol', 'unknown')}: {stock_error}")
+                continue
+        
+        # Sort by expected ROI
+        strategies.sort(key=lambda x: x['expected_roi'], reverse=True)
+        
+        # Limit to top 20 strategies
+        strategies = strategies[:20]
+        
+        logger.info(f"Generated {len(strategies)} options strategies")
+        
+        return jsonify({
+            'status': 'success',
+            'strategies': strategies,
+            'total_count': len(strategies),
+            'timestamp': datetime.now(IST).isoformat(),
+            'message': f'Generated {len(strategies)} options strategies based on ML predictions'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating options strategies: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'strategies': [],
+            'timestamp': datetime.now(IST).isoformat()
+        }), 500
 
 def load_interactive_tracking_data():
     """Load enhanced tracking data for interactive charts with persistence"""
