@@ -31,13 +31,21 @@ except Exception as e:
         # Try to import and run from backup
         if backup_dir in sys.path:
             print("🚀 Starting Stock Market Analyst - Version 1.7.1 (Backup Version)")
-            import main as backup_main
-            # Execute the backup version
-            if hasattr(backup_main, 'main'):
-                backup_main.main()
+            # Import backup main directly
+            sys.path.insert(0, backup_dir)
+            import app as backup_app
+            
+            # Run the backup Flask app
+            if hasattr(backup_app, 'app'):
+                print("✅ Running backup Flask application")
+                backup_app.app.run(
+                    host='0.0.0.0',
+                    port=5000,
+                    debug=False,
+                    threaded=True
+                )
             else:
-                # If no main function, just import and let it run
-                pass
+                raise Exception("Backup app not found")
         else:
             raise Exception("Backup directory not in path")
     except Exception as fallback_error:

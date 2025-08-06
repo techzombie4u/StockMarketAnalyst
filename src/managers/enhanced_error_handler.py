@@ -456,3 +456,21 @@ def get_system_health_report() -> str:
 
 # Import required modules for math operations
 import math
+
+class EnhancedErrorHandler:
+    """Enhanced error handler class for the application"""
+    
+    def __init__(self):
+        self.error_tracker = error_tracker
+    
+    def handle_error(self, error_type: str, error_message: str, context: dict = None):
+        """Handle an error with enhanced logging"""
+        return self.error_tracker.log_error(error_type, error_message, context)
+    
+    def get_error_summary(self):
+        """Get error summary"""
+        return self.error_tracker.get_error_summary()
+    
+    def safe_execute(self, func, *args, **kwargs):
+        """Safely execute a function"""
+        return safe_execute(func, *args, **kwargs)
