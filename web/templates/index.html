@@ -801,14 +801,14 @@
                 }
             })
             .then(response => {
-                log(`📡 API response status: ${response.status}`);
+                log(`SDSAPI response status: ${response.status}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(data => {
-                log(`📊 API data received`, 'info');
+                log(`SDSAPI data received`, 'info');
                 consecutiveErrors = 0;
 
                 // Ensure data is an object
@@ -822,7 +822,7 @@
                 // Handle error status
                 if (data.status === 'error' || data.error) {
                     const errorMsg = data.error || data.message || 'Unknown error occurred';
-                    log(`❌ API returned error: ${errorMsg}`, 'error');
+                    log(`❌ SDSAPI returned error: ${errorMsg}`, 'error');
                     showError(errorMsg);
                     updateStatus('Error loading data', 'error');
                     return;
@@ -890,7 +890,7 @@
                 log(`🎉 Successfully displayed ${validStocks.length} stocks`);
             })
             .catch(error => {
-                log(`💥 API Error: ${error.message}`, 'error');
+                log(`💥 SDSAPI Error: ${error.message}`, 'error');
                 consecutiveErrors++;
                 retryCount++;
 
@@ -937,14 +937,14 @@
                 }
             })
             .then(response => {
-                log(`🌐 Manual refresh response: ${response.status}`);
+                log(`SDSAPI Manual refresh response: ${response.status}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(result => {
-                log(`📋 Manual refresh result:`, result);
+                log(`📋 SDSAPI Manual refresh result:`, result);
 
                 if (result.success) {
                     updateStatus('Screening completed - loading fresh data...', 'loading');
@@ -964,7 +964,7 @@
                 }
             })
             .catch(error => {
-                log(`💥 Manual refresh error: ${error.message}`, 'error');
+                log(`💥 SDSAPI Manual refresh error: ${error.message}`, 'error');
                 updateStatus(`Manual refresh failed: ${error.message}`, 'error');
                 showError(`Manual refresh failed: ${error.message}`);
                 isRefreshing = false;

@@ -29,8 +29,7 @@ def check_organized_structure():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
         try:
-            # Fix the typing import issue
-            from typing import Callable
+            # Test import without importing Callable separately
             from src.core.app import app
             return True, "Organized structure is functional"
         except ImportError as e:
@@ -46,8 +45,7 @@ def run_organized_version():
     try:
         logger.info("🚀 Starting Stock Market Analyst - Version 1.7.1 (Organized Version)")
 
-        # Ensure typing imports are available
-        from typing import Callable
+        # Import the app directly without separate Callable import
         from src.core.app import app
 
         # Run the Flask application
@@ -73,8 +71,12 @@ def run_backup_version():
         # Change to backup directory
         backup_dir = '_backup_before_organization'
         if os.path.exists(backup_dir):
-            os.chdir(backup_dir)
-            logger.info(f"🔄 Using backup version from: {os.getcwd()}")
+            # Add backup directory to Python path
+            backup_path = os.path.abspath(backup_dir)
+            if backup_path not in sys.path:
+                sys.path.insert(0, backup_path)
+            
+            logger.info(f"🔄 Using backup version from: {backup_path}")
 
             # Import and run backup app
             from app import app
