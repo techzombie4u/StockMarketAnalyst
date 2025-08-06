@@ -1386,25 +1386,28 @@ def initialize_empty_tracking_data():
 
 @app.route('/api/update-lock-status', methods=['POST'])
 def update_lock_status():
-    """API endpoint to update lock status for predictions"""
+    """API endpoint to update lock status for predictions with persistent support"""
     try:
         data = request.get_json()
         symbol = data.get('symbol')
         period = data.get('period')  # '5d' or '30d'
         locked = data.get('locked', False)
+        persistent = data.get('persistent', True)  # Default to persistent
         timestamp = data.get('timestamp')
 
         if not symbol or not period:
             return jsonify({'success': False, 'message': 'Symbol and period required'}), 400
 
-        # Save lock status
-        success = save_lock_status(symbol, period, locked, timestamp)
+        # Save lock status with persistence flag
+        success = save_lock_status(symbol, period, locked, timestamp, persistent)
 
         if success:
-            logger.info(f"Lock status updated: {symbol} {period} = {locked}")
+            persistence_msg = "persistently" if persistent else "temporarily"
+            logger.info(f"Lock status updated {persistence_msg}: {symbol} {period} = {locked}")
             return jsonify({
                 'success': True,
-                'message': f'Lock status updated for {symbol}',
+                'message': f'Lock status updated for {symbol} ({persistence_msg})',
+                'persistent': persistent,
                 'timestamp': datetime.now(IST).isoformat()
             })
         else:
@@ -1469,8 +1472,8 @@ def load_interactive_tracking_data():
         logger.warning(f"Could not load interactive tracking data: {str(e)}")
         return {}
 
-def save_lock_status(symbol, period, locked, timestamp):
-    """Save lock status for a stock prediction with persistence"""
+def save_lock_status(symbol, period, locked, timestamp, persistent=True):
+    """Save lock status for a stock prediction with persistence support"""
     try:
         from interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
@@ -1478,9 +1481,10 @@ def save_lock_status(symbol, period, locked, timestamp):
         # Ensure current stocks are tracked before saving lock status
         tracker_manager._ensure_current_stocks_tracked()
         
-        success = tracker_manager.update_lock_status(symbol, period, locked, timestamp)
+        success = tracker_manager.update_lock_status(symbol, period, locked, timestamp, persistent)
         if success:
-            logger.info(f"✅ Lock status saved: {symbol} {period} = {locked}")
+            persistence_msg = "persistently" if persistent else "temporarily"
+            logger.info(f"✅ Lock status saved {persistence_msg}: {symbol} {period} = {locked}")
         else:
             logger.error(f"❌ Failed to save lock status for {symbol}")
         

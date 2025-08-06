@@ -493,8 +493,49 @@
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Interactive Prediction Tracker initialized');
+            restoreSessionState();
             loadPredictionData();
         });
+
+        // Session persistence functions
+        function saveSessionState() {
+            try {
+                const sessionState = {
+                    selectedStock: selectedStock,
+                    currentView: currentView,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem('predictionTracker_session', JSON.stringify(sessionState));
+                console.log('📱 Session state saved:', sessionState);
+            } catch (e) {
+                console.warn('Could not save session state:', e);
+            }
+        }
+
+        function restoreSessionState() {
+            try {
+                const saved = localStorage.getItem('predictionTracker_session');
+                if (saved) {
+                    const sessionState = JSON.parse(saved);
+                    
+                    // Restore view preference
+                    if (sessionState.currentView && ['5d', '30d'].includes(sessionState.currentView)) {
+                        currentView = sessionState.currentView;
+                        switchView(currentView);
+                        console.log('🔄 Restored view preference:', currentView);
+                    }
+                    
+                    // Selected stock will be restored after data loads
+                    if (sessionState.selectedStock) {
+                        // Set a flag to restore selection after data loads
+                        window.pendingStockSelection = sessionState.selectedStock;
+                        console.log('📋 Will restore stock selection:', sessionState.selectedStock);
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not restore session state:', e);
+            }
+        }
 
         function switchView(view) {
             currentView = view;
@@ -508,8 +549,10 @@
             // Update chart if stock is selected
             if (selectedStock) {
                 updateChart();
+                updateLockToggle(); // Update lock toggle for new view
             }
             
+            saveSessionState(); // Save session when view changes
             console.log(`Switched to ${view} view`);
         }
 
@@ -522,6 +565,7 @@
                 updateChart();
                 updateLockToggle();
                 highlightSelectedCard();
+                saveSessionState(); // Save session when stock is selected
             } else {
                 hideChart();
             }
@@ -532,35 +576,168 @@
             
             const lockToggle = document.getElementById('lockToggle');
             const isLocked = lockToggle.checked;
-            const lockKey = `locked_${currentView}`;
-            const lockStartDateKey = `lock_start_date_${currentView}`;
             
-            // Update prediction data
-            if (!predictionData[selectedStock]) {
-                predictionData[selectedStock] = {};
+            // If unlocking, show confirmation
+            if (!isLocked && predictionData[selectedStock] && predictionData[selectedStock][`locked_${currentView}`]) {
+                showUnlockConfirmation([{symbol: selectedStock, period: currentView}]);
+                // Reset toggle until confirmation
+                lockToggle.checked = true;
+                return;
             }
             
-            predictionData[selectedStock][lockKey] = isLocked;
-            predictionData[selectedStock][`lock_date_${currentView}`] = isLocked ? new Date().toISOString().split('T')[0] : null;
+            // If locking, proceed immediately
+            if (isLocked) {
+                executeLockAction(selectedStock, currentView, true);
+            }
+        }
+
+        function showUnlockConfirmation(stocksToUnlock) {
+            // Create confirmation modal
+            const modalHtml = `
+                <div id="unlockConfirmationModal" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                ">
+                    <div style="
+                        background: white;
+                        border-radius: 15px;
+                        padding: 30px;
+                        max-width: 500px;
+                        width: 90%;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    ">
+                        <h3 style="margin-top: 0; color: #e74c3c; text-align: center;">
+                            🔓 Confirm Unlock Action
+                        </h3>
+                        <p style="text-align: center; margin-bottom: 20px; color: #555;">
+                            Select which predictions you want to unlock:
+                        </p>
+                        <div id="stockCheckboxes" style="max-height: 300px; overflow-y: auto;">
+                            ${stocksToUnlock.map(item => `
+                                <div style="
+                                    display: flex;
+                                    align-items: center;
+                                    padding: 10px;
+                                    border: 1px solid #ddd;
+                                    border-radius: 8px;
+                                    margin-bottom: 10px;
+                                    background: #f9f9f9;
+                                ">
+                                    <input type="checkbox" 
+                                           id="unlock_${item.symbol}_${item.period}" 
+                                           value="${item.symbol}_${item.period}"
+                                           style="margin-right: 10px; transform: scale(1.2);">
+                                    <label for="unlock_${item.symbol}_${item.period}" style="
+                                        flex: 1;
+                                        font-weight: 500;
+                                        color: #333;
+                                        cursor: pointer;
+                                    ">
+                                        ${item.symbol} - ${item.period.toUpperCase()} View
+                                        <small style="display: block; color: #666; font-weight: normal;">
+                                            Lock will be removed and dates will become dynamic
+                                        </small>
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="
+                            display: flex;
+                            gap: 15px;
+                            margin-top: 25px;
+                            justify-content: center;
+                        ">
+                            <button onclick="confirmUnlock()" style="
+                                background: #e74c3c;
+                                color: white;
+                                border: none;
+                                padding: 12px 25px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: 600;
+                                font-size: 16px;
+                            ">
+                                🔓 Unlock Selected
+                            </button>
+                            <button onclick="cancelUnlock()" style="
+                                background: #95a5a6;
+                                color: white;
+                                border: none;
+                                padding: 12px 25px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: 600;
+                                font-size: 16px;
+                            ">
+                                ❌ Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function confirmUnlock() {
+            const modal = document.getElementById('unlockConfirmationModal');
+            const checkboxes = modal.querySelectorAll('input[type="checkbox"]:checked');
+            
+            checkboxes.forEach(checkbox => {
+                const [symbol, period] = checkbox.value.split('_');
+                console.log(`🔓 Confirming unlock: ${symbol} ${period}`);
+                executeLockAction(symbol, period, false);
+            });
+            
+            modal.remove();
+            console.log(`✅ Unlock confirmation completed for ${checkboxes.length} selections`);
+        }
+
+        function cancelUnlock() {
+            const modal = document.getElementById('unlockConfirmationModal');
+            modal.remove();
+            console.log('❌ Unlock action cancelled by user');
+        }
+
+        function executeLockAction(symbol, period, isLocked) {
+            const lockKey = `locked_${period}`;
+            const lockStartDateKey = `lock_start_date_${period}`;
+            
+            // Update prediction data
+            if (!predictionData[symbol]) {
+                predictionData[symbol] = {};
+            }
+            
+            predictionData[symbol][lockKey] = isLocked;
+            predictionData[symbol][`lock_date_${period}`] = isLocked ? new Date().toISOString().split('T')[0] : null;
             
             // Store lock start date for fixed date ranges
             if (isLocked) {
-                predictionData[selectedStock][lockStartDateKey] = new Date().toISOString().split('T')[0];
-                console.log(`🔒 Locking ${selectedStock} ${currentView} with start date: ${predictionData[selectedStock][lockStartDateKey]}`);
+                predictionData[symbol][lockStartDateKey] = new Date().toISOString().split('T')[0];
+                console.log(`🔒 Locking ${symbol} ${period} with start date: ${predictionData[symbol][lockStartDateKey]}`);
             } else {
-                predictionData[selectedStock][lockStartDateKey] = null;
-                console.log(`🔓 Unlocking ${selectedStock} ${currentView} - dates will revert to dynamic`);
+                predictionData[symbol][lockStartDateKey] = null;
+                console.log(`🔓 Unlocking ${symbol} ${period} - dates will revert to dynamic`);
             }
             
-            // Save to backend
-            saveLockStatus(selectedStock, currentView, isLocked);
+            // Save to backend with persistence flag
+            saveLockStatus(symbol, period, isLocked, true);
             
             // Update UI and chart
             updateLockStatus();
             updatePredictionCards();
+            updateLockToggle(); // Update toggle state
             updateChart(); // Refresh chart to show new date behavior
             
-            console.log(`${isLocked ? 'Locked' : 'Unlocked'} ${selectedStock} for ${currentView}`);
+            console.log(`${isLocked ? 'Locked' : 'Unlocked'} ${symbol} for ${period}`);
         }
 
         function refreshData() {
@@ -597,6 +774,22 @@
                     populateStockSelector();
                     updatePredictionCards();
                     predictionsGrid.style.display = 'grid';
+                    
+                    // Restore selected stock from session if available
+                    if (window.pendingStockSelection && predictionData[window.pendingStockSelection]) {
+                        const selector = document.getElementById('stockSelector');
+                        selector.value = window.pendingStockSelection;
+                        selectedStock = window.pendingStockSelection;
+                        window.pendingStockSelection = null; // Clear the flag
+                        
+                        // Show and update chart for restored selection
+                        showChart();
+                        updateChart();
+                        updateLockToggle();
+                        highlightSelectedCard();
+                        
+                        console.log('🔄 Restored stock selection:', selectedStock);
+                    }
                 } else {
                     noData.style.display = 'block';
                 }
@@ -1125,79 +1318,29 @@
                 return;
             }
 
-            const stockSymbols = Object.keys(predictionData);
-            const unlockPromises = [];
-
-            console.log(`🔓 Starting batch unlock for ${stockSymbols.length} stocks`);
-
-            stockSymbols.forEach(symbol => {
-                // Update local data for both periods
-                ['5d', '30d'].forEach(period => {
-                    const lockKey = `locked_${period}`;
-                    const lockStartDateKey = `lock_start_date_${period}`;
-                    
-                    if (!predictionData[symbol]) {
-                        predictionData[symbol] = {};
-                    }
-                    
-                    predictionData[symbol][lockKey] = false;
-                    predictionData[symbol][`lock_date_${period}`] = null;
-                    predictionData[symbol][lockStartDateKey] = null;
-                    
-                    console.log(`🔓 Unlocking ${symbol} ${period} - dates will revert to dynamic`);
-
-                    // Save to backend
-                    const unlockPromise = fetch('/api/update-lock-status', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            symbol: symbol,
-                            period: period,
-                            locked: false,
-                            timestamp: new Date().toISOString()
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log(`✅ ${symbol} ${period} unlocked successfully`);
-                        return { symbol, period, success: true };
-                    })
-                    .catch(error => {
-                        console.error(`❌ Error unlocking ${symbol} ${period}:`, error);
-                        return { symbol, period, success: false, error };
-                    });
-
-                    unlockPromises.push(unlockPromise);
-                });
+            // Find all locked stocks
+            const lockedStocks = [];
+            Object.keys(predictionData).forEach(symbol => {
+                const data = predictionData[symbol];
+                if (data.locked_5d) {
+                    lockedStocks.push({symbol: symbol, period: '5d'});
+                }
+                if (data.locked_30d) {
+                    lockedStocks.push({symbol: symbol, period: '30d'});
+                }
             });
 
-            // Wait for all unlocks to complete
-            Promise.all(unlockPromises)
-                .then(results => {
-                    const successful = results.filter(r => r.success).length;
-                    const failed = results.filter(r => !r.success).length;
-                    
-                    alert(`🔓 Batch Unlock Complete:\n✅ ${successful} operations successful\n❌ ${failed} operations failed`);
-                    
-                    // Update UI
-                    updatePredictionCards();
-                    if (selectedStock) {
-                        updateLockToggle();
-                        updateChart();
-                    }
-                    
-                    console.log(`🎉 Batch unlock completed: ${successful} successful, ${failed} failed`);
-                })
-                .catch(error => {
-                    console.error('❌ Batch unlock error:', error);
-                    alert('❌ Batch unlock failed. Please try again.');
-                });
+            if (lockedStocks.length === 0) {
+                alert('ℹ️ No locked predictions found to unlock.');
+                return;
+            }
+
+            // Show confirmation with all locked stocks
+            showUnlockConfirmation(lockedStocks);
         }
 
-        function saveLockStatus(symbol, period, isLocked) {
-            // Save lock status to backend
+        function saveLockStatus(symbol, period, isLocked, persistent = true) {
+            // Save lock status to backend with persistence flag
             fetch('/api/update-lock-status', {
                 method: 'POST',
                 headers: {
@@ -1207,12 +1350,16 @@
                     symbol: symbol,
                     period: period,
                     locked: isLocked,
+                    persistent: persistent, // Flag for indefinite persistence
                     timestamp: new Date().toISOString()
                 })
             })
             .then(response => response.json())
             .then(data => {
                 console.log('Lock status saved:', data);
+                if (persistent) {
+                    console.log(`🔒 ${symbol} ${period} lock will persist across restarts`);
+                }
             })
             .catch(error => {
                 console.error('Error saving lock status:', error);

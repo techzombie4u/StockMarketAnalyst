@@ -206,8 +206,8 @@ class InteractiveTrackerManager:
             logger.error(f"Error updating prediction for {symbol}: {str(e)}")
             return False
 
-    def update_lock_status(self, symbol, period, locked, timestamp=None):
-        """Update lock status for a stock prediction with trading days persistence"""
+    def update_lock_status(self, symbol, period, locked, timestamp=None, persistent=True):
+        """Update lock status for a stock prediction with indefinite persistence"""
         try:
             # Ensure stock is tracked before updating lock status
             if symbol not in self.tracking_data:
@@ -222,9 +222,10 @@ class InteractiveTrackerManager:
             lock_key = f'locked_{period}'
             lock_date_key = f'lock_date_{period}'
             lock_start_date_key = f'lock_start_date_{period}'
-            lock_trading_days_key = f'lock_trading_days_remaining_{period}'
+            persistent_key = f'persistent_lock_{period}'
 
             stock_data[lock_key] = locked
+            stock_data[persistent_key] = persistent  # Mark as persistent lock
 
             if locked:
                 current_time = datetime.now(IST)
@@ -233,22 +234,21 @@ class InteractiveTrackerManager:
                 # Store the exact date when locking occurred
                 stock_data[lock_start_date_key] = current_time.strftime('%Y-%m-%d')
                 
-                # Set trading days remaining based on period
-                trading_days_total = 5 if period == '5d' else 30
-                stock_data[lock_trading_days_key] = trading_days_total
-                
-                logger.info(f"🔒 Locked {symbol} {period} with start date: {stock_data[lock_start_date_key]} for {trading_days_total} trading days")
+                if persistent:
+                    logger.info(f"🔒 PERSISTENT LOCK: {symbol} {period} with start date: {stock_data[lock_start_date_key]} - will survive restarts")
+                else:
+                    logger.info(f"🔒 Temporary lock: {symbol} {period} with start date: {stock_data[lock_start_date_key]}")
             else:
                 stock_data[lock_date_key] = None
                 stock_data[lock_start_date_key] = None
-                stock_data[lock_trading_days_key] = None
+                stock_data[persistent_key] = False
                 
                 logger.info(f"🔓 Unlocked {symbol} {period} - dates will revert to dynamic")
 
             stock_data['last_updated'] = datetime.now(IST).isoformat()
 
             self.save_tracking_data()
-            logger.info(f"✅ Updated lock status for {symbol} {period}: {locked}")
+            logger.info(f"✅ Updated lock status for {symbol} {period}: {locked} (persistent: {persistent})")
             return True
 
         except Exception as e:
@@ -506,7 +506,7 @@ class InteractiveTrackerManager:
             return []
 
     def _is_lock_still_valid(self, symbol, period):
-        """Check if a lock is still valid based on trading days elapsed"""
+        """Check if a lock is still valid - persistent locks never auto-expire"""
         try:
             if symbol not in self.tracking_data:
                 return False
@@ -514,11 +514,20 @@ class InteractiveTrackerManager:
             stock_data = self.tracking_data[symbol]
             locked_key = f'locked_{period}'
             lock_start_date_key = f'lock_start_date_{period}'
+            persistent_key = f'persistent_lock_{period}'
 
             if not stock_data.get(locked_key, False) or not stock_data.get(lock_start_date_key):
                 return False
 
-            # Calculate trading days elapsed since lock
+            # Check if this is a persistent lock
+            is_persistent = stock_data.get(persistent_key, True)  # Default to persistent for backward compatibility
+            
+            if is_persistent:
+                # Persistent locks never auto-expire - only manual unlock
+                logger.debug(f"🔒 Persistent lock active for {symbol} {period} - will not auto-expire")
+                return True
+
+            # For non-persistent locks, use the old behavior
             lock_start_date = datetime.strptime(stock_data[lock_start_date_key], '%Y-%m-%d')
             lock_start_date_ist = IST.localize(lock_start_date)
             current_ist = datetime.now(IST)
@@ -526,12 +535,13 @@ class InteractiveTrackerManager:
             trading_days_elapsed = self.calculate_trading_days(lock_start_date_ist, current_ist)
             trading_days_limit = 5 if period == '5d' else 30
 
-            # Auto-expire lock if trading days limit exceeded
+            # Auto-expire non-persistent lock if trading days limit exceeded
             if trading_days_elapsed >= trading_days_limit:
-                logger.info(f"🔓 Auto-expiring lock for {symbol} {period} - {trading_days_elapsed} trading days elapsed")
+                logger.info(f"🔓 Auto-expiring temporary lock for {symbol} {period} - {trading_days_elapsed} trading days elapsed")
                 stock_data[locked_key] = False
                 stock_data[lock_start_date_key] = None
                 stock_data[f'lock_date_{period}'] = None
+                stock_data[persistent_key] = False
                 self.save_tracking_data()
                 return False
 
