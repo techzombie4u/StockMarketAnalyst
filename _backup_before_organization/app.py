@@ -1185,10 +1185,7 @@ def prediction_tracker_interactive():
     """Interactive prediction tracking page with dual view and charts"""
     return render_template('prediction_tracker_interactive.html')
 
-@app.route('/options-strategy')
-def options_strategy():
-    """Options strategy page for passive income"""
-    return render_template('options_strategy.html')
+# Options strategy route removed to prevent conflicts with main app
 
 @app.route('/api/options-strategies')
 def get_options_strategies():
