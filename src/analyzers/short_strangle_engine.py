@@ -123,19 +123,58 @@ class ShortStrangleEngine:
             return spot * 0.25  # Conservative fallback
     
     def get_real_time_price(self, symbol: str) -> float:
-        """Fetch real-time price from Yahoo Finance"""
+        """Fetch real-time price from Yahoo Finance with multiple fallbacks"""
         try:
             ticker = yf.Ticker(symbol)
-            hist = ticker.history(period="1d", interval="1m")
-            if not hist.empty:
-                return float(hist['Close'].iloc[-1])
-            else:
-                # Fallback to last available daily close
+            
+            # Try 1-minute data first (most recent)
+            try:
+                hist_1m = ticker.history(period="1d", interval="1m")
+                if not hist_1m.empty and len(hist_1m) > 0:
+                    price = float(hist_1m['Close'].iloc[-1])
+                    if price > 0:
+                        logger.info(f"Real-time 1m price for {symbol}: ₹{price:.2f}")
+                        return price
+            except Exception as e:
+                logger.warning(f"1-minute data failed for {symbol}: {e}")
+            
+            # Fallback to 5-minute data
+            try:
+                hist_5m = ticker.history(period="1d", interval="5m")
+                if not hist_5m.empty and len(hist_5m) > 0:
+                    price = float(hist_5m['Close'].iloc[-1])
+                    if price > 0:
+                        logger.info(f"Real-time 5m price for {symbol}: ₹{price:.2f}")
+                        return price
+            except Exception as e:
+                logger.warning(f"5-minute data failed for {symbol}: {e}")
+            
+            # Fallback to daily data
+            try:
                 hist_daily = ticker.history(period="5d")
-                if not hist_daily.empty:
-                    return float(hist_daily['Close'].iloc[-1])
+                if not hist_daily.empty and len(hist_daily) > 0:
+                    price = float(hist_daily['Close'].iloc[-1])
+                    if price > 0:
+                        logger.info(f"Daily price for {symbol}: ₹{price:.2f}")
+                        return price
+            except Exception as e:
+                logger.warning(f"Daily data failed for {symbol}: {e}")
+            
+            # Final fallback - try ticker info
+            try:
+                info = ticker.info
+                if info and 'currentPrice' in info:
+                    price = float(info['currentPrice'])
+                    if price > 0:
+                        logger.info(f"Info price for {symbol}: ₹{price:.2f}")
+                        return price
+            except Exception as e:
+                logger.warning(f"Ticker info failed for {symbol}: {e}")
+                
         except Exception as e:
-            logger.warning(f"Failed to get real-time price for {symbol}: {e}")
+            logger.error(f"Complete price fetch failed for {symbol}: {e}")
+        
+        logger.error(f"❌ Could not fetch any price data for {symbol}")
         return None
 
     def calculate_strangle_metrics(self, symbol: str, current_price: float, 
@@ -357,13 +396,15 @@ class ShortStrangleEngine:
             return {'strategies': [], 'total_opportunities': 0, 'high_confidence_count': 0}
     
     def generate_demo_strategies(self, timeframe: str = '30D') -> List[Dict]:
-        """Generate demo strategies as fallback"""
+        """Generate demo strategies as fallback with real-time prices"""
         demo_strategies = []
         
-        # Create demo data for each Tier 1 stock
+        logger.info(f"Generating demo strategies for {timeframe} with real-time price fetching")
+        
+        # Create demo data for each Tier 1 stock with fallback prices
         base_prices = {
             'RELIANCE': 2800,
-            'HDFC BANK': 1650,
+            'HDFC BANK': 1650, 
             'TCS': 3950,
             'ITC': 465,
             'INFY': 1720,
@@ -371,21 +412,40 @@ class ShortStrangleEngine:
         }
         
         for symbol, base_price in base_prices.items():
-            # Get real-time price if possible
-            yf_symbol = f"{symbol.replace(' ', '')}.NS" if symbol != 'HDFC BANK' else 'HDFCBANK.NS'
-            real_price = self.get_real_time_price(yf_symbol)
-            current_price = real_price if real_price else base_price
-            
-            predictions = {
-                'confidence': 78.0,
-                'pred_5d': 2.1,
-                'pred_10d': 4.2,
-                'pred_30d': 8.5,
-                'historical_volatility': 18.0
-            }
-            
-            strategy = self.calculate_strangle_metrics(yf_symbol, current_price, predictions, timeframe)
-            if strategy:
-                demo_strategies.append(strategy)
+            try:
+                # Map to correct Yahoo Finance symbol
+                yf_symbol = f"{symbol.replace(' ', '')}.NS" if symbol != 'HDFC BANK' else 'HDFCBANK.NS'
+                
+                logger.info(f"Demo strategy: Fetching price for {symbol} ({yf_symbol})")
+                
+                # Try to get real-time price, fallback to base price
+                real_price = self.get_real_time_price(yf_symbol)
+                current_price = real_price if real_price and real_price > 0 else base_price
+                
+                if real_price:
+                    logger.info(f"✅ Demo: Using real-time price for {symbol}: ₹{current_price:.2f}")
+                else:
+                    logger.warning(f"⚠️ Demo: Using fallback price for {symbol}: ₹{current_price:.2f}")
+                
+                # Enhanced predictions for demo
+                predictions = {
+                    'confidence': 82.0 if real_price else 75.0,  # Higher confidence for real-time data
+                    'pred_5d': 2.3 if real_price else 2.0,
+                    'pred_10d': 4.8 if real_price else 4.2,
+                    'pred_30d': 9.5 if real_price else 8.5,
+                    'historical_volatility': 18.5
+                }
+                
+                strategy = self.calculate_strangle_metrics(yf_symbol, current_price, predictions, timeframe)
+                if strategy:
+                    # Mark as demo but with real-time data if available
+                    strategy['data_quality'] = 'real_time' if real_price else 'demo_fallback'
+                    demo_strategies.append(strategy)
+                    logger.info(f"✅ Demo strategy created for {symbol}: ROI {strategy.get('expected_roi', 0):.1f}%")
+                    
+            except Exception as e:
+                logger.error(f"❌ Error creating demo strategy for {symbol}: {e}")
+                continue
         
+        logger.info(f"Generated {len(demo_strategies)} demo strategies")
         return demo_strategies

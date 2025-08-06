@@ -1,20 +1,80 @@
-
-"""
-Enhanced Error Handling Module for Stock Market Analyst
-
-Implements comprehensive error handling, logging, and recovery mechanisms
-to improve system reliability without external dependencies.
-"""
-
 import logging
 import traceback
-import time
+from typing import Dict, Any, Optional
+from datetime import datetime
 import json
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Callable, Any
-from functools import wraps
-import sys
 import os
+import sys
+import time
+from functools import wraps
+import math
+
+logger = logging.getLogger(__name__)
+
+class ErrorTracker:
+    """Simple error tracking system"""
+
+    def __init__(self):
+        self.errors = []
+        self.error_counts = {}
+
+    def log_error(self, error_type: str, error_message: str, context: dict = None):
+        """Log an error with context"""
+        error_entry = {
+            'timestamp': datetime.now().isoformat(),
+            'type': error_type,
+            'message': error_message,
+            'context': context or {}
+        }
+        self.errors.append(error_entry)
+
+        # Count errors
+        if error_type not in self.error_counts:
+            self.error_counts[error_type] = 0
+        self.error_counts[error_type] += 1
+
+        # Keep only last 100 errors
+        if len(self.errors) > 100:
+            self.errors = self.errors[-100:]
+
+        return True
+
+    def get_error_summary(self):
+        """Get error summary"""
+        return {
+            'total_errors': len(self.errors),
+            'error_counts': self.error_counts,
+            'recent_errors': self.errors[-10:] if self.errors else []
+        }
+
+def safe_execute(func, *args, **kwargs):
+    """Safely execute a function with error handling"""
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logger.error(f"Safe execution failed: {e}")
+        return None
+
+# Global error tracker instance
+error_tracker = ErrorTracker()
+
+class EnhancedErrorHandler:
+    """Enhanced error handler class for the application"""
+
+    def __init__(self):
+        self.error_tracker = error_tracker
+
+    def handle_error(self, error_type: str, error_message: str, context: dict = None):
+        """Handle an error with enhanced logging"""
+        return self.error_tracker.log_error(error_type, error_message, context)
+
+    def get_error_summary(self):
+        """Get error summary"""
+        return self.error_tracker.get_error_summary()
+
+    def safe_execute(self, func, *args, **kwargs):
+        """Safely execute a function"""
+        return safe_execute(func, *args, **kwargs)
 
 # Configure enhanced logging
 logging.basicConfig(
@@ -453,8 +513,3 @@ def get_system_health_report() -> str:
     except Exception as e:
         logging.error(f"Error generating health report: {str(e)}")
         return "Error generating system health report"
-
-# Import required modules for math operations
-import math
-
-

@@ -691,36 +691,12 @@
             showLoading();
 
             const timeframe = document.getElementById('timeframeSelect').value;
-            log(`Manual refresh: Fetching fresh stock data and generating strategies (${timeframe})...`);
+            log(`⚡ Manual refresh: Fetching fresh real-time data for Tier 1 stocks (${timeframe})...`);
 
             try {
-                // First, trigger manual screening to get fresh stock data
-                log('🔄 Triggering fresh stock screening...');
-                const screeningResponse = await fetch('/api/run-now', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    }
-                });
-
-                if (!screeningResponse.ok) {
-                    throw new Error(`Screening failed: HTTP ${screeningResponse.status}`);
-                }
-
-                const screeningResult = await screeningResponse.json();
-                log(`Screening result: ${screeningResult.message}`);
-
-                if (screeningResult.success) {
-                    log('✅ Fresh screening completed - generating options strategies...');
-                    // Wait for data to be processed
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                } else {
-                    log('⚠️ Screening completed with issues, proceeding anyway...');
-                }
-
-                // Now load the options strategies with the fresh data
-                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&refresh=true&force_realtime=true`, {
+                // Direct call to options API with manual refresh flag
+                log('🔄 Fetching fresh real-time prices from Yahoo Finance...');
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&manual_refresh=true&force_realtime=true&refresh=true`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -734,13 +710,15 @@
 
                 const result = await response.json();
                 log(`Manual refresh result: ${result.status}`);
+                log(`Data source: ${result.data_source || 'unknown'}`);
+                log(`Refresh type: ${result.refresh_type || 'unknown'}`);
                 log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies`);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
-                    log(`✅ Manual refresh successful: ${result.strategies.length} strategies with real-time prices`);
+                    log(`✅ Manual refresh successful: ${result.strategies.length} strategies with ${result.data_source}`);
                     optionsData = result.strategies;
 
-                    // Update metrics
+                    // Update metrics with fresh data
                     if (result.summary) {
                         document.getElementById('totalOpportunities').textContent = result.summary.total_opportunities || optionsData.length;
                         document.getElementById('avgROI').textContent = (result.summary.average_roi || 0).toFixed(1) + '%';
@@ -754,21 +732,60 @@
                     
                     if (filteredData.length > 0) {
                         showData();
-                        log('🎉 Manual refresh completed with fresh real-time data');
+                        
+                        // Show data source confirmation
+                        const dataSourceMsg = result.data_source === 'real_time_yahoo_finance' ? 
+                            '📡 Fresh real-time data from Yahoo Finance' : 
+                            `📊 Data from: ${result.data_source}`;
+                        
+                        log(`🎉 Manual refresh completed: ${dataSourceMsg}`);
+                        
+                        // Temporarily show success message
+                        const refreshBtn = document.getElementById('manualRefreshBtn');
+                        const originalText = refreshBtn.querySelector('#manualRefreshText').textContent;
+                        refreshBtn.querySelector('#manualRefreshText').textContent = 'Data Refreshed!';
+                        refreshBtn.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+                        
+                        setTimeout(() => {
+                            refreshBtn.querySelector('#manualRefreshText').textContent = originalText;
+                            refreshBtn.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+                        }, 3000);
+                        
                     } else {
                         showEmpty();
-                        log('⚠️ Manual refresh completed but no strategies passed filters');
+                        log('⚠️ Manual refresh completed but no strategies passed current filters');
                     }
                 } else {
-                    log(`❌ Manual refresh failed. Status: ${result.status}`);
+                    log(`❌ Manual refresh failed. Status: ${result.status}, Error: ${result.error_details || 'Unknown error'}`);
                     updateMetrics([]);
                     showEmpty();
+                    
+                    // Show error in UI
+                    const refreshBtn = document.getElementById('manualRefreshBtn');
+                    refreshBtn.querySelector('#manualRefreshText').textContent = 'Refresh Failed';
+                    refreshBtn.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
+                    
+                    setTimeout(() => {
+                        refreshBtn.querySelector('#manualRefreshText').textContent = 'Refresh Data';
+                        refreshBtn.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+                    }, 3000);
                 }
 
             } catch (error) {
-                log(`Manual refresh error: ${error.message}`, 'error');
+                log(`❌ Manual refresh error: ${error.message}`, 'error');
                 updateMetrics([]);
                 showEmpty();
+                
+                // Show error in UI
+                const refreshBtn = document.getElementById('manualRefreshBtn');
+                refreshBtn.querySelector('#manualRefreshText').textContent = 'Network Error';
+                refreshBtn.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
+                
+                setTimeout(() => {
+                    refreshBtn.querySelector('#manualRefreshText').textContent = 'Refresh Data';
+                    refreshBtn.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+                }, 3000);
+                
             } finally {
                 isLoading = false;
                 setManualButtonState(false);
