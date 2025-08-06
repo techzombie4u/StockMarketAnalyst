@@ -330,11 +330,11 @@
             <div class="filter-row">
                 <div class="filter-group">
                     <label>Min ROI %:</label>
-                    <input type="number" class="filter-input" id="minROI" value="15" min="0" max="100">
+                    <input type="number" class="filter-input" id="minROI" value="5" min="0" max="100">
                 </div>
                 <div class="filter-group">
                     <label>Min Confidence %:</label>
-                    <input type="number" class="filter-input" id="minConfidence" value="80" min="0" max="100">
+                    <input type="number" class="filter-input" id="minConfidence" value="60" min="0" max="100">
                 </div>
                 <div class="filter-group">
                     <label>Max Margin ₹:</label>
@@ -366,6 +366,11 @@
             <div id="empty" class="empty-state" style="display: none;">
                 <h3>📊 No Opportunities Available</h3>
                 <p>Try adjusting your filters or check back when market conditions improve.</p>
+                <div style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
+                    Current filters: Min ROI ≥ <span id="currentMinROI">15</span>%, 
+                    Min Confidence ≥ <span id="currentMinConf">80</span>%, 
+                    Max Margin ≤ ₹<span id="currentMaxMargin">50,000</span>
+                </div>
             </div>
 
             <table id="optionsTable" style="display: none;">
@@ -506,7 +511,14 @@
             const maxMargin = parseFloat(document.getElementById('maxMargin').value) || 999999;
             const strategyType = document.getElementById('strategyType').value;
 
-            return data.filter(option => {
+            // Update current filter display
+            document.getElementById('currentMinROI').textContent = minROI;
+            document.getElementById('currentMinConf').textContent = minConfidence;
+            document.getElementById('currentMaxMargin').textContent = new Intl.NumberFormat('en-IN').format(maxMargin);
+
+            log(`Applying filters: minROI=${minROI}, minConfidence=${minConfidence}, maxMargin=${maxMargin}, type=${strategyType}`);
+
+            const filtered = data.filter(option => {
                 if (option.expected_roi < minROI) return false;
                 if (option.confidence < minConfidence) return false;
                 if (option.margin_required > maxMargin) return false;
@@ -517,6 +529,9 @@
                 
                 return true;
             });
+
+            log(`Filtered ${data.length} strategies down to ${filtered.length}`);
+            return filtered;
         }
 
         async function loadOptionsData() {
@@ -567,11 +582,15 @@
                 }
 
                 const result = await response.json();
+                log(`Received response: ${JSON.stringify(result)}`);
                 log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies`);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
                     optionsData = result.strategies;
+                    log(`✅ Options data loaded: ${optionsData.length} strategies`);
+                    
                     const filteredData = applyFilters(optionsData);
+                    log(`📊 After filtering: ${filteredData.length} strategies`);
                     
                     if (filteredData.length > 0) {
                         updateOptionsTable(filteredData);
@@ -579,10 +598,12 @@
                         showData();
                         log('🎉 Fresh options strategies loaded successfully');
                     } else {
+                        log('⚠️ No strategies passed filters');
                         updateMetrics([]);
                         showEmpty();
                     }
                 } else {
+                    log(`❌ No strategies available. Status: ${result.status}, Strategies count: ${result.strategies ? result.strategies.length : 'undefined'}`);
                     updateMetrics([]);
                     showEmpty();
                 }
