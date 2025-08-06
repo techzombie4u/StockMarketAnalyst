@@ -56,10 +56,17 @@ def main():
         if lstm_samples < 100 or rf_samples < 50:
             logger.warning("⚠️  Limited training data. Models may have reduced accuracy.")
 
-        # Train models
-        logger.info("🤖 Training ML models...")
+        # Train models with enhanced strategy
+        logger.info("🤖 Training ML models with advanced techniques...")
         models = MLModels()
-        success = models.train_models(training_data)
+        
+        # Use cross-validation for better model selection
+        success = models.train_models_with_validation(training_data)
+        
+        # Train ensemble of models for better predictions
+        if success:
+            logger.info("🔄 Training ensemble models...")
+            ensemble_success = models.train_ensemble_models(training_data)
 
         if success:
             logger.info("✅ Model training completed successfully!")

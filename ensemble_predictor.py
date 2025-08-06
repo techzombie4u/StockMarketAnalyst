@@ -21,13 +21,16 @@ logger = logging.getLogger(__name__)
 
 class EnsemblePredictionSystem:
     def __init__(self):
-        self.prediction_weights = {
+        # Dynamic weights that adjust based on recent performance
+        self.base_weights = {
             'technical': 0.35,
             'fundamental': 0.25, 
             'sentiment': 0.20,
             'pattern': 0.15,
             'volatility': 0.05
         }
+        self.performance_history = self._load_performance_history()
+        self.prediction_weights = self._calculate_dynamic_weights()
         
     def generate_ensemble_prediction(self, symbol: str, data: Dict) -> Dict:
         """Generate ensemble prediction combining multiple methods"""
@@ -44,6 +47,89 @@ class EnsemblePredictionSystem:
             sent_pred = self.sentiment_prediction(sentiment)
             pattern_pred = self.pattern_prediction(symbol, technical)
             vol_pred = self.volatility_adjusted_prediction(technical)
+
+    
+    def _load_performance_history(self) -> Dict:
+        """Load recent performance history of different prediction methods"""
+        try:
+            with open('ensemble_performance_history.json', 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return {
+                'technical': {'accuracy': 0.65, 'recent_predictions': 0},
+                'fundamental': {'accuracy': 0.60, 'recent_predictions': 0},
+                'sentiment': {'accuracy': 0.55, 'recent_predictions': 0},
+                'pattern': {'accuracy': 0.58, 'recent_predictions': 0},
+                'volatility': {'accuracy': 0.52, 'recent_predictions': 0}
+            }
+    
+    def _calculate_dynamic_weights(self) -> Dict:
+        """Calculate dynamic weights based on recent performance"""
+        try:
+            weights = self.base_weights.copy()
+            
+            # Adjust weights based on recent accuracy
+            total_adjustment = 0
+            for method in weights.keys():
+                if method in self.performance_history:
+                    accuracy = self.performance_history[method].get('accuracy', 0.5)
+                    predictions_count = self.performance_history[method].get('recent_predictions', 0)
+                    
+                    # Only adjust if we have enough recent data
+                    if predictions_count >= 10:
+                        # Boost weight for high-performing methods
+                        if accuracy > 0.7:
+                            adjustment = 0.1 * (accuracy - 0.7)
+                            weights[method] += adjustment
+                            total_adjustment += adjustment
+                        # Reduce weight for poor-performing methods
+                        elif accuracy < 0.5:
+                            adjustment = 0.1 * (0.5 - accuracy)
+                            weights[method] = max(0.05, weights[method] - adjustment)
+                            total_adjustment -= adjustment
+            
+            # Normalize weights to sum to 1
+            total_weight = sum(weights.values())
+            if total_weight > 0:
+                weights = {k: v/total_weight for k, v in weights.items()}
+            
+            return weights
+            
+        except Exception as e:
+            logger.error(f"Error calculating dynamic weights: {str(e)}")
+            return self.base_weights
+    
+    def update_method_performance(self, method: str, was_correct: bool):
+        """Update performance tracking for a prediction method"""
+        try:
+            if method not in self.performance_history:
+                self.performance_history[method] = {'accuracy': 0.5, 'recent_predictions': 0, 'correct_predictions': 0}
+            
+            history = self.performance_history[method]
+            history['recent_predictions'] += 1
+            
+            if was_correct:
+                history['correct_predictions'] = history.get('correct_predictions', 0) + 1
+            
+            # Calculate rolling accuracy (last 50 predictions)
+            if history['recent_predictions'] > 0:
+                history['accuracy'] = history['correct_predictions'] / min(history['recent_predictions'], 50)
+            
+            # Reset counters if we have too many predictions
+            if history['recent_predictions'] > 100:
+                history['recent_predictions'] = 50
+                history['correct_predictions'] = int(history['accuracy'] * 50)
+            
+            # Save updated history
+            with open('ensemble_performance_history.json', 'w') as f:
+                json.dump(self.performance_history, f, indent=2)
+            
+            # Recalculate weights
+            self.prediction_weights = self._calculate_dynamic_weights()
+            
+        except Exception as e:
+            logger.error(f"Error updating method performance: {str(e)}")
+
             
             # Calculate weighted ensemble prediction
             ensemble_pred = {

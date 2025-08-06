@@ -177,6 +177,16 @@ class AdvancedSignalFilter:
             filter_score += sector_score * 5
             quality_metrics['sector_momentum'] = sector_score
             
+            # 9. ML-based prediction confidence
+            ml_confidence_score = self._calculate_ml_prediction_confidence(signal)
+            filter_score += ml_confidence_score * 15
+            quality_metrics['ml_confidence'] = ml_confidence_score
+            
+            # 10. Market condition alignment
+            market_alignment_score = self._check_market_condition_alignment(signal)
+            filter_score += market_alignment_score * 8
+            quality_metrics['market_alignment'] = market_alignment_score
+            
             # Final decision - be more lenient for basic signals
             # Allow signals to pass if they have high confidence even if some technical data is missing
             has_critical_issues = any(reason in ['low_confidence', 'evaluation_error'] for reason in filter_reasons)
@@ -487,6 +497,80 @@ class AdvancedSignalFilter:
             if avg_quality > 80:
                 report.append("✅ Excellent signal quality")
             elif avg_quality > 60:
+
+    
+    def _calculate_ml_prediction_confidence(self, signal: Dict) -> float:
+        """Calculate ML model confidence for predictions"""
+        try:
+            # Check if ML predictions are available
+            ml_confidence = signal.get('ml_confidence', 0)
+            ml_direction = signal.get('ml_direction', 'UNKNOWN')
+            predicted_change = signal.get('ml_predicted_change', 0)
+            
+            confidence_score = 0
+            
+            # Base confidence from ML model
+            if ml_confidence > 0:
+                confidence_score = ml_confidence / 100  # Normalize to 0-1
+            else:
+                return 0.3  # Default if no ML data
+            
+            # Boost for strong directional predictions
+            if ml_direction == 'UP' and predicted_change > 5:
+                confidence_score += 0.2
+            elif ml_direction == 'DOWN' and predicted_change < -5:
+                confidence_score += 0.2
+            
+            # Penalty for conflicting signals
+            traditional_score = signal.get('score', 0)
+            if (ml_direction == 'UP' and traditional_score < 60) or \
+               (ml_direction == 'DOWN' and traditional_score > 70):
+                confidence_score -= 0.15
+            
+            return min(1.0, max(0, confidence_score))
+            
+        except Exception as e:
+            logger.error(f"Error calculating ML prediction confidence: {str(e)}")
+            return 0.5
+    
+    def _check_market_condition_alignment(self, signal: Dict) -> float:
+        """Check if signal aligns with current market conditions"""
+        try:
+            score = 0.5  # Base score
+            
+            # Technical indicators alignment
+            technical = signal.get('technical', {})
+            rsi = technical.get('rsi_14', 50)
+            trend_strength = technical.get('trend_strength', 0)
+            volatility = technical.get('atr_volatility', 2.5)
+            
+            # Favor signals in trending markets with reasonable volatility
+            if trend_strength > 60 and volatility < 4.0:
+                score += 0.3
+            
+            # Favor oversold/overbought levels in ranging markets
+            if trend_strength < 40:
+                if rsi < 35 or rsi > 65:
+                    score += 0.2
+            
+            # Check volume confirmation
+            volume_ratio = technical.get('volume_sma_ratio', 1.0)
+            if volume_ratio > 1.2:  # Above average volume
+                score += 0.15
+            
+            # Market regime consideration
+            market_regime = technical.get('market_regime', 'normal')
+            if market_regime == 'trending' and signal.get('predicted_gain', 0) > 0:
+                score += 0.1
+            elif market_regime == 'ranging' and abs(signal.get('predicted_gain', 0)) < 5:
+                score += 0.1
+            
+            return min(1.0, score)
+            
+        except Exception as e:
+            logger.error(f"Error checking market condition alignment: {str(e)}")
+            return 0.5
+
                 report.append("✅ Good signal quality")
             else:
                 report.append("⚠️  Signal quality needs improvement")
