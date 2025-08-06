@@ -16,7 +16,7 @@ run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 120 --pre
 deploymentTarget = "cloudrun"
 
 [workflows]
-runButton = "Run Stock Analyst"
+runButton = "Run Organized App"
 
 [[workflows.workflow]]
 name = "Run Stock Analyst"
@@ -26,6 +26,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py"
+
+[[workflows.workflow]]
+name = "Run Organized App"
+author = 41554566
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python src/core/main.py"
 
 [[ports]]
 localPort = 5000
