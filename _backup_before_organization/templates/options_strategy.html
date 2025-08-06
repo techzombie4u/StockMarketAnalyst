@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 Options - Stock Market Analyst</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn.home { background: #667eea; color: white; }
+        .nav-btn.analysis { background: #27ae60; color: white; }
+        .nav-btn.lookup { background: #667eea; color: white; }
+        .nav-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .strategy-info {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💰 Options Income</h1>
+        <p>Monthly Passive Income via Short Strangle Strategy - Tier 1 Stocks Only</p>
+
+        <div class="navigation">
+            <a href="/" class="nav-btn home">🏠 Dashboard</a>
+            <a href="/analysis" class="nav-btn analysis">📊 Analysis</a>
+            <a href="/lookup" class="nav-btn lookup" target="_blank">🔍 Stock Lookup</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="strategy-info">
+            <h3>📈 Monthly Short Strangle Strategy</h3>
+            <p><strong>Tier 1 Stocks Only:</strong> RELIANCE, HDFC BANK, TCS, ITC, INFY, HUL - handpicked for consistent passive income.</p>
+            <p><strong>Strategy:</strong> Sell OTM Call + OTM Put (±3-5% strikes). Max profit = Premium collected. Best when price stays within breakeven range.</p>
+            <p><strong>Capital:</strong> ₹1.5-2L per strangle recommended. <strong>Timeframe:</strong> Monthly expiries for optimal theta decay.</p>
+        </div>
+
+        <div class="table-container">
+            <div class="loading" id="loading">
+                <div>Loading options strategies...</div>
+            </div>
+
+            <table id="optionsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>🏢 Stock</th>
+                        <th>💰 Current Price</th>
+                        <th>📞 Call Strike</th>
+                        <th>📞 Put Strike</th>
+                        <th>💎 Total Premium</th>
+                        <th>📊 Breakeven Range</th>
+                        <th>💰 Margin Req.</th>
+                        <th>📈 ROI %</th>
+                        <th>🎯 Confidence</th>
+                    </tr>
+                </thead>
+                <tbody id="optionsTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function loadOptionsData() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('optionsTable').style.display = 'none';
+
+            fetch('/api/options-strategies')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.strategies) {
+                    updateOptionsTable(data.strategies);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('optionsTable').style.display = 'table';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading options data:', error);
+            });
+        }
+
+        function updateOptionsTable(strategies) {
+            const tbody = document.getElementById('optionsTableBody');
+            tbody.innerHTML = '';
+
+            strategies.forEach(strategy => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="font-weight: 600;">${strategy.symbol}</td>
+                    <td>₹${strategy.current_price.toFixed(2)}</td>
+                    <td>₹${strategy.call_strike.toFixed(2)}</td>
+                    <td>₹${strategy.put_strike.toFixed(2)}</td>
+                    <td style="color: #27ae60; font-weight: 600;">₹${strategy.total_premium.toFixed(0)}</td>
+                    <td>₹${strategy.breakeven_lower.toFixed(0)} - ₹${strategy.breakeven_upper.toFixed(0)}</td>
+                    <td>₹${new Intl.NumberFormat('en-IN').format(strategy.margin_required)}</td>
+                    <td style="color: #27ae60; font-weight: 600;">${strategy.expected_roi.toFixed(1)}%</td>
+                    <td style="font-weight: 600;">${strategy.confidence.toFixed(0)}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', loadOptionsData);
+    </script>
+</body>
+</html>

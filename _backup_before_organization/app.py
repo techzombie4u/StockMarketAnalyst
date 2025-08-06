@@ -1185,6 +1185,68 @@ def prediction_tracker_interactive():
     """Interactive prediction tracking page with dual view and charts"""
     return render_template('prediction_tracker_interactive.html')
 
+@app.route('/options-strategy')
+def options_strategy():
+    """Options strategy page for passive income"""
+    return render_template('options_strategy.html')
+
+@app.route('/api/options-strategies')
+def api_options_strategies():
+    """API endpoint for options strategies"""
+    try:
+        timeframe = request.args.get('timeframe', '30D')
+        
+        # Generate demo options strategies for Tier 1 stocks
+        tier1_stocks = ['RELIANCE', 'HDFCBANK', 'TCS', 'ITC', 'INFY', 'HINDUNILVR']
+        
+        strategies = []
+        for i, symbol in enumerate(tier1_stocks):
+            strategy = {
+                'symbol': symbol,
+                'current_price': 1500 + (i * 100),
+                'call_strike': (1500 + (i * 100)) * 1.05,
+                'put_strike': (1500 + (i * 100)) * 0.95,
+                'total_premium': 5000 + (i * 500),
+                'breakeven_lower': (1500 + (i * 100)) * 0.92,
+                'breakeven_upper': (1500 + (i * 100)) * 1.08,
+                'breakeven_range_pct': 16.0,
+                'margin_required': 150000 + (i * 20000),
+                'expected_roi': 8.5 + (i * 0.5),
+                'annualized_roi': (8.5 + (i * 0.5)) * 12,
+                'confidence': 75 + (i * 2),
+                'implied_volatility': 18.5 + (i * 1.2),
+                'risk_level': 'Safe' if i < 3 else 'Moderate',
+                'risk_color': 'success' if i < 3 else 'warning'
+            }
+            strategies.append(strategy)
+        
+        return jsonify({
+            'status': 'success',
+            'strategies': strategies,
+            'summary': {
+                'total_opportunities': len(strategies),
+                'high_confidence_count': len([s for s in strategies if s['confidence'] >= 80]),
+                'average_roi': sum(s['expected_roi'] for s in strategies) / len(strategies),
+                'total_premium_potential': sum(s['total_premium'] for s in strategies)
+            },
+            'timeframe': timeframe,
+            'last_updated': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating options strategies: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'strategies': [],
+            'summary': {
+                'total_opportunities': 0,
+                'high_confidence_count': 0,
+                'average_roi': 0,
+                'total_premium_potential': 0
+            }
+        }), 500
+
 @app.route('/api/predictions-tracker')
 def get_predictions_tracker():
     """API endpoint to get prediction tracking data"""
