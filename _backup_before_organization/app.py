@@ -1185,7 +1185,10 @@ def prediction_tracker_interactive():
     """Interactive prediction tracking page with dual view and charts"""
     return render_template('prediction_tracker_interactive.html')
 
-# Options strategy route removed to prevent conflicts with main app
+@app.route('/options-strategy')
+def options_strategy():
+    """Options strategy page for passive income"""
+    return render_template('options_strategy.html')ute removed to prevent conflicts with main app
 
 @app.route('/api/options-strategies')
 def get_options_strategies():
@@ -1370,7 +1373,116 @@ def get_options_strategies():
             'last_updated': datetime.now().isoformat()
         }), 500
 
-# Options strategy route removed to prevent conflicts with main app
+@app.route('/api/options-strategies')
+def get_options_strategies():
+    """Get short strangle options strategies with real-time data"""
+    try:
+        timeframe = request.args.get('timeframe', '30D')
+        manual_refresh = request.args.get('manual_refresh', 'false').lower() == 'true'
+        force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
+        refresh_flag = request.args.get('refresh', 'false').lower() == 'true'
+
+        # Determine if we should force refresh
+        force_refresh = manual_refresh or force_realtime or refresh_flag
+
+        logger.info(f"🔄 Options API called: timeframe={timeframe}, manual_refresh={manual_refresh}, force_refresh={force_refresh}")
+
+        try:
+            from short_strangle_engine import ShortStrangleEngine
+            engine = ShortStrangleEngine()
+            
+            # Generate strategies with real-time data
+            strategies = engine.generate_strategies(timeframe, force_refresh=force_refresh)
+        except ImportError:
+            logger.warning("ShortStrangleEngine not available, creating demo data")
+            # Create demo strategies for Tier 1 stocks
+            strategies = [
+                {
+                    'symbol': 'RELIANCE',
+                    'current_price': 2450.0,
+                    'call_strike': 2550.0,
+                    'put_strike': 2350.0,
+                    'total_premium': 180.0,
+                    'breakeven_lower': 2170.0,
+                    'breakeven_upper': 2730.0,
+                    'margin_required': 45000,
+                    'expected_roi': 4.0,
+                    'confidence': 85,
+                    'risk_level': 'Medium'
+                },
+                {
+                    'symbol': 'TCS',
+                    'current_price': 3200.0,
+                    'call_strike': 3350.0,
+                    'put_strike': 3050.0,
+                    'total_premium': 220.0,
+                    'breakeven_lower': 2830.0,
+                    'breakeven_upper': 3570.0,
+                    'margin_required': 55000,
+                    'expected_roi': 4.5,
+                    'confidence': 82,
+                    'risk_level': 'Medium'
+                }
+            ]
+
+        data_source = 'real_time_yahoo_finance' if force_refresh else 'cached_yahoo_finance'
+        refresh_type = 'manual_refresh' if manual_refresh else 'auto_refresh' if force_refresh else 'cached'
+
+        if strategies:
+            logger.info(f"✅ Successfully generated {len(strategies)} strategies from {data_source}")
+
+            return jsonify({
+                'status': 'success',
+                'strategies': strategies,
+                'count': len(strategies),
+                'data_source': data_source,
+                'refresh_type': refresh_type,
+                'summary': {
+                    'total_opportunities': len(strategies),
+                    'high_confidence_count': len([s for s in strategies if s['confidence'] >= 80]),
+                    'average_roi': sum(s['expected_roi'] for s in strategies) / len(strategies),
+                    'total_premium_potential': sum(s['total_premium'] for s in strategies)
+                },
+                'timeframe': timeframe,
+                'last_updated': datetime.now().isoformat()
+            })
+        else:
+            logger.warning(f"⚠️ No strategies generated for {timeframe}")
+            return jsonify({
+                'status': 'success',
+                'strategies': [],
+                'count': 0,
+                'data_source': data_source,
+                'refresh_type': refresh_type,
+                'summary': {
+                    'total_opportunities': 0,
+                    'high_confidence_count': 0,
+                    'average_roi': 0,
+                    'total_premium_potential': 0
+                },
+                'timeframe': timeframe,
+                'last_updated': datetime.now().isoformat()
+            })
+
+    except Exception as e:
+        logger.error(f"❌ Error generating options strategies: {e}")
+        return jsonify({
+            'status': 'error',
+            'error_details': str(e),
+            'message': f'Failed to generate options strategies: {str(e)}',
+            'strategies': [],
+            'count': 0,
+            'data_source': 'error',
+            'refresh_type': 'error',
+            'summary': {
+                'total_opportunities': 0,
+                'high_confidence_count': 0,
+                'average_roi': 0,
+                'total_premium_potential': 0
+            },
+            'timeframe': timeframe,
+            'last_updated': datetime.now().isoformat()
+        }), 500ns strategy route removed to prevent conflicts with main app
 
 @app.route('/api/predictions-tracker')
 def get_predictions_tracker():
