@@ -1371,7 +1371,12 @@ def get_options_strategies():
             },
             'timeframe': timeframe,
             'last_updated': datetime.now().isoformat()
-        }), 500eturn render_template('options_strategy.html')
+        }), 500
+
+@app.route('/options-strategy')
+def options_strategy():
+    """Options strategy page for passive income"""
+    return render_template('options_strategy.html')
 
 @app.route('/api/options-strategies')
 def api_options_strategies():

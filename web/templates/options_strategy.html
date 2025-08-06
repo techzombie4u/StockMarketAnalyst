@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -70,38 +71,6 @@
             border-radius: 15px;
             margin-bottom: 30px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .strategy-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .metric-card {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .metric-number {
-            font-size: 2em;
-            font-weight: 700;
-            color: #f39c12;
-            margin-bottom: 5px;
-        }
-
-        .metric-label {
-            color: #7f8c8d;
-            font-weight: 500;
         }
 
         .controls {
@@ -209,37 +178,6 @@
             font-size: 1.1em;
         }
 
-        .roi-high { color: #27ae60; font-weight: 600; }
-        .roi-medium { color: #f39c12; font-weight: 600; }
-        .roi-low { color: #e74c3c; font-weight: 600; }
-
-        .confidence-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-
-        .confidence-high { background: #d4edda; color: #155724; }
-        .confidence-medium { background: #fff3cd; color: #856404; }
-        .confidence-low { background: #f8d7da; color: #721c24; }
-
-        .action-btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85em;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .view-btn { background: #3498db; color: white; }
-        .watch-btn { background: #95a5a6; color: white; margin-left: 5px; }
-        .trade-btn { background: #27ae60; color: white; margin-left: 5px; }
-
-        .action-btn:hover { transform: translateY(-1px); opacity: 0.9; }
-
         .loading {
             text-align: center;
             padding: 60px 20px;
@@ -267,22 +205,6 @@
             padding: 60px 20px;
             color: white;
         }
-
-        .strategy-explanation {
-            background: rgba(52, 152, 219, 0.1);
-            padding: 20px;
-            border-left: 4px solid #3498db;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .header h1 { font-size: 1.6em; }
-            .navigation { flex-direction: column; gap: 10px; }
-            .filter-row { flex-direction: column; align-items: stretch; }
-            .strategy-grid { grid-template-columns: 1fr; }
-            table { font-size: 0.9em; }
-            th, td { padding: 10px 8px; }
-        }
     </style>
 </head>
 <body>
@@ -299,31 +221,9 @@
 
     <div class="container">
         <div class="strategy-info">
-            <div class="strategy-explanation">
-                <h3>📈 Monthly Short Strangle Strategy</h3>
-                <p><strong>Tier 1 Stocks Only:</strong> RELIANCE, HDFC BANK, TCS, ITC, INFY, HUL - handpicked for consistent passive income.</p>
-                <p><strong>Strategy:</strong> Sell OTM Call + OTM Put (±3-5% strikes). Max profit = Premium collected. Best when price stays within breakeven range.</p>
-                <p><strong>Capital:</strong> ₹1.5-2L per strangle recommended. <strong>Timeframe:</strong> Monthly expiries for optimal theta decay.</p>
-            </div>
-        </div>
-
-        <div class="strategy-grid" id="metricsGrid">
-            <div class="metric-card">
-                <div class="metric-number" id="totalOpportunities">-</div>
-                <div class="metric-label">Total Opportunities</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-number" id="avgROI">-</div>
-                <div class="metric-label">Avg Expected ROI</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-number" id="highConfidence">-</div>
-                <div class="metric-label">High Confidence (80%+)</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-number" id="totalPremium">-</div>
-                <div class="metric-label">Total Premium Potential</div>
-            </div>
+            <h3>📈 Monthly Short Strangle Strategy</h3>
+            <p><strong>Tier 1 Stocks Only:</strong> RELIANCE, HDFC BANK, TCS, ITC, INFY, HUL - handpicked for consistent passive income.</p>
+            <p><strong>Strategy:</strong> Sell OTM Call + OTM Put (±3-5% strikes). Max profit = Premium collected. Best when price stays within breakeven range.</p>
         </div>
 
         <div class="controls">
@@ -336,35 +236,11 @@
                         <option value="30D" selected>30 Days (Monthly)</option>
                     </select>
                 </div>
-                <div class="filter-group">
-                    <label>Min ROI %:</label>
-                    <input type="number" class="filter-input" id="minROI" value="8" min="0" max="100">
-                </div>
-                <div class="filter-group">
-                    <label>Min Confidence %:</label>
-                    <input type="number" class="filter-input" id="minConfidence" value="70" min="0" max="100">
-                </div>
-                <div class="filter-group">
-                    <label>Max Margin ₹:</label>
-                    <input type="number" class="filter-input" id="maxMargin" value="200000" min="10000" step="10000">
-                </div>
-                <div class="filter-group">
-                    <label>Risk Level:</label>
-                    <select class="filter-input" id="riskFilter">
-                        <option value="all">All Risk Levels</option>
-                        <option value="Safe">Safe Only</option>
-                        <option value="Moderate">Safe + Moderate</option>
-                    </select>
-                </div>
                 <button class="refresh-btn" id="refreshBtn" onclick="loadOptionsData()">
                     <span id="refreshIcon">🔄</span>
                     <span id="refreshText">Generate Strategies</span>
                 </button>
-                <button class="refresh-btn" id="manualRefreshBtn" onclick="manualRefreshData()" style="margin-left: 15px; background: linear-gradient(45deg, #27ae60, #2ecc71); display: inline-block;">
-                    <span id="manualRefreshIcon">⚡</span>
-                    <span id="manualRefreshText">Refresh Data</span>
-                </button>
-                <button class="refresh-btn" id="manualRefreshBtn" onclick="manualRefreshData()" style="margin-left: 15px; background: linear-gradient(45deg, #27ae60, #2ecc71); display: inline-block;">
+                <button class="refresh-btn" id="manualRefreshBtn" onclick="manualRefreshData()" style="margin-left: 15px; background: linear-gradient(45deg, #27ae60, #2ecc71);">
                     <span id="manualRefreshIcon">⚡</span>
                     <span id="manualRefreshText">Refresh Data</span>
                 </button>
@@ -375,17 +251,11 @@
             <div class="loading" id="loading">
                 <div class="spinner"></div>
                 <div>Analyzing options opportunities...</div>
-                <div style="font-size: 0.9em; margin-top: 10px;">Using ML predictions to find optimal strategies</div>
             </div>
 
             <div id="empty" class="empty-state" style="display: none;">
                 <h3>📊 No Opportunities Available</h3>
                 <p>Try adjusting your filters or check back when market conditions improve.</p>
-                <div style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
-                    Current filters: Min ROI ≥ <span id="currentMinROI">15</span>%, 
-                    Min Confidence ≥ <span id="currentMinConf">80</span>%, 
-                    Max Margin ≤ ₹<span id="currentMaxMargin">50,000</span>
-                </div>
             </div>
 
             <table id="optionsTable" style="display: none;">
@@ -400,9 +270,7 @@
                         <th>💰 Margin Req.</th>
                         <th>📈 ROI %</th>
                         <th>🎯 Confidence</th>
-                        <th>📊 IV %</th>
                         <th>🛡️ Risk Level</th>
-                        <th>📋 Actions</th>
                     </tr>
                 </thead>
                 <tbody id="optionsTableBody">
@@ -412,33 +280,24 @@
     </div>
 
     <script>
-        // Global variables
         let isLoading = false;
-        let optionsData = [];
-
-        function log(message, type = 'info') {
-            console.log(`[${type.toUpperCase()}] ${new Date().toLocaleTimeString()}: ${message}`);
-        }
 
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('optionsTable').style.display = 'none';
             document.getElementById('empty').style.display = 'none';
-            document.getElementById('metricsGrid').style.opacity = '0.5';
         }
 
         function showData() {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('empty').style.display = 'none';
             document.getElementById('optionsTable').style.display = 'table';
-            document.getElementById('metricsGrid').style.opacity = '1';
         }
 
         function showEmpty() {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('optionsTable').style.display = 'none';
             document.getElementById('empty').style.display = 'block';
-            document.getElementById('metricsGrid').style.opacity = '0.5';
         }
 
         function setButtonState(loading) {
@@ -450,12 +309,10 @@
                 btn.disabled = true;
                 icon.textContent = '⏳';
                 text.textContent = 'Analyzing...';
-                btn.style.opacity = '0.6';
             } else {
                 btn.disabled = false;
                 icon.textContent = '🔄';
                 text.textContent = 'Generate Strategies';
-                btn.style.opacity = '1';
             }
         }
 
@@ -468,160 +325,42 @@
                 btn.disabled = true;
                 icon.textContent = '⏳';
                 text.textContent = 'Refreshing...';
-                btn.style.opacity = '0.6';
             } else {
                 btn.disabled = false;
                 icon.textContent = '⚡';
                 text.textContent = 'Refresh Data';
-                btn.style.opacity = '1';
             }
         }
 
-        function updateMetrics(data) {
-            const metricsSection = document.getElementById('metricsGrid');
-
-            if (data.length === 0) {
-                metricsSection.innerHTML = `
-                    <div class="metric-card">
-                        <div class="metric-number" id="totalOpportunities">-</div>
-                        <div class="metric-label">Total Opportunities</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-number" id="avgROI">-</div>
-                        <div class="metric-label">Avg Expected ROI</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-number" id="highConfidence">-</div>
-                        <div class="metric-label">High Confidence (80%+)</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-number" id="totalPremium">-</div>
-                        <div class="metric-label">Total Premium Potential</div>
-                    </div>
-                    <div style="text-align: center; margin-top: 10px; color: #666;">
-                        📡 Prices: Real-time from Yahoo Finance
-                    </div>
-                `;
-                return;
-            }
-
-            const totalOpportunities = data.length;
-            const avgROI = (data.reduce((sum, item) => sum + item.expected_roi, 0) / totalOpportunities).toFixed(1);
-            const highConfidence = data.filter(item => item.confidence >= 80).length;
-            const totalPremium = data.reduce((sum, item) => sum + item.total_premium, 0).toFixed(0);
-
-            document.getElementById('totalOpportunities').textContent = totalOpportunities;
-            document.getElementById('avgROI').textContent = avgROI + '%';
-            document.getElementById('highConfidence').textContent = highConfidence;
-            document.getElementById('totalPremium').textContent = '₹' + new Intl.NumberFormat('en-IN').format(totalPremium);
-
-            // Add data source indicator if metrics are populated
-            if (!document.querySelector('.metrics-grid + div[style*="color: #27ae60"]')) {
-                metricsSection.innerHTML += `
-                    <div style="text-align: center; margin-top: 10px; color: #27ae60; font-weight: 600;">
-                        📡 Live Prices: Real-time from Yahoo Finance
-                    </div>
-                `;
-            }
-        }
-
-        function getROIClass(roi) {
-            if (roi >= 25) return 'roi-high';
-            if (roi >= 15) return 'roi-medium';
-            return 'roi-low';
-        }
-
-        function getConfidenceClass(confidence) {
-            if (confidence >= 85) return 'confidence-high';
-            if (confidence >= 70) return 'confidence-medium';
-            return 'confidence-low';
-        }
-
-        function updateOptionsTable(data) {
+        function updateOptionsTable(strategies) {
             const tbody = document.getElementById('optionsTableBody');
             tbody.innerHTML = '';
 
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #666; padding: 40px;">No options strategies available with current filters.</td></tr>';
+            if (!strategies || strategies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #666; padding: 40px;">No options strategies available.</td></tr>';
                 return;
             }
 
-            data.forEach((option, index) => {
+            strategies.forEach((strategy, index) => {
                 const row = document.createElement('tr');
 
-                // Risk level badge styling
-                const riskBadgeClass = option.risk_color === 'success' ? 'confidence-high' : 
-                                     option.risk_color === 'warning' ? 'confidence-medium' : 'confidence-low';
+                const riskBadgeClass = strategy.risk_color === 'success' ? 'confidence-high' : 
+                                     strategy.risk_color === 'warning' ? 'confidence-medium' : 'confidence-low';
 
                 row.innerHTML = `
-                    <td class="symbol">${option.symbol}</td>
-                    <td>₹${option.current_price.toFixed(2)}</td>
-                    <td>₹${option.call_strike.toFixed(2)}</td>
-                    <td>₹${option.put_strike.toFixed(2)}</td>
-                    <td style="font-weight: 600; color: #27ae60;">₹${option.total_premium.toFixed(0)}</td>
-                    <td>₹${option.breakeven_lower.toFixed(0)} - ₹${option.breakeven_upper.toFixed(0)}<br>
-                        <small style="color: #666;">(${option.breakeven_range_pct.toFixed(1)}% range)</small></td>
-                    <td>₹${new Intl.NumberFormat('en-IN').format(option.margin_required)}</td>
-                    <td class="${getROIClass(option.expected_roi)}">${option.expected_roi.toFixed(1)}%<br>
-                        <small style="color: #666;">(${option.annualized_roi ? option.annualized_roi.toFixed(0) : 'N/A'}% p.a.)</small></td>
-                    <td><span class="confidence-badge ${getConfidenceClass(option.confidence)}">${option.confidence.toFixed(0)}%</span></td>
-                    <td style="text-align: center;">${option.implied_volatility.toFixed(1)}%</td>
-                    <td><span class="confidence-badge ${riskBadgeClass}">${option.risk_level}</span></td>
-                    <td>
-                        <button class="action-btn view-btn" onclick="viewDetails('${option.symbol}')">View</button>
-                        <button class="action-btn watch-btn" onclick="addToWatchlist('${option.symbol}')">Watch</button>
-                        <button class="action-btn trade-btn" onclick="paperTrade('${option.symbol}')">Paper</button>
-                    </td>
+                    <td class="symbol">${strategy.symbol}</td>
+                    <td>₹${strategy.current_price.toFixed(2)}</td>
+                    <td>₹${strategy.call_strike.toFixed(2)}</td>
+                    <td>₹${strategy.put_strike.toFixed(2)}</td>
+                    <td style="font-weight: 600; color: #27ae60;">₹${strategy.total_premium.toFixed(0)}</td>
+                    <td>₹${strategy.breakeven_lower.toFixed(0)} - ₹${strategy.breakeven_upper.toFixed(0)}</td>
+                    <td>₹${new Intl.NumberFormat('en-IN').format(strategy.margin_required)}</td>
+                    <td style="color: #27ae60; font-weight: 600;">${strategy.expected_roi.toFixed(1)}%</td>
+                    <td style="font-weight: 600;">${strategy.confidence.toFixed(0)}%</td>
+                    <td style="font-weight: 600;">${strategy.risk_level}</td>
                 `;
                 tbody.appendChild(row);
             });
-        }
-
-        function applyFilters(data) {
-            const minROI = parseFloat(document.getElementById('minROI').value) || 0;
-            const minConfidence = parseFloat(document.getElementById('minConfidence').value) || 0;
-            const maxMargin = parseFloat(document.getElementById('maxMargin').value) || 999999;
-            const riskFilter = document.getElementById('riskFilter').value;
-
-            // Update current filter display
-            document.getElementById('currentMinROI').textContent = minROI;
-            document.getElementById('currentMinConf').textContent = minConfidence;
-            document.getElementById('currentMaxMargin').textContent = new Intl.NumberFormat('en-IN').format(maxMargin);
-
-            log(`Applying filters: minROI=${minROI}, minConfidence=${minConfidence}, maxMargin=${maxMargin}, risk=${riskFilter}`);
-
-            let roiFiltered = 0, confidenceFiltered = 0, marginFiltered = 0, riskFiltered = 0;
-
-            const filtered = data.filter(option => {
-                if (option.expected_roi < minROI) {
-                    roiFiltered++;
-                    return false;
-                }
-                if (option.confidence < minConfidence) {
-                    confidenceFiltered++;
-                    return false;
-                }
-                if (option.margin_required > maxMargin) {
-                    marginFiltered++;
-                    return false;
-                }
-
-                // Risk level filtering
-                if (riskFilter === 'Safe' && option.risk_level !== 'Safe') {
-                    riskFiltered++;
-                    return false;
-                }
-                if (riskFilter === 'Moderate' && !['Safe', 'Moderate'].includes(option.risk_level)) {
-                    riskFiltered++;
-                    return false;
-                }
-
-                return true;
-            });
-
-            log(`Filter results: ROI filtered: ${roiFiltered}, Confidence filtered: ${confidenceFiltered}, Margin filtered: ${marginFiltered}, Risk filtered: ${riskFiltered}`);
-            log(`Filtered ${data.length} strategies down to ${filtered.length}`);
-            return filtered;
         }
 
         async function loadOptionsData() {
@@ -632,10 +371,8 @@
             showLoading();
 
             const timeframe = document.getElementById('timeframeSelect').value;
-            log(`Loading fresh options strategies (${timeframe}) with real-time prices...`);
 
             try {
-                // Load options strategies with real-time data
                 const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&refresh=true`, {
                     method: 'GET',
                     headers: {
@@ -649,37 +386,17 @@
                 }
 
                 const result = await response.json();
-                log(`Received response status: ${result.status}`);
-                log(`Received ${result.strategies ? result.strategies.length : 0} strategies for ${timeframe}`);
+                console.log('Options API response:', result);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
-                    log(`✅ Received ${result.strategies.length} real-time strategies from ${result.data_source || 'unknown'}`);
-                    optionsData = result.strategies;
-
-                    // Update metrics from summary
-                    if (result.summary) {
-                        document.getElementById('totalOpportunities').textContent = result.summary.total_opportunities || optionsData.length;
-                        document.getElementById('avgROI').textContent = (result.summary.average_roi || 0).toFixed(1) + '%';
-                        document.getElementById('highConfidence').textContent = result.summary.high_confidence_count || 0;
-                        document.getElementById('totalPremium').textContent = '₹' + new Intl.NumberFormat('en-IN').format(result.summary.total_premium_potential || 0);
-                    }
-
-                    const filteredData = applyFilters(optionsData);
-                    log(`📊 After filtering: ${filteredData.length} strategies`);
-
-                    updateOptionsTable(filteredData);
-                    updateMetrics(filteredData);
-                    if (filteredData.length > 0) showData(); else showEmpty();
-                    log('🎉 Real-time options strategies loaded successfully');
+                    updateOptionsTable(result.strategies);
+                    showData();
                 } else {
-                    log(`❌ No strategies available. Status: ${result.status}`);
-                    updateMetrics([]);
                     showEmpty();
                 }
 
             } catch (error) {
-                log(`Error loading strategies: ${error.message}`, 'error');
-                updateMetrics([]);
+                console.error('Error loading options strategies:', error);
                 showEmpty();
             } finally {
                 isLoading = false;
@@ -695,12 +412,9 @@
             showLoading();
 
             const timeframe = document.getElementById('timeframeSelect').value;
-            log(`⚡ Manual refresh: Fetching fresh real-time data for Tier 1 stocks (${timeframe})...`);
 
             try {
-                // Direct call to options API with manual refresh flag
-                log('🔄 Fetching fresh real-time prices from Yahoo Finance...');
-                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&manual_refresh=true&force_realtime=true&refresh=true`, {
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&manual_refresh=true&force_realtime=true`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -713,148 +427,40 @@
                 }
 
                 const result = await response.json();
-                log(`Manual refresh result: ${result.status}`);
-                log(`Data source: ${result.data_source || 'unknown'}`);
-                log(`Refresh type: ${result.refresh_type || 'unknown'}`);
-                log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies`);
+                console.log('Manual refresh response:', result);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
-                    log(`✅ Manual refresh successful: ${result.strategies.length} strategies with ${result.data_source}`);
-                    optionsData = result.strategies;
-
-                    // Update metrics with fresh data
-                    if (result.summary) {
-                        document.getElementById('totalOpportunities').textContent = result.summary.total_opportunities || optionsData.length;
-                        document.getElementById('avgROI').textContent = (result.summary.average_roi || 0).toFixed(1) + '%';
-                        document.getElementById('highConfidence').textContent = result.summary.high_confidence_count || 0;
-                        document.getElementById('totalPremium').textContent = '₹' + new Intl.NumberFormat('en-IN').format(result.summary.total_premium_potential || 0);
-                    }
-
-                    const filteredData = applyFilters(optionsData);
-                    updateOptionsTable(filteredData);
-                    updateMetrics(filteredData);
+                    updateOptionsTable(result.strategies);
+                    showData();
                     
-                    if (filteredData.length > 0) {
-                        showData();
-                        
-                        // Show data source confirmation
-                        const dataSourceMsg = result.data_source === 'real_time_yahoo_finance' ? 
-                            '📡 Fresh real-time data from Yahoo Finance' : 
-                            `📊 Data from: ${result.data_source}`;
-                        
-                        log(`🎉 Manual refresh completed: ${dataSourceMsg}`);
-                        
-                        // Temporarily show success message
-                        const refreshBtn = document.getElementById('manualRefreshBtn');
-                        const originalText = refreshBtn.querySelector('#manualRefreshText').textContent;
-                        refreshBtn.querySelector('#manualRefreshText').textContent = 'Data Refreshed!';
-                        refreshBtn.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
-                        
-                        setTimeout(() => {
-                            refreshBtn.querySelector('#manualRefreshText').textContent = originalText;
-                            refreshBtn.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
-                        }, 3000);
-                        
-                    } else {
-                        showEmpty();
-                        log('⚠️ Manual refresh completed but no strategies passed current filters');
-                    }
-                } else {
-                    log(`❌ Manual refresh failed. Status: ${result.status}, Error: ${result.error_details || 'Unknown error'}`);
-                    updateMetrics([]);
-                    showEmpty();
-                    
-                    // Show error in UI
+                    // Show success feedback
                     const refreshBtn = document.getElementById('manualRefreshBtn');
-                    refreshBtn.querySelector('#manualRefreshText').textContent = 'Refresh Failed';
-                    refreshBtn.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
+                    refreshBtn.querySelector('#manualRefreshText').textContent = 'Data Refreshed!';
                     
                     setTimeout(() => {
                         refreshBtn.querySelector('#manualRefreshText').textContent = 'Refresh Data';
-                        refreshBtn.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
                     }, 3000);
+                } else {
+                    showEmpty();
                 }
 
             } catch (error) {
-                log(`❌ Manual refresh error: ${error.message}`, 'error');
-                updateMetrics([]);
+                console.error('Error in manual refresh:', error);
                 showEmpty();
-                
-                // Show error in UI
-                const refreshBtn = document.getElementById('manualRefreshBtn');
-                refreshBtn.querySelector('#manualRefreshText').textContent = 'Network Error';
-                refreshBtn.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
-                
-                setTimeout(() => {
-                    refreshBtn.querySelector('#manualRefreshText').textContent = 'Refresh Data';
-                    refreshBtn.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
-                }, 3000);
-                
             } finally {
                 isLoading = false;
                 setManualButtonState(false);
             }
         }
 
-        function viewDetails(symbol) {
-            alert(`Viewing details for ${symbol} - Feature coming soon!`);
-        }
-
-        function addToWatchlist(symbol) {
-            alert(`Added ${symbol} to watchlist - Feature coming soon!`);
-        }
-
-        function paperTrade(symbol) {
-            alert(`Starting paper trade for ${symbol} - Feature coming soon!`);
-        }
-
-        // Event listeners
-        document.getElementById('minROI').addEventListener('change', () => {
-            if (optionsData.length > 0) {
-                const filteredData = applyFilters(optionsData);
-                updateOptionsTable(filteredData);
-                updateMetrics(filteredData);
-                if (filteredData.length > 0) showData(); else showEmpty();
-            }
-        });
-
-        document.getElementById('minConfidence').addEventListener('change', () => {
-            if (optionsData.length > 0) {
-                const filteredData = applyFilters(optionsData);
-                updateOptionsTable(filteredData);
-                updateMetrics(filteredData);
-                if (filteredData.length > 0) showData(); else showEmpty();
-            }
-        });
-
-        document.getElementById('maxMargin').addEventListener('change', () => {
-            if (optionsData.length > 0) {
-                const filteredData = applyFilters(optionsData);
-                updateOptionsTable(filteredData);
-                updateMetrics(filteredData);
-                if (filteredData.length > 0) showData(); else showEmpty();
-            }
-        });
-
-        document.getElementById('riskFilter').addEventListener('change', () => {
-            if (optionsData.length > 0) {
-                const filteredData = applyFilters(optionsData);
-                updateOptionsTable(filteredData);
-                updateMetrics(filteredData);
-                if (filteredData.length > 0) showData(); else showEmpty();
-            }
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Options Strategy page loaded');
+            setTimeout(loadOptionsData, 1000);
         });
 
         document.getElementById('timeframeSelect').addEventListener('change', () => {
-            log('Timeframe changed, reloading data...');
             loadOptionsData();
-        });
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            log('Options Strategy page loaded');
-            // Auto-load data on page load
-            setTimeout(loadOptionsData, 1000);
         });
     </script>
 </body>
