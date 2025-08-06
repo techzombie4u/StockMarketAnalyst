@@ -1,0 +1,48 @@
+{
+  "test_run": {
+    "timestamp": "2025-08-06T14:13:42.191729",
+    "total_tests": 6,
+    "passed": 4,
+    "failed": 2,
+    "errors": 0,
+    "success_rate": 66.66666666666666
+  },
+  "detailed_results": [
+    {
+      "test": "File Structure",
+      "status": "PASS",
+      "duration": 6.67572021484375e-05,
+      "timestamp": "2025-08-06T14:12:41.584973"
+    },
+    {
+      "test": "Short Strangle Engine Import",
+      "status": "PASS",
+      "duration": 0.44098544120788574,
+      "timestamp": "2025-08-06T14:12:42.026009"
+    },
+    {
+      "test": "Engine Calculations",
+      "status": "PASS",
+      "duration": 3.4332275390625e-05,
+      "timestamp": "2025-08-06T14:12:42.026080"
+    },
+    {
+      "test": "Flask App Import",
+      "status": "FAIL",
+      "duration": 0.07296633720397949,
+      "timestamp": "2025-08-06T14:12:42.099081"
+    },
+    {
+      "test": "Data Persistence",
+      "status": "PASS",
+      "duration": 0.00047326087951660156,
+      "timestamp": "2025-08-06T14:12:42.099590"
+    },
+    {
+      "test": "Server Startup",
+      "status": "FAIL",
+      "duration": 60.091712474823,
+      "timestamp": "2025-08-06T14:13:42.191345"
+    }
+  ]
+}
