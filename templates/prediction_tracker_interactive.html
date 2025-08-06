@@ -720,21 +720,30 @@
         function executeLockAction(symbol, period, isLocked) {
             const lockKey = `locked_${period}`;
             const lockStartDateKey = `lock_start_date_${period}`;
+            const persistentKey = `persistent_lock_${period}`;
             
             // Update prediction data
             if (!predictionData[symbol]) {
                 predictionData[symbol] = {};
             }
             
+            // Set all lock-related fields
             predictionData[symbol][lockKey] = isLocked;
+            predictionData[symbol][persistentKey] = isLocked; // Mark as persistent
             predictionData[symbol][`lock_date_${period}`] = isLocked ? new Date().toISOString().split('T')[0] : null;
             
             // Store lock start date for fixed date ranges
             if (isLocked) {
                 predictionData[symbol][lockStartDateKey] = new Date().toISOString().split('T')[0];
                 console.log(`🔒 Locking ${symbol} ${period} with start date: ${predictionData[symbol][lockStartDateKey]}`);
+                console.log(`📊 Lock state set:`, {
+                    [lockKey]: predictionData[symbol][lockKey],
+                    [persistentKey]: predictionData[symbol][persistentKey],
+                    [lockStartDateKey]: predictionData[symbol][lockStartDateKey]
+                });
             } else {
                 predictionData[symbol][lockStartDateKey] = null;
+                predictionData[symbol][persistentKey] = false;
                 console.log(`🔓 Unlocking ${symbol} ${period} - dates will revert to dynamic`);
             }
             
@@ -796,11 +805,24 @@
                         showChart();
                         updateChart();
                         
-                        // Ensure lock toggle reflects actual lock status
+                        // Ensure lock toggle reflects actual lock status with delay for DOM update
                         setTimeout(() => {
                             updateLockToggle();
                             highlightSelectedCard();
-                        }, 100);
+                            
+                            // Additional verification of lock status
+                            const stockData = predictionData[selectedStock];
+                            const lockKey = `locked_${currentView}`;
+                            const actualLockStatus = stockData[lockKey] || false;
+                            console.log(`🔍 Lock verification for ${selectedStock} ${currentView}: ${actualLockStatus}`);
+                            
+                            // Force UI update if needed
+                            const lockToggle = document.getElementById('lockToggle');
+                            if (lockToggle.checked !== actualLockStatus) {
+                                lockToggle.checked = actualLockStatus;
+                                console.log(`🔧 Corrected lock toggle to: ${actualLockStatus}`);
+                            }
+                        }, 200);
                         
                         console.log('🔄 Restored stock selection:', selectedStock);
                     }
@@ -816,51 +838,77 @@
         }
 
         function processTrackingData(basicData, enhancedData) {
+            // Store existing lock states before processing
+            const existingLockStates = {};
+            for (const [symbol, data] of Object.entries(predictionData)) {
+                existingLockStates[symbol] = {
+                    locked_5d: data.locked_5d,
+                    locked_30d: data.locked_30d,
+                    lock_date_5d: data.lock_date_5d,
+                    lock_date_30d: data.lock_date_30d,
+                    lock_start_date_5d: data.lock_start_date_5d,
+                    lock_start_date_30d: data.lock_start_date_30d,
+                    persistent_lock_5d: data.persistent_lock_5d,
+                    persistent_lock_30d: data.persistent_lock_30d
+                };
+            }
+            
             predictionData = {};
             
-            // Process basic prediction data
+            // Process enhanced data FIRST (this contains the real lock states from backend)
+            if (enhancedData.status === 'success' && enhancedData.tracking_data) {
+                console.log('📡 Processing enhanced tracking data with lock states');
+                for (const [symbol, backendData] of Object.entries(enhancedData.tracking_data)) {
+                    predictionData[symbol] = { ...backendData };
+                    
+                    // Log lock status for debugging
+                    const locked5d = backendData.locked_5d || false;
+                    const locked30d = backendData.locked_30d || false;
+                    if (locked5d || locked30d) {
+                        console.log(`🔒 Backend lock state for ${symbol}: 5d=${locked5d}, 30d=${locked30d}`);
+                    }
+                }
+            }
+            
+            // Process basic prediction data and merge without overwriting locks
             if (basicData.status === 'success' && basicData.predictions) {
                 basicData.predictions.forEach(pred => {
                     const symbol = pred.symbol;
                     if (!predictionData[symbol]) {
+                        // Stock not in enhanced data, create basic structure
                         predictionData[symbol] = {
                             symbol: symbol,
                             current_price: pred.current_price || 0,
                             confidence: pred.confidence || 0,
                             score: pred.score || 0,
-                            timestamp: pred.timestamp
+                            timestamp: pred.timestamp,
+                            locked_5d: false,
+                            locked_30d: false
                         };
+                        
+                        // Generate sample tracking data for demo
+                        generateSampleTrackingData(symbol, pred);
+                    } else {
+                        // Stock exists in enhanced data, update basic info without touching locks
+                        predictionData[symbol].current_price = pred.current_price || predictionData[symbol].current_price;
+                        predictionData[symbol].confidence = pred.confidence || predictionData[symbol].confidence;
+                        predictionData[symbol].score = pred.score || predictionData[symbol].score;
+                        predictionData[symbol].timestamp = pred.timestamp || predictionData[symbol].timestamp;
                     }
-                    
-                    // Generate sample tracking data for demo
-                    generateSampleTrackingData(symbol, pred);
                 });
             }
             
-            // Merge enhanced data if available
-            if (enhancedData.status === 'success' && enhancedData.tracking_data) {
-                // Preserve existing lock states when merging new data
-                for (const [symbol, newData] of Object.entries(enhancedData.tracking_data)) {
-                    if (predictionData[symbol]) {
-                        // Preserve lock status from existing data
-                        const existingLocks = {
-                            locked_5d: predictionData[symbol].locked_5d,
-                            locked_30d: predictionData[symbol].locked_30d,
-                            lock_date_5d: predictionData[symbol].lock_date_5d,
-                            lock_date_30d: predictionData[symbol].lock_date_30d,
-                            lock_start_date_5d: predictionData[symbol].lock_start_date_5d,
-                            lock_start_date_30d: predictionData[symbol].lock_start_date_30d,
-                            persistent_lock_5d: predictionData[symbol].persistent_lock_5d,
-                            persistent_lock_30d: predictionData[symbol].persistent_lock_30d
-                        };
-                        
-                        // Merge data while preserving locks
-                        predictionData[symbol] = { ...newData, ...existingLocks };
-                    } else {
-                        predictionData[symbol] = newData;
-                    }
+            // Final verification of lock states
+            let totalLocked = 0;
+            for (const [symbol, data] of Object.entries(predictionData)) {
+                const locked5d = data.locked_5d || false;
+                const locked30d = data.locked_30d || false;
+                if (locked5d || locked30d) {
+                    totalLocked++;
+                    console.log(`✅ Final lock state for ${symbol}: 5d=${locked5d}, 30d=${locked30d}`);
                 }
             }
+            console.log(`🔒 Total locked predictions after processing: ${totalLocked}`);
         }
 
         function generateSampleTrackingData(symbol, pred) {
@@ -1259,11 +1307,31 @@
             
             const lockToggle = document.getElementById('lockToggle');
             const lockKey = `locked_${currentView}`;
-            const isLocked = predictionData[selectedStock][lockKey] || false;
+            const stockData = predictionData[selectedStock];
+            
+            // Read lock status from backend data with multiple fallbacks
+            let isLocked = false;
+            if (stockData.hasOwnProperty(lockKey)) {
+                isLocked = Boolean(stockData[lockKey]);
+            } else if (stockData.hasOwnProperty(`persistent_lock_${currentView}`)) {
+                isLocked = Boolean(stockData[`persistent_lock_${currentView}`]);
+            }
+            
+            // Additional check for lock start date as indicator
+            const lockStartDateKey = `lock_start_date_${currentView}`;
+            if (!isLocked && stockData[lockStartDateKey]) {
+                isLocked = true;
+                console.log(`🔧 Lock detected via start date: ${stockData[lockStartDateKey]}`);
+            }
             
             lockToggle.checked = isLocked;
             
             console.log(`🔒 Lock toggle updated for ${selectedStock} ${currentView}: ${isLocked}`);
+            console.log(`📊 Stock data lock keys:`, {
+                [lockKey]: stockData[lockKey],
+                [`persistent_lock_${currentView}`]: stockData[`persistent_lock_${currentView}`],
+                [lockStartDateKey]: stockData[lockStartDateKey]
+            });
             
             // Also update the visual lock status in chart info
             updateChartInfo();
