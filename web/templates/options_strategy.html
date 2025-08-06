@@ -373,30 +373,47 @@
             const timeframe = document.getElementById('timeframeSelect').value;
 
             try {
-                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&refresh=true`, {
+                console.log('🔄 Loading options data for timeframe:', timeframe);
+                
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&refresh=true&t=${Date.now()}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
-                        'Cache-Control': 'no-cache'
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
                     }
                 });
+
+                console.log('📡 Response status:', response.status);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 const result = await response.json();
-                console.log('Options API response:', result);
+                console.log('✅ Options API response:', result);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
+                    console.log('📊 Updating table with', result.strategies.length, 'strategies');
                     updateOptionsTable(result.strategies);
                     showData();
+                    
+                    // Update refresh button to show success
+                    const refreshBtn = document.getElementById('refreshBtn');
+                    const refreshText = document.getElementById('refreshText');
+                    refreshText.textContent = 'Data Loaded!';
+                    
+                    setTimeout(() => {
+                        refreshText.textContent = 'Generate Strategies';
+                    }, 2000);
+                    
                 } else {
+                    console.log('⚠️ No strategies in response or error status');
                     showEmpty();
                 }
 
             } catch (error) {
-                console.error('Error loading options strategies:', error);
+                console.error('❌ Error loading options strategies:', error);
                 showEmpty();
             } finally {
                 isLoading = false;

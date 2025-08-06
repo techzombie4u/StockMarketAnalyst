@@ -29,17 +29,18 @@ def check_organized_structure():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
         try:
-            # Ensure typing imports are available
-            from typing import Callable
-            # Test import of the main app
+            # Test import of the main app - this should now work with fixed imports
             from src.core.app import app
             return True, "Organized structure is functional"
         except ImportError as e:
+            logger.error(f"Import error in organized structure: {e}")
             return False, f"Import error in organized structure: {e}"
         except Exception as e:
+            logger.error(f"Error in organized structure: {e}")
             return False, f"Error in organized structure: {e}"
 
     except Exception as e:
+        logger.error(f"Failed to check organized structure: {e}")
         return False, f"Failed to check organized structure: {e}"
 
 def run_organized_version():
@@ -80,6 +81,13 @@ def run_backup_version():
             
             logger.info(f"🔄 Using backup version from: {backup_path}")
 
+            # Clear any existing Flask app instances to prevent route conflicts
+            import sys
+            modules_to_remove = [key for key in sys.modules.keys() if 'app' in key and 'flask' not in key.lower()]
+            for module in modules_to_remove:
+                if 'src.core.app' in module:
+                    del sys.modules[module]
+
             # Import and run backup app
             from app import app
             logger.info("✅ Running backup Flask application")
@@ -97,7 +105,41 @@ def run_backup_version():
     except Exception as e:
         logger.error(f"❌ Error starting backup version: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
-        raise
+        # Try to run a minimal version instead of completely failing
+        try:
+            logger.info("🔄 Attempting minimal emergency version...")
+            run_emergency_version()
+        except Exception as emergency_error:
+            logger.error(f"❌ Emergency version also failed: {emergency_error}")
+            raise
+
+def run_emergency_version():
+    """Run a minimal emergency version"""
+    from flask import Flask, jsonify, render_template_string
+    
+    emergency_app = Flask(__name__)
+    
+    @emergency_app.route('/')
+    def home():
+        return render_template_string('''
+        <!DOCTYPE html>
+        <html>
+        <head><title>Stock Market Analyst - Emergency Mode</title></head>
+        <body>
+            <h1>🔧 Stock Market Analyst - Emergency Mode</h1>
+            <p>The application is running in emergency mode due to startup issues.</p>
+            <p>Please check the console logs for more details.</p>
+            <a href="/api/health">Health Check</a>
+        </body>
+        </html>
+        ''')
+    
+    @emergency_app.route('/api/health')
+    def health():
+        return jsonify({'status': 'emergency_mode', 'message': 'Application running in emergency mode'})
+    
+    logger.info("🚨 Running in emergency mode")
+    emergency_app.run(host='0.0.0.0', port=5000, debug=False)
 
 if __name__ == '__main__':
     try:
