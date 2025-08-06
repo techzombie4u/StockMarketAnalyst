@@ -1273,7 +1273,7 @@
             
             console.log(`🔧 Chart calculation: ${currentPrice} -> ${finalPrice} (${prediction}%)`);
             
-            // GREEN LINE: Generate predicted data array (straight line)
+            // GREEN LINE: Generate predicted data array (STRAIGHT LINE from start to end)
             const predictedData = [];
             for (let i = 0; i < days; i++) {
                 const progress = days === 1 ? 1 : i / (days - 1);
@@ -1281,29 +1281,83 @@
                 predictedData.push(parseFloat(predictedPrice.toFixed(2)));
             }
             
-            // BLUE LINE: Generate actual data array (progressive)
-            const actualData = [currentPrice];
-            for (let i = 1; i < days; i++) {
-                actualData.push(null); // Future days are null
+            // BLUE LINE: Generate actual data array (INCREMENTAL - only for days that have passed)
+            const actualData = [];
+            const currentDate = new Date();
+            const startDate = isLocked && lockStartDate ? new Date(lockStartDate) : new Date(data.start_date || currentDate);
+            
+            // Calculate how many trading days have actually passed
+            let tradingDaysPassed = 0;
+            let checkDate = new Date(startDate);
+            
+            while (checkDate <= currentDate) {
+                // Only count trading days (Monday to Friday)
+                if (checkDate.getDay() >= 1 && checkDate.getDay() <= 5) {
+                    tradingDaysPassed++;
+                }
+                checkDate.setDate(checkDate.getDate() + 1);
+                
+                // Don't count more than our chart period
+                if (tradingDaysPassed >= days) break;
             }
             
-            // Add some sample actual data for demonstration
-            if (days >= 2 && Math.random() > 0.5) {
-                actualData[1] = parseFloat((currentPrice * (0.99 + Math.random() * 0.02)).toFixed(2));
+            // Limit to maximum days in our chart period
+            tradingDaysPassed = Math.min(tradingDaysPassed, days);
+            
+            console.log(`📅 Trading days passed: ${tradingDaysPassed} out of ${days} total days`);
+            
+            // Generate actual data - only for days that have actually occurred
+            for (let i = 0; i < days; i++) {
+                if (i === 0) {
+                    // First day is always the starting price
+                    actualData.push(currentPrice);
+                } else if (i < tradingDaysPassed) {
+                    // Days that have passed - use actual or simulated data
+                    const actualKey = `actual_progress_${currentView}`;
+                    const actualFromData = data[actualKey];
+                    
+                    if (actualFromData && actualFromData[i] !== null && actualFromData[i] !== undefined) {
+                        actualData.push(parseFloat(actualFromData[i]));
+                    } else {
+                        // Simulate actual price for demo (small variance from predicted)
+                        const baseVariance = 0.98 + (0.04 * (selectedStock.charCodeAt(0) % 100) / 100);
+                        const dailyVariance = 0.995 + (0.01 * Math.sin(i + selectedStock.charCodeAt(0)));
+                        const simulatedPrice = predictedData[i] * baseVariance * dailyVariance;
+                        actualData.push(parseFloat(simulatedPrice.toFixed(2)));
+                    }
+                } else {
+                    // Future days - no actual data yet
+                    actualData.push(null);
+                }
             }
             
-            // RED LINE: Generate updated predictions (some stocks get updates)
+            // RED LINE: Generate updated predictions (starts from green line, changes only on prediction updates)
             const updatedData = Array(days).fill(null);
             
-            // Some stocks get prediction updates for demonstration
-            const stockHash = selectedStock.charCodeAt(0) % 4;
-            if (stockHash === 0) {
-                const changeDay = Math.floor(days * 0.3); // Change at 30% mark
-                const newFinalPrice = finalPrice * 1.05; // 5% adjustment
-                
-                for (let i = changeDay; i < days; i++) {
-                    const progress = (i - changeDay) / (days - 1 - changeDay);
-                    updatedData[i] = parseFloat((currentPrice + (newFinalPrice - currentPrice) * progress).toFixed(2));
+            // Check if this stock has prediction updates
+            const updatedKey = `updated_prediction_${currentView}`;
+            const updatedFromData = data[updatedKey];
+            const changeDay = data[`changed_on_${currentView}`];
+            
+            if (changeDay !== null && changeDay !== undefined && updatedFromData) {
+                // Use actual update data if available
+                for (let i = 0; i < days; i++) {
+                    if (updatedFromData[i] !== null && updatedFromData[i] !== undefined) {
+                        updatedData[i] = parseFloat(updatedFromData[i]);
+                    }
+                }
+            } else {
+                // Generate sample update for some stocks for demonstration
+                const stockHash = selectedStock.charCodeAt(0) % 4;
+                if (stockHash === 0 && tradingDaysPassed > 1) {
+                    const updateStartDay = Math.min(1, tradingDaysPassed - 1); // Start update from day 1 or earlier
+                    const newFinalPrice = finalPrice * 1.08; // 8% higher prediction
+                    
+                    for (let i = updateStartDay; i < days; i++) {
+                        const progress = (i - updateStartDay) / (days - 1 - updateStartDay);
+                        const startPrice = actualData[updateStartDay] || predictedData[updateStartDay];
+                        updatedData[i] = parseFloat((startPrice + (newFinalPrice - startPrice) * progress).toFixed(2));
+                    }
                 }
             }
             

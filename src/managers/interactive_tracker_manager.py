@@ -819,18 +819,31 @@ class InteractiveTrackerManager:
             for i in range(29):  # Add 29 more elements (total 30)
                 actual_30d.append(None)
 
-            # Add some sample actual data for demonstration
+            # Add sample actual data based on current date and trading days
             current_date = datetime.now(IST)
-            market_closed = current_date.hour >= 15 and current_date.minute >= 30
-
-            if market_closed and current_date.weekday() < 5:  # Market closed on trading day
-                # Add one day of actual data (day 1)
-                variance = 0.98 + 0.04 * (hash(symbol) % 100) / 100
-                actual_price = round(float(base_price * variance), 2)
-                if len(actual_5d) > 1:
-                    actual_5d[1] = actual_price
-                if len(actual_30d) > 1:
-                    actual_30d[1] = actual_price
+            
+            # Calculate how many trading days should have actual data
+            # This ensures blue line only shows for days that have actually passed
+            trading_days_passed = 1  # Always have day 0 (start price)
+            
+            # If market has closed today and it's a trading day, we can have today's data
+            if current_date.hour >= 15 and current_date.minute >= 30 and current_date.weekday() < 5:
+                trading_days_passed = 2  # Day 0 + Day 1
+            elif current_date.weekday() >= 5:  # Weekend
+                trading_days_passed = 2  # Assume we have Friday's data
+            
+            # Add actual data only for days that have passed
+            for day in range(1, min(trading_days_passed, 5)):  # For 5D data
+                if day < len(actual_5d):
+                    # Generate realistic actual price with small variance from predicted
+                    variance_factor = 0.985 + 0.03 * (hash(symbol + str(day)) % 100) / 100
+                    actual_5d[day] = round(float(predicted_5d[day] * variance_factor), 2)
+                    
+            for day in range(1, min(trading_days_passed, 30)):  # For 30D data
+                if day < len(actual_30d):
+                    # Generate realistic actual price with small variance from predicted
+                    variance_factor = 0.985 + 0.03 * (hash(symbol + str(day)) % 100) / 100
+                    actual_30d[day] = round(float(predicted_30d[day] * variance_factor), 2)
 
             # Generate updated predictions - EXACTLY matching lengths
             updated_5d = []
@@ -844,22 +857,24 @@ class InteractiveTrackerManager:
             # Some stocks get prediction updates for demonstration
             stock_hash = hash(symbol) % 4
             if stock_hash == 0:  # 25% of stocks get prediction updates
-                # 5D updates from day 1
+                # 5D updates from day 1 - start from predicted line, not actual
                 change_day_5d = 1
                 new_final_5d = predicted_5d_final_price * 1.08  # 8% higher prediction
 
                 for i in range(change_day_5d, 5):
                     progress = (i - change_day_5d) / (4 - change_day_5d) if (4 - change_day_5d) > 0 else 0
-                    start_price = actual_5d[change_day_5d] if actual_5d[change_day_5d] is not None else base_price
+                    # Start from predicted price at change day, not actual price
+                    start_price = predicted_5d[change_day_5d]
                     updated_5d[i] = round(float(start_price + (new_final_5d - start_price) * progress), 2)
 
-                # 30D updates from day 3
-                change_day_30d = 3
-                new_final_30d = predicted_30d_final_price * 0.92  # 8% lower prediction
+                # 30D updates from day 2 - start from predicted line
+                change_day_30d = 2
+                new_final_30d = predicted_30d_final_price * 0.94  # 6% lower prediction
 
                 for i in range(change_day_30d, 30):
                     progress = (i - change_day_30d) / (29 - change_day_30d) if (29 - change_day_30d) > 0 else 0
-                    start_price = actual_30d[change_day_30d] if actual_30d[change_day_30d] is not None else base_price
+                    # Start from predicted price at change day, not actual price
+                    start_price = predicted_30d[change_day_30d]
                     updated_30d[i] = round(float(start_price + (new_final_30d - start_price) * progress), 2)
 
             # VALIDATION: Ensure all arrays have correct lengths
