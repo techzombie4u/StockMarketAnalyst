@@ -21,9 +21,9 @@
       "risk_level": "Low",
       "market_cap": "Small Cap",
       "technical_summary": "Score: 77.0 | RSI: 43",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 400.6,
-      "ml_pred_30d": 386.0,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 413.17,
+      "ml_pred_30d": 410.6,
       "ml_confidence": 0.89,
       "prediction_source": "ml_model"
     },
@@ -47,9 +47,9 @@
       "risk_level": "Low",
       "market_cap": "Mid Cap",
       "technical_summary": "Score: 76.0 | RSI: 57",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 672.99,
-      "ml_pred_30d": 661.33,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 662.78,
+      "ml_pred_30d": 641.42,
       "ml_confidence": 0.89,
       "prediction_source": "ml_model"
     },
@@ -73,10 +73,10 @@
       "risk_level": "Medium",
       "market_cap": "Mid Cap",
       "technical_summary": "Score: 74.0 | RSI: 25",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 172.0,
-      "ml_pred_30d": 174.11,
-      "ml_confidence": 0.76,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 167.64,
+      "ml_pred_30d": 165.4,
+      "ml_confidence": 0.73,
       "prediction_source": "ml_model"
     },
     {
@@ -99,10 +99,10 @@
       "risk_level": "Medium",
       "market_cap": "Large Cap",
       "technical_summary": "Score: 74.0 | RSI: 26",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 231.23,
-      "ml_pred_30d": 228.73,
-      "ml_confidence": 0.72,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 244.35,
+      "ml_pred_30d": 255.41,
+      "ml_confidence": 0.75,
       "prediction_source": "ml_model"
     },
     {
@@ -125,9 +125,9 @@
       "risk_level": "Medium",
       "market_cap": "Large Cap",
       "technical_summary": "Score: 73.0 | RSI: 53",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 2013.38,
-      "ml_pred_30d": 2100.68,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 1963.12,
+      "ml_pred_30d": 1997.12,
       "ml_confidence": 0.74,
       "prediction_source": "ml_model"
     },
@@ -151,10 +151,10 @@
       "risk_level": "Medium",
       "market_cap": "Small Cap",
       "technical_summary": "Score: 72.0 | RSI: 44",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 229.87,
-      "ml_pred_30d": 218.57,
-      "ml_confidence": 0.89,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 238.59,
+      "ml_pred_30d": 235.48,
+      "ml_confidence": 0.85,
       "prediction_source": "ml_model"
     },
     {
@@ -177,10 +177,10 @@
       "risk_level": "Medium",
       "market_cap": "Large Cap",
       "technical_summary": "Score: 69.0 | RSI: 33",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 823.73,
-      "ml_pred_30d": 842.74,
-      "ml_confidence": 0.78,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 800.93,
+      "ml_pred_30d": 796.74,
+      "ml_confidence": 0.81,
       "prediction_source": "ml_model"
     },
     {
@@ -203,10 +203,10 @@
       "risk_level": "Medium",
       "market_cap": "Mid Cap",
       "technical_summary": "Score: 69.0 | RSI: 20",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 325.42,
-      "ml_pred_30d": 335.38,
-      "ml_confidence": 0.83,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 306.73,
+      "ml_pred_30d": 297.96,
+      "ml_confidence": 0.81,
       "prediction_source": "ml_model"
     },
     {
@@ -229,10 +229,10 @@
       "risk_level": "Medium",
       "market_cap": "Large Cap",
       "technical_summary": "Score: 67.0 | RSI: 34",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 341.28,
-      "ml_pred_30d": 350.71,
-      "ml_confidence": 0.82,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 346.59,
+      "ml_pred_30d": 361.72,
+      "ml_confidence": 0.72,
       "prediction_source": "ml_model"
     },
     {
@@ -255,15 +255,15 @@
       "risk_level": "Medium",
       "market_cap": "Small Cap",
       "technical_summary": "Score: 66.0 | RSI: 44",
-      "last_analyzed": "06/08/2025, 13:08:36",
-      "ml_pred_5d": 372.72,
-      "ml_pred_30d": 356.76,
-      "ml_confidence": 0.77,
+      "last_analyzed": "06/08/2025, 13:17:46",
+      "ml_pred_5d": 388.92,
+      "ml_pred_30d": 388.44,
+      "ml_confidence": 0.83,
       "prediction_source": "ml_model"
     }
   ],
-  "last_updated": "06/08/2025, 18:38:36",
-  "timestamp": "2025-08-06T18:38:36.066992+05:30",
+  "last_updated": "06/08/2025, 18:47:46",
+  "timestamp": "2025-08-06T18:47:46.249962+05:30",
   "total_stocks": 10,
-  "screening_time": "29.77 seconds"
+  "screening_time": "31.15 seconds"
 }
