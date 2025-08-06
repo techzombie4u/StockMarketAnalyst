@@ -29,7 +29,9 @@ def check_organized_structure():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
         try:
-            # Test import without importing Callable separately
+            # Ensure typing imports are available
+            from typing import Callable
+            # Test import of the main app
             from src.core.app import app
             return True, "Organized structure is functional"
         except ImportError as e:
