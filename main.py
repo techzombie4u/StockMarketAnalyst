@@ -1,73 +1,117 @@
-
-#!/usr/bin/env python3
 """
-Stock Market Analyst - Main Entry Point
-Version 1.7.1 - Reverted to backup version
-
-This is the main entry point for the Stock Market Analyst application.
+Main entry point for the Stock Market Analyst application
+Routes to either organized version or backup based on availability
 """
 
-import sys
 import os
+import sys
+import traceback
+import logging
 
-# Add the backup directory to Python path to use the original files
-backup_dir = os.path.join(os.path.dirname(__file__), '_backup_before_organization')
-if os.path.exists(backup_dir):
-    sys.path.insert(0, backup_dir)
-    print(f"🔄 Using backup version from: {backup_dir}")
-else:
-    print("❌ Backup directory not found, using current organized structure")
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-try:
-    # Try to run from organized structure first
-    print("🚀 Starting Stock Market Analyst - Version 1.7.1 (Organized Version)")
-    from src.core.app import app
-    
-    # Print startup information
-    print("\n" + "="*60)
-    print("📈 STOCK MARKET ANALYST - DASHBOARD")
-    print("="*60)
-    print(f"🌐 Web Dashboard: http://localhost:5000")
-    print(f"📊 API Endpoint: http://localhost:5000/api/stocks")
-    print(f"🔄 Auto-refresh: Every 60 minutes")
-    print("="*60)
-    print("\n✅ Application started successfully!")
-    print("📱 Open your browser and navigate to http://localhost:5000")
-    print("\n🛑 Press Ctrl+C to stop the application\n")
-
-    # Run Flask app directly
-    app.run(
-        host='0.0.0.0',
-        port=5000,
-        debug=False,
-        threaded=True
-    )
-
-except Exception as e:
-    print(f"❌ Error starting organized version: {e}")
-    print("🔄 Falling back to backup version...")
+def check_organized_structure():
+    """Check if organized structure is available and functional"""
     try:
-        # Try to import and run from backup
-        if backup_dir in sys.path:
-            print("🚀 Starting Stock Market Analyst - Version 1.7.1 (Backup Version)")
-            # Import backup main directly
-            sys.path.insert(0, backup_dir)
-            import app as backup_app
-            
-            # Run the backup Flask app
-            if hasattr(backup_app, 'app'):
-                print("✅ Running backup Flask application")
-                backup_app.app.run(
-                    host='0.0.0.0',
-                    port=5000,
-                    debug=False,
-                    threaded=True
-                )
-            else:
-                raise Exception("Backup app not found")
+        # Check if src directory exists and has required modules
+        if not os.path.exists('src'):
+            return False, "src directory not found"
+
+        if not os.path.exists('src/core'):
+            return False, "src/core directory not found"
+
+        if not os.path.exists('src/core/app.py'):
+            return False, "src/core/app.py not found"
+
+        # Try to import the main modules to check for import errors
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+        try:
+            # Fix the typing import issue
+            from typing import Callable
+            from src.core.app import app
+            return True, "Organized structure is functional"
+        except ImportError as e:
+            return False, f"Import error in organized structure: {e}"
+        except Exception as e:
+            return False, f"Error in organized structure: {e}"
+
+    except Exception as e:
+        return False, f"Failed to check organized structure: {e}"
+
+def run_organized_version():
+    """Run the organized version of the application"""
+    try:
+        logger.info("🚀 Starting Stock Market Analyst - Version 1.7.1 (Organized Version)")
+
+        # Ensure typing imports are available
+        from typing import Callable
+        from src.core.app import app
+
+        # Run the Flask application
+        logger.info("✅ Running organized Flask application")
+        app.run(
+            host='0.0.0.0', 
+            port=5000, 
+            debug=False,
+            use_reloader=False,
+            threaded=True
+        )
+
+    except Exception as e:
+        logger.error(f"❌ Error starting organized version: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise
+
+def run_backup_version():
+    """Run the backup version of the application"""
+    try:
+        logger.info("🚀 Starting Stock Market Analyst - Version 1.7.1 (Backup Version)")
+
+        # Change to backup directory
+        backup_dir = '_backup_before_organization'
+        if os.path.exists(backup_dir):
+            os.chdir(backup_dir)
+            logger.info(f"🔄 Using backup version from: {os.getcwd()}")
+
+            # Import and run backup app
+            from app import app
+            logger.info("✅ Running backup Flask application")
+            app.run(
+                host='0.0.0.0', 
+                port=5000, 
+                debug=False,
+                use_reloader=False,
+                threaded=True
+            )
         else:
-            raise Exception("Backup directory not in path")
-    except Exception as fallback_error:
-        print(f"❌ Fallback also failed: {fallback_error}")
-        print("🆘 Please check the application structure")
+            logger.error("❌ Backup directory not found")
+            sys.exit(1)
+
+    except Exception as e:
+        logger.error(f"❌ Error starting backup version: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise
+
+if __name__ == '__main__':
+    try:
+        # Check organized structure availability
+        is_organized_available, message = check_organized_structure()
+
+        if is_organized_available:
+            logger.info(f"✅ {message}")
+            run_organized_version()
+        else:
+            logger.warning(f"⚠️ {message}")
+            logger.info("🔄 Falling back to backup version...")
+            run_backup_version()
+
+    except KeyboardInterrupt:
+        logger.info("🛑 Application stopped by user")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"💥 Fatal error: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         sys.exit(1)

@@ -1219,161 +1219,82 @@ def options_strategy():
     return render_template('options_strategy.html')
 
 @app.route('/api/options-strategies')
-def api_options_strategies():
-    """API endpoint for options strategies with real-time data"""
+def get_options_strategies():
+    """Get short strangle options strategies with real-time data"""
     try:
         timeframe = request.args.get('timeframe', '30D')
-        refresh_requested = request.args.get('refresh', 'false').lower() == 'true'
-        force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
         manual_refresh = request.args.get('manual_refresh', 'false').lower() == 'true'
-        
-        logger.info(f"Options API called: timeframe={timeframe}, refresh={refresh_requested}, force_realtime={force_realtime}, manual_refresh={manual_refresh}")
-        
-        # Import here to avoid circular imports
+        force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
+        refresh_flag = request.args.get('refresh', 'false').lower() == 'true'
+
+        # Determine if we should force refresh
+        force_refresh = manual_refresh or force_realtime or refresh_flag
+
+        logger.info(f"🔄 Options API called: timeframe={timeframe}, manual_refresh={manual_refresh}, force_refresh={force_refresh}")
+
         from src.analyzers.short_strangle_engine import ShortStrangleEngine
-        strangle_engine = ShortStrangleEngine()
+        engine = ShortStrangleEngine()
 
-        # For manual refresh or force realtime, always fetch fresh data
-        if manual_refresh or force_realtime or refresh_requested:
-            logger.info("🔄 Manual refresh requested - fetching fresh real-time data from Yahoo Finance")
-            
-            # Always get fresh real-time data for Tier 1 stocks
-            tier1_stocks = []
-            
-            for yf_symbol, info in strangle_engine.TIER_1_STOCKS.items():
-                logger.info(f"Fetching real-time price for {info['name']} ({yf_symbol})")
-                real_price = strangle_engine.get_real_time_price(yf_symbol)
-                
-                if real_price and real_price > 0:
-                    logger.info(f"✅ Real-time price for {info['name']}: ₹{real_price:.2f}")
-                    tier1_stocks.append({
-                        'symbol': info['name'],
-                        'current_price': real_price,
-                        'confidence': 82.0,  # Higher confidence for real-time data
-                        'pred_5d': 2.3,
-                        'pred_1mo': 9.2,
-                        'score': 78.0
-                    })
-                else:
-                    logger.warning(f"❌ Could not fetch real-time price for {yf_symbol}")
-                    # Don't include stocks without real-time prices during manual refresh
-        
-        else:
-            # Try to get current stock data first
-            stock_data = load_stock_data()
-            tier1_stocks = []
-            
-            if stock_data and stock_data.get('stocks'):
-                # Filter for Tier 1 stocks only
-                tier1_symbols = ['RELIANCE', 'HDFCBANK', 'TCS', 'ITC', 'INFY', 'HINDUNILVR']
+        # Generate strategies with real-time data
+        strategies = engine.generate_strategies(timeframe, force_refresh=force_refresh)
 
-                for stock in stock_data['stocks']:
-                    stock_symbol = stock.get('symbol', '').upper()
-                    if any(t1_symbol in stock_symbol for t1_symbol in tier1_symbols):
-                        tier1_stocks.append(stock)
+        data_source = 'real_time_yahoo_finance' if force_refresh else 'cached_yahoo_finance'
+        refresh_type = 'manual_refresh' if manual_refresh else 'auto_refresh' if force_refresh else 'cached'
 
-            # If we don't have enough Tier 1 stocks from screening, get real-time prices
-            if len(tier1_stocks) < 3:
-                logger.info("Not enough Tier 1 stocks from screening - fetching real-time prices")
-                tier1_stocks = []
-                
-                for yf_symbol, info in strangle_engine.TIER_1_STOCKS.items():
-                    real_price = strangle_engine.get_real_time_price(yf_symbol)
-                    if real_price and real_price > 0:
-                        logger.info(f"Real-time price for {info['name']}: ₹{real_price:.2f}")
-                        tier1_stocks.append({
-                            'symbol': info['name'],
-                            'current_price': real_price,
-                            'confidence': 78.0,
-                            'pred_5d': 2.1,
-                            'pred_1mo': 8.5,
-                            'score': 75.0
-                        })
-                    else:
-                        logger.warning(f"Could not fetch real-time price for {yf_symbol}")
-
-        if tier1_stocks:
-            logger.info(f"✅ Generating strategies for {len(tier1_stocks)} Tier 1 stocks")
-            strategies = strangle_engine.generate_all_strategies(tier1_stocks, timeframe)
-            
-            if strategies:
-                # Calculate summary metrics
-                total_opportunities = len(strategies)
-                high_confidence = len([s for s in strategies if s.get('confidence', 0) >= 80])
-                avg_roi = sum(s.get('expected_roi', 0) for s in strategies) / max(1, total_opportunities)
-                total_premium = sum(s.get('total_premium', 0) for s in strategies)
-
-                data_source = 'real_time_yahoo_finance' if (manual_refresh or force_realtime) else 'mixed_data_with_realtime'
-                logger.info(f"✅ Generated {total_opportunities} strategies with avg ROI {avg_roi:.1f}% from {data_source}")
-                
-                return jsonify({
-                    'status': 'success',
-                    'strategies': strategies,
-                    'summary': {
-                        'total_opportunities': total_opportunities,
-                        'high_confidence_count': high_confidence,
-                        'average_roi': round(avg_roi, 2),
-                        'total_premium_potential': round(total_premium, 0)
-                    },
-                    'timeframe': timeframe,
-                    'last_updated': datetime.now().isoformat(),
-                    'data_source': data_source,
-                    'refresh_type': 'manual' if manual_refresh else 'automatic'
-                })
-
-        # Final fallback with demo data using real-time prices
-        logger.warning("⚠️ Falling back to demo data with real-time prices")
-        demo_strategies = strangle_engine.generate_demo_strategies(timeframe)
-        
-        if demo_strategies:
-            total_opportunities = len(demo_strategies)
-            high_confidence = len([s for s in demo_strategies if s.get('confidence', 0) >= 80])
-            avg_roi = sum(s.get('expected_roi', 0) for s in demo_strategies) / max(1, total_opportunities)
-            total_premium = sum(s.get('total_premium', 0) for s in demo_strategies)
+        if strategies:
+            logger.info(f"✅ Successfully generated {len(strategies)} strategies from {data_source}")
 
             return jsonify({
                 'status': 'success',
-                'strategies': demo_strategies,
+                'strategies': strategies,
+                'count': len(strategies),
+                'data_source': data_source,
+                'refresh_type': refresh_type,
                 'summary': {
-                    'total_opportunities': total_opportunities,
-                    'high_confidence_count': high_confidence,
-                    'average_roi': round(avg_roi, 2),
-                    'total_premium_potential': round(total_premium, 0)
+                    'total_opportunities': len(strategies),
+                    'high_confidence_count': len([s for s in strategies if s['confidence'] >= 80]),
+                    'average_roi': sum(s['expected_roi'] for s in strategies) / len(strategies),
+                    'total_premium_potential': sum(s['total_premium'] for s in strategies)
                 },
                 'timeframe': timeframe,
-                'last_updated': datetime.now().isoformat(),
-                'data_source': 'demo_with_realtime_prices',
-                'refresh_type': 'fallback'
+                'last_updated': datetime.now().isoformat()
             })
-
-        # Last resort - return empty result
-        logger.error("❌ No options strategies could be generated")
-        return jsonify({
-            'status': 'error',
-            'message': 'Unable to generate options strategies',
-            'strategies': [],
-            'summary': {
-                'total_opportunities': 0,
-                'high_confidence_count': 0,
-                'average_roi': 0,
-                'total_premium_potential': 0
-            },
-            'error_details': 'No Tier 1 stocks available and all fallbacks failed'
-        })
+        else:
+            logger.warning(f"⚠️ No strategies generated for {timeframe}")
+            return jsonify({
+                'status': 'success',
+                'strategies': [],
+                'count': 0,
+                'data_source': data_source,
+                'refresh_type': refresh_type,
+                'summary': {
+                    'total_opportunities': 0,
+                    'high_confidence_count': 0,
+                    'average_roi': 0,
+                    'total_premium_potential': 0
+                },
+                'timeframe': timeframe,
+                'last_updated': datetime.now().isoformat()
+            })
 
     except Exception as e:
         logger.error(f"❌ Error generating options strategies: {e}")
         return jsonify({
             'status': 'error',
-            'message': str(e),
+            'error_details': str(e),
+            'message': f'Failed to generate options strategies: {str(e)}',
             'strategies': [],
+            'count': 0,
+            'data_source': 'error',
+            'refresh_type': 'error',
             'summary': {
                 'total_opportunities': 0,
                 'high_confidence_count': 0,
                 'average_roi': 0,
                 'total_premium_potential': 0
             },
-            'error_details': f'Exception: {str(e)}'
+            'timeframe': timeframe,
+            'last_updated': datetime.now().isoformat()
         }), 500
 
 def load_interactive_tracking_data():
