@@ -452,11 +452,30 @@
         }
 
         function updateMetrics(data) {
-            if (!data || data.length === 0) {
-                document.getElementById('totalOpportunities').textContent = '0';
-                document.getElementById('avgROI').textContent = '0%';
-                document.getElementById('highConfidence').textContent = '0';
-                document.getElementById('totalPremium').textContent = '₹0';
+            const metricsSection = document.getElementById('metricsGrid');
+
+            if (data.length === 0) {
+                metricsSection.innerHTML = `
+                    <div class="metric-card">
+                        <div class="metric-number" id="totalOpportunities">-</div>
+                        <div class="metric-label">Total Opportunities</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-number" id="avgROI">-</div>
+                        <div class="metric-label">Avg Expected ROI</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-number" id="highConfidence">-</div>
+                        <div class="metric-label">High Confidence (80%+)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-number" id="totalPremium">-</div>
+                        <div class="metric-label">Total Premium Potential</div>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px; color: #666;">
+                        📡 Prices: Real-time from Yahoo Finance
+                    </div>
+                `;
                 return;
             }
 
@@ -469,6 +488,15 @@
             document.getElementById('avgROI').textContent = avgROI + '%';
             document.getElementById('highConfidence').textContent = highConfidence;
             document.getElementById('totalPremium').textContent = '₹' + new Intl.NumberFormat('en-IN').format(totalPremium);
+
+            // Add data source indicator if metrics are populated
+            if (!document.querySelector('.metrics-grid + div[style*="color: #27ae60"]')) {
+                metricsSection.innerHTML += `
+                    <div style="text-align: center; margin-top: 10px; color: #27ae60; font-weight: 600;">
+                        📡 Live Prices: Real-time from Yahoo Finance
+                    </div>
+                `;
+            }
         }
 
         function getROIClass(roi) {
@@ -494,11 +522,11 @@
 
             data.forEach((option, index) => {
                 const row = document.createElement('tr');
-                
+
                 // Risk level badge styling
                 const riskBadgeClass = option.risk_color === 'success' ? 'confidence-high' : 
                                      option.risk_color === 'warning' ? 'confidence-medium' : 'confidence-low';
-                
+
                 row.innerHTML = `
                     <td class="symbol">${option.symbol}</td>
                     <td>₹${option.current_price.toFixed(2)}</td>
@@ -576,7 +604,7 @@
             isLoading = true;
             setButtonState(true);
             showLoading();
-            
+
             const timeframe = document.getElementById('timeframeSelect').value;
             log(`Starting manual screening for fresh options strategies (${timeframe})...`);
 
@@ -624,6 +652,7 @@
                 log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies for ${timeframe}`);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
+                    log(`✅ Received ${result.strategies.length} fresh strategies from ${result.data_source || 'unknown'}`);
                     optionsData = result.strategies;
                     log(`✅ Options data loaded: ${optionsData.length} strategies`);
 

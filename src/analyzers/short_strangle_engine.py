@@ -122,10 +122,34 @@ class ShortStrangleEngine:
             logger.warning(f"Margin calculation failed: {e}")
             return spot * 0.25  # Conservative fallback
     
+    def get_real_time_price(self, symbol: str) -> float:
+        """Fetch real-time price from Yahoo Finance"""
+        try:
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period="1d", interval="1m")
+            if not hist.empty:
+                return float(hist['Close'].iloc[-1])
+            else:
+                # Fallback to last available daily close
+                hist_daily = ticker.history(period="5d")
+                if not hist_daily.empty:
+                    return float(hist_daily['Close'].iloc[-1])
+        except Exception as e:
+            logger.warning(f"Failed to get real-time price for {symbol}: {e}")
+        return None
+
     def calculate_strangle_metrics(self, symbol: str, current_price: float, 
                                  predictions: Dict, timeframe: str = '30D') -> Dict:
         """Calculate all metrics for a short strangle strategy"""
         try:
+            # Get real-time price instead of cached price
+            real_price = self.get_real_time_price(symbol)
+            if real_price:
+                current_price = real_price
+                logger.info(f"Using real-time price for {symbol}: ₹{current_price:.2f}")
+            else:
+                logger.warning(f"Could not fetch real-time price for {symbol}, using cached: ₹{current_price:.2f}")
+
             # Get prediction confidence
             pred_key = f'pred_{timeframe.lower()}'
             confidence = predictions.get('confidence', 75.0)
@@ -245,8 +269,12 @@ class ShortStrangleEngine:
                 if not symbol_yahoo:
                     continue
                 
-                current_price = stock.get('current_price', 0)
+                # Get real-time price first, fallback to cached price
+                real_price = self.get_real_time_price(symbol_yahoo)
+                current_price = real_price if real_price else stock.get('current_price', 0)
+                
                 if current_price <= 0:
+                    logger.warning(f"No valid price found for {stock_symbol}")
                     continue
                 
                 # Create predictions dict from stock data
