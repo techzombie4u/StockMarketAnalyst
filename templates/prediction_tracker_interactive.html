@@ -698,6 +698,16 @@
             });
             
             modal.remove();
+            
+            // Update UI after unlocking
+            setTimeout(() => {
+                updatePredictionCards();
+                if (selectedStock) {
+                    updateLockToggle();
+                    updateChart();
+                }
+            }, 500);
+            
             console.log(`✅ Unlock confirmation completed for ${checkboxes.length} selections`);
         }
 
@@ -785,8 +795,12 @@
                         // Show and update chart for restored selection
                         showChart();
                         updateChart();
-                        updateLockToggle();
-                        highlightSelectedCard();
+                        
+                        // Ensure lock toggle reflects actual lock status
+                        setTimeout(() => {
+                            updateLockToggle();
+                            highlightSelectedCard();
+                        }, 100);
                         
                         console.log('🔄 Restored stock selection:', selectedStock);
                     }
@@ -825,7 +839,27 @@
             
             // Merge enhanced data if available
             if (enhancedData.status === 'success' && enhancedData.tracking_data) {
-                Object.assign(predictionData, enhancedData.tracking_data);
+                // Preserve existing lock states when merging new data
+                for (const [symbol, newData] of Object.entries(enhancedData.tracking_data)) {
+                    if (predictionData[symbol]) {
+                        // Preserve lock status from existing data
+                        const existingLocks = {
+                            locked_5d: predictionData[symbol].locked_5d,
+                            locked_30d: predictionData[symbol].locked_30d,
+                            lock_date_5d: predictionData[symbol].lock_date_5d,
+                            lock_date_30d: predictionData[symbol].lock_date_30d,
+                            lock_start_date_5d: predictionData[symbol].lock_start_date_5d,
+                            lock_start_date_30d: predictionData[symbol].lock_start_date_30d,
+                            persistent_lock_5d: predictionData[symbol].persistent_lock_5d,
+                            persistent_lock_30d: predictionData[symbol].persistent_lock_30d
+                        };
+                        
+                        // Merge data while preserving locks
+                        predictionData[symbol] = { ...newData, ...existingLocks };
+                    } else {
+                        predictionData[symbol] = newData;
+                    }
+                }
             }
         }
 
@@ -1218,13 +1252,21 @@
         }
 
         function updateLockToggle() {
-            if (!selectedStock || !predictionData[selectedStock]) return;
+            if (!selectedStock || !predictionData[selectedStock]) {
+                console.log('❌ Cannot update lock toggle: no selected stock or data');
+                return;
+            }
             
             const lockToggle = document.getElementById('lockToggle');
             const lockKey = `locked_${currentView}`;
             const isLocked = predictionData[selectedStock][lockKey] || false;
             
             lockToggle.checked = isLocked;
+            
+            console.log(`🔒 Lock toggle updated for ${selectedStock} ${currentView}: ${isLocked}`);
+            
+            // Also update the visual lock status in chart info
+            updateChartInfo();
         }
 
         function updateLockStatus() {

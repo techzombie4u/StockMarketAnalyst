@@ -30,8 +30,34 @@ class InteractiveTrackerManager:
                 with open(self.data_file, 'r', encoding='utf-8') as f:
                     content = f.read().strip()
                     if content:
-                        self.tracking_data = json.loads(content)
-                        logger.info(f"Loaded existing tracking data for {len(self.tracking_data)} stocks")
+                        try:
+                            parsed_data = json.loads(content)
+                            # Validate that it's a dictionary
+                            if isinstance(parsed_data, dict):
+                                self.tracking_data = parsed_data
+                                logger.info(f"Loaded existing tracking data for {len(self.tracking_data)} stocks")
+                            else:
+                                logger.warning("Invalid tracking data format, initializing empty")
+                                self.tracking_data = {}
+                        except json.JSONDecodeError as e:
+                            logger.error(f"JSON decode error in tracking data: {str(e)}")
+                            # Try to recover from backup or initialize empty
+                            backup_file = f"{self.data_file}.backup"
+                            if os.path.exists(backup_file):
+                                logger.info("Attempting to restore from backup")
+                                try:
+                                    with open(backup_file, 'r', encoding='utf-8') as bf:
+                                        backup_content = bf.read().strip()
+                                        if backup_content:
+                                            self.tracking_data = json.loads(backup_content)
+                                            logger.info("Successfully restored from backup")
+                                        else:
+                                            self.tracking_data = {}
+                                except:
+                                    logger.warning("Backup restoration failed, initializing empty")
+                                    self.tracking_data = {}
+                            else:
+                                self.tracking_data = {}
                     else:
                         self.tracking_data = {}
             else:
@@ -73,14 +99,30 @@ class InteractiveTrackerManager:
             logger.warning(f"Could not ensure current stocks tracked: {str(e)}")
 
     def save_tracking_data(self):
-        """Save tracking data to file"""
+        """Save tracking data to file with atomic write to prevent corruption"""
         try:
-            with open(self.data_file, 'w', encoding='utf-8') as f:
+            import tempfile
+            import shutil
+            
+            # Write to temporary file first
+            temp_file = f"{self.data_file}.tmp"
+            with open(temp_file, 'w', encoding='utf-8') as f:
                 json.dump(self.tracking_data, f, indent=2, ensure_ascii=False)
+            
+            # Atomic move to replace original file
+            shutil.move(temp_file, self.data_file)
             logger.info("Tracking data saved successfully")
             return True
         except Exception as e:
             logger.error(f"Error saving tracking data: {str(e)}")
+            # Clean up temp file if it exists
+            try:
+                import os
+                temp_file = f"{self.data_file}.tmp"
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+            except:
+                pass
             return False
 
     def initialize_stock_tracking(self, symbol, current_price, predictions):
