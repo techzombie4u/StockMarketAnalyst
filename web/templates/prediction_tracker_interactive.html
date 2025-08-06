@@ -1002,14 +1002,21 @@
             const pred5d = pred.pred_5d || 0;
             const pred30d = pred.predicted_1mo || 0;
             
+            // Calculate predicted final prices
+            const predicted5dFinalPrice = basePrice * (1 + pred5d/100);
+            const predicted30dFinalPrice = basePrice * (1 + pred30d/100);
+            
             // Generate 5D data
             const predicted5d = [];
             const actual5d = [basePrice, null, null, null, null]; // Real market data only
             const updated5d = [null, null, null, null, null];
             
-            // Green line: FULL prediction for all 5 days
+            // Green line: STRAIGHT line from predicted start price to predicted end price
+            const predicted5dStartPrice = predicted5dFinalPrice * 0.95; // Start slightly below final
             for (let i = 0; i < 5; i++) {
-                predicted5d.push(basePrice * (1 + (pred5d/100) * (i+1)/5));
+                // Linear interpolation from start to end
+                const progress = i / 4; // 0 to 1
+                predicted5d.push(predicted5dStartPrice + (predicted5dFinalPrice - predicted5dStartPrice) * progress);
             }
             
             // Blue line: REAL MARKET DATA - Progressive actual closing prices
@@ -1038,12 +1045,20 @@
             
             // Future days remain null until market closes on those days
             
-            // Red line: Updated predictions (only when significant changes occur)
+            // Red line: Updated predictions (incremental from change day forward)
             const stockIndex = Object.keys(predictionData).indexOf(symbol);
             if (stockIndex % 4 === 0 && tradingDaysCompleted > 0) {
-                updated5d[0] = basePrice;
-                updated5d[1] = actual5d[1];
-                // Future days remain null
+                // Prediction changed on day 1, show new straight line from day 1 to end
+                const changeDay = 1;
+                const newPredictedFinalPrice = predicted5dFinalPrice * 1.05; // 5% higher prediction
+                const changeDayPrice = actual5d[changeDay] || basePrice;
+                
+                // Fill from change day forward with straight line
+                for (let i = changeDay; i < 5; i++) {
+                    const remainingDays = 4 - changeDay;
+                    const dayProgress = remainingDays > 0 ? (i - changeDay) / remainingDays : 0;
+                    updated5d[i] = changeDayPrice + (newPredictedFinalPrice - changeDayPrice) * dayProgress;
+                }
             }
             
             // Generate 30D data (similar logic)
@@ -1051,9 +1066,12 @@
             const actual30d = Array(30).fill(null);
             const updated30d = Array(30).fill(null);
             
-            // Green line: FULL prediction for all 30 days
+            // Green line: STRAIGHT line from predicted start price to predicted end price
+            const predicted30dStartPrice = predicted30dFinalPrice * 0.98; // Start slightly below final
             for (let i = 0; i < 30; i++) {
-                predicted30d.push(basePrice * (1 + (pred30d/100) * (i+1)/30));
+                // Linear interpolation from start to end
+                const progress = i / 29; // 0 to 1
+                predicted30d.push(predicted30dStartPrice + (predicted30dFinalPrice - predicted30dStartPrice) * progress);
             }
             
             // Blue line: REAL MARKET DATA for 30D view
@@ -1062,6 +1080,21 @@
             // Add real market data based on trading days completed
             for (let i = 1; i <= tradingDaysCompleted && i < 30; i++) {
                 actual30d[i] = basePrice * (0.95 + Math.random() * 0.1); // Realistic market movement
+            }
+            
+            // Red line: Updated predictions for 30D (incremental from change day forward)
+            if (stockIndex % 3 === 0 && tradingDaysCompleted > 0) {
+                // Prediction changed on day 2, show new straight line from day 2 to end
+                const changeDay = 2;
+                const newPredicted30dFinalPrice = predicted30dFinalPrice * 0.95; // 5% lower prediction
+                const changeDayPrice = actual30d[changeDay] || basePrice;
+                
+                // Fill from change day forward with straight line
+                for (let i = changeDay; i < 30; i++) {
+                    const remainingDays = 29 - changeDay;
+                    const dayProgress = remainingDays > 0 ? (i - changeDay) / remainingDays : 0;
+                    updated30d[i] = changeDayPrice + (newPredicted30dFinalPrice - changeDayPrice) * dayProgress;
+                }
             }
             
             // Merge with existing data if provided, otherwise use defaults
@@ -1075,8 +1108,8 @@
                 actual_progress_30d: actual30d,
                 updated_prediction_5d: updated5d,
                 updated_prediction_30d: updated30d,
-                changed_on_5d: baseData.changed_on_5d || null,
-                changed_on_30d: baseData.changed_on_30d || null,
+                changed_on_5d: baseData.changed_on_5d || (updated5d.some(val => val !== null) ? 1 : null),
+                changed_on_30d: baseData.changed_on_30d || (updated30d.some(val => val !== null) ? 2 : null),
                 // Preserve existing lock states or use defaults
                 locked_5d: baseData.locked_5d || false,
                 locked_30d: baseData.locked_30d || false,
@@ -1238,7 +1271,7 @@
             const actualKey = `actual_progress_${currentView}`;
             const updatedKey = `updated_prediction_${currentView}`;
             
-            // Green line: Show FULL prediction line for complete period
+            // Green line: Show STRAIGHT prediction line for complete period (start to end)
             const predictedData = data[predictedKey] || Array(days).fill(null);
             
             // Blue line: Show ONLY actual prices that have occurred (progressive)
@@ -1252,16 +1285,19 @@
                 return null; // Future days should be null
             });
             
-            // Red line: Show ONLY updated predictions that have occurred (progressive)
+            // Red line: Show updated predictions incrementally from change day forward
             const updatedDataRaw = data[updatedKey] || Array(days).fill(null);
-            // Filter to show only updated predictions for days that have actual data
-            const updatedData = updatedDataRaw.map((value, index) => {
-                // Only show updated predictions for days where we have actual data
-                if (value !== null && actualData[index] !== null) {
-                    return value;
+            const changedOn = data[changedKey];
+            let updatedData = Array(days).fill(null);
+            
+            if (changedOn !== null && changedOn !== undefined) {
+                // Show updated prediction from change day forward as straight line
+                for (let i = changedOn; i < days; i++) {
+                    if (updatedDataRaw[i] !== null) {
+                        updatedData[i] = updatedDataRaw[i];
+                    }
                 }
-                return null; // No updated prediction if no actual data yet
-            });
+            }
             
             // Update chart container styling based on lock status
             const chartContainer = document.getElementById('chartContainer');
@@ -1284,38 +1320,40 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Original Prediction (Full)',
+                            label: 'Original Prediction (Straight Line)',
                             data: predictedData,
                             borderColor: '#27ae60',
                             backgroundColor: 'rgba(39, 174, 96, 0.1)',
-                            borderDash: [5, 5],
-                            borderWidth: 2,
+                            borderWidth: 3,
                             fill: false,
                             pointRadius: 4,
-                            pointHoverRadius: 6
+                            pointHoverRadius: 6,
+                            spanGaps: true,
+                            tension: 0 // Ensures straight lines
                         },
                         {
                             label: 'Actual Price (Progressive)',
                             data: actualData,
                             borderColor: '#3498db',
                             backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 4,
+                            fill: false,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            spanGaps: false,
+                            tension: 0.1 // Slight curve for actual data
+                        },
+                        {
+                            label: 'Updated Prediction (Incremental)',
+                            data: updatedData,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
                             borderWidth: 3,
                             fill: false,
                             pointRadius: 5,
                             pointHoverRadius: 7,
-                            spanGaps: false
-                        },
-                        {
-                            label: 'Updated Prediction (Progressive)',
-                            data: updatedData,
-                            borderColor: '#e74c3c',
-                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                            borderDash: [3, 3],
-                            borderWidth: 2,
-                            fill: false,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            spanGaps: false
+                            spanGaps: true,
+                            tension: 0 // Ensures straight lines for updated predictions
                         }
                     ]
                 },

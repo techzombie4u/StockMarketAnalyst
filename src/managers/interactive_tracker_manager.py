@@ -163,15 +163,19 @@ class InteractiveTrackerManager:
             predicted_5d = []
             predicted_30d = []
 
-            # Generate 5-day predictions
+            # Generate 5-day predictions (straight line from start to end)
+            final_price_5d = current_price * (1 + pred_5d / 100)
+            start_price_5d = final_price_5d * 0.95  # Start slightly below final
             for i in range(5):
-                daily_change = (pred_5d / 100) * (i + 1) / 5
-                predicted_5d.append(current_price * (1 + daily_change))
+                progress = i / 4 if i > 0 else 0  # Linear progression
+                predicted_5d.append(start_price_5d + (final_price_5d - start_price_5d) * progress)
 
-            # Generate 30-day predictions
+            # Generate 30-day predictions (straight line from start to end)
+            final_price_30d = current_price * (1 + pred_30d / 100)
+            start_price_30d = final_price_30d * 0.98  # Start slightly below final
             for i in range(30):
-                daily_change = (pred_30d / 100) * (i + 1) / 30
-                predicted_30d.append(current_price * (1 + daily_change))
+                progress = i / 29 if i > 0 else 0  # Linear progression
+                predicted_30d.append(start_price_30d + (final_price_30d - start_price_30d) * progress)
 
             stock_data = {
                 'symbol': symbol,
