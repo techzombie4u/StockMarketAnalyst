@@ -3,6 +3,41 @@
 
 All notable changes to the Stock Market Analyst application will be documented in this file.
 
+## [1.7.2] - 2025-08-06
+
+### Added
+- **Complete Options Trading Engine**: Short strangle strategy analysis with real-time Yahoo Finance data
+- **Interactive Options Dashboard**: Professional trading interface with auto-refresh capabilities
+- **Advanced Risk Management**: Comprehensive risk assessment and ROI calculations
+- **Options Chain Integration**: Real-time options data with premium calculations
+- **Strategy Optimization**: Automated strike price selection and breakeven analysis
+
+### Enhanced
+- **UI Stability**: Fixed template routing conflicts and JavaScript errors
+- **Error Handling**: Comprehensive fallback systems for all trading features
+- **Data Display**: Improved options data rendering with proper null checks
+- **User Experience**: Smoother navigation and enhanced error recovery
+- **API Integration**: Seamless Yahoo Finance options data integration
+
+### Fixed
+- **Template Routing**: Resolved conflicts between organized and backup app structures
+- **JavaScript Errors**: Fixed 'toFixed()' undefined errors in options strategy display
+- **Import Conflicts**: Cleaned up Callable type import issues across modules
+- **Data Loading**: Enhanced error handling for options strategy data fetching
+- **Syntax Errors**: Fixed malformed string literals in backup application
+
+## [1.7.1] - 2025-08-06
+
+### Added
+- **WSGI Optimization**: Production-ready deployment configuration
+- **Code Organization**: Complete src/ directory structure implementation
+- **Enhanced Dependencies**: Complete requirements.txt specification
+
+### Fixed
+- **Deployment Issues**: Resolved WSGI module import failures
+- **Import Paths**: Fixed organized structure import conflicts
+- **Error Recovery**: Enhanced production environment error handling
+
 ## [1.7.0] - 2025-08-08
 
 ### Added

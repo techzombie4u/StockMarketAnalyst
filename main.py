@@ -46,7 +46,7 @@ def check_organized_structure():
 def run_organized_version():
     """Run the organized version of the application"""
     try:
-        logger.info("🚀 Starting Stock Market Analyst - Version 1.7.1 (Organized Version)")
+        logger.info("🚀 Starting Stock Market Analyst - Version 1.7.2 (Organized Version)")
 
         # Import the app directly without separate Callable import
         from src.core.app import app
@@ -69,7 +69,7 @@ def run_organized_version():
 def run_backup_version():
     """Run the backup version of the application"""
     try:
-        logger.info("🚀 Starting Stock Market Analyst - Version 1.7.1 (Backup Version)")
+        logger.info("🚀 Starting Stock Market Analyst - Version 1.7.2 (Backup Version)")
 
         # Change to backup directory
         backup_dir = '_backup_before_organization'
