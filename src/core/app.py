@@ -24,10 +24,10 @@ logger = logging.getLogger(__name__)
 
 # Set template folder to the correct location
 import os
-template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates')
+template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates', 'templates')
 if not os.path.exists(template_dir):
-    # Fallback to templates subfolder if it exists
-    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates', 'templates')
+    # Fallback to web/templates if templates subfolder doesn't exist
+    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates')
     if not os.path.exists(template_dir):
         # Final fallback to backup templates
         template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '_backup_before_organization', 'templates')

@@ -21,8 +21,27 @@ else:
 try:
     # Try to run from organized structure first
     print("🚀 Starting Stock Market Analyst - Version 1.7.1 (Organized Version)")
-    from src.core.main import main
-    main()
+    from src.core.app import app
+    
+    # Print startup information
+    print("\n" + "="*60)
+    print("📈 STOCK MARKET ANALYST - DASHBOARD")
+    print("="*60)
+    print(f"🌐 Web Dashboard: http://localhost:5000")
+    print(f"📊 API Endpoint: http://localhost:5000/api/stocks")
+    print(f"🔄 Auto-refresh: Every 60 minutes")
+    print("="*60)
+    print("\n✅ Application started successfully!")
+    print("📱 Open your browser and navigate to http://localhost:5000")
+    print("\n🛑 Press Ctrl+C to stop the application\n")
+
+    # Run Flask app directly
+    app.run(
+        host='0.0.0.0',
+        port=5000,
+        debug=False,
+        threaded=True
+    )
 
 except Exception as e:
     print(f"❌ Error starting organized version: {e}")
