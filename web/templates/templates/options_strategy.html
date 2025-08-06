@@ -345,8 +345,11 @@
             
             let html = '';
             
-            // Summary cards
+            // Summary cards with safe number handling
             if (summary.total_opportunities || summary.high_confidence_count || summary.average_roi || summary.total_premium_potential) {
+                const avgRoi = Number(summary.average_roi || 0);
+                const totalPremium = Number(summary.total_premium_potential || 0);
+                
                 html += `
                     <div class="summary">
                         <div class="summary-item">
@@ -358,11 +361,11 @@
                             <p>High Confidence</p>
                         </div>
                         <div class="summary-item">
-                            <h3>${(summary.average_roi || 0).toFixed(1)}%</h3>
+                            <h3>${avgRoi.toFixed(1)}%</h3>
                             <p>Average ROI</p>
                         </div>
                         <div class="summary-item">
-                            <h3>₹${(summary.total_premium_potential || 0).toLocaleString()}</h3>
+                            <h3>₹${totalPremium.toLocaleString()}</h3>
                             <p>Total Premium Potential</p>
                         </div>
                     </div>
@@ -395,18 +398,30 @@
                 
                 const tbody = document.getElementById('strategiesTableBody');
                 strategies.forEach(strategy => {
+                    // Safe number conversion with fallbacks
+                    const currentPrice = Number(strategy.current_price || 0);
+                    const callStrike = Number(strategy.call_strike || 0);
+                    const putStrike = Number(strategy.put_strike || 0);
+                    const totalPremium = Number(strategy.total_premium || 0);
+                    const breakevenLower = Number(strategy.breakeven_lower || 0);
+                    const breakevenUpper = Number(strategy.breakeven_upper || 0);
+                    const marginRequired = Number(strategy.margin_required || 0);
+                    const expectedRoi = Number(strategy.expected_roi || 0);
+                    const confidence = Number(strategy.confidence || 0);
+                    const riskLevel = strategy.risk_level || 'Medium';
+                    
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td style="font-weight: 600;">${strategy.symbol}</td>
-                        <td>₹${strategy.current_price.toFixed(2)}</td>
-                        <td>₹${strategy.call_strike.toFixed(2)}</td>
-                        <td>₹${strategy.put_strike.toFixed(2)}</td>
-                        <td style="font-weight: 600; color: #38a169;">₹${strategy.total_premium.toFixed(2)}</td>
-                        <td>₹${strategy.breakeven_lower.toFixed(2)} - ₹${strategy.breakeven_upper.toFixed(2)}</td>
-                        <td>₹${strategy.margin_required.toLocaleString()}</td>
-                        <td style="font-weight: 600; color: #38a169;">${strategy.expected_roi.toFixed(1)}%</td>
-                        <td style="font-weight: 600;">${strategy.confidence.toFixed(0)}%</td>
-                        <td class="risk-${strategy.risk_level.toLowerCase()}">${strategy.risk_level}</td>
+                        <td style="font-weight: 600;">${strategy.symbol || 'N/A'}</td>
+                        <td>₹${currentPrice.toFixed(2)}</td>
+                        <td>₹${callStrike.toFixed(2)}</td>
+                        <td>₹${putStrike.toFixed(2)}</td>
+                        <td style="font-weight: 600; color: #38a169;">₹${totalPremium.toFixed(2)}</td>
+                        <td>₹${breakevenLower.toFixed(2)} - ₹${breakevenUpper.toFixed(2)}</td>
+                        <td>₹${marginRequired.toLocaleString()}</td>
+                        <td style="font-weight: 600; color: #38a169;">${expectedRoi.toFixed(1)}%</td>
+                        <td style="font-weight: 600;">${confidence.toFixed(0)}%</td>
+                        <td class="risk-${riskLevel.toLowerCase()}">${riskLevel}</td>
                     `;
                     tbody.appendChild(row);
                 });

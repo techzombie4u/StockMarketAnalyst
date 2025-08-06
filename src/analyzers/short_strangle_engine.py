@@ -120,28 +120,31 @@ class ShortStrangleEngine:
             confidence = self._calculate_confidence(symbol, breakeven_range_pct, iv)
             risk_level = self._determine_risk_level(expected_roi, confidence, iv)
             
-            return {
-                'symbol': symbol,
-                'current_price': current_price,
-                'call_strike': call_strike,
-                'put_strike': put_strike,
-                'call_premium': call_premium,
-                'put_premium': put_premium,
-                'total_premium': total_premium,
-                'breakeven_upper': breakeven_upper,
-                'breakeven_lower': breakeven_lower,
-                'breakeven_range_pct': breakeven_range_pct,
-                'margin_required': margin_required,
-                'expected_roi': expected_roi,
-                'annualized_roi': annualized_roi,
-                'confidence': confidence,
-                'implied_volatility': iv,
-                'risk_level': risk_level,
+            # Ensure all values are properly formatted numbers
+            strategy_data = {
+                'symbol': str(symbol),
+                'current_price': float(current_price),
+                'call_strike': float(call_strike),
+                'put_strike': float(put_strike),
+                'call_premium': float(call_premium),
+                'put_premium': float(put_premium),
+                'total_premium': float(total_premium),
+                'breakeven_upper': float(breakeven_upper),
+                'breakeven_lower': float(breakeven_lower),
+                'breakeven_range_pct': float(breakeven_range_pct),
+                'margin_required': float(margin_required),
+                'expected_roi': float(expected_roi),
+                'annualized_roi': float(annualized_roi),
+                'confidence': float(confidence),
+                'implied_volatility': float(iv),
+                'risk_level': str(risk_level),
                 'risk_color': 'success' if risk_level == 'Safe' else 'warning' if risk_level == 'Moderate' else 'danger',
-                'days_to_expiry': days_to_expiry,
-                'timeframe': timeframe,
+                'days_to_expiry': int(days_to_expiry),
+                'timeframe': str(timeframe),
                 'last_updated': datetime.now().isoformat()
             }
+            
+            return strategy_data
             
         except Exception as e:
             logger.error(f"❌ Error calculating strategy for {symbol}: {e}")
