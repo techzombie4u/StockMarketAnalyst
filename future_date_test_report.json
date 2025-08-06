@@ -1,0 +1,161 @@
+{
+  "test_timestamp": "2025-08-06T09:59:01.425488+05:30",
+  "total_scenarios": 5,
+  "scenarios": [
+    {
+      "name": "past_date",
+      "symbol": "TEST_PAST_DATE",
+      "start_date": "2025-07-27",
+      "locked_status": {
+        "5d": true,
+        "30d": false
+      },
+      "lock_dates": {
+        "5d": "2025-07-27",
+        "30d": null
+      },
+      "date_labels_5d": [
+        "Jul 28",
+        "Jul 29",
+        "Jul 30",
+        "Jul 31",
+        "Aug 01"
+      ],
+      "date_labels_30d": []
+    },
+    {
+      "name": "current_date",
+      "symbol": "TEST_CURRENT_DATE",
+      "start_date": "2025-08-06",
+      "locked_status": {
+        "5d": false,
+        "30d": false
+      },
+      "lock_dates": {
+        "5d": null,
+        "30d": null
+      },
+      "date_labels_5d": [],
+      "date_labels_30d": []
+    },
+    {
+      "name": "future_1week",
+      "symbol": "TEST_FUTURE_1WEEK",
+      "start_date": "2025-08-13",
+      "locked_status": {
+        "5d": true,
+        "30d": true
+      },
+      "lock_dates": {
+        "5d": "2025-08-13",
+        "30d": "2025-08-13"
+      },
+      "date_labels_5d": [
+        "Aug 13",
+        "Aug 14",
+        "Aug 15",
+        "Aug 18",
+        "Aug 19"
+      ],
+      "date_labels_30d": [
+        "Aug 13",
+        "Aug 14",
+        "Aug 15",
+        "Aug 18",
+        "Aug 19",
+        "Aug 20",
+        "Aug 21",
+        "Aug 22",
+        "Aug 25",
+        "Aug 26",
+        "Aug 27",
+        "Aug 28",
+        "Aug 29",
+        "Sep 01",
+        "Sep 02",
+        "Sep 03",
+        "Sep 04",
+        "Sep 05",
+        "Sep 08",
+        "Sep 09",
+        "Sep 10",
+        "Sep 11",
+        "Sep 12",
+        "Sep 15",
+        "Sep 16",
+        "Sep 17",
+        "Sep 18",
+        "Sep 19",
+        "Sep 22",
+        "Sep 23"
+      ]
+    },
+    {
+      "name": "future_1month",
+      "symbol": "TEST_FUTURE_1MONTH",
+      "start_date": "2025-09-05",
+      "locked_status": {
+        "5d": false,
+        "30d": true
+      },
+      "lock_dates": {
+        "5d": null,
+        "30d": "2025-09-05"
+      },
+      "date_labels_5d": [],
+      "date_labels_30d": [
+        "Sep 05",
+        "Sep 08",
+        "Sep 09",
+        "Sep 10",
+        "Sep 11",
+        "Sep 12",
+        "Sep 15",
+        "Sep 16",
+        "Sep 17",
+        "Sep 18",
+        "Sep 19",
+        "Sep 22",
+        "Sep 23",
+        "Sep 24",
+        "Sep 25",
+        "Sep 26",
+        "Sep 29",
+        "Sep 30",
+        "Oct 01",
+        "Oct 02",
+        "Oct 03",
+        "Oct 06",
+        "Oct 07",
+        "Oct 08",
+        "Oct 09",
+        "Oct 10",
+        "Oct 13",
+        "Oct 14",
+        "Oct 15",
+        "Oct 16"
+      ]
+    },
+    {
+      "name": "next_monday",
+      "symbol": "TEST_NEXT_MONDAY",
+      "start_date": "2025-08-11",
+      "locked_status": {
+        "5d": true,
+        "30d": false
+      },
+      "lock_dates": {
+        "5d": "2025-08-11",
+        "30d": null
+      },
+      "date_labels_5d": [
+        "Aug 11",
+        "Aug 12",
+        "Aug 13",
+        "Aug 14",
+        "Aug 15"
+      ],
+      "date_labels_30d": []
+    }
+  ]
+}
