@@ -114,12 +114,24 @@ def run_system_health_check():
     try:
         print("🔧 Running system health check...")
 
-        # Check if required files exist
-        required_files = ['stock_screener.py', 'scheduler.py', 'app.py', 'templates/index.html']
+        # Check if required files exist in organized structure
+        required_files = [
+            'src/analyzers/stock_screener.py', 
+            'src/core/scheduler.py', 
+            'src/core/app.py', 
+            'web/templates/templates/index.html'
+        ]
+        
+        all_exist = True
         for file in required_files:
             if not os.path.exists(file):
                 print(f"❌ Missing required file: {file}")
-                return False
+                all_exist = False
+            else:
+                print(f"✅ Found: {file}")
+        
+        if not all_exist:
+            return False
 
         # Test stock screener functionality
         from src.analyzers.stock_screener import EnhancedStockScreener
