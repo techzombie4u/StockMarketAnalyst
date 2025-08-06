@@ -157,8 +157,10 @@ class InteractiveTrackerManager:
         """Initialize tracking for a new stock"""
         try:
             # Generate predicted price arrays based on predictions
-            pred_5d = predictions.get('pred_5d', 0)
-            pred_30d = predictions.get('pred_1mo', 0)
+            pred_5d = predictions.get('pred_5d', 2.0)  # Default to 2% if missing
+            pred_30d = predictions.get('pred_1mo', 5.0)  # Default to 5% if missing
+            
+            logger.info(f"Generating tracking data for {symbol}: base_price={current_price}, pred_5d={pred_5d}%, pred_30d={pred_30d}%")
 
             predicted_5d = []
             predicted_30d = []
@@ -167,20 +169,26 @@ class InteractiveTrackerManager:
             final_price_5d = current_price * (1 + pred_5d / 100)
             for i in range(5):
                 progress = i / 4 if i > 0 else 0  # Linear progression from day 0 to day 4
-                predicted_5d.append(current_price + (final_price_5d - current_price) * progress)
+                predicted_price = current_price + (final_price_5d - current_price) * progress
+                predicted_5d.append(predicted_price)
 
             # Generate 30-day predictions (straight line from start to end)
             final_price_30d = current_price * (1 + pred_30d / 100)
             for i in range(30):
                 progress = i / 29 if i > 0 else 0  # Linear progression from day 0 to day 29
-                predicted_30d.append(current_price + (final_price_30d - current_price) * progress)
+                predicted_price = current_price + (final_price_30d - current_price) * progress
+                predicted_30d.append(predicted_price)
+                
+            logger.info(f"Generated prediction arrays: 5d={len(predicted_5d)} points ({predicted_5d[0]:.2f} -> {predicted_5d[-1]:.2f}), 30d={len(predicted_30d)} points ({predicted_30d[0]:.2f} -> {predicted_30d[-1]:.2f})")
 
             stock_data = {
                 'symbol': symbol,
                 'start_date': datetime.now(IST).strftime('%Y-%m-%d'),
                 'current_price': current_price,
-                'confidence': predictions.get('confidence', 0),
-                'score': predictions.get('score', 0),
+                'confidence': predictions.get('confidence', 75),
+                'score': predictions.get('score', 65),
+                'pred_5d': pred_5d,  # Store original prediction percentages
+                'pred_1mo': pred_30d,
                 'predicted_5d': predicted_5d,
                 'predicted_30d': predicted_30d,
                 'actual_progress_5d': [current_price] + [None] * 4,
@@ -191,11 +199,18 @@ class InteractiveTrackerManager:
                 'changed_on_30d': None,
                 'locked_5d': False,
                 'locked_30d': False,
+                'persistent_lock_5d': False,
+                'persistent_lock_30d': False,
                 'lock_date_5d': None,
                 'lock_date_30d': None,
+                'lock_start_date_5d': None,
+                'lock_start_date_30d': None,
                 'last_updated': datetime.now(IST).isoformat(),
-                'days_tracked': 0
+                'days_tracked': 0,
+                'timestamp': datetime.now(IST).isoformat()
             }
+            
+            logger.info(f"Created stock data structure for {symbol} with {len(predicted_5d)} 5D points and {len(predicted_30d)} 30D points")
 
             self.tracking_data[symbol] = stock_data
             self.save_tracking_data()

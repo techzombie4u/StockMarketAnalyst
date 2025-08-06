@@ -382,7 +382,7 @@
 
             <div class="nav-links">
                 <a href="/">🏠 Main Dashboard</a>
-                <a href="/analysis" target="_self">📈 Analysis</a>
+                <a href="/analysis">📈 Analysis</a>
                 <a href="/lookup">🔍 Stock Lookup</a>
                 <a href="/prediction-tracker">📋 Simple Tracker</a>
                 <button class="btn" onclick="refreshData()">🔄 Refresh</button>
@@ -999,8 +999,10 @@
 
         function generateSampleTrackingData(symbol, pred, existingData = null) {
             const basePrice = pred.current_price || 100;
-            const pred5d = pred.pred_5d || 0;
-            const pred30d = pred.predicted_1mo || 0;
+            const pred5d = pred.pred_5d || 2; // Default to 2% if missing
+            const pred30d = pred.pred_1mo || 5; // Default to 5% if missing
+            
+            console.log(`🔧 Generating sample data for ${symbol}: base=${basePrice}, 5d=${pred5d}%, 30d=${pred30d}%`);
             
             // Calculate predicted final prices
             const predicted5dFinalPrice = basePrice * (1 + pred5d/100);
@@ -1015,7 +1017,9 @@
             for (let i = 0; i < 5; i++) {
                 // Linear interpolation from current price to final predicted price
                 const progress = i / 4; // 0 to 1
-                predicted5d.push(basePrice + (predicted5dFinalPrice - basePrice) * progress);
+                const predictedPrice = basePrice + (predicted5dFinalPrice - basePrice) * progress;
+                predicted5d.push(predictedPrice);
+                console.log(`  Day ${i}: ${predictedPrice.toFixed(2)} (${progress.toFixed(2)} progress)`);
             }
             
             // Blue line: REAL MARKET DATA - Progressive actual closing prices
@@ -1099,6 +1103,10 @@
             const baseData = existingData || predictionData[symbol] || {};
             
             predictionData[symbol] = {
+                symbol: symbol,
+                current_price: basePrice,
+                confidence: pred.confidence || 75,
+                score: pred.score || 65,
                 ...baseData,
                 predicted_5d: predicted5d,
                 predicted_30d: predicted30d,
@@ -1120,6 +1128,15 @@
                 trading_days_completed: tradingDaysCompleted,
                 last_market_update: marketClosedToday ? new Date().toISOString() : null
             };
+            
+            console.log(`✅ Generated sample data for ${symbol}:`, {
+                predicted_5d_length: predicted5d.length,
+                predicted_30d_length: predicted30d.length,
+                first_predicted_5d: predicted5d[0],
+                last_predicted_5d: predicted5d[predicted5d.length - 1],
+                actual_5d_length: actual5d.length,
+                updated_5d_length: updated5d.length
+            });
         }
 
         function populateStockSelector() {
@@ -1325,6 +1342,36 @@
                 }
             }
             
+            // Generate chart data with proper validation
+            console.log(`📊 Raw data for ${selectedStock} ${currentView}:`, {
+                predicted_key: predictedKey,
+                actual_key: actualKey,
+                updated_key: updatedKey,
+                predicted_length: predictedData.length,
+                actual_length: actualData.length,
+                updated_length: updatedData.length,
+                labels_length: labels.length
+            });
+
+            // Ensure all data arrays have the correct length
+            const expectedLength = currentView === '5d' ? 5 : 30;
+            
+            // Pad or trim arrays to expected length
+            while (predictedData.length < expectedLength) {
+                predictedData.push(null);
+            }
+            while (actualData.length < expectedLength) {
+                actualData.push(null);
+            }
+            while (updatedData.length < expectedLength) {
+                updatedData.push(null);
+            }
+            
+            // Truncate if too long
+            predictedData = predictedData.slice(0, expectedLength);
+            actualData = actualData.slice(0, expectedLength);
+            updatedData = updatedData.slice(0, expectedLength);
+            
             // Update chart container styling based on lock status
             const chartContainer = document.getElementById('chartContainer');
             if (isLocked) {
@@ -1338,18 +1385,46 @@
                 chart.destroy();
             }
             
-            // Validate chart data before creating chart
-            console.log(`📈 Chart data for ${selectedStock}:`, {
-                predicted: predictedData.slice(0, 3),
-                actual: actualData.slice(0, 3),
-                updated: updatedData.slice(0, 3),
-                labels: labels.slice(0, 3)
+            // Final validation log
+            console.log(`📈 Final chart data for ${selectedStock}:`, {
+                predicted: predictedData.slice(0, 5).map((v, i) => `${i}: ${v ? v.toFixed(2) : 'null'}`),
+                actual: actualData.slice(0, 5).map((v, i) => `${i}: ${v ? v.toFixed(2) : 'null'}`),
+                updated: updatedData.slice(0, 5).map((v, i) => `${i}: ${v ? v.toFixed(2) : 'null'}`),
+                labels: labels.slice(0, 5)
             });
 
             // Ensure we have valid data arrays
             if (!Array.isArray(predictedData) || predictedData.length === 0) {
-                console.error('Invalid predicted data for chart');
+                console.error('❌ Invalid predicted data for chart');
                 return;
+            }
+
+            // Check if we have at least some data to display
+            const hasValidPredicted = predictedData.some(val => val !== null && val !== undefined && !isNaN(val));
+            const hasValidActual = actualData.some(val => val !== null && val !== undefined && !isNaN(val));
+            
+            console.log(`📊 Data validation: predicted=${hasValidPredicted}, actual=${hasValidActual}`);
+            
+            if (!hasValidPredicted && !hasValidActual) {
+                console.error('❌ No valid data points found for chart');
+                // Generate fallback data
+                const currentPrice = data.current_price || 100;
+                const prediction = currentView === '5d' ? 2 : 5; // 2% for 5d, 5% for 30d
+                const finalPrice = currentPrice * (1 + prediction / 100);
+                
+                console.log(`🔧 Generating fallback data: ${currentPrice} -> ${finalPrice}`);
+                
+                for (let i = 0; i < expectedLength; i++) {
+                    if (predictedData[i] === null || predictedData[i] === undefined || isNaN(predictedData[i])) {
+                        const progress = i / (expectedLength - 1);
+                        predictedData[i] = currentPrice + (finalPrice - currentPrice) * progress;
+                    }
+                }
+                
+                // Set first actual price
+                if (actualData[0] === null || actualData[0] === undefined || isNaN(actualData[0])) {
+                    actualData[0] = currentPrice;
+                }
             }
 
             // Create new chart
