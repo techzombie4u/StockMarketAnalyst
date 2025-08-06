@@ -525,9 +525,35 @@
             isLoading = true;
             setButtonState(true);
             showLoading();
-            log('Loading options strategies...');
+            log('Starting manual screening for fresh options strategies...');
 
             try {
+                // First, trigger manual screening like Refresh Now button
+                log('🔄 Triggering manual screening...');
+                const screeningResponse = await fetch('/api/run-now', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!screeningResponse.ok) {
+                    throw new Error(`Screening failed: HTTP ${screeningResponse.status}`);
+                }
+
+                const screeningResult = await screeningResponse.json();
+                log(`Screening result: ${screeningResult.message}`);
+
+                if (screeningResult.success) {
+                    log('✅ Screening completed - generating fresh strategies...');
+                    // Wait a bit for data to be processed
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                } else {
+                    log('⚠️ Screening completed with issues, proceeding with existing data...');
+                }
+
+                // Now load the options strategies with fresh data
                 const response = await fetch('/api/options-strategies', {
                     method: 'GET',
                     headers: {
@@ -541,7 +567,7 @@
                 }
 
                 const result = await response.json();
-                log(`Received ${result.strategies ? result.strategies.length : 0} strategies`);
+                log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies`);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
                     optionsData = result.strategies;
@@ -551,6 +577,7 @@
                         updateOptionsTable(filteredData);
                         updateMetrics(filteredData);
                         showData();
+                        log('🎉 Fresh options strategies loaded successfully');
                     } else {
                         updateMetrics([]);
                         showEmpty();
@@ -561,7 +588,7 @@
                 }
 
             } catch (error) {
-                log(`Error loading strategies: ${error.message}`, 'error');
+                log(`Error generating fresh strategies: ${error.message}`, 'error');
                 updateMetrics([]);
                 showEmpty();
             } finally {
