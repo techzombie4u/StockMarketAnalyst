@@ -287,8 +287,8 @@
 </head>
 <body>
     <div class="header">
-        <h1>💰 Options</h1>
-        <p>Short Strangle Strategy using AI-Enhanced Stock Predictions</p>
+        <h1>💰 Options Income</h1>
+        <p>Monthly Passive Income via Short Strangle Strategy - Tier 1 Stocks Only</p>
 
         <div class="navigation">
             <a href="/" class="nav-btn home">🏠 Dashboard</a>
@@ -300,9 +300,10 @@
     <div class="container">
         <div class="strategy-info">
             <div class="strategy-explanation">
-                <h3>📈 Short Strangle Strategy</h3>
-                <p>This strategy involves selling both a call and put option (out-of-the-money) on stocks with high prediction confidence. 
-                   Profit is maximized when the stock price stays within the breakeven range. Uses your ML predictions to select optimal candidates.</p>
+                <h3>📈 Monthly Short Strangle Strategy</h3>
+                <p><strong>Tier 1 Stocks Only:</strong> RELIANCE, HDFC BANK, TCS, ITC, INFY, HUL - handpicked for consistent passive income.</p>
+                <p><strong>Strategy:</strong> Sell OTM Call + OTM Put (±3-5% strikes). Max profit = Premium collected. Best when price stays within breakeven range.</p>
+                <p><strong>Capital:</strong> ₹1.5-2L per strangle recommended. <strong>Timeframe:</strong> Monthly expiries for optimal theta decay.</p>
             </div>
         </div>
 
@@ -328,24 +329,31 @@
         <div class="controls">
             <div class="filter-row">
                 <div class="filter-group">
+                    <label>Timeframe:</label>
+                    <select class="filter-input" id="timeframeSelect">
+                        <option value="5D">5 Days</option>
+                        <option value="10D">10 Days</option>
+                        <option value="30D" selected>30 Days (Monthly)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label>Min ROI %:</label>
-                    <input type="number" class="filter-input" id="minROI" value="0" min="0" max="100">
+                    <input type="number" class="filter-input" id="minROI" value="8" min="0" max="100">
                 </div>
                 <div class="filter-group">
                     <label>Min Confidence %:</label>
-                    <input type="number" class="filter-input" id="minConfidence" value="0" min="0" max="100">
+                    <input type="number" class="filter-input" id="minConfidence" value="70" min="0" max="100">
                 </div>
                 <div class="filter-group">
                     <label>Max Margin ₹:</label>
-                    <input type="number" class="filter-input" id="maxMargin" value="50000" min="1000" step="1000">
+                    <input type="number" class="filter-input" id="maxMargin" value="200000" min="10000" step="10000">
                 </div>
                 <div class="filter-group">
-                    <label>Strategy Type:</label>
-                    <select class="filter-input" id="strategyType">
-                        <option value="all">All Strategies</option>
-                        <option value="conservative">Conservative</option>
-                        <option value="moderate">Moderate</option>
-                        <option value="aggressive">Aggressive</option>
+                    <label>Risk Level:</label>
+                    <select class="filter-input" id="riskFilter">
+                        <option value="all">All Risk Levels</option>
+                        <option value="Safe">Safe Only</option>
+                        <option value="Moderate">Safe + Moderate</option>
                     </select>
                 </div>
                 <button class="refresh-btn" id="refreshBtn" onclick="loadOptionsData()">
@@ -382,8 +390,10 @@
                         <th>💎 Total Premium</th>
                         <th>📊 Breakeven Range</th>
                         <th>💰 Margin Req.</th>
-                        <th>📈 Expected ROI</th>
+                        <th>📈 ROI %</th>
                         <th>🎯 Confidence</th>
+                        <th>📊 IV %</th>
+                        <th>🛡️ Risk Level</th>
                         <th>📋 Actions</th>
                     </tr>
                 </thead>
@@ -478,22 +488,31 @@
             tbody.innerHTML = '';
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #666; padding: 40px;">No options strategies available with current filters.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #666; padding: 40px;">No options strategies available with current filters.</td></tr>';
                 return;
             }
 
             data.forEach((option, index) => {
                 const row = document.createElement('tr');
+                
+                // Risk level badge styling
+                const riskBadgeClass = option.risk_color === 'success' ? 'confidence-high' : 
+                                     option.risk_color === 'warning' ? 'confidence-medium' : 'confidence-low';
+                
                 row.innerHTML = `
                     <td class="symbol">${option.symbol}</td>
                     <td>₹${option.current_price.toFixed(2)}</td>
                     <td>₹${option.call_strike.toFixed(2)}</td>
                     <td>₹${option.put_strike.toFixed(2)}</td>
                     <td style="font-weight: 600; color: #27ae60;">₹${option.total_premium.toFixed(0)}</td>
-                    <td>₹${option.breakeven_lower.toFixed(0)} - ₹${option.breakeven_upper.toFixed(0)}</td>
+                    <td>₹${option.breakeven_lower.toFixed(0)} - ₹${option.breakeven_upper.toFixed(0)}<br>
+                        <small style="color: #666;">(${option.breakeven_range_pct.toFixed(1)}% range)</small></td>
                     <td>₹${new Intl.NumberFormat('en-IN').format(option.margin_required)}</td>
-                    <td class="${getROIClass(option.expected_roi)}">${option.expected_roi.toFixed(1)}%</td>
+                    <td class="${getROIClass(option.expected_roi)}">${option.expected_roi.toFixed(1)}%<br>
+                        <small style="color: #666;">(${option.annualized_roi ? option.annualized_roi.toFixed(0) : 'N/A'}% p.a.)</small></td>
                     <td><span class="confidence-badge ${getConfidenceClass(option.confidence)}">${option.confidence.toFixed(0)}%</span></td>
+                    <td style="text-align: center;">${option.implied_volatility.toFixed(1)}%</td>
+                    <td><span class="confidence-badge ${riskBadgeClass}">${option.risk_level}</span></td>
                     <td>
                         <button class="action-btn view-btn" onclick="viewDetails('${option.symbol}')">View</button>
                         <button class="action-btn watch-btn" onclick="addToWatchlist('${option.symbol}')">Watch</button>
@@ -508,16 +527,16 @@
             const minROI = parseFloat(document.getElementById('minROI').value) || 0;
             const minConfidence = parseFloat(document.getElementById('minConfidence').value) || 0;
             const maxMargin = parseFloat(document.getElementById('maxMargin').value) || 999999;
-            const strategyType = document.getElementById('strategyType').value;
+            const riskFilter = document.getElementById('riskFilter').value;
 
             // Update current filter display
             document.getElementById('currentMinROI').textContent = minROI;
             document.getElementById('currentMinConf').textContent = minConfidence;
             document.getElementById('currentMaxMargin').textContent = new Intl.NumberFormat('en-IN').format(maxMargin);
 
-            log(`Applying filters: minROI=${minROI}, minConfidence=${minConfidence}, maxMargin=${maxMargin}, type=${strategyType}`);
+            log(`Applying filters: minROI=${minROI}, minConfidence=${minConfidence}, maxMargin=${maxMargin}, risk=${riskFilter}`);
 
-            let roiFiltered = 0, confidenceFiltered = 0, marginFiltered = 0, typeFiltered = 0;
+            let roiFiltered = 0, confidenceFiltered = 0, marginFiltered = 0, riskFiltered = 0;
 
             const filtered = data.filter(option => {
                 if (option.expected_roi < minROI) {
@@ -533,23 +552,20 @@
                     return false;
                 }
 
-                if (strategyType === 'conservative' && option.expected_roi > 20) {
-                    typeFiltered++;
+                // Risk level filtering
+                if (riskFilter === 'Safe' && option.risk_level !== 'Safe') {
+                    riskFiltered++;
                     return false;
                 }
-                if (strategyType === 'moderate' && (option.expected_roi < 15 || option.expected_roi > 30)) {
-                    typeFiltered++;
-                    return false;
-                }
-                if (strategyType === 'aggressive' && option.expected_roi < 25) {
-                    typeFiltered++;
+                if (riskFilter === 'Moderate' && !['Safe', 'Moderate'].includes(option.risk_level)) {
+                    riskFiltered++;
                     return false;
                 }
 
                 return true;
             });
 
-            log(`Filter results: ROI filtered: ${roiFiltered}, Confidence filtered: ${confidenceFiltered}, Margin filtered: ${marginFiltered}, Type filtered: ${typeFiltered}`);
+            log(`Filter results: ROI filtered: ${roiFiltered}, Confidence filtered: ${confidenceFiltered}, Margin filtered: ${marginFiltered}, Risk filtered: ${riskFiltered}`);
             log(`Filtered ${data.length} strategies down to ${filtered.length}`);
             return filtered;
         }
@@ -560,7 +576,9 @@
             isLoading = true;
             setButtonState(true);
             showLoading();
-            log('Starting manual screening for fresh options strategies...');
+            
+            const timeframe = document.getElementById('timeframeSelect').value;
+            log(`Starting manual screening for fresh options strategies (${timeframe})...`);
 
             try {
                 // First, trigger manual screening like Refresh Now button
@@ -589,7 +607,7 @@
                 }
 
                 // Now load the options strategies with fresh data
-                const response = await fetch('/api/options-strategies', {
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -603,27 +621,22 @@
 
                 const result = await response.json();
                 log(`Received response status: ${result.status}`);
-                log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies`);
+                log(`Received ${result.strategies ? result.strategies.length : 0} fresh strategies for ${timeframe}`);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
                     optionsData = result.strategies;
                     log(`✅ Options data loaded: ${optionsData.length} strategies`);
 
-                    // Log first strategy for debugging
-                    if (optionsData.length > 0) {
-                        log(`Sample strategy: ${JSON.stringify(optionsData[0])}`);
+                    // Update metrics from summary
+                    if (result.summary) {
+                        document.getElementById('totalOpportunities').textContent = result.summary.total_opportunities || optionsData.length;
+                        document.getElementById('avgROI').textContent = (result.summary.average_roi || 0).toFixed(1) + '%';
+                        document.getElementById('highConfidence').textContent = result.summary.high_confidence_count || 0;
+                        document.getElementById('totalPremium').textContent = '₹' + new Intl.NumberFormat('en-IN').format(result.summary.total_premium_potential || 0);
                     }
 
                     const filteredData = applyFilters(optionsData);
                     log(`📊 After filtering: ${filteredData.length} strategies`);
-
-                    // Log current filter values for debugging
-                    const currentFilters = {
-                        minROI: parseFloat(document.getElementById('minROI').value) || 0,
-                        minConfidence: parseFloat(document.getElementById('minConfidence').value) || 0,
-                        maxMargin: parseFloat(document.getElementById('maxMargin').value) || 999999
-                    };
-                    log(`Current filters: ${JSON.stringify(currentFilters)}`);
 
                     if (filteredData.length > 0) {
                         updateOptionsTable(filteredData);
@@ -693,13 +706,18 @@
             }
         });
 
-        document.getElementById('strategyType').addEventListener('change', () => {
+        document.getElementById('riskFilter').addEventListener('change', () => {
             if (optionsData.length > 0) {
                 const filteredData = applyFilters(optionsData);
                 updateOptionsTable(filteredData);
                 updateMetrics(filteredData);
                 if (filteredData.length > 0) showData(); else showEmpty();
             }
+        });
+
+        document.getElementById('timeframeSelect').addEventListener('change', () => {
+            log('Timeframe changed, reloading data...');
+            loadOptionsData();
         });
 
         // Initialize

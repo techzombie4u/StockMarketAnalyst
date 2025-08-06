@@ -12,6 +12,13 @@ from flask_cors import CORS
 import logging
 import pytz
 from src.analyzers.historical_analyzer import HistoricalAnalyzer
+from src.analyzers.daily_technical_analyzer import DailyTechnicalAnalyzer
+from src.analyzers.stock_screener import StockScreener
+from src.analyzers.short_strangle_engine import ShortStrangleEngine
+from src.models.predictor import StockPredictor
+from src.managers.interactive_tracker_manager import InteractiveTrackerManager
+from src.managers.enhanced_error_handler import EnhancedErrorHandler
+from src.core.scheduler import SchedulerManager
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +38,12 @@ app.config['SECRET_KEY'] = 'your-secret-key-here'
 
 # Global scheduler instance
 scheduler = None
+
+# Initialize managers
+error_handler = EnhancedErrorHandler()
+interactive_tracker = InteractiveTrackerManager()
+scheduler_manager = SchedulerManager()
+strangle_engine = ShortStrangleEngine()
 
 # Timezone for India
 IST = pytz.timezone('Asia/Kolkata')
@@ -519,23 +532,23 @@ def load_tracking_metrics_for_analysis():
         from src.managers.interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
         tracking_data = tracker_manager.get_all_tracking_data()
-        
+
         locked_count = 0
         in_progress_count = 0
         metrics_5d = {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0}
         metrics_30d = {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0}
-        
+
         for symbol, data in tracking_data.items():
             # Count locked predictions
             if data.get('locked_5d') or data.get('locked_30d'):
                 locked_count += 1
-            
+
             # Count in-progress predictions
             if data.get('locked_5d') and is_prediction_in_progress(data, '5d'):
                 in_progress_count += 1
             if data.get('locked_30d') and is_prediction_in_progress(data, '30d'):
                 in_progress_count += 1
-                
+
             # Calculate 5D metrics
             if data.get('locked_5d') or data.get('days_tracked', 0) > 0:
                 metrics_5d['total'] += 1
@@ -546,7 +559,7 @@ def load_tracking_metrics_for_analysis():
                     metrics_5d['failed'] += 1
                 else:
                     metrics_5d['in_progress'] += 1
-                    
+
             # Calculate 30D metrics
             if data.get('locked_30d') or data.get('days_tracked', 0) > 0:
                 metrics_30d['total'] += 1
@@ -557,14 +570,14 @@ def load_tracking_metrics_for_analysis():
                     metrics_30d['failed'] += 1
                 else:
                     metrics_30d['in_progress'] += 1
-        
+
         return {
             'locked_predictions_count': locked_count,
             'in_progress_predictions': in_progress_count,
             'metrics_5d': metrics_5d,
             'metrics_30d': metrics_30d
         }
-        
+
     except Exception as e:
         logger.error(f"Error loading tracking metrics: {str(e)}")
         return {
@@ -581,18 +594,18 @@ def is_prediction_in_progress(data, period):
         lock_date = data.get(lock_start_date_key)
         if not lock_date:
             return False
-            
+
         from datetime import datetime
         import pytz
         IST = pytz.timezone('Asia/Kolkata')
-        
+
         start_date = datetime.strptime(lock_date, '%Y-%m-%d')
         current_date = datetime.now(IST).date()
         days_passed = (current_date - start_date.date()).days
-        
+
         total_days = 5 if period == '5d' else 30
         return days_passed < total_days
-        
+
     except Exception as e:
         logger.error(f"Error checking if prediction in progress: {str(e)}")
         return False
@@ -602,31 +615,31 @@ def get_prediction_result_for_analysis(data, period):
     try:
         actual_key = f'actual_progress_{period}'
         predicted_key = f'predicted_{period}'
-        
+
         actual_data = data.get(actual_key, [])
         predicted_data = data.get(predicted_key, [])
-        
+
         if not actual_data or not predicted_data:
             return 'in_progress'
-            
+
         # Filter out null values
         actual_values = [val for val in actual_data if val is not None]
-        
+
         required_days = 5 if period == '5d' else 30
         if len(actual_values) < required_days:
             return 'in_progress'
-            
+
         # Compare final values
         final_predicted = predicted_data[-1] if predicted_data else 0
         final_actual = actual_values[-1] if actual_values else 0
-        
+
         if final_predicted == 0 or final_actual == 0:
             return 'in_progress'
-            
+
         # Consider successful if within 5% of prediction
         error_percent = abs((final_actual - final_predicted) / final_predicted) * 100
         return 'successful' if error_percent <= 5 else 'failed'
-        
+
     except Exception as e:
         logger.error(f"Error getting prediction result: {str(e)}")
         return 'in_progress'
@@ -967,7 +980,7 @@ def get_analysis():
     try:
         # Load real-time session count from scheduler
         sessions_count = load_screening_sessions_count()
-        
+
         # Get successful sessions count from scheduler globals
         successful_sessions_count = 0
         successful_refresh_count = 0
@@ -1001,7 +1014,7 @@ def get_analysis():
 
         # Calculate dynamic accuracy rate based on actual performance
         accuracy_rate = calculate_historical_accuracy(successful_sessions_count, high_score_stocks, total_stocks_analyzed)
-        
+
         # If we have high-scoring stocks, boost accuracy for successful sessions
         if successful_sessions_count > 0 and high_score_stocks > 0:
             session_success_rate = (high_score_stocks / total_stocks_analyzed) * 100 if total_stocks_analyzed > 0 else 0
@@ -1202,500 +1215,77 @@ def prediction_tracker_interactive():
 
 @app.route('/options-strategy')
 def options_strategy():
-    """Options income strategy page for short strangle trading"""
+    """Options strategy page for passive income"""
     return render_template('options_strategy.html')
 
-@app.route('/api/predictions-tracker')
-def get_predictions_tracker():
-    """API endpoint to get prediction tracking data"""
-    try:
-        predictions = []
-
-        # Load current stock data first and add as predictions
-        try:
-            current_data = load_stock_data()
-            if current_data.get('stocks'):
-                for stock in current_data['stocks']:
-                    prediction_entry = {
-                        'symbol': stock.get('symbol', ''),
-                        'timestamp': current_data.get('timestamp', datetime.now(IST).isoformat()),
-                        'current_price': stock.get('current_price', 0),
-                        'predicted_price': stock.get('predicted_price', stock.get('current_price', 0)),
-                        'pred_5d': stock.get('pred_5d', 0),
-                        'predicted_1mo': stock.get('pred_1mo', 0),
-                        'confidence': stock.get('confidence', 0),
-                        'score': stock.get('score', 0),
-                        'source': 'current_screening'
-                    }
-                    predictions.append(prediction_entry)
-
-        except Exception as e:
-            logger.warning(f"Could not load current stock data: {str(e)}")
-
-        # Load historical predictions from predictions_history.json
-        try:
-            if os.path.exists('predictions_history.json'):
-                with open('predictions_history.json', 'r') as f:
-                    data = json.load(f)
-                    # Handle both list and dict formats
-                    if isinstance(data, list):
-                        historical_predictions = data
-                    elif isinstance(data, dict) and 'predictions' in data:
-                        historical_predictions = data['predictions']
-                    else:
-                        historical_predictions = []
-
-                    # Add source tag to historical predictions
-                    for pred in historical_predictions:
-                        pred['source'] = 'historical'
-                        # Ensure required fields exist
-                        if 'predicted_1mo' not in pred and 'pred_1mo' in pred:
-                            pred['predicted_1mo'] = pred['pred_1mo']
-                        if 'pred_5d' not in pred:
-                            pred['pred_5d'] = pred.get('predicted_1mo', 0) * 0.15  # Estimate
-
-                    predictions.extend(historical_predictions)
-
-        except Exception as e:
-            logger.warning(f"Could not load historical predictions: {str(e)}")
-
-        # Load stable predictions if available
-        try:
-            if os.path.exists('stable_predictions.json'):
-                with open('stable_predictions.json', 'r') as f:
-                    stable_data = json.load(f)
-                    for symbol, pred_data in stable_data.items():
-                        if isinstance(pred_data, dict):
-                            prediction_entry = {
-                                'symbol': symbol,
-                                'timestamp': pred_data.get('last_updated', datetime.now(IST).isoformat()),
-                                'current_price': pred_data.get('current_price', 0),
-                                'predicted_price': pred_data.get('predicted_price', pred_data.get('current_price', 0)),
-                                'pred_5d': pred_data.get('pred_5d', 0),
-                                'predicted_1mo': pred_data.get('pred_1mo', 0),
-                                'confidence': pred_data.get('confidence', 0),
-                                'score': pred_data.get('score', 0),
-                                'source': 'stable_predictions',
-                                'lock_reason': pred_data.get('lock_reason', 'unknown')
-                            }
-                            predictions.append(prediction_entry)
-
-        except Exception as e:
-            logger.warning(f"Could not load stable predictions: {str(e)}")
-
-        # Remove duplicates (keep most recent per symbol)
-        unique_predictions = {}
-        for pred in predictions:
-            symbol = pred['symbol']
-            timestamp = pred.get('timestamp', '')
-
-            if symbol not in unique_predictions or timestamp > unique_predictions[symbol].get('timestamp', ''):
-                unique_predictions[symbol] = pred
-
-        final_predictions = list(unique_predictions.values())
-
-        # Sort by timestamp (newest first)
-        final_predictions.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-
-        logger.info(f"Serving {len(final_predictions)} predictions to tracker")
-
-        return jsonify({
-            'status': 'success',
-            'predictions': final_predictions,
-            'total_count': len(final_predictions),
-            'timestamp': datetime.now(IST).isoformat()
-        })
-
-    except Exception as e:
-        logger.error(f"Error in predictions tracker API: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'error': str(e),
-            'predictions': [],
-            'total_count': 0,
-            'timestamp': datetime.now(IST).isoformat()
-        }), 500
-
-@app.route('/api/interactive-tracker-data')
-def get_interactive_tracker_data():
-    """API endpoint for interactive tracker enhanced data with validation"""
-    try:
-        # Load interactive tracking data
-        tracking_data = load_interactive_tracking_data()
-
-        # If no tracking data exists, create initial structure
-        if not tracking_data:
-            tracking_data = initialize_empty_tracking_data()
-
-        # Validate tracking data structure for charts
-        validated_data = {}
-        for symbol, data in tracking_data.items():
-            try:
-                # Ensure all required arrays exist and have correct lengths
-                validated_data[symbol] = {
-                    'symbol': symbol,
-                    'current_price': float(data.get('current_price', 100)),
-                    'confidence': data.get('confidence', 75),
-                    'score': data.get('score', 65),
-                    'pred_5d': float(data.get('pred_5d', 2.0)),
-                    'pred_1mo': float(data.get('pred_1mo', 8.0)),
-                    'predicted_5d': data.get('predicted_5d', []) if isinstance(data.get('predicted_5d'), list) and len(data.get('predicted_5d', [])) == 5 else [],
-                    'predicted_30d': data.get('predicted_30d', []) if isinstance(data.get('predicted_30d'), list) and len(data.get('predicted_30d', [])) == 30 else [],
-                    'actual_progress_5d': data.get('actual_progress_5d', []) if isinstance(data.get('actual_progress_5d'), list) and len(data.get('actual_progress_5d', [])) == 5 else [],
-                    'actual_progress_30d': data.get('actual_progress_30d', []) if isinstance(data.get('actual_progress_30d'), list) and len(data.get('actual_progress_30d', [])) == 30 else [],
-                    'updated_prediction_5d': data.get('updated_prediction_5d', []) if isinstance(data.get('updated_prediction_5d'), list) and len(data.get('updated_prediction_5d', [])) == 5 else [],
-                    'updated_prediction_30d': data.get('updated_prediction_30d', []) if isinstance(data.get('updated_prediction_30d'), list) and len(data.get('updated_prediction_30d', [])) == 30 else [],
-                    'changed_on_5d': data.get('changed_on_5d'),
-                    'changed_on_30d': data.get('changed_on_30d'),
-                    'locked_5d': data.get('locked_5d', False),
-                    'locked_30d': data.get('locked_30d', False),
-                    'persistent_lock_5d': data.get('persistent_lock_5d', False),
-                    'persistent_lock_30d': data.get('persistent_lock_30d', False),
-                    'lock_date_5d': data.get('lock_date_5d'),
-                    'lock_date_30d': data.get('lock_date_30d'),
-                    'lock_start_date_5d': data.get('lock_start_date_5d'),
-                    'lock_start_date_30d': data.get('lock_start_date_30d'),
-                    'start_date': data.get('start_date', datetime.now(IST).strftime('%Y-%m-%d')),
-                    'last_updated': data.get('last_updated', datetime.now(IST).isoformat()),
-                    'days_tracked': data.get('days_tracked', 0),
-                    'timestamp': data.get('timestamp', datetime.now(IST).isoformat())
-                }
-                
-                # If arrays are empty, regenerate them
-                if (not validated_data[symbol]['predicted_5d'] or 
-                    not validated_data[symbol]['predicted_30d'] or
-                    not validated_data[symbol]['actual_progress_5d'] or
-                    not validated_data[symbol]['actual_progress_30d']):
-                    
-                    logger.info(f"🔧 Regenerating arrays for {symbol} - some arrays were empty or invalid")
-                    
-                    # Use the tracker manager to regenerate data
-                    from src.managers.interactive_tracker_manager import InteractiveTrackerManager
-                    tracker_manager = InteractiveTrackerManager()
-                    
-                    # Create prediction data structure
-                    pred_data = {
-                        'current_price': validated_data[symbol]['current_price'],
-                        'pred_5d': validated_data[symbol]['pred_5d'],
-                        'pred_1mo': validated_data[symbol]['pred_1mo'],
-                        'confidence': validated_data[symbol]['confidence'],
-                        'score': validated_data[symbol]['score']
-                    }
-                    
-                    regenerated_data = tracker_manager.generate_sample_tracking_data(symbol, pred_data, validated_data[symbol])
-                    if regenerated_data:
-                        validated_data[symbol] = regenerated_data
-                        logger.info(f"✅ Regenerated data for {symbol}")
-                
-            except Exception as stock_error:
-                logger.warning(f"Error validating data for {symbol}: {stock_error}")
-                continue
-
-        logger.info(f"📊 Serving validated tracking data for {len(validated_data)} stocks")
-
-        return jsonify({
-            'status': 'success',
-            'tracking_data': validated_data,
-            'data_count': len(validated_data),
-            'timestamp': datetime.now(IST).isoformat()
-        })
-
-    except Exception as e:
-        logger.error(f"Error in interactive tracker data API: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'error': str(e),
-            'tracking_data': {},
-            'timestamp': datetime.now(IST).isoformat()
-        }), 500
-
-def initialize_empty_tracking_data():
-    """Initialize empty tracking data structure"""
-    try:
-        # Load current stock data to initialize tracking
-        current_data = load_stock_data()
-        stocks = current_data.get('stocks', [])
-
-        tracking_data = {}
-        for stock in stocks[:5]:  # Initialize tracking for top 5 stocks
-            symbol = stock.get('symbol')
-            if symbol:
-                base_price = stock.get('current_price', 100)
-                pred_5d = stock.get('pred_5d', 0)
-                pred_30d = stock.get('pred_1mo', 0)
-
-                # Generate predicted price arrays
-                predicted_5d = []
-                predicted_30d = []
-
-                for i in range(5):
-                    predicted_5d.append(base_price * (1 + (pred_5d/100) * (i+1)/5))
-
-                for i in range(30):
-                    predicted_30d.append(base_price * (1 + (pred_30d/100) * (i+1)/30))
-
-                tracking_data[symbol] = {
-                    'symbol': symbol,
-                    'start_date': datetime.now(IST).strftime('%Y-%m-%d'),
-                    'current_price': base_price,
-                    'confidence': stock.get('confidence', 0),
-                    'score': stock.get('score', 0),
-                    'predicted_5d': predicted_5d,
-                    'predicted_30d': predicted_30d,
-                    'actual_progress_5d': [base_price] + [None] * 4,
-                    'actual_progress_30d': [base_price] + [None] * 29,
-                    'updated_prediction_5d': [None] * 5,
-                    'updated_prediction_30d': [None] * 30,
-                    'changed_on_5d': None,
-                    'changed_on_30d': None,
-                    'locked_5d': False,
-                    'locked_30d': False,
-                    'lock_date_5d': None,
-                    'lock_date_30d': None,
-                    'lock_start_date_5d': None,
-                    'lock_start_date_30d': None,
-                    'last_updated': datetime.now(IST).isoformat(),
-                    'days_tracked': 0
-                }
-
-        # Save the initialized tracking data
-        try:
-            with open('interactive_tracking.json', 'w') as f:
-                json.dump(tracking_data, f, indent=2, ensure_ascii=False)
-        except Exception as save_error:
-            logger.warning(f"Could not save initialized tracking data: {save_error}")
-
-        return tracking_data
-
-    except Exception as e:
-        logger.error(f"Error initializing empty tracking data: {str(e)}")
-        return {}
-
-@app.route('/api/update-lock-status', methods=['POST'])
-def update_lock_status():
-    """API endpoint to update lock status for predictions with persistent support"""
-    try:
-        data = request.get_json()
-        symbol = data.get('symbol')
-        period = data.get('period')  # '5d' or '30d'
-        locked = data.get('locked', False)
-        persistent = data.get('persistent', True)  # Default to persistent
-        timestamp = data.get('timestamp')
-
-        if not symbol or not period:
-            return jsonify({'success': False, 'message': 'Symbol and period required'}), 400
-
-        # Save lock status with persistence flag
-        success = save_lock_status(symbol, period, locked, timestamp, persistent)
-
-        if success:
-            persistence_msg = "persistently" if persistent else "temporarily"
-            logger.info(f"Lock status updated {persistence_msg}: {symbol} {period} = {locked}")
-            return jsonify({
-                'success': True,
-                'message': f'Lock status updated for {symbol} ({persistence_msg})',
-                'persistent': persistent,
-                'timestamp': datetime.now(IST).isoformat()
-            })
-        else:
-            return jsonify({'success': False, 'message': 'Failed to save lock status'}), 500
-
-    except Exception as e:
-        logger.error(f"Error updating lock status: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/api/update-market-data', methods=['POST'])
-def update_market_data():
-    """API endpoint to manually trigger market data update"""
-    try:
-        logger.info("🔄 Manual market data update triggered")
-
-        from src.managers.interactive_tracker_manager import InteractiveTrackerManager
-        tracker_manager = InteractiveTrackerManager()
-
-        # Update actual prices with real market data
-        update_summary = tracker_manager.update_daily_actual_prices()
-
-        if update_summary and 'error' not in update_summary:
-            updated_count = len(update_summary.get('updated_stocks', []))
-            failed_count = len(update_summary.get('failed_stocks', []))
-
-            return jsonify({
-                'success': True,
-                'message': f'Market data updated: {updated_count} stocks updated, {failed_count} failed',
-                'updated_stocks': update_summary.get('updated_stocks', []),
-                'failed_stocks': update_summary.get('failed_stocks', []),
-                'update_time': update_summary.get('update_time'),
-                'timestamp': datetime.now(IST).isoformat()
-            })
-        else:
-            error_msg = update_summary.get('error', 'Unknown error') if update_summary else 'No response'
-            return jsonify({
-                'success': False,
-                'message': f'Market data update failed: {error_msg}',
-                'timestamp': datetime.now(IST).isoformat()
-            }), 500
-
-    except Exception as e:
-        logger.error(f"Error in manual market data update: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'Market data update error: {str(e)}',
-            'timestamp': datetime.now(IST).isoformat()
-        }), 500
-
-@app.route('/api/debug-chart-data/<symbol>')
-def debug_chart_data(symbol):
-    """Debug endpoint to check chart data for a specific stock"""
-    try:
-        from src.managers.interactive_tracker_manager import InteractiveTrackerManager
-        tracker_manager = InteractiveTrackerManager()
-        
-        # Get stock data
-        stock_data = tracker_manager.get_stock_data(symbol.upper())
-        
-        if not stock_data:
-            return jsonify({
-                'error': f'No data found for {symbol}',
-                'available_stocks': list(tracker_manager.get_all_tracking_data().keys())
-            }), 404
-        
-        # Extract chart-relevant data
-        debug_info = {
-            'symbol': symbol.upper(),
-            'current_price': stock_data.get('current_price'),
-            'predicted_5d': stock_data.get('predicted_5d', []),
-            'predicted_30d': stock_data.get('predicted_30d', []),
-            'actual_progress_5d': stock_data.get('actual_progress_5d', []),
-            'actual_progress_30d': stock_data.get('actual_progress_30d', []),
-            'updated_prediction_5d': stock_data.get('updated_prediction_5d', []),
-            'updated_prediction_30d': stock_data.get('updated_prediction_30d', []),
-            'locked_5d': stock_data.get('locked_5d', False),
-            'locked_30d': stock_data.get('locked_30d', False),
-            'data_validation': {
-                'predicted_5d_length': len(stock_data.get('predicted_5d', [])),
-                'predicted_30d_length': len(stock_data.get('predicted_30d', [])),
-                'predicted_5d_valid_count': len([x for x in stock_data.get('predicted_5d', []) if x is not None and not (isinstance(x, float) and x != x)]),
-                'predicted_30d_valid_count': len([x for x in stock_data.get('predicted_30d', []) if x is not None and not (isinstance(x, float) and x != x)]),
-                'actual_5d_valid_count': len([x for x in stock_data.get('actual_progress_5d', []) if x is not None and not (isinstance(x, float) and x != x)]),
-                'actual_30d_valid_count': len([x for x in stock_data.get('actual_progress_30d', []) if x is not None and not (isinstance(x, float) and x != x)])
-            }
-        }
-        
-        return jsonify(debug_info)
-        
-    except Exception as e:
-        logger.error(f"Error in debug chart data: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/options-strategies')
-def get_options_strategies():
-    """API endpoint for options trading strategies based on ML predictions"""
+def api_options_strategies():
+    """API endpoint for options strategies"""
     try:
-        # Load current stock data
-        current_data = load_stock_data()
-        stocks = current_data.get('stocks', [])
-        
-        if not stocks:
-            return jsonify({
-                'status': 'success',
-                'strategies': [],
-                'message': 'No stock data available for options analysis',
-                'timestamp': datetime.now(IST).isoformat()
-            })
-        
-        strategies = []
-        
-        for stock in stocks:
-            try:
-                symbol = stock.get('symbol', '')
-                current_price = stock.get('current_price', 0)
-                confidence = stock.get('confidence', 0)
-                pred_5d = stock.get('pred_5d', 0)
-                pred_1mo = stock.get('pred_1mo', 0)
-                score = stock.get('score', 0)
-                
-                if not symbol or current_price <= 0:
-                    continue
-                
-                # Only consider stocks with reasonable confidence and price movement predictions
-                if confidence < 60 or abs(pred_5d) > 10 or abs(pred_1mo) > 25:
-                    continue
-                
-                # Calculate option strikes (OTM by 5-7%)
-                otm_percentage = 0.05 + (score / 1000)  # 5-7% based on score
-                call_strike = current_price * (1 + otm_percentage)
-                put_strike = current_price * (1 - otm_percentage)
-                
-                # Estimate premiums (simplified calculation)
-                # In real implementation, this would use live options data
-                volatility_factor = abs(pred_5d) / 100 + 0.02  # Minimum 2% volatility
-                call_premium = current_price * volatility_factor * 0.3
-                put_premium = current_price * volatility_factor * 0.3
-                total_premium = call_premium + put_premium
-                
-                # Calculate breakeven points
-                breakeven_upper = call_strike + total_premium
-                breakeven_lower = put_strike - total_premium
-                
-                # Estimate margin requirement (simplified)
-                margin_required = current_price * 0.2 * 100  # 20% of stock price per lot
-                
-                # Calculate expected ROI based on prediction confidence
-                days_to_expiry = 30  # Assume monthly options
-                probability_success = confidence / 100 * 0.8  # Conservative estimate
-                expected_roi = (total_premium / margin_required) * probability_success * (365 / days_to_expiry) * 100
-                
-                strategy = {
-                    'symbol': symbol,
-                    'current_price': current_price,
-                    'call_strike': call_strike,
-                    'put_strike': put_strike,
-                    'call_premium': call_premium,
-                    'put_premium': put_premium,
-                    'total_premium': total_premium,
-                    'breakeven_upper': breakeven_upper,
-                    'breakeven_lower': breakeven_lower,
-                    'margin_required': margin_required,
-                    'expected_roi': expected_roi,
-                    'confidence': confidence,
-                    'score': score,
-                    'pred_5d': pred_5d,
-                    'pred_1mo': pred_1mo,
-                    'strategy_type': 'short_strangle',
-                    'days_to_expiry': days_to_expiry,
-                    'probability_success': probability_success * 100
-                }
-                
-                strategies.append(strategy)
-                
-            except Exception as stock_error:
-                logger.warning(f"Error processing options for {stock.get('symbol', 'unknown')}: {stock_error}")
-                continue
-        
-        # Sort by expected ROI
-        strategies.sort(key=lambda x: x['expected_roi'], reverse=True)
-        
-        # Limit to top 20 strategies
-        strategies = strategies[:20]
-        
-        logger.info(f"Generated {len(strategies)} options strategies")
-        
+        timeframe = request.args.get('timeframe', '30D')
+
+        # Get current stock data for Tier 1 stocks
+        stock_data = load_stock_data()
+
+        if stock_data and stock_data.get('stocks'):
+            # Filter for Tier 1 stocks only
+            tier1_stocks = []
+            tier1_symbols = ['RELIANCE', 'HDFCBANK', 'TCS', 'ITC', 'INFY', 'HINDUNILVR']
+
+            for stock in stock_data['stocks']:
+                if any(t1_symbol in stock.get('symbol', '').upper() for t1_symbol in tier1_symbols):
+                    tier1_stocks.append(stock)
+
+            if tier1_stocks:
+                # Generate fresh strategies
+                strategies = strangle_engine.generate_all_strategies(tier1_stocks, timeframe)
+
+                # Calculate summary metrics
+                total_opportunities = len(strategies)
+                high_confidence = len([s for s in strategies if s.get('confidence', 0) >= 80])
+                avg_roi = sum(s.get('expected_roi', 0) for s in strategies) / max(1, total_opportunities)
+                total_premium = sum(s.get('total_premium', 0) for s in strategies)
+
+                return jsonify({
+                    'status': 'success',
+                    'strategies': strategies,
+                    'summary': {
+                        'total_opportunities': total_opportunities,
+                        'high_confidence_count': high_confidence,
+                        'average_roi': round(avg_roi, 1),
+                        'total_premium_potential': round(total_premium, 0)
+                    },
+                    'timeframe': timeframe,
+                    'last_updated': datetime.now().isoformat()
+                })
+
+        # Fallback to saved data
+        saved_data = strangle_engine.load_strategies(timeframe)
         return jsonify({
             'status': 'success',
-            'strategies': strategies,
-            'total_count': len(strategies),
-            'timestamp': datetime.now(IST).isoformat(),
-            'message': f'Generated {len(strategies)} options strategies based on ML predictions'
+            'strategies': saved_data.get('strategies', []),
+            'summary': {
+                'total_opportunities': saved_data.get('total_opportunities', 0),
+                'high_confidence_count': saved_data.get('high_confidence_count', 0),
+                'average_roi': 0,
+                'total_premium_potential': 0
+            },
+            'timeframe': timeframe,
+            'last_updated': saved_data.get('last_updated', datetime.now().isoformat())
         })
-        
+
     except Exception as e:
-        logger.error(f"Error generating options strategies: {str(e)}")
+        logger.error(f"Error generating options strategies: {e}")
         return jsonify({
             'status': 'error',
-            'error': str(e),
+            'message': str(e),
             'strategies': [],
-            'timestamp': datetime.now(IST).isoformat()
+            'summary': {
+                'total_opportunities': 0,
+                'high_confidence_count': 0,
+                'average_roi': 0,
+                'total_premium_potential': 0
+            }
         }), 500
 
 def load_interactive_tracking_data():
@@ -1704,10 +1294,10 @@ def load_interactive_tracking_data():
         from src.managers.interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
         tracking_data = tracker_manager.load_tracking_data()
-        
+
         # Always ensure tracking data includes current stocks
         tracker_manager._ensure_current_stocks_tracked()
-        
+
         return tracker_manager.get_all_tracking_data()
     except Exception as e:
         logger.warning(f"Could not load interactive tracking data: {str(e)}")
@@ -1718,17 +1308,17 @@ def save_lock_status(symbol, period, locked, timestamp, persistent=True):
     try:
         from src.managers.interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
-        
+
         # Ensure current stocks are tracked before saving lock status
         tracker_manager._ensure_current_stocks_tracked()
-        
+
         success = tracker_manager.update_lock_status(symbol, period, locked, timestamp, persistent)
         if success:
             persistence_msg = "persistently" if persistent else "temporarily"
             logger.info(f"✅ Lock status saved {persistence_msg}: {symbol} {period} = {locked}")
         else:
             logger.error(f"❌ Failed to save lock status for {symbol}")
-        
+
         return success
     except Exception as e:
         logger.error(f"Error saving lock status: {str(e)}")
