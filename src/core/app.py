@@ -11,34 +11,53 @@ from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import logging
 import pytz
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
 # Import required classes - with fallback handling
 try:
-    from src.managers.enhanced_error_handler import EnhancedErrorHandler
-    from src.managers.interactive_tracker_manager import InteractiveTrackerManager
-    from src.core.scheduler import SchedulerManager
+    from src.analyzers.historical_analyzer import HistoricalAnalyzer
+    from src.analyzers.daily_technical_analyzer import DailyTechnicalAnalyzer
+    from src.analyzers.stock_screener import EnhancedStockScreener
     from src.analyzers.short_strangle_engine import ShortStrangleEngine
+    from src.models.predictor import StockPredictor
+    from src.managers.interactive_tracker_manager import InteractiveTrackerManager
+    from src.managers.enhanced_error_handler import EnhancedErrorHandler
+    from src.core.scheduler import SchedulerManager
 except ImportError as e:
     logger.warning(f"Import warning: {e}")
     # Create minimal fallback classes
+    class HistoricalAnalyzer:
+        def get_historical_trends(self): return {}
+    
+    class DailyTechnicalAnalyzer:
+        def analyze(self, *args, **kwargs): return {}
+    
+    class EnhancedStockScreener:
+        def run_enhanced_screener(self): return False
+        def scrape_screener_data(self, symbol): return {}
+        def calculate_enhanced_technical_indicators(self, symbol): return {}
+        def enhanced_score_and_rank(self, data): return []
+    
+    class ShortStrangleEngine:
+        def generate_strategies(self, *args, **kwargs): return []
+    
+    class StockPredictor:
+        def predict(self, *args, **kwargs): return {}
+    
+    class InteractiveTrackerManager:
+        def get_all_tracking_data(self): return {}
+        def load_tracking_data(self): return {}
+        def update_lock_status(self, *args, **kwargs): return True
+        def update_daily_actual_prices(self): return {}
+        def _ensure_current_stocks_tracked(self): pass
+    
     class EnhancedErrorHandler:
         def handle_error(self, *args, **kwargs): pass
         def get_error_summary(self): return {}
     
-    class InteractiveTrackerManager:
-        def get_all_tracking_data(self): return {}
-    
     class SchedulerManager:
         def start_scheduler(self, *args, **kwargs): pass
-    
-    class ShortStrangleEngine:
-        def generate_strategies(self, *args, **kwargs): return []
 
 # Set template folder to the correct location
 import os
