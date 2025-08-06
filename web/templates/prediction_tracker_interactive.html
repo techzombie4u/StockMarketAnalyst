@@ -1356,7 +1356,7 @@
             // Ensure all data arrays have the correct length
             const expectedLength = currentView === '5d' ? 5 : 30;
             
-            // Pad or trim arrays to expected length
+            // Pad arrays to expected length without overwriting existing data
             while (predictedData.length < expectedLength) {
                 predictedData.push(null);
             }
@@ -1368,9 +1368,15 @@
             }
             
             // Truncate if too long
-            predictedData = predictedData.slice(0, expectedLength);
-            actualData = actualData.slice(0, expectedLength);
-            updatedData = updatedData.slice(0, expectedLength);
+            if (predictedData.length > expectedLength) {
+                predictedData.length = expectedLength;
+            }
+            if (actualData.length > expectedLength) {
+                actualData.length = expectedLength;
+            }
+            if (updatedData.length > expectedLength) {
+                updatedData.length = expectedLength;
+            }
             
             // Update chart container styling based on lock status
             const chartContainer = document.getElementById('chartContainer');
@@ -1400,31 +1406,35 @@
             }
 
             // Check if we have at least some data to display
-            const hasValidPredicted = predictedData.some(val => val !== null && val !== undefined && !isNaN(val));
-            const hasValidActual = actualData.some(val => val !== null && val !== undefined && !isNaN(val));
+            let hasValidPredicted = predictedData.some(val => val !== null && val !== undefined && !isNaN(val));
+            let hasValidActual = actualData.some(val => val !== null && val !== undefined && !isNaN(val));
             
             console.log(`📊 Data validation: predicted=${hasValidPredicted}, actual=${hasValidActual}`);
+            console.log(`📊 Predicted data sample:`, predictedData.slice(0, 3));
+            console.log(`📊 Actual data sample:`, actualData.slice(0, 3));
             
-            if (!hasValidPredicted && !hasValidActual) {
-                console.error('❌ No valid data points found for chart');
-                // Generate fallback data
+            // Always ensure we have predicted data for the chart
+            if (!hasValidPredicted) {
+                console.log('🔧 Generating predicted data line');
                 const currentPrice = data.current_price || 100;
-                const prediction = currentView === '5d' ? 2 : 5; // 2% for 5d, 5% for 30d
+                const prediction = currentView === '5d' ? 
+                    (data.pred_5d || 2) : (data.pred_1mo || 5);
                 const finalPrice = currentPrice * (1 + prediction / 100);
                 
-                console.log(`🔧 Generating fallback data: ${currentPrice} -> ${finalPrice}`);
+                console.log(`🔧 Generating prediction line: ${currentPrice} -> ${finalPrice} (${prediction}%)`);
                 
                 for (let i = 0; i < expectedLength; i++) {
-                    if (predictedData[i] === null || predictedData[i] === undefined || isNaN(predictedData[i])) {
-                        const progress = i / (expectedLength - 1);
-                        predictedData[i] = currentPrice + (finalPrice - currentPrice) * progress;
-                    }
+                    const progress = i / (expectedLength - 1);
+                    predictedData[i] = currentPrice + (finalPrice - currentPrice) * progress;
                 }
-                
-                // Set first actual price
-                if (actualData[0] === null || actualData[0] === undefined || isNaN(actualData[0])) {
-                    actualData[0] = currentPrice;
-                }
+                hasValidPredicted = true;
+            }
+            
+            // Ensure we have at least starting actual price
+            if (!hasValidActual || actualData[0] === null || actualData[0] === undefined || isNaN(actualData[0])) {
+                console.log('🔧 Setting initial actual price');
+                actualData[0] = data.current_price || 100;
+                hasValidActual = true;
             }
 
             // Create new chart
