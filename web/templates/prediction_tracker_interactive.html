@@ -1298,48 +1298,36 @@
             const updatedKey = `updated_prediction_${currentView}`;
             
             // Green line: Show STRAIGHT prediction line for complete period (start to end)
-            const predictedData = data[predictedKey] || [];
+            let predictedData = data[predictedKey] ? [...data[predictedKey]] : [];
             // If no predicted data, create a basic straight line
-            if (predictedData.length === 0 || predictedData.every(val => val === null)) {
+            if (predictedData.length === 0 || predictedData.every(val => val === null || val === undefined)) {
                 const currentPrice = data.current_price || 100;
                 const prediction = currentView === '5d' ? (data.pred_5d || 2) : (data.pred_1mo || 5);
                 const finalPrice = currentPrice * (1 + prediction / 100);
                 
+                predictedData = [];
                 for (let i = 0; i < days; i++) {
                     const progress = i / (days - 1);
                     predictedData[i] = currentPrice + (finalPrice - currentPrice) * progress;
                 }
+                console.log(`🔧 Generated predicted line: ${predictedData[0]?.toFixed(2)} -> ${predictedData[days-1]?.toFixed(2)}`);
             }
             
             // Blue line: Show ONLY actual prices that have occurred (progressive)
-            const actualDataRaw = data[actualKey] || Array(days).fill(null);
+            let actualData = data[actualKey] ? [...data[actualKey]] : Array(days).fill(null);
             // Set first day to current price if not set
-            if (actualDataRaw[0] === null || actualDataRaw[0] === undefined) {
-                actualDataRaw[0] = data.current_price || 100;
+            if (actualData[0] === null || actualData[0] === undefined) {
+                actualData[0] = data.current_price || 100;
+                console.log(`🔧 Set initial actual price: ${actualData[0]}`);
             }
             
-            // Filter to show only actual data points that exist (no future values)
-            const actualData = actualDataRaw.map((value, index) => {
-                // Show actual values that exist, limit to realistic progress
-                if (value !== null && value !== undefined && index <= Math.min(days, 5)) {
-                    return value;
-                }
-                return null; // Future days should be null
-            });
-            
             // Red line: Show updated predictions incrementally from change day forward
-            const updatedDataRaw = data[updatedKey] || Array(days).fill(null);
+            let updatedData = data[updatedKey] ? [...data[updatedKey]] : Array(days).fill(null);
             const changedKey = `changed_on_${currentView}`;
             const changedOn = data[changedKey];
-            let updatedData = Array(days).fill(null);
             
             if (changedOn !== null && changedOn !== undefined) {
-                // Show updated prediction from change day forward as straight line
-                for (let i = changedOn; i < days; i++) {
-                    if (updatedDataRaw[i] !== null) {
-                        updatedData[i] = updatedDataRaw[i];
-                    }
-                }
+                console.log(`📈 Updated prediction from day ${changedOn} for ${selectedStock}`);
             }
             
             // Generate chart data with proper validation
@@ -1367,16 +1355,18 @@
                 updatedData.push(null);
             }
             
-            // Truncate if too long
-            if (predictedData.length > expectedLength) {
-                predictedData.length = expectedLength;
-            }
-            if (actualData.length > expectedLength) {
-                actualData.length = expectedLength;
-            }
-            if (updatedData.length > expectedLength) {
-                updatedData.length = expectedLength;
-            }
+            // Ensure arrays don't exceed expected length
+            predictedData = predictedData.slice(0, expectedLength);
+            actualData = actualData.slice(0, expectedLength);
+            updatedData = updatedData.slice(0, expectedLength);
+            
+            console.log(`📊 Final data arrays for chart:`, {
+                predicted_length: predictedData.length,
+                actual_length: actualData.length,
+                updated_length: updatedData.length,
+                predicted_sample: predictedData.slice(0, 3),
+                actual_sample: actualData.slice(0, 3)
+            });
             
             // Update chart container styling based on lock status
             const chartContainer = document.getElementById('chartContainer');
@@ -1405,16 +1395,14 @@
                 return;
             }
 
-            // Check if we have at least some data to display
-            let hasValidPredicted = predictedData.some(val => val !== null && val !== undefined && !isNaN(val));
-            let hasValidActual = actualData.some(val => val !== null && val !== undefined && !isNaN(val));
+            // Check if we have data arrays
+            console.log(`📊 Data validation check for ${selectedStock} ${currentView}`);
+            console.log(`📊 Predicted data:`, predictedData);
+            console.log(`📊 Actual data:`, actualData);
+            console.log(`📊 Updated data:`, updatedData);
             
-            console.log(`📊 Data validation: predicted=${hasValidPredicted}, actual=${hasValidActual}`);
-            console.log(`📊 Predicted data sample:`, predictedData.slice(0, 3));
-            console.log(`📊 Actual data sample:`, actualData.slice(0, 3));
-            
-            // Always ensure we have predicted data for the chart
-            if (!hasValidPredicted) {
+            // Ensure we always have predicted data for the chart
+            if (!predictedData || predictedData.length === 0 || predictedData.every(val => val === null || val === undefined)) {
                 console.log('🔧 Generating predicted data line');
                 const currentPrice = data.current_price || 100;
                 const prediction = currentView === '5d' ? 
@@ -1423,18 +1411,25 @@
                 
                 console.log(`🔧 Generating prediction line: ${currentPrice} -> ${finalPrice} (${prediction}%)`);
                 
+                predictedData = [];
                 for (let i = 0; i < expectedLength; i++) {
                     const progress = i / (expectedLength - 1);
                     predictedData[i] = currentPrice + (finalPrice - currentPrice) * progress;
                 }
-                hasValidPredicted = true;
             }
             
             // Ensure we have at least starting actual price
-            if (!hasValidActual || actualData[0] === null || actualData[0] === undefined || isNaN(actualData[0])) {
+            if (!actualData || actualData.length === 0) {
+                actualData = Array(expectedLength).fill(null);
+            }
+            if (actualData[0] === null || actualData[0] === undefined || isNaN(actualData[0])) {
                 console.log('🔧 Setting initial actual price');
                 actualData[0] = data.current_price || 100;
-                hasValidActual = true;
+            }
+            
+            // Ensure updated data array exists
+            if (!updatedData || updatedData.length === 0) {
+                updatedData = Array(expectedLength).fill(null);
             }
 
             // Create new chart
