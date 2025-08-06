@@ -303,7 +303,7 @@ class InteractiveTrackerManager:
             if len(new_predictions_list) != len(original_predictions):
                 logger.warning(f"New predictions list length mismatch for {symbol} {period}. Expected {len(original_predictions)}, got {len(new_predictions_list)}.")
                 return False
-            
+
             valid_new_predictions = []
             for pred_val in new_predictions_list:
                 try:
@@ -324,7 +324,7 @@ class InteractiveTrackerManager:
             if significant_change and not stock_data.get(f'locked_{period}', False):
                 # Update predictions from the change day onwards
                 current_updated_predictions = stock_data.get(updated_key, [None] * len(original_predictions))
-                
+
                 for i in range(change_day, len(valid_new_predictions)):
                     if i < len(current_updated_predictions): # Ensure index is within bounds
                         current_updated_predictions[i] = valid_new_predictions[i]
@@ -488,7 +488,7 @@ class InteractiveTrackerManager:
                     if not start_date_str:
                         logger.warning(f"Skipping {symbol}: missing 'start_date'")
                         continue
-                    
+
                     start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
                     start_date_ist = IST.localize(start_date)
 
@@ -627,7 +627,7 @@ class InteractiveTrackerManager:
                 if not start_date_str:
                     logger.warning(f"Skipping cleanup for {symbol}: missing 'start_date'")
                     continue
-                
+
                 try:
                     start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
                     days_old = (current_date - start_date).days
@@ -674,7 +674,7 @@ class InteractiveTrackerManager:
             lock_start_date_str = stock_data.get(lock_start_date_key)
             if not lock_start_date_str:
                 return []
-            
+
             try:
                 lock_start_date = datetime.strptime(lock_start_date_str, '%Y-%m-%d')
             except ValueError:
@@ -730,7 +730,7 @@ class InteractiveTrackerManager:
             lock_start_date_str = stock_data.get(lock_start_date_key)
             if not lock_start_date_str:
                 return False
-            
+
             try:
                 lock_start_date = datetime.strptime(lock_start_date_str, '%Y-%m-%d')
             except ValueError:
@@ -915,7 +915,7 @@ if __name__ == "__main__":
         'score': 75
     }
     manager.initialize_stock_tracking('RELIANCE', sample_pred_reliance['current_price'], sample_pred_reliance)
-    
+
     # Also generate and store sample data using the new method
     generated_sample_data = manager.generate_sample_tracking_data('RELIANCE', sample_pred_reliance)
     if generated_sample_data:

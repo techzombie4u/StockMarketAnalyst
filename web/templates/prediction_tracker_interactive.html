@@ -1320,102 +1320,77 @@
                 expected_length: expectedLength
             });
             
-            // FORCE generate predicted data if missing or invalid
-            if (!predictedData || !Array.isArray(predictedData) || predictedData.length === 0 || 
-                predictedData.every(val => val === null || val === undefined || isNaN(val))) {
-                
-                console.log('🔧 FORCE generating predicted data line');
-                const currentPrice = parseFloat(data.current_price) || 100;
-                const prediction = currentView === '5d' ? 
-                    (parseFloat(data.pred_5d) || parseFloat(data.predicted_gain) * 0.2 || 2) : 
-                    (parseFloat(data.pred_1mo) || parseFloat(data.predicted_gain) || 8);
-                const finalPrice = currentPrice * (1 + prediction / 100);
-                
-                console.log(`🔧 Prediction calculation: ${currentPrice} -> ${finalPrice} (${prediction}%)`);
-                
-                predictedData = [];
-                for (let i = 0; i < expectedLength; i++) {
-                    const progress = expectedLength === 1 ? 1 : i / (expectedLength - 1);
-                    const predictedPrice = currentPrice + (finalPrice - currentPrice) * progress;
-                    predictedData.push(parseFloat(predictedPrice.toFixed(2)));
-                }
-                
-                console.log(`✅ Generated predicted data:`, predictedData);
+            // FORCE generate predicted data - always create valid data
+            console.log('🔧 FORCE generating predicted data line');
+            const currentPrice = parseFloat(data.current_price) || 100;
+            
+            // Get prediction percentage
+            let prediction = 2; // default 2%
+            if (currentView === '5d') {
+                prediction = parseFloat(data.pred_5d) || parseFloat(data.predicted_gain) * 0.2 || 2;
             } else {
-                // Ensure all values are valid numbers
-                predictedData = predictedData.map((val, i) => {
-                    if (val === null || val === undefined || isNaN(val)) {
-                        const currentPrice = parseFloat(data.current_price) || 100;
-                        const prediction = currentView === '5d' ? 
-                            (parseFloat(data.pred_5d) || 2) : 
-                            (parseFloat(data.pred_1mo) || 8);
-                        const finalPrice = currentPrice * (1 + prediction / 100);
-                        const progress = expectedLength === 1 ? 1 : i / (expectedLength - 1);
-                        return parseFloat((currentPrice + (finalPrice - currentPrice) * progress).toFixed(2));
-                    }
-                    return parseFloat(parseFloat(val).toFixed(2));
-                });
+                prediction = parseFloat(data.pred_1mo) || parseFloat(data.predicted_gain) || 8;
             }
             
-            // FORCE generate actual data if missing
-            if (!actualData || !Array.isArray(actualData) || actualData.length === 0) {
+            const finalPrice = currentPrice * (1 + prediction / 100);
+            
+            console.log(`🔧 Prediction calculation: ${currentPrice} -> ${finalPrice} (${prediction}%)`);
+            
+            // Generate fresh predicted data array
+            predictedData = [];
+            for (let i = 0; i < expectedLength; i++) {
+                const progress = expectedLength === 1 ? 1 : i / (expectedLength - 1);
+                const predictedPrice = currentPrice + (finalPrice - currentPrice) * progress;
+                predictedData.push(parseFloat(predictedPrice.toFixed(2)));
+            }
+            
+            console.log(`✅ Generated predicted data with ${predictedData.length} points:`, predictedData.slice(0, 3));
+            
+            // FORCE generate actual data - ensure valid structure
+            if (!actualData || !Array.isArray(actualData)) {
                 actualData = Array(expectedLength).fill(null);
-                actualData[0] = parseFloat(data.current_price) || 100;
-                console.log('🔧 FORCE generated actual data with starting price:', actualData[0]);
-            } else {
-                // Ensure first actual price exists and is valid
-                if (actualData[0] === null || actualData[0] === undefined || isNaN(actualData[0])) {
-                    actualData[0] = parseFloat(data.current_price) || 100;
-                    console.log('🔧 Set starting actual price:', actualData[0]);
-                } else {
-                    actualData[0] = parseFloat(actualData[0]);
-                }
-                
-                // Clean up other actual values
-                actualData = actualData.map(val => {
-                    if (val === null || val === undefined) {
-                        return null;
-                    }
-                    if (isNaN(val)) {
-                        return null;
-                    }
-                    return parseFloat(parseFloat(val).toFixed(2));
-                });
             }
             
-            // FORCE generate updated data array
-            if (!updatedData || !Array.isArray(updatedData) || updatedData.length === 0) {
-                updatedData = Array(expectedLength).fill(null);
-                console.log('🔧 FORCE generated empty updated data array');
-            }
-            
-            // Ensure all arrays have correct length
-            while (predictedData.length < expectedLength) {
-                predictedData.push(predictedData[predictedData.length - 1] || 100);
-            }
+            // Ensure correct length
             while (actualData.length < expectedLength) {
                 actualData.push(null);
             }
+            actualData = actualData.slice(0, expectedLength);
+            
+            // Set first day to current price
+            const startPrice = parseFloat(data.current_price) || 100;
+            actualData[0] = startPrice;
+            
+            // Clean up other values - keep nulls for future days
+            for (let i = 1; i < actualData.length; i++) {
+                if (actualData[i] !== null && actualData[i] !== undefined) {
+                    if (isNaN(actualData[i])) {
+                        actualData[i] = null;
+                    } else {
+                        actualData[i] = parseFloat(parseFloat(actualData[i]).toFixed(2));
+                    }
+                }
+            }
+            
+            console.log(`🔧 Actual data initialized: [${startPrice}, null, null, ...]`);
+            
+            // FORCE generate updated data array with correct length
+            if (!updatedData || !Array.isArray(updatedData)) {
+                updatedData = Array(expectedLength).fill(null);
+            }
+            
+            // Ensure correct length
             while (updatedData.length < expectedLength) {
                 updatedData.push(null);
             }
+            updatedData = updatedData.slice(0, expectedLength);
             
-            // Truncate if too long
+            console.log('🔧 Updated data array initialized with length:', updatedData.length);
+            
+            // Final array length validation
             predictedData = predictedData.slice(0, expectedLength);
             actualData = actualData.slice(0, expectedLength);
             updatedData = updatedData.slice(0, expectedLength);
-            
-            // FINAL VALIDATION - ensure we have numeric data
-            for (let i = 0; i < predictedData.length; i++) {
-                if (predictedData[i] === null || predictedData[i] === undefined || isNaN(predictedData[i])) {
-                    const basePrice = parseFloat(data.current_price) || 100;
-                    const progress = expectedLength === 1 ? 1 : i / (expectedLength - 1);
-                    const prediction = currentView === '5d' ? (parseFloat(data.pred_5d) || 2) : (parseFloat(data.pred_1mo) || 8);
-                    const finalPrice = basePrice * (1 + prediction / 100);
-                    predictedData[i] = parseFloat((basePrice + (finalPrice - basePrice) * progress).toFixed(2));
-                    console.log(`🔧 Fixed predicted data at index ${i}:`, predictedData[i]);
-                }
-            }
             
             console.log(`📊 Final validated data arrays:`, {
                 predicted_length: predictedData.length,
