@@ -382,7 +382,7 @@
 
             <div class="nav-links">
                 <a href="/">🏠 Main Dashboard</a>
-                <a href="/analysis">📈 Analysis</a>
+                <a href="/analysis" target="_self">📈 Analysis</a>
                 <a href="/lookup">🔍 Stock Lookup</a>
                 <a href="/prediction-tracker">📋 Simple Tracker</a>
                 <button class="btn" onclick="refreshData()">🔄 Refresh</button>
@@ -1011,12 +1011,11 @@
             const actual5d = [basePrice, null, null, null, null]; // Real market data only
             const updated5d = [null, null, null, null, null];
             
-            // Green line: STRAIGHT line from predicted start price to predicted end price
-            const predicted5dStartPrice = predicted5dFinalPrice * 0.95; // Start slightly below final
+            // Green line: STRAIGHT line from current price to predicted end price
             for (let i = 0; i < 5; i++) {
-                // Linear interpolation from start to end
+                // Linear interpolation from current price to final predicted price
                 const progress = i / 4; // 0 to 1
-                predicted5d.push(predicted5dStartPrice + (predicted5dFinalPrice - predicted5dStartPrice) * progress);
+                predicted5d.push(basePrice + (predicted5dFinalPrice - basePrice) * progress);
             }
             
             // Blue line: REAL MARKET DATA - Progressive actual closing prices
@@ -1066,12 +1065,11 @@
             const actual30d = Array(30).fill(null);
             const updated30d = Array(30).fill(null);
             
-            // Green line: STRAIGHT line from predicted start price to predicted end price
-            const predicted30dStartPrice = predicted30dFinalPrice * 0.98; // Start slightly below final
+            // Green line: STRAIGHT line from current price to predicted end price
             for (let i = 0; i < 30; i++) {
-                // Linear interpolation from start to end
+                // Linear interpolation from current price to final predicted price
                 const progress = i / 29; // 0 to 1
-                predicted30d.push(predicted30dStartPrice + (predicted30dFinalPrice - predicted30dStartPrice) * progress);
+                predicted30d.push(basePrice + (predicted30dFinalPrice - basePrice) * progress);
             }
             
             // Blue line: REAL MARKET DATA for 30D view
@@ -1207,7 +1205,10 @@
         }
 
         function updateChart() {
-            if (!selectedStock || !predictionData[selectedStock]) return;
+            if (!selectedStock || !predictionData[selectedStock]) {
+                console.warn('Cannot update chart: no selected stock or data');
+                return;
+            }
             
             const data = predictionData[selectedStock];
             const chartTitle = document.getElementById('chartTitle');
@@ -1222,6 +1223,14 @@
             
             // Prepare chart data
             const days = currentView === '5d' ? 5 : 30;
+            
+            console.log(`📊 Updating chart for ${selectedStock} ${currentView}:`, {
+                dataAvailable: !!data,
+                predictedKey: predictedKey,
+                actualKey: actualKey,
+                updatedKey: updatedKey,
+                isLocked: isLocked
+            });
             
             let labels = [];
             
@@ -1272,14 +1281,30 @@
             const updatedKey = `updated_prediction_${currentView}`;
             
             // Green line: Show STRAIGHT prediction line for complete period (start to end)
-            const predictedData = data[predictedKey] || Array(days).fill(null);
+            const predictedData = data[predictedKey] || [];
+            // If no predicted data, create a basic straight line
+            if (predictedData.length === 0 || predictedData.every(val => val === null)) {
+                const currentPrice = data.current_price || 100;
+                const prediction = currentView === '5d' ? (data.pred_5d || 2) : (data.pred_1mo || 5);
+                const finalPrice = currentPrice * (1 + prediction / 100);
+                
+                for (let i = 0; i < days; i++) {
+                    const progress = i / (days - 1);
+                    predictedData[i] = currentPrice + (finalPrice - currentPrice) * progress;
+                }
+            }
             
             // Blue line: Show ONLY actual prices that have occurred (progressive)
             const actualDataRaw = data[actualKey] || Array(days).fill(null);
+            // Set first day to current price if not set
+            if (actualDataRaw[0] === null || actualDataRaw[0] === undefined) {
+                actualDataRaw[0] = data.current_price || 100;
+            }
+            
             // Filter to show only actual data points that exist (no future values)
             const actualData = actualDataRaw.map((value, index) => {
-                // Only show values that are not null and realistic (first few days only)
-                if (value !== null && index <= 2) { // Limit to first 3 days max
+                // Show actual values that exist, limit to realistic progress
+                if (value !== null && value !== undefined && index <= Math.min(days, 5)) {
                     return value;
                 }
                 return null; // Future days should be null
@@ -1287,6 +1312,7 @@
             
             // Red line: Show updated predictions incrementally from change day forward
             const updatedDataRaw = data[updatedKey] || Array(days).fill(null);
+            const changedKey = `changed_on_${currentView}`;
             const changedOn = data[changedKey];
             let updatedData = Array(days).fill(null);
             
@@ -1312,6 +1338,20 @@
                 chart.destroy();
             }
             
+            // Validate chart data before creating chart
+            console.log(`📈 Chart data for ${selectedStock}:`, {
+                predicted: predictedData.slice(0, 3),
+                actual: actualData.slice(0, 3),
+                updated: updatedData.slice(0, 3),
+                labels: labels.slice(0, 3)
+            });
+
+            // Ensure we have valid data arrays
+            if (!Array.isArray(predictedData) || predictedData.length === 0) {
+                console.error('Invalid predicted data for chart');
+                return;
+            }
+
             // Create new chart
             const ctx = document.getElementById('predictionChart').getContext('2d');
             chart = new Chart(ctx, {
