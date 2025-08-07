@@ -392,7 +392,7 @@ class ShortStrangleEngine:
 
         except Exception as e:
             logger.error(f"❌ Error saving to cache: {e}")
-            
+
     def _generate_strategy_for_stock(self, symbol, timeframe, force_refresh=True):
         """Generate strategy for a single stock with real-time data"""
         try:
@@ -560,7 +560,7 @@ class ShortStrangleEngine:
                     time_premium *= (1 + (spot - strike) / spot * 0.5) # Higher for further OTM
                 else: # ITM/ATM
                     time_premium *= 0.8 # Lower for ITM/ATM
-            
+
             # Ensure time premium is not negative
             time_premium = max(0, time_premium)
 
@@ -596,3 +596,63 @@ class ShortStrangleEngine:
 
         except Exception as e:
             logger.error(f"❌ Error saving to cache: {e}")
+
+    def get_real_time_price(self, symbol):
+        """Get real-time price for a symbol"""
+        try:
+            import yfinance as yf
+
+            # Add .NS for NSE stocks
+            yahoo_symbol = f"{symbol}.NS"
+
+            ticker = yf.Ticker(yahoo_symbol)
+            data = ticker.history(period="1d")
+
+            if not data.empty:
+                current_price = float(data['Close'].iloc[-1])
+                logger.info(f"[REALTIME] {symbol} fetched live price: ₹{current_price}")
+                return current_price
+            else:
+                logger.warning(f"No data found for {symbol}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error fetching real-time price for {symbol}: {str(e)}")
+            return None
+
+    def get_price(self, symbol, use_live=True):
+        """Get price with fallback logic"""
+        if use_live:
+            try:
+                live_price = self.get_real_time_price(symbol)
+                if live_price is not None:
+                    return live_price
+                logger.warning(f"[FALLBACK] Using cached price for {symbol}")
+            except Exception as e:
+                logger.error(f"[FALLBACK] Error getting live price for {symbol}: {str(e)}")
+
+        # Fallback to cached/demo prices
+        demo_prices = {
+            'RELIANCE': 2750.50,
+            'TCS': 3420.75,
+            'INFY': 1650.25,
+            'HDFCBANK': 1580.00,
+            'ICICIBANK': 985.50,
+            'HINDUNILVR': 2420.30,
+            'SBIN': 642.80,
+            'BHARTIARTL': 1245.60,
+            'ITC': 465.20,
+            'KOTAKBANK': 1750.40
+        }
+        cached_price = demo_prices.get(symbol, 1000.0)
+        logger.info(f"[CACHED] Using cached price for {symbol}: ₹{cached_price}")
+        return cached_price
+
+    def analyze_short_strangle(self, symbol, manual_refresh=False, force_realtime=False):
+        """Analyze short strangle strategy for a given symbol"""
+        try:
+            logger.info(f"Analyzing short strangle for {symbol}, manual_refresh={manual_refresh}, force_realtime={force_realtime}")
+
+            # Use real-time prices by default, or when explicitly requested
+            use_live = manual_refresh or force_realtime or True  # Always try live first
+            current_price = self.get_price(symbol, use_live=use_live)

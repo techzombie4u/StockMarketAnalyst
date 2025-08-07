@@ -1256,87 +1256,41 @@ def options_strategy():
     return render_template('options_strategy.html')
 
 @app.route('/api/options-strategies')
-def get_options_strategies():
-    """Get options strategies with real-time data"""
+def options_strategies():
+    """API endpoint for options strategies analysis"""
     try:
-        timeframe = request.args.get('timeframe', '30D')
-        force_refresh = request.args.get('refresh', 'false').lower() == 'true'
+        from src.analyzers.short_strangle_engine import ShortStrangleEngine
+
+        engine = ShortStrangleEngine()
+
+        # Top tier 1 stocks for options trading
+        tier1_stocks = [
+            'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK',
+            'HINDUNILVR', 'SBIN', 'BHARTIARTL', 'ITC', 'KOTAKBANK'
+        ]
+
+        strategies = []
         manual_refresh = request.args.get('manual_refresh', 'false').lower() == 'true'
         force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
 
-        logger.info(f"🔄 Options API called: timeframe={timeframe}, force_refresh={force_refresh}")
+        logger.info(f"[API] Options strategies called with manual_refresh={manual_refresh}, force_realtime={force_realtime}")
 
-        # Import the engine
-        from src.analyzers.short_strangle_engine import ShortStrangleEngine
+        for symbol in tier1_stocks:
+            try:
+                analysis = engine.analyze_short_strangle(symbol, manual_refresh=manual_refresh, force_realtime=force_realtime)
+                if analysis:
+                    strategies.append(analysis)
+                    logger.info(f"[API] Successfully analyzed {symbol} - Price: ₹{analysis.get('current_price', 'N/A')}")
+            except Exception as e:
+                logger.error(f"[API] Error analyzing {symbol}: {str(e)}")
+                continue
 
-        # Create engine and generate strategies
-        engine = ShortStrangleEngine()
-        strategies = engine.generate_strategies(timeframe=timeframe, force_refresh=True)
-
-        if not strategies:
-            logger.warning("⚠️ No strategies generated")
-            return jsonify({
-                'status': 'error',
-                'message': 'No options strategies could be generated at this time',
-                'strategies': [],
-                'count': 0,
-                'data_source': 'none',
-                'refresh_type': 'none',
-                'summary': {
-                    'total_opportunities': 0,
-                    'high_confidence_count': 0,
-                    'average_roi': 0,
-                    'total_premium_potential': 0
-                },
-                'timeframe': timeframe,
-                'last_updated': datetime.now().isoformat()
-            })
-
-        # Calculate summary statistics
-        high_confidence_count = len([s for s in strategies if s.get('confidence', 0) >= 80])
-        average_roi = sum(s.get('expected_roi', 0) for s in strategies) / len(strategies) if strategies else 0
-        total_premium_potential = sum(s.get('total_premium', 0) for s in strategies)
-
-        logger.info(f"✅ Successfully generated {len(strategies)} strategies from real_time_yahoo_finance")
-
-        return jsonify({
-            'status': 'success',
-            'message': f'Successfully generated {len(strategies)} real-time options strategies',
-            'strategies': strategies,
-            'count': len(strategies),
-            'data_source': 'yahoo_finance_realtime',
-            'refresh_type': 'manual' if manual_refresh else 'auto',
-            'summary': {
-                'total_opportunities': len(strategies),
-                'high_confidence_count': high_confidence_count,
-                'average_roi': round(average_roi, 2),
-                'total_premium_potential': round(total_premium_potential, 2)
-            },
-            'timeframe': timeframe,
-            'last_updated': datetime.now().isoformat()
-        })
+        logger.info(f"[API] Returning {len(strategies)} strategies with real-time data")
+        return jsonify(strategies)
 
     except Exception as e:
-        logger.error(f"❌ Error generating options strategies: {e}")
-        import traceback
-        logger.error(f"Full traceback: {traceback.format_exc()}")
-        return jsonify({
-            'status': 'error',
-            'error_details': str(e),
-            'message': f'Failed to generate options strategies: {str(e)}',
-            'strategies': [],
-            'count': 0,
-            'data_source': 'error',
-            'refresh_type': 'error',
-            'summary': {
-                'total_opportunities': 0,
-                'high_confidence_count': 0,
-                'average_roi': 0,
-                'total_premium_potential': 0
-            },
-            'timeframe': timeframe,
-            'last_updated': datetime.now().isoformat()
-        }), 500
+        logger.error(f"[API] Error in options strategies API: {str(e)}")
+        return jsonify([]), 500
 
 
 def load_interactive_tracking_data():

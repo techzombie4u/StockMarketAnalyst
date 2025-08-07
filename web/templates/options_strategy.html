@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -424,7 +423,7 @@
                 }
 
                 // Get risk color
-                const riskColor = riskLevel === 'Low' ? '#27ae60' : 
+                const riskColor = riskLevel === 'Low' ? '#27ae60' :
                                 riskLevel === 'Medium' ? '#f39c12' : '#e74c3c';
 
                 row.innerHTML = `
@@ -470,10 +469,10 @@
 
             try {
                 console.log('🔄 Loading options data for timeframe:', timeframe);
-                
+
                 const url = `/api/options-strategies?timeframe=${timeframe}&force_realtime=true&refresh=true&t=${now}`;
                 console.log('📡 Fetching from URL:', url);
-                
+
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: {
@@ -498,11 +497,11 @@
                 if (result.status === 'success') {
                     if (result.strategies && Array.isArray(result.strategies) && result.strategies.length > 0) {
                         console.log('📊 Processing strategies:', result.strategies.length);
-                        
+
                         const displaySuccess = updateOptionsTable(result.strategies);
                         if (displaySuccess) {
                             showData();
-                            
+
                             // Update button feedback
                             const refreshText = document.getElementById('refreshText');
                             refreshText.textContent = `✅ Live! (${result.strategies.length})`;
@@ -531,63 +530,52 @@
             }
         }
 
-        async function manualRefreshData() {
-            if (isLoading) return;
+        function manualRefreshData() {
+            console.log("Manual refresh triggered");
 
-            isLoading = true;
+            // Show loading state
             setManualButtonState(true);
             showLoading();
 
             const timeframe = document.getElementById('timeframeSelect').value;
 
-            try {
-                console.log('⚡ Manual refresh triggered');
-                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&manual_refresh=true&force_realtime=true&t=${Date.now()}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Cache-Control': 'no-cache, no-store, must-revalidate'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            // Force refresh with real-time data
+            fetch(`/api/options-strategies?manual_refresh=true&force_realtime=true&t=${Date.now()}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
                 }
-
-                const result = await response.json();
-                console.log('⚡ Manual refresh response:', result);
-
-                if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
-                    const displaySuccess = updateOptionsTable(result.strategies);
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("[MANUAL REFRESH] Real-time data received:", data);
+                    // The original code used populateStrategiesTable, but the current version uses updateOptionsTable
+                    // Assuming updateOptionsTable is the correct function to use here
+                    const displaySuccess = updateOptionsTable(data.strategies);
                     if (displaySuccess) {
                         showData();
-                        
-                        // Success feedback
-                        const refreshBtn = document.getElementById('manualRefreshBtn');
-                        refreshBtn.querySelector('#manualRefreshText').textContent = 'Refreshed!';
-                        setTimeout(() => {
-                            refreshBtn.querySelector('#manualRefreshText').textContent = 'Force Refresh';
-                        }, 3000);
                     } else {
-                        showError('Failed to display refreshed data');
+                        showEmpty(); // Show empty if no strategies are returned
                     }
-                } else {
-                    showEmpty();
-                }
-
-            } catch (error) {
-                console.error('❌ Manual refresh error:', error);
-                showError(`Refresh failed: ${error.message}`);
-            } finally {
-                isLoading = false;
-                setManualButtonState(false);
-            }
+                    setManualButtonState(false);
+                })
+                .catch(error => {
+                    console.error('[MANUAL REFRESH] Error:', error);
+                    showError('Failed to refresh data: ' + error.message);
+                    setManualButtonState(false);
+                });
         }
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
             console.log('📱 Options Strategy page loaded');
-            
+
             // Add timeframe change listener
             document.getElementById('timeframeSelect').addEventListener('change', () => {
                 console.log('🔄 Timeframe changed, reloading data');
