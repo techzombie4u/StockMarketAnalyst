@@ -13,6 +13,9 @@ import logging
 import pytz
 from typing import Dict, List, Optional
 
+# Import GoAhead Agent
+from src.analyzers.smart_go_agent import SmartGoAgent
+
 logger = logging.getLogger(__name__)
 
 # Import required classes - with fallback handling
@@ -1410,6 +1413,74 @@ def create_initial_demo_data():
 
     except Exception as e:
         logger.error(f"Failed to create initial data: {e}")
+
+@app.route('/goahead')
+def goahead():
+    """GoAhead AI Validation & Self-Healing System page"""
+    try:
+        return render_template('goahead.html')
+    except Exception as e:
+        logger.error(f"GoAhead page error: {str(e)}")
+        return f"Error loading GoAhead page: {str(e)}", 500
+
+@app.route('/api/goahead/validation')
+def goahead_validation():
+    """API endpoint for GoAhead prediction validation"""
+    try:
+        timeframe = request.args.get('timeframe', '5D')
+
+        # Initialize SmartGoAgent
+        smart_agent = SmartGoAgent()
+
+        # Perform validation analysis
+        validation_results = smart_agent.validate_predictions(timeframe)
+
+        return jsonify(validation_results)
+
+    except Exception as e:
+        logger.error(f"GoAhead validation API error: {str(e)}")
+        return jsonify({
+            'error': str(e),
+            'timeframe': timeframe,
+            'timestamp': datetime.now().isoformat(),
+            'prediction_summary': {'total': 0, 'accuracy': 0, 'avg_confidence': 0, 'predictions': []},
+            'outcome_validation': {'success': 0, 'warning': 0, 'failure': 0, 'details': []},
+            'gap_analysis': {'gaps': []},
+            'improvement_suggestions': {'recommendations': []},
+            'retraining_guide': {
+                'days_since_training': 0,
+                'priority_score': '0/100',
+                'should_retrain': False,
+                'recommendations': []
+            }
+        }), 500
+
+@app.route('/api/goahead/retrain', methods=['POST'])
+def goahead_retrain():
+    """API endpoint for triggering model retraining"""
+    try:
+        data = request.get_json() or {}
+        timeframe = data.get('timeframe', '5D')
+        trigger = data.get('trigger', 'manual')
+
+        # Initialize SmartGoAgent
+        smart_agent = SmartGoAgent()
+
+        # Trigger retraining
+        result = smart_agent.trigger_retraining(timeframe)
+
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+
+    except Exception as e:
+        logger.error(f"GoAhead retrain API error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 def create_app():
     """Application factory function for WSGI deployment"""

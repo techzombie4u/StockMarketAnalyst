@@ -509,23 +509,23 @@ def load_tracking_metrics_for_analysis():
         from src.managers.interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
         tracking_data = tracker_manager.get_all_tracking_data()
-        
+
         locked_count = 0
         in_progress_count = 0
         metrics_5d = {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0}
         metrics_30d = {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0}
-        
+
         for symbol, data in tracking_data.items():
             # Count locked predictions
             if data.get('locked_5d') or data.get('locked_30d'):
                 locked_count += 1
-            
+
             # Count in-progress predictions
             if data.get('locked_5d') and is_prediction_in_progress(data, '5d'):
                 in_progress_count += 1
             if data.get('locked_30d') and is_prediction_in_progress(data, '30d'):
                 in_progress_count += 1
-                
+
             # Calculate 5D metrics
             if data.get('locked_5d') or data.get('days_tracked', 0) > 0:
                 metrics_5d['total'] += 1
@@ -536,7 +536,7 @@ def load_tracking_metrics_for_analysis():
                     metrics_5d['failed'] += 1
                 else:
                     metrics_5d['in_progress'] += 1
-                    
+
             # Calculate 30D metrics
             if data.get('locked_30d') or data.get('days_tracked', 0) > 0:
                 metrics_30d['total'] += 1
@@ -547,14 +547,14 @@ def load_tracking_metrics_for_analysis():
                     metrics_30d['failed'] += 1
                 else:
                     metrics_30d['in_progress'] += 1
-        
+
         return {
             'locked_predictions_count': locked_count,
             'in_progress_predictions': in_progress_count,
             'metrics_5d': metrics_5d,
             'metrics_30d': metrics_30d
         }
-        
+
     except Exception as e:
         logger.error(f"Error loading tracking metrics: {str(e)}")
         return {
@@ -571,18 +571,18 @@ def is_prediction_in_progress(data, period):
         lock_date = data.get(lock_start_date_key)
         if not lock_date:
             return False
-            
+
         from datetime import datetime
         import pytz
         IST = pytz.timezone('Asia/Kolkata')
-        
+
         start_date = datetime.strptime(lock_date, '%Y-%m-%d')
         current_date = datetime.now(IST).date()
         days_passed = (current_date - start_date.date()).days
-        
+
         total_days = 5 if period == '5d' else 30
         return days_passed < total_days
-        
+
     except Exception as e:
         logger.error(f"Error checking if prediction in progress: {str(e)}")
         return False
@@ -592,31 +592,31 @@ def get_prediction_result_for_analysis(data, period):
     try:
         actual_key = f'actual_progress_{period}'
         predicted_key = f'predicted_{period}'
-        
+
         actual_data = data.get(actual_key, [])
         predicted_data = data.get(predicted_key, [])
-        
+
         if not actual_data or not predicted_data:
             return 'in_progress'
-            
+
         # Filter out null values
         actual_values = [val for val in actual_data if val is not None]
-        
+
         required_days = 5 if period == '5d' else 30
         if len(actual_values) < required_days:
             return 'in_progress'
-            
+
         # Compare final values
         final_predicted = predicted_data[-1] if predicted_data else 0
         final_actual = actual_values[-1] if actual_values else 0
-        
+
         if final_predicted == 0 or final_actual == 0:
             return 'in_progress'
-            
+
         # Consider successful if within 5% of prediction
         error_percent = abs((final_actual - final_predicted) / final_predicted) * 100
         return 'successful' if error_percent <= 5 else 'failed'
-        
+
     except Exception as e:
         logger.error(f"Error getting prediction result: {str(e)}")
         return 'in_progress'
@@ -957,7 +957,7 @@ def get_analysis():
     try:
         # Load real-time session count from scheduler
         sessions_count = load_screening_sessions_count()
-        
+
         # Get successful sessions count from scheduler globals
         successful_sessions_count = 0
         try:
@@ -988,7 +988,7 @@ def get_analysis():
 
         # Calculate dynamic accuracy rate based on actual performance
         accuracy_rate = calculate_historical_accuracy(successful_sessions_count, high_score_stocks, total_stocks_analyzed)
-        
+
         # If we have high-scoring stocks, boost accuracy for successful sessions
         if successful_sessions_count > 0 and high_score_stocks > 0:
             session_success_rate = (high_score_stocks / total_stocks_analyzed) * 100 if total_stocks_analyzed > 0 else 0
@@ -1579,10 +1579,10 @@ def load_interactive_tracking_data():
         from src.managers.interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
         tracking_data = tracker_manager.load_tracking_data()
-        
+
         # Always ensure tracking data includes current stocks
         tracker_manager._ensure_current_stocks_tracked()
-        
+
         return tracker_manager.get_all_tracking_data()
     except Exception as e:
         logger.warning(f"Could not load interactive tracking data: {str(e)}")
@@ -1593,17 +1593,17 @@ def save_lock_status(symbol, period, locked, timestamp, persistent=True):
     try:
         from src.managers.interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
-        
+
         # Ensure current stocks are tracked before saving lock status
         tracker_manager._ensure_current_stocks_tracked()
-        
+
         success = tracker_manager.update_lock_status(symbol, period, locked, timestamp, persistent)
         if success:
             persistence_msg = "persistently" if persistent else "temporarily"
             logger.info(f"✅ Lock status saved {persistence_msg}: {symbol} {period} = {locked}")
         else:
             logger.error(f"❌ Failed to save lock status for {symbol}")
-        
+
         return success
     except Exception as e:
         logger.error(f"Error saving lock status: {str(e)}")
