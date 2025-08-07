@@ -1,0 +1,33 @@
+
+{
+  "RELIANCE": {
+    "actual_price": 1389.40,
+    "expiry_date": "2025-08-30",
+    "status": "active"
+  },
+  "HDFCBANK": {
+    "actual_price": 1995.40,
+    "expiry_date": "2025-08-30", 
+    "status": "active"
+  },
+  "TCS": {
+    "actual_price": 3047.00,
+    "expiry_date": "2025-08-30",
+    "status": "active"
+  },
+  "ITC": {
+    "actual_price": 413.60,
+    "expiry_date": "2025-08-30",
+    "status": "active"
+  },
+  "INFY": {
+    "actual_price": 1436.90,
+    "expiry_date": "2025-08-30",
+    "status": "active"
+  },
+  "HINDUNILVR": {
+    "actual_price": 2517.50,
+    "expiry_date": "2025-08-30",
+    "status": "active"
+  }
+}

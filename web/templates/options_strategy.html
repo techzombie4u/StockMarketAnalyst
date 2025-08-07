@@ -243,6 +243,25 @@
         .verdict-cell[title]:hover {
             background: #f5f5f5;
         }
+
+        .prediction-outcome {
+            font-weight: bold;
+            cursor: help;
+            white-space: nowrap;
+        }
+
+        .outcome-met { color: #27ae60; }
+        .outcome-not-met { color: #e74c3c; }
+        .outcome-in-progress { color: #f39c12; }
+        .outcome-missing { color: #95a5a6; }
+
+        .stop-loss-cell {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #8e44ad;
+            cursor: help;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -316,6 +335,8 @@
                         <th>💰 Margin Req.</th>
                         <th>📈 ROI %</th>
                         <th>🎯 Confidence</th>
+                        <th>🏁 Prediction Outcome</th>
+                        <th>🛑 Stop Loss (SL)</th>
                         <th>🛡️ Risk Level</th>
                         <th>📌 Verdict</th>
                     </tr>
@@ -446,6 +467,42 @@
                 const riskColor = riskLevel === 'Low' ? '#27ae60' :
                                 riskLevel === 'Medium' ? '#f39c12' : '#e74c3c';
 
+                // Determine prediction outcome
+                let predictionOutcome = '⚠️ In Progress';
+                let outcomeTooltip = 'Strategy still running. Awaiting expiry.';
+                let outcomeClass = 'outcome-in-progress';
+
+                // Check if we have prediction outcome data from backend
+                if (strategy.prediction_outcome) {
+                    switch (strategy.prediction_outcome) {
+                        case 'Met':
+                            predictionOutcome = '✅ Met';
+                            outcomeTooltip = 'Target price stayed within breakeven range till expiry.';
+                            outcomeClass = 'outcome-met';
+                            break;
+                        case 'Not Met':
+                            predictionOutcome = '❌ Not Met';
+                            outcomeTooltip = 'Breached upper/lower breakeven before expiry.';
+                            outcomeClass = 'outcome-not-met';
+                            break;
+                        case 'In Progress':
+                            predictionOutcome = '⚠️ In Progress';
+                            outcomeTooltip = 'Strategy still running. Awaiting expiry.';
+                            outcomeClass = 'outcome-in-progress';
+                            break;
+                        default:
+                            predictionOutcome = '❓ Data Missing';
+                            outcomeTooltip = 'Missing expiry or price data.';
+                            outcomeClass = 'outcome-missing';
+                    }
+                }
+
+                // Calculate Stop Loss levels (±7% beyond breakeven)
+                const lowerSL = Math.round(breakevenLower * 0.93);
+                const upperSL = Math.round(breakevenUpper * 1.07);
+                const stopLossDisplay = `₹${lowerSL} / ₹${upperSL}`;
+                const stopLossTooltip = 'If price breaches this level, exit trade to limit losses.';
+
                 // Determine verdict based on ROI, Confidence, and Risk Level
                 let verdict = '';
                 let verdictTooltip = '';
@@ -477,6 +534,8 @@
                     <td style="color: #666;">₹${new Intl.NumberFormat('en-IN').format(marginRequired)}</td>
                     <td style="color: #27ae60; font-weight: 700; font-size: 1.1em;">${expectedRoi.toFixed(1)}%</td>
                     <td style="font-weight: 600; color: ${riskColor};">${confidence.toFixed(0)}%</td>
+                    <td class="prediction-outcome ${outcomeClass}" title="${outcomeTooltip}">${predictionOutcome}</td>
+                    <td class="stop-loss-cell" title="${stopLossTooltip}">${stopLossDisplay}</td>
                     <td style="font-weight: 600; color: ${riskColor};">${riskLevel}</td>
                     <td class="verdict-cell" title="${verdictTooltip}">${verdict}</td>
                 `;

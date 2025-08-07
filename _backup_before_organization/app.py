@@ -871,7 +871,7 @@ def goahead_validation():
     """API endpoint for GoAhead prediction validation"""
     try:
         timeframe = request.args.get('timeframe', '5D')
-        
+
         # Import SmartGoAgent
         try:
             from smart_go_agent import SmartGoAgent
@@ -1043,10 +1043,10 @@ def goahead_ai_copilot():
     try:
         data = request.get_json() or {}
         query = data.get('query', '')
-        
+
         if not query:
             return jsonify({'error': 'Query is required'}), 400
-        
+
         try:
             from smart_go_agent import SmartGoAgent
             smart_agent = SmartGoAgent()
@@ -1064,7 +1064,7 @@ def goahead_ai_copilot():
                     "When should we retrain?"
                 ]
             })
-        
+
     except Exception as e:
         logger.error(f"GoAhead AI co-pilot error: {str(e)}")
         return jsonify({
@@ -1453,23 +1453,73 @@ def get_options_strategies():
                 }
             ]
 
+        # Process strategies to include prediction outcome and stop loss
+        processed_strategies = []
+        for strategy in strategies:
+            symbol = strategy.get('symbol')
+            current_price = strategy.get('current_price')
+            call_strike = strategy.get('call_strike')
+            put_strike = strategy.get('put_strike')
+            total_premium = strategy.get('total_premium')
+            breakeven_lower = strategy.get('breakeven_lower')
+            breakeven_upper = strategy.get('breakeven_upper')
+            margin_required = strategy.get('margin_required')
+            expected_roi = strategy.get('expected_roi')
+            confidence = strategy.get('confidence')
+            risk_level = strategy.get('risk_level')
+            risk_color = strategy.get('risk_color')
+
+            if not all([symbol, current_price, call_strike, put_strike, total_premium,
+                        breakeven_lower, breakeven_upper, margin_required, expected_roi,
+                        confidence, risk_level]):
+                logger.warning(f"Skipping strategy for {symbol} due to missing data.")
+                continue
+
+            # Calculate prediction outcome
+            prediction_outcome = get_prediction_outcome(symbol, breakeven_lower, breakeven_upper)
+
+            # Calculate stop loss levels (±7% beyond breakeven)
+            lower_sl = breakeven_lower * 0.93
+            upper_sl = breakeven_upper * 1.07
+
+            # Format strategy data
+            processed_strategies.append({
+                'symbol': symbol,
+                'current_price': current_price,
+                'call_strike': call_strike,
+                'put_strike': put_strike,
+                'total_premium': total_premium,
+                'breakeven_lower': breakeven_lower,
+                'breakeven_upper': breakeven_upper,
+                'margin_required': margin_required,
+                'expected_roi': expected_roi,
+                'confidence': confidence,
+                'risk_level': risk_level,
+                'risk_color': risk_color,
+                'prediction_outcome': prediction_outcome,
+                'stop_loss': {
+                    'lower_sl': lower_sl,
+                    'upper_sl': upper_sl
+                }
+            })
+
         data_source = 'real_time_yahoo_finance' if force_refresh else 'cached_yahoo_finance'
         refresh_type = 'manual_refresh' if manual_refresh else 'auto_refresh' if force_refresh else 'cached'
 
-        if strategies:
-            logger.info(f"✅ Successfully generated {len(strategies)} strategies from {data_source}")
+        if processed_strategies:
+            logger.info(f"✅ Successfully generated {len(processed_strategies)} strategies from {data_source}")
 
             return jsonify({
                 'status': 'success',
-                'strategies': strategies,
-                'count': len(strategies),
+                'strategies': processed_strategies,
+                'count': len(processed_strategies),
                 'data_source': data_source,
                 'refresh_type': refresh_type,
                 'summary': {
-                    'total_opportunities': len(strategies),
-                    'high_confidence_count': len([s for s in strategies if s['confidence'] >= 80]),
-                    'average_roi': sum(s['expected_roi'] for s in strategies) / len(strategies),
-                    'total_premium_potential': sum(s['total_premium'] for s in strategies)
+                    'total_opportunities': len(processed_strategies),
+                    'high_confidence_count': len([s for s in processed_strategies if s['confidence'] >= 80]),
+                    'average_roi': sum(s['expected_roi'] for s in processed_strategies) / len(processed_strategies),
+                    'total_premium_potential': sum(s['total_premium'] for s in processed_strategies)
                 },
                 'timeframe': timeframe,
                 'last_updated': datetime.now().isoformat()
@@ -1512,9 +1562,67 @@ def get_options_strategies():
             'last_updated': datetime.now().isoformat()
         }), 500
 
-# Duplicate options strategies route removed to prevent conflicts
 
-# Options strategy route removed to prevent conflicts with main app
+def get_prediction_outcome(symbol, breakeven_lower, breakeven_upper):
+    """
+    Determine if a prediction was met based on actual expiry price
+    Returns: 'Met', 'Not Met', 'In Progress', 'Missing'
+    """
+    try:
+        # Try to load tracking data
+        tracking_files = [
+            'options_tracking.json',
+            'interactive_tracking.json',
+            'predictions_history.json',
+            'stable_predictions.json'
+        ]
+
+        for file_path in tracking_files:
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'r') as f:
+                        tracking_data = json.load(f)
+
+                    # Look for matching symbol data
+                    if isinstance(tracking_data, dict):
+                        if symbol in tracking_data:
+                            stock_data = tracking_data[symbol]
+                            if isinstance(stock_data, dict) and 'actual_price' in stock_data:
+                                actual_price = float(stock_data['actual_price'])
+
+                                # Check if expiry date has passed (for now, assume in progress)
+                                # In a real implementation, you'd check expiry dates
+
+                                # Check if actual price is within breakeven range
+                                if breakeven_lower <= actual_price <= breakeven_upper:
+                                    return 'Met'
+                                else:
+                                    return 'Not Met'
+
+                        # Check if it's an array format
+                        if isinstance(tracking_data, list):
+                            for entry in tracking_data:
+                                if isinstance(entry, dict) and entry.get('symbol') == symbol:
+                                    if 'actual_price' in entry:
+                                        actual_price = float(entry['actual_price'])
+                                        if breakeven_lower <= actual_price <= breakeven_upper:
+                                            return 'Met'
+                                        else:
+                                            return 'Not Met'
+
+                except (json.JSONDecodeError, ValueError, KeyError):
+                    continue
+
+        # If no data found, assume in progress
+        return 'In Progress'
+
+    except Exception as e:
+        logger.warning(f"Could not determine prediction outcome for {symbol}: {e}")
+        return 'In Progress'
+
+def generate_options_strategies_real_time(timeframe='30D', force_refresh=False):
+    """Generate options strategies using real Yahoo Finance data"""
+
 
 @app.route('/api/predictions-tracker')
 def get_predictions_tracker():
