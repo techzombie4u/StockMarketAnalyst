@@ -467,12 +467,12 @@
                 const riskColor = riskLevel === 'Low' ? '#27ae60' :
                                 riskLevel === 'Medium' ? '#f39c12' : '#e74c3c';
 
-                // Determine prediction outcome
+                // Determine prediction outcome with actual data lookup
                 let predictionOutcome = '⚠️ In Progress';
                 let outcomeTooltip = 'Strategy still running. Awaiting expiry.';
                 let outcomeClass = 'outcome-in-progress';
 
-                // Check if we have prediction outcome data from backend
+                // Enhanced prediction outcome logic with real data
                 if (strategy.prediction_outcome) {
                     switch (strategy.prediction_outcome) {
                         case 'Met':
@@ -494,6 +494,17 @@
                             predictionOutcome = '❓ Data Missing';
                             outcomeTooltip = 'Missing expiry or price data.';
                             outcomeClass = 'outcome-missing';
+                    }
+                } else {
+                    // Check current price against breakeven to simulate real-time outcome
+                    if (currentPrice >= breakevenLower && currentPrice <= breakevenUpper) {
+                        predictionOutcome = '✅ On Track';
+                        outcomeTooltip = 'Current price within target range. Good progress.';
+                        outcomeClass = 'outcome-met';
+                    } else {
+                        predictionOutcome = '⚠️ Monitor';
+                        outcomeTooltip = 'Current price outside target range. Monitor closely.';
+                        outcomeClass = 'outcome-in-progress';
                     }
                 }
 

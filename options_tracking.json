@@ -3,31 +3,55 @@
   "RELIANCE": {
     "actual_price": 1389.40,
     "expiry_date": "2025-08-30",
-    "status": "active"
+    "status": "active",
+    "prediction_outcome": "On Track",
+    "breakeven_lower": 1150.0,
+    "breakeven_upper": 1630.0,
+    "last_updated": "2025-08-07"
   },
   "HDFCBANK": {
     "actual_price": 1995.40,
     "expiry_date": "2025-08-30", 
-    "status": "active"
+    "status": "active",
+    "prediction_outcome": "On Track",
+    "breakeven_lower": 1700.0,
+    "breakeven_upper": 2290.0,
+    "last_updated": "2025-08-07"
   },
   "TCS": {
     "actual_price": 3047.00,
     "expiry_date": "2025-08-30",
-    "status": "active"
+    "status": "active",
+    "prediction_outcome": "On Track",
+    "breakeven_lower": 2650.0,
+    "breakeven_upper": 3440.0,
+    "last_updated": "2025-08-07"
   },
   "ITC": {
     "actual_price": 413.60,
     "expiry_date": "2025-08-30",
-    "status": "active"
+    "status": "active",
+    "prediction_outcome": "On Track",
+    "breakeven_lower": 350.0,
+    "breakeven_upper": 475.0,
+    "last_updated": "2025-08-07"
   },
   "INFY": {
     "actual_price": 1436.90,
     "expiry_date": "2025-08-30",
-    "status": "active"
+    "status": "active",
+    "prediction_outcome": "On Track",
+    "breakeven_lower": 1200.0,
+    "breakeven_upper": 1670.0,
+    "last_updated": "2025-08-07"
   },
   "HINDUNILVR": {
     "actual_price": 2517.50,
     "expiry_date": "2025-08-30",
-    "status": "active"
+    "status": "active",
+    "prediction_outcome": "On Track",
+    "breakeven_lower": 2100.0,
+    "breakeven_upper": 2930.0,
+    "last_updated": "2025-08-07"
   }
 }

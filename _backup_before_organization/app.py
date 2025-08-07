@@ -1590,14 +1590,22 @@ def get_prediction_outcome(symbol, breakeven_lower, breakeven_upper):
                             if isinstance(stock_data, dict) and 'actual_price' in stock_data:
                                 actual_price = float(stock_data['actual_price'])
 
-                                # Check if expiry date has passed (for now, assume in progress)
-                                # In a real implementation, you'd check expiry dates
-
-                                # Check if actual price is within breakeven range
-                                if breakeven_lower <= actual_price <= breakeven_upper:
-                                    return 'Met'
+                                # Check expiry date status
+                                expiry_date = stock_data.get('expiry_date')
+                                current_date = datetime.now().strftime('%Y-%m-%d')
+                                
+                                # If expiry date has passed, determine outcome
+                                if expiry_date and expiry_date <= current_date:
+                                    if breakeven_lower <= actual_price <= breakeven_upper:
+                                        return 'Met'
+                                    else:
+                                        return 'Not Met'
                                 else:
-                                    return 'Not Met'
+                                    # Still in progress, but show current status
+                                    if breakeven_lower <= actual_price <= breakeven_upper:
+                                        return 'On Track'
+                                    else:
+                                        return 'Monitor'
 
                         # Check if it's an array format
                         if isinstance(tracking_data, list):
@@ -1605,10 +1613,19 @@ def get_prediction_outcome(symbol, breakeven_lower, breakeven_upper):
                                 if isinstance(entry, dict) and entry.get('symbol') == symbol:
                                     if 'actual_price' in entry:
                                         actual_price = float(entry['actual_price'])
-                                        if breakeven_lower <= actual_price <= breakeven_upper:
-                                            return 'Met'
+                                        expiry_date = entry.get('expiry_date')
+                                        current_date = datetime.now().strftime('%Y-%m-%d')
+                                        
+                                        if expiry_date and expiry_date <= current_date:
+                                            if breakeven_lower <= actual_price <= breakeven_upper:
+                                                return 'Met'
+                                            else:
+                                                return 'Not Met'
                                         else:
-                                            return 'Not Met'
+                                            if breakeven_lower <= actual_price <= breakeven_upper:
+                                                return 'On Track'
+                                            else:
+                                                return 'Monitor'
 
                 except (json.JSONDecodeError, ValueError, KeyError):
                     continue
