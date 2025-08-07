@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,7 +22,7 @@
         .header {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            padding: 20px;
+            padding: 15px 20px;
             text-align: center;
             box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
             position: sticky;
@@ -31,31 +32,31 @@
 
         .header h1 {
             color: #2c3e50;
-            margin-bottom: 10px;
-            font-size: 2.5em;
+            margin-bottom: 8px;
+            font-size: 2.2em;
             font-weight: 700;
         }
 
         .header .subtitle {
             color: #7f8c8d;
-            font-size: 1.1em;
-            margin-bottom: 15px;
+            font-size: 1em;
+            margin-bottom: 12px;
         }
 
         .navigation {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            margin-top: 15px;
+            gap: 12px;
+            margin-top: 12px;
             flex-wrap: wrap;
         }
 
         .nav-btn {
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 6px;
             text-decoration: none;
             font-weight: 600;
-            font-size: 0.9em;
+            font-size: 0.85em;
             transition: all 0.3s ease;
             border: none;
             cursor: pointer;
@@ -67,187 +68,35 @@
         .nav-btn.refresh { background: #f39c12; color: white; }
         .nav-btn:hover { transform: translateY(-2px); opacity: 0.9; }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 30px 20px;
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 30px;
-        }
-
-        .main-content {
+        /* Sticky Timeframe Navbar */
+        .timeframe-navbar {
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .ai-copilot-sidebar {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            height: fit-content;
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
             position: sticky;
-            top: 120px;
-        }
-
-        .agent-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .agent-header h2 {
-            color: #2c3e50;
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
-
-        .agent-status {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-
-        .agent-status.active {
-            background: #27ae60;
-            color: white;
-        }
-
-        .sections-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 25px;
-            margin-top: 30px;
-        }
-
-        .section-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            border-left: 4px solid #3498db;
-            transition: transform 0.3s ease;
-        }
-
-        .section-card:hover {
-            transform: translateY(-3px);
-        }
-
-        .section-card h3 {
-            color: #2c3e50;
-            font-size: 1.3em;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .section-icon {
-            font-size: 1.5em;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .metric-item {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .metric-value {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #2c3e50;
-            display: block;
-        }
-
-        .metric-label {
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin-top: 5px;
-        }
-
-        .prediction-item {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            border-left: 4px solid #ddd;
-        }
-
-        .prediction-item.success {
-            border-left-color: #27ae60;
-        }
-
-        .prediction-item.warning {
-            border-left-color: #f39c12;
-        }
-
-        .prediction-item.failure {
-            border-left-color: #e74c3c;
-        }
-
-        .prediction-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .prediction-symbol {
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-
-        .prediction-label {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            font-weight: 600;
-        }
-
-        .label-success { background: #d4edda; color: #155724; }
-        .label-warning { background: #fff3cd; color: #856404; }
-        .label-failure { background: #f8d7da; color: #721c24; }
-
-        .recommendation-item {
-            background: #e8f4fd;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            border-left: 4px solid #3498db;
-        }
-
-        .recommendation-item h4 {
-            color: #2c3e50;
-            margin-bottom: 8px;
+            top: 90px;
+            z-index: 90;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #ddd;
         }
 
         .timeframe-selector {
             display: flex;
-            gap: 10px;
-            margin: 20px 0;
+            justify-content: center;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
         .timeframe-btn {
-            padding: 8px 16px;
+            padding: 6px 14px;
             border: 2px solid #3498db;
             background: white;
             color: #3498db;
-            border-radius: 20px;
+            border-radius: 15px;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-size: 0.85em;
+            font-weight: 600;
         }
 
         .timeframe-btn.active {
@@ -255,34 +104,349 @@
             color: white;
         }
 
-        .ai-copilot {
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .ai-copilot-sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 150px;
+        }
+
+        .agent-header {
+            text-align: center;
             margin-bottom: 20px;
         }
 
+        .agent-header h2 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 8px;
+        }
+
+        .agent-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        .agent-status.active {
+            background: #27ae60;
+            color: white;
+        }
+
+        /* Compact Status Cards */
+        .status-cards-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .compact-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            border-left: 3px solid #3498db;
+        }
+
+        .compact-card h5 {
+            margin-bottom: 8px;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compact-card .d-flex {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .compact-card .text-center {
+            text-align: center;
+        }
+
+        .compact-card .badge {
+            padding: 3px 8px;
+            font-size: 0.7em;
+            border-radius: 10px;
+        }
+
+        .compact-card .small {
+            font-size: 0.75em;
+            margin-top: 4px;
+            margin-bottom: 0;
+        }
+
+        /* Next-Level Features Accordion */
+        .accordion {
+            margin-bottom: 20px;
+        }
+
+        .accordion-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: #2c3e50;
+            transition: background 0.3s ease;
+        }
+
+        .accordion-header:hover {
+            background: #e9ecef;
+        }
+
+        .accordion-header .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .accordion-header.active .toggle-icon {
+            transform: rotate(90deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: white;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .accordion-content.active {
+            max-height: 500px;
+            padding: 15px;
+        }
+
+        .enhancement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .enhancement-card {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            border-left: 3px solid #28a745;
+        }
+
+        /* Tabs System */
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 8px 8px 0 0;
+            overflow-x: auto;
+            margin-bottom: 0;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            border: none;
+            background: #f8f9fa;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.9em;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #2c3e50;
+            border-bottom-color: #3498db;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 0 0 8px 8px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Two-Column Summary Layout */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Compact Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .metric-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            display: block;
+        }
+
+        .metric-label {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+
+        /* Compact Prediction Items */
+        .prediction-item {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 8px 0;
+            border-left: 3px solid #ddd;
+            font-size: 0.9em;
+        }
+
+        .prediction-item.success { border-left-color: #27ae60; }
+        .prediction-item.warning { border-left-color: #f39c12; }
+        .prediction-item.failure { border-left-color: #e74c3c; }
+
+        .prediction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .prediction-symbol {
+            font-weight: bold;
+            font-size: 1em;
+        }
+
+        .prediction-label {
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.7em;
+            font-weight: 600;
+        }
+
+        .label-success { background: #d4edda; color: #155724; }
+        .label-warning { background: #fff3cd; color: #856404; }
+        .label-failure { background: #f8d7da; color: #721c24; }
+
+        /* Scrollable Content Areas */
+        .scrollable-content {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .scrollable-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollable-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        /* Heatmap Improvements */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            margin: 12px 0;
+        }
+
+        .heatmap-cell {
+            padding: 8px 6px;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .heatmap-cell.header {
+            background: #34495e;
+            color: white;
+        }
+
+        .heatmap-cell.green { background: #d4edda; color: #155724; }
+        .heatmap-cell.yellow { background: #fff3cd; color: #856404; }
+        .heatmap-cell.red { background: #f8d7da; color: #721c24; }
+
+        /* AI Co-pilot Improvements */
         .ai-copilot h3 {
             color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.2em;
+            margin-bottom: 12px;
+            font-size: 1.1em;
         }
 
         .copilot-input {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 2px solid #ddd;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 0.9em;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 0.85em;
         }
 
         .copilot-btn {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             background: #9b59b6;
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 0.85em;
             transition: all 0.3s ease;
         }
 
@@ -292,26 +456,26 @@
 
         .copilot-response {
             background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            font-size: 0.9em;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 0.85em;
             line-height: 1.4;
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
         }
 
         .suggested-queries {
-            margin-top: 15px;
+            margin-top: 12px;
         }
 
         .suggested-query {
             background: #e8f4fd;
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-radius: 6px;
+            padding: 6px 10px;
+            margin: 4px 0;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 0.85em;
+            font-size: 0.8em;
             transition: background 0.3s ease;
         }
 
@@ -319,114 +483,10 @@
             background: #d1ecf1;
         }
 
-        .heatmap-container {
-            margin: 20px 0;
-        }
-
-        .heatmap-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 5px;
-            margin: 15px 0;
-        }
-
-        .heatmap-cell {
-            padding: 10px 8px;
-            text-align: center;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: 600;
-        }
-
-        .heatmap-cell.header {
-            background: #34495e;
-            color: white;
-        }
-
-        .heatmap-cell.green {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .heatmap-cell.yellow {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .heatmap-cell.red {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .correction-item {
-            background: #fff3cd;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            border-left: 4px solid #f39c12;
-        }
-
-        .what-if-scenario {
-            background: #e8f4fd;
-            padding: 10px;
-            border-radius: 6px;
-            margin: 10px 0;
-            font-size: 0.9em;
-        }
-
-        .dynamic-recommendation {
-            background: #d1ecf1;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            border-left: 4px solid #17a2b8;
-        }
-
-        .insight-item {
-            background: #f0f9ff;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 8px 0;
-            border-left: 4px solid #0ea5e9;
-            font-size: 0.9em;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #7f8c8d;
-        }
-
-        .error {
-            color: #e74c3c;
-            background: #f8d7da;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-
-        /* Bootstrap card styles for enhanced sections */
-        .card {
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
-            margin-bottom: 1.25rem;
-        }
-        .card-header {
-            padding: 0.75rem 1.25rem;
-            margin-bottom: 0;
-            background-color: #f7f7f7;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .card-header h5 {
-            margin-bottom: 0;
-            font-size: 1.25rem;
-        }
-        .card-body {
-            padding: 1.25rem;
-        }
+        /* Bootstrap-like utilities */
         .badge {
             display: inline-block;
-            padding: .35em .65em;
+            padding: .25em .4em;
             font-size: .75em;
             font-weight: 700;
             line-height: 1;
@@ -435,45 +495,34 @@
             vertical-align: baseline;
             border-radius: .25rem;
         }
+
         .badge-success { color: #fff; background-color: #28a745; }
         .badge-warning { color: #212529; background-color: #ffc107; }
         .badge-danger { color: #fff; background-color: #dc3545; }
         .badge-info { color: #fff; background-color: #17a2b8; }
-        .badge-primary { color: #fff; background-color: #007bff; }
-        .badge-secondary { color: #fff; background-color: #6c757d; }
-        .badge-dark { color: #fff; background-color: #343a40; }
-        .badge-light { color: #212529; background-color: #f8f9fa; }
 
-        /* Custom styles for new sections */
-        .border-warning { border-color: #ffc107 !important; }
-        .bg-warning { background-color: #ffc107 !important; }
-        .text-dark { color: #343a40 !important; }
-        .border-success { border-color: #28a745 !important; }
-        .bg-success { background-color: #28a745 !important; }
-        .border-danger { border-color: #dc3545 !important; }
-        .bg-danger { background-color: #dc3545 !important; }
-        .border-primary { border-color: #007bff !important; }
-        .bg-primary { background-color: #007bff !important; }
         .text-center { text-align: center !important; }
+        .text-muted { color: #6c757d !important; }
         .mt-1 { margin-top: .25rem !important; }
         .mt-2 { margin-top: .5rem !important; }
-        .mt-3 { margin-top: 1rem !important; }
-        .mt-4 { margin-top: 1.5rem !important; }
-        .mb-3 { margin-bottom: 1rem !important; }
-        .mb-4 { margin-bottom: 1.5rem !important; }
+        .mb-0 { margin-bottom: 0 !important; }
         .small { font-size: 80%; font-weight: 400; }
-        .text-muted { color: #6c757d !important; }
-        .fa { display: inline-block; font: normal normal normal 14px/1 FontAwesome; font-size: inherit; text-rendering: auto; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        .fa-rocket:before { content: "\f135"; }
-        .fa-chart-line:before { content: "\f201"; }
-        .fa-brain:before { content: "\f5dc"; }
-        .fa-robot:before { content: "\f521"; }
-        .fa-lightbulb:before { content: "\f0eb"; }
-        .fa-search:before { content: "\f002"; }
-        .fa-shield-alt:before { content: "\f3ed"; }
-        .fa-exclamation-triangle:before { content: "\f071"; }
 
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+        }
 
+        .error {
+            color: #e74c3c;
+            background: #f8d7da;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 12px 0;
+        }
+
+        /* Mobile Responsiveness */
         @media (max-width: 1200px) {
             .container {
                 grid-template-columns: 1fr;
@@ -483,13 +532,13 @@
                 order: -1;
                 position: static;
             }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 768px) {
-            .sections-grid {
-                grid-template-columns: 1fr;
-            }
-
             .navigation {
                 flex-direction: column;
                 align-items: center;
@@ -497,6 +546,23 @@
 
             .metrics-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .timeframe-selector {
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .status-cards-row {
+                grid-template-columns: 1fr;
+            }
+
+            .enhancement-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -516,6 +582,17 @@
         </div>
     </div>
 
+    <!-- Sticky Timeframe Navbar -->
+    <div class="timeframe-navbar">
+        <div class="timeframe-selector">
+            <button class="timeframe-btn active" onclick="selectTimeframe('3D')" data-timeframe="3D">3D - Ultra-Short</button>
+            <button class="timeframe-btn" onclick="selectTimeframe('5D')" data-timeframe="5D">5D - Short-Term</button>
+            <button class="timeframe-btn" onclick="selectTimeframe('10D')" data-timeframe="10D">10D - 1-Week</button>
+            <button class="timeframe-btn" onclick="selectTimeframe('15D')" data-timeframe="15D">15D - 2-Week</button>
+            <button class="timeframe-btn" onclick="selectTimeframe('30D')" data-timeframe="30D">30D - Monthly</button>
+        </div>
+    </div>
+
     <div class="container">
         <div class="main-content">
             <div class="agent-header">
@@ -523,219 +600,176 @@
                 <span class="agent-status active">ACTIVE & META-LEARNING</span>
             </div>
 
-            <!-- Timeframe Selector -->
-            <div class="timeframe-selector">
-                <button class="timeframe-btn active" onclick="selectTimeframe('3D')" data-timeframe="3D">3D - Ultra-Short Term</button>
-                <button class="timeframe-btn" onclick="selectTimeframe('5D')" data-timeframe="5D">5D - Short-Term</button>
-                <button class="timeframe-btn" onclick="selectTimeframe('10D')" data-timeframe="10D">10D - 1-Week</button>
-                <button class="timeframe-btn" onclick="selectTimeframe('15D')" data-timeframe="15D">15D - 2-Week</button>
-                <button class="timeframe-btn" onclick="selectTimeframe('30D')" data-timeframe="30D">30D - Monthly</button>
-            </div>
-
-            <!-- Enhancement Status and Live Drift Monitor -->
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card border-info">
-                <div class="card-header bg-info text-white">
+            <!-- Compact Status Cards -->
+            <div class="status-cards-row">
+                <div class="compact-card">
                     <h5><i class="fas fa-rocket"></i> Enhancement Status</h5>
-                </div>
-                <div class="card-body py-2">
-                    <div class="d-flex justify-content-around">
+                    <div class="d-flex">
                         <div class="text-center">
-                            <div class="badge badge-success p-1">✅ ACTIVE</div>
+                            <div class="badge badge-success">✅ ACTIVE</div>
                             <p class="small mt-1 mb-0">Model Integration</p>
                         </div>
                         <div class="text-center">
-                            <div class="badge badge-success p-1">✅ ACTIVE</div>
+                            <div class="badge badge-success">✅ ACTIVE</div>
                             <p class="small mt-1 mb-0">Signal Processing</p>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Live Drift Monitor Panel -->
-        <div class="col-md-6">
-            <div class="card border-warning">
-                <div class="card-header bg-warning text-dark">
+                <div class="compact-card">
                     <h5><i class="fas fa-chart-line"></i> Live Drift Monitor</h5>
-                </div>
-                <div class="card-body py-2">
-                    <div id="drift-monitor-content">
-                        <div class="d-flex justify-content-between">
-                            <div class="text-center">
-                                <div class="badge badge-success p-1" id="lstm-status">GREEN</div>
-                                <p class="small mt-1 mb-0">LSTM</p>
-                            </div>
-                            <div class="text-center">
-                                <div class="badge badge-warning p-1" id="rf-status">YELLOW</div>
-                                <p class="small mt-1 mb-0">RF</p>
-                            </div>
-                            <div class="text-center">
-                                <div class="badge badge-success p-1" id="ensemble-status">GREEN</div>
-                                <p class="small mt-1 mb-0">Ensemble</p>
-                            </div>
-                            <div class="text-center">
-                                <div class="badge badge-danger p-1" id="technical-status">RED</div>
-                                <p class="small mt-1 mb-0">Technical</p>
-                            </div>
+                    <div class="d-flex">
+                        <div class="text-center">
+                            <div class="badge badge-success" id="lstm-status">GREEN</div>
+                            <p class="small mt-1 mb-0">LSTM</p>
                         </div>
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                <i class="fas fa-exclamation-triangle text-warning"></i> 
-                                <span id="active-alerts">2 accuracy drift alerts</span>
-                            </small>
+                        <div class="text-center">
+                            <div class="badge badge-warning" id="rf-status">YELLOW</div>
+                            <p class="small mt-1 mb-0">RF</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="badge badge-success" id="ensemble-status">GREEN</div>
+                            <p class="small mt-1 mb-0">Ensemble</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="badge badge-danger" id="technical-status">RED</div>
+                            <p class="small mt-1 mb-0">Technical</p>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <span id="active-alerts">2 accuracy drift alerts</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next-Level Enhancement Features Accordion -->
+            <div class="accordion">
+                <div class="accordion-header" onclick="toggleAccordion('enhancement-features')">
+                    <span><i class="fas fa-brain"></i> Next-Level Enhancement Features</span>
+                    <span class="toggle-icon">▶</span>
+                </div>
+                <div class="accordion-content" id="enhancement-features">
+                    <div class="enhancement-grid">
+                        <div class="enhancement-card">
+                            <i class="fas fa-robot"></i>
+                            <h6>GoBeyond Meta-Agent</h6>
+                            <div class="badge badge-success">✅ ACTIVE</div>
+                            <p class="small mt-1">Self-Optimizing Loop</p>
+                            <p class="small text-muted">
+                                <span id="meta-agent-overrides">5</span> overrides<br>
+                                <span id="meta-agent-patterns">3</span> patterns
+                            </p>
+                        </div>
+
+                        <div class="enhancement-card">
+                            <i class="fas fa-lightbulb"></i>
+                            <h6>Explainability Engine</h6>
+                            <div class="badge badge-success">✅ ACTIVE</div>
+                            <p class="small mt-1">SHAP Analysis</p>
+                            <p class="small text-muted">
+                                Top 3 drivers per prediction<br>
+                                Cause → Effect mapping
+                            </p>
+                        </div>
+
+                        <div class="enhancement-card">
+                            <i class="fas fa-search"></i>
+                            <h6>AI Code Auditor</h6>
+                            <div class="badge badge-success">✅ ACTIVE</div>
+                            <p class="small mt-1">Weekly Analysis</p>
+                            <p class="small text-muted">
+                                <span id="auditor-suggestions">7</span> suggestions<br>
+                                Last: <span id="last-audit">Today</span>
+                            </p>
+                        </div>
+
+                        <div class="enhancement-card">
+                            <i class="fas fa-shield-alt"></i>
+                            <h6>Data Validator</h6>
+                            <div class="badge badge-success">✅ ACTIVE</div>
+                            <p class="small mt-1">Smart Validation</p>
+                            <p class="small text-muted">
+                                Gap filling & integrity<br>
+                                Auto-mark questionable
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-</div>
 
-<!-- Next-Level Enhancement Features -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card border-primary">
-                <div class="card-header bg-primary text-white">
-                    <h5><i class="fas fa-brain"></i> Next-Level Enhancement Features</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <!-- GoBeyond Meta-Agent -->
-                        <div class="col-md-3">
-                            <div class="card border-success mb-3">
-                                <div class="card-header bg-success text-white text-center">
-                                    <i class="fas fa-robot"></i> GoBeyond Meta-Agent
-                                </div>
-                                <div class="card-body">
-                                    <div class="text-center">
-                                        <div class="badge badge-success">✅ ACTIVE</div>
-                                        <p class="small mt-1">Self-Optimizing Feedback Loop</p>
-                                        <p class="small text-muted">
-                                            <span id="meta-agent-overrides">5</span> active overrides<br>
-                                            <span id="meta-agent-patterns">3</span> learned patterns
-                                        </p>
-                                    </div>
-                                </div>
+            <!-- Tabbed Analysis Sections -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('summary')">📊 Summary</button>
+                <button class="tab-btn" onclick="showTab('heatmap')">🔥 Heatmap</button>
+                <button class="tab-btn" onclick="showTab('corrections')">🔧 Corrections</button>
+                <button class="tab-btn" onclick="showTab('advisor')">⏰ Advisor</button>
+                <button class="tab-btn" onclick="showTab('gaps')">🔍 Gaps</button>
+                <button class="tab-btn" onclick="showTab('insights')">🧠 Insights</button>
+            </div>
+
+            <!-- Tab: Prediction Summary & Heatmap -->
+            <div id="tab-summary" class="tab-content active">
+                <div class="summary-grid">
+                    <div>
+                        <h3><span>📊</span> Prediction Summary & Meta-Analysis</h3>
+                        <div class="metrics-grid">
+                            <div class="metric-item">
+                                <span class="metric-value" id="total-predictions">-</span>
+                                <span class="metric-label">Total Predictions</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-value" id="accuracy-rate">-</span>
+                                <span class="metric-label">Accuracy Rate</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-value" id="meta-score">-</span>
+                                <span class="metric-label">Meta Score</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-value" id="recommended-model">-</span>
+                                <span class="metric-label">Best Model</span>
                             </div>
                         </div>
-
-                        <!-- Explainability Engine -->
-                        <div class="col-md-3">
-                            <div class="card border-info mb-3">
-                                <div class="card-header bg-info text-white text-center">
-                                    <i class="fas fa-lightbulb"></i> Explainability Engine
-                                </div>
-                                <div class="card-body">
-                                    <div class="text-center">
-                                        <div class="badge badge-success">✅ ACTIVE</div>
-                                        <p class="small mt-1">SHAP-based Analysis</p>
-                                        <p class="small text-muted">
-                                            Top 3 drivers per prediction<br>
-                                            Cause → Effect mapping
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- AI Code Auditor -->
-                        <div class="col-md-3">
-                            <div class="card border-warning mb-3">
-                                <div class="card-header bg-warning text-dark text-center">
-                                    <i class="fas fa-search"></i> AI Code Auditor
-                                </div>
-                                <div class="card-body">
-                                    <div class="text-center">
-                                        <div class="badge badge-success">✅ ACTIVE</div>
-                                        <p class="small mt-1">Weekly Performance Analysis</p>
-                                        <p class="small text-muted">
-                                            <span id="auditor-suggestions">7</span> active suggestions<br>
-                                            Last audit: <span id="last-audit">Today</span>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Smart Data Validator -->
-                        <div class="col-md-3">
-                            <div class="card border-danger mb-3">
-                                <div class="card-header bg-danger text-white text-center">
-                                    <i class="fas fa-shield-alt"></i> Data Validator
-                                </div>
-                                <div class="card-body">
-                                    <div class="text-center">
-                                        <div class="badge badge-success">✅ ACTIVE</div>
-                                        <p class="small mt-1">Smart Data Validation</p>
-                                        <p class="small text-muted">
-                                            Gap filling & integrity checks<br>
-                                            Auto-mark questionable predictions
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <div id="prediction-summary-list" class="scrollable-content loading">Loading predictions...</div>
+                    </div>
+                    <div>
+                        <h3><span>🔥</span> Model Performance Heatmap</h3>
+                        <div id="performance-heatmap" class="scrollable-content loading">Generating heatmap...</div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-            <div class="sections-grid">
-                <!-- Section 1: Enhanced Prediction Summary -->
-                <div class="section-card">
-                    <h3><span class="section-icon">📊</span>Prediction Summary & Meta-Analysis</h3>
-                    <div class="metrics-grid">
-                        <div class="metric-item">
-                            <span class="metric-value" id="total-predictions">-</span>
-                            <span class="metric-label">Total Predictions</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value" id="accuracy-rate">-</span>
-                            <span class="metric-label">Accuracy Rate</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value" id="meta-score">-</span>
-                            <span class="metric-label">Meta Score</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value" id="recommended-model">-</span>
-                            <span class="metric-label">Best Model</span>
-                        </div>
-                    </div>
-                    <div id="prediction-summary-list" class="loading">Loading predictions...</div>
-                </div>
+            <!-- Tab: Performance Heatmap -->
+            <div id="tab-heatmap" class="tab-content">
+                <h3><span>🔥</span> Detailed Model Performance Heatmap</h3>
+                <div id="performance-heatmap-detailed" class="loading">Generating detailed heatmap...</div>
+            </div>
 
-                <!-- Section 2: Model Performance Heatmap -->
-                <div class="section-card">
-                    <h3><span class="section-icon">🔥</span>Model Performance Heatmap</h3>
-                    <div id="performance-heatmap" class="loading">Generating heatmap...</div>
-                </div>
+            <!-- Tab: Prediction Corrections -->
+            <div id="tab-corrections" class="tab-content">
+                <h3><span>🔧</span> Prediction Correction Engine</h3>
+                <div id="prediction-corrections" class="scrollable-content loading">Analyzing corrections...</div>
+            </div>
 
-                <!-- Section 3: Prediction Correction Engine -->
-                <div class="section-card">
-                    <h3><span class="section-icon">🔧</span>Prediction Correction Engine</h3>
-                    <div id="prediction-corrections" class="loading">Analyzing corrections...</div>
-                </div>
+            <!-- Tab: Dynamic Timeframe Advisor -->
+            <div id="tab-advisor" class="tab-content">
+                <h3><span>⏰</span> Dynamic Timeframe Advisor</h3>
+                <div id="timeframe-recommendations" class="scrollable-content loading">Calculating optimal windows...</div>
+            </div>
 
-                <!-- Section 4: Dynamic Timeframe Advisor -->
-                <div class="section-card">
-                    <h3><span class="section-icon">⏰</span>Dynamic Timeframe Advisor</h3>
-                    <div id="timeframe-recommendations" class="loading">Calculating optimal windows...</div>
-                </div>
+            <!-- Tab: Enhanced Gap Analyzer -->
+            <div id="tab-gaps" class="tab-content">
+                <h3><span>🔍</span> Enhanced Gap Analyzer</h3>
+                <div id="gap-analysis" class="scrollable-content loading">Detecting prediction gaps...</div>
+            </div>
 
-                <!-- Section 5: Enhanced Gap Analyzer -->
-                <div class="section-card">
-                    <h3><span class="section-icon">🔍</span>Enhanced Gap Analyzer</h3>
-                    <div id="gap-analysis" class="loading">Detecting prediction gaps...</div>
-                </div>
-
-                <!-- Section 6: AI Insights Dashboard -->
-                <div class="section-card">
-                    <h3><span class="section-icon">🧠</span>AI Insights Dashboard</h3>
-                    <div id="ai-insights" class="loading">Generating insights...</div>
-                </div>
+            <!-- Tab: AI Insights -->
+            <div id="tab-insights" class="tab-content">
+                <h3><span>🧠</span> AI Insights Dashboard</h3>
+                <div id="ai-insights" class="scrollable-content loading">Generating insights...</div>
             </div>
         </div>
 
@@ -743,7 +777,7 @@
         <div class="ai-copilot-sidebar">
             <div class="ai-copilot">
                 <h3>🤖 AI Co-pilot</h3>
-                <input type="text" id="copilot-query" class="copilot-input" placeholder="Ask me about predictions, models, or performance...">
+                <input type="text" id="copilot-query" class="copilot-input" placeholder="Ask about predictions, models, or performance...">
                 <button onclick="askAICopilot()" class="copilot-btn">Ask AI</button>
 
                 <div id="copilot-response" class="copilot-response" style="display: none;">
@@ -751,7 +785,7 @@
                 </div>
 
                 <div class="suggested-queries">
-                    <h4 style="margin-bottom: 10px; color: #2c3e50;">Suggested Queries:</h4>
+                    <h4 style="margin-bottom: 8px; color: #2c3e50; font-size: 0.9em;">Suggested Queries:</h4>
                     <div class="suggested-query" onclick="askSuggestedQuery('Why was INFY prediction wrong?')">
                         Why was INFY prediction wrong?
                     </div>
@@ -768,8 +802,8 @@
             </div>
 
             <!-- Model KPI Quick View -->
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                <h4 style="color: #2c3e50; margin-bottom: 15px;">Model KPIs</h4>
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+                <h4 style="color: #2c3e50; margin-bottom: 12px; font-size: 1em;">Model KPIs</h4>
                 <div id="model-kpi-quick" class="loading">Loading KPIs...</div>
             </div>
         </div>
@@ -793,6 +827,40 @@
                 }
             });
         });
+
+        // Tab System Functions
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab content
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            // Activate selected tab button
+            event.target.classList.add('active');
+
+            // Load specific content if needed
+            if (tabName === 'heatmap') {
+                document.getElementById('performance-heatmap-detailed').innerHTML = 
+                    document.getElementById('performance-heatmap').innerHTML;
+            }
+        }
+
+        // Accordion Functions
+        function toggleAccordion(accordionId) {
+            const header = event.target.closest('.accordion-header');
+            const content = document.getElementById(accordionId);
+            
+            header.classList.toggle('active');
+            content.classList.toggle('active');
+        }
 
         // Timeframe selection
         function selectTimeframe(timeframe) {
@@ -895,9 +963,9 @@
 
                 // Legend
                 if (heatmap.legend) {
-                    heatmapHTML += '<div style="margin-top: 15px; font-size: 0.9em;">';
+                    heatmapHTML += '<div style="margin-top: 12px; font-size: 0.8em;">';
                     Object.entries(heatmap.legend).forEach(([color, description]) => {
-                        heatmapHTML += `<div style="display: inline-block; margin-right: 15px;"><span class="heatmap-cell ${color}" style="padding: 3px 8px; margin-right: 5px;"></span>${description}</div>`;
+                        heatmapHTML += `<div style="display: inline-block; margin-right: 12px;"><span class="heatmap-cell ${color}" style="padding: 2px 6px; margin-right: 4px;"></span>${description}</div>`;
                     });
                     heatmapHTML += '</div>';
                 }
@@ -918,13 +986,13 @@
 
             if (corrections.corrections && corrections.corrections.length > 0) {
                 correctionsElement.innerHTML = corrections.corrections.map(correction => `
-                    <div class="correction-item">
+                    <div class="prediction-item warning">
                         <h4>${correction.symbol} - Correction Analysis</h4>
                         <div><strong>Original:</strong> ${correction.original_prediction.direction} @ ${correction.original_prediction.confidence}% confidence</div>
                         <div><strong>Suggested:</strong> ${correction.suggested_correction.direction} @ ${correction.suggested_correction.confidence}% confidence</div>
                         <div><strong>Reason:</strong> ${correction.suggested_correction.reason}</div>
                         ${correction.what_if_scenarios.map(scenario => `
-                            <div class="what-if-scenario">
+                            <div style="margin: 6px 0; padding: 6px; background: #e8f4fd; border-radius: 4px;">
                                 <strong>What-if ${scenario.model}:</strong> ${scenario.would_predict} (${scenario.accuracy_improvement} improvement)
                             </div>
                         `).join('')}
@@ -946,13 +1014,13 @@
                 let html = '';
 
                 if (recommendations.volatility_analysis) {
-                    html += `<div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                    html += `<div style="margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
                         <strong>Market Volatility:</strong> ${recommendations.volatility_analysis.market_volatility} (VIX: ${recommendations.volatility_analysis.vix_level})
                     </div>`;
                 }
 
                 html += recommendations.timeframe_recommendations.map(rec => `
-                    <div class="dynamic-recommendation">
+                    <div class="prediction-item success">
                         <h4>${rec.stock} - Dynamic Window Adjustment</h4>
                         <div><strong>Volatility:</strong> ${rec.current_volatility}</div>
                         <div><strong>Recommendation:</strong> Use ${rec.recommended_timeframe} instead of ${rec.instead_of}</div>
@@ -979,18 +1047,18 @@
 
             // Add failure cause mapping
             if (meta.failure_cause_mapping) {
-                html += '<div style="margin-bottom: 20px;">';
+                html += '<div style="margin-bottom: 15px;">';
                 html += '<h4>Failure Cause Analysis</h4>';
 
                 if (meta.failure_cause_mapping.internal) {
-                    html += '<div style="margin: 10px 0;"><strong>Internal Causes:</strong></div>';
+                    html += '<div style="margin: 8px 0;"><strong>Internal Causes:</strong></div>';
                     meta.failure_cause_mapping.internal.forEach(cause => {
                         html += `<div class="prediction-item failure">${cause}</div>`;
                     });
                 }
 
                 if (meta.failure_cause_mapping.external) {
-                    html += '<div style="margin: 10px 0;"><strong>External Causes:</strong></div>';
+                    html += '<div style="margin: 8px 0;"><strong>External Causes:</strong></div>';
                     meta.failure_cause_mapping.external.forEach(cause => {
                         html += `<div class="prediction-item warning">${cause}</div>`;
                     });
@@ -1028,7 +1096,7 @@
 
             if (insights.length > 0) {
                 insightsElement.innerHTML = insights.map(insight => `
-                    <div class="insight-item">${insight}</div>
+                    <div style="background: #f0f9ff; padding: 10px; margin: 6px 0; border-radius: 4px; border-left: 3px solid #0ea5e9; font-size: 0.85em;">${insight}</div>
                 `).join('');
             } else {
                 insightsElement.innerHTML = '<p>🔄 AI insights are being generated...</p>';
@@ -1059,9 +1127,9 @@
                     const color = accuracy >= 80 ? 'green' : accuracy >= 70 ? 'yellow' : 'red';
 
                     html += `
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;">
-                            <span style="font-weight: 600;">${model}</span>
-                            <span class="heatmap-cell ${color}" style="padding: 4px 8px;">${accuracy.toFixed(1)}%</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin: 6px 0; padding: 6px; background: #f8f9fa; border-radius: 4px;">
+                            <span style="font-weight: 600; font-size: 0.85em;">${model}</span>
+                            <span class="heatmap-cell ${color}" style="padding: 3px 6px;">${accuracy.toFixed(1)}%</span>
                         </div>
                     `;
                 });
@@ -1113,21 +1181,21 @@
             const responseElement = document.getElementById('copilot-response');
 
             let html = `<div><strong>🤖 AI Response:</strong></div>`;
-            html += `<div style="margin: 10px 0; line-height: 1.5;">${aiResponse.response}</div>`;
+            html += `<div style="margin: 8px 0; line-height: 1.4;">${aiResponse.response}</div>`;
 
             if (aiResponse.model_rankings) {
-                html += '<div style="margin-top: 15px;"><strong>Model Rankings:</strong></div>';
+                html += '<div style="margin-top: 12px;"><strong>Model Rankings:</strong></div>';
                 Object.entries(aiResponse.model_rankings).forEach(([model, info]) => {
-                    html += `<div style="margin: 5px 0; padding: 8px; background: #e8f4fd; border-radius: 4px;">
+                    html += `<div style="margin: 4px 0; padding: 6px; background: #e8f4fd; border-radius: 3px;">
                         <strong>${model}:</strong> ${info.accuracy}% - ${info.best_for}
                     </div>`;
                 });
             }
 
             if (aiResponse.confidence_breakdown) {
-                html += '<div style="margin-top: 15px;"><strong>Confidence Breakdown:</strong></div>';
+                html += '<div style="margin-top: 12px;"><strong>Confidence Breakdown:</strong></div>';
                 Object.entries(aiResponse.confidence_breakdown).forEach(([level, stocks]) => {
-                    html += `<div style="margin: 5px 0;"><strong>${level.replace('_', ' ')}:</strong> ${stocks.join(', ')}</div>`;
+                    html += `<div style="margin: 4px 0;"><strong>${level.replace('_', ' ')}:</strong> ${stocks.join(', ')}</div>`;
                 });
             }
 
@@ -1171,7 +1239,7 @@
             Object.keys(driftStatus).forEach(model => {
                 const element = document.getElementById(`${model.toLowerCase()}-status`);
                 if (element) {
-                    element.className = `badge badge-${driftStatus[model]} p-2`;
+                    element.className = `badge badge-${driftStatus[model]}`;
                     element.textContent = driftStatus[model] === 'success' ? 'GREEN' : 
                                         driftStatus[model] === 'warning' ? 'YELLOW' : 'RED';
                 }
@@ -1180,7 +1248,7 @@
             // Update active alerts
             const alertsElement = document.getElementById('active-alerts');
             if (alertsElement) {
-                alertsElement.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> 2 accuracy drift alerts';
+                alertsElement.textContent = '2 accuracy drift alerts';
             }
         }
 
