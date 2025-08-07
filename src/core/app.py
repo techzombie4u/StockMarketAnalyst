@@ -64,13 +64,10 @@ except ImportError as e:
         def start_scheduler(self, *args, **kwargs): pass
 
 # Set template folder to the correct location
-template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates', 'templates')
+template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates')
 if not os.path.exists(template_dir):
-    # Fallback to web/templates if templates subfolder doesn't exist
-    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates')
-    if not os.path.exists(template_dir):
-        # Final fallback to backup templates
-        template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '_backup_before_organization', 'templates')
+    # Fallback to backup templates
+    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '_backup_before_organization', 'templates')
 
 app = Flask(__name__, template_folder=template_dir)
 CORS(app)  # Enable CORS for all routes

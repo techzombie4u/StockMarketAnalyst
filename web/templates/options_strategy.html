@@ -339,30 +339,33 @@
             tbody.innerHTML = '';
 
             if (!strategies || strategies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #666; padding: 40px;">No options strategies available.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #666; padding: 40px;">No real-time options strategies available. Click "Generate Strategies" to fetch live data.</td></tr>';
                 return;
             }
 
             strategies.forEach((strategy, index) => {
                 const row = document.createElement('tr');
 
-                const riskBadgeClass = strategy.risk_color === 'success' ? 'confidence-high' : 
-                                     strategy.risk_color === 'warning' ? 'confidence-medium' : 'confidence-low';
+                // Get risk level color
+                const riskColor = strategy.risk_color === 'success' ? '#27ae60' : 
+                                strategy.risk_color === 'warning' ? '#f39c12' : '#e74c3c';
 
                 row.innerHTML = `
-                    <td class="symbol">${strategy.symbol}</td>
-                    <td>₹${strategy.current_price.toFixed(2)}</td>
-                    <td>₹${strategy.call_strike.toFixed(2)}</td>
-                    <td>₹${strategy.put_strike.toFixed(2)}</td>
-                    <td style="font-weight: 600; color: #27ae60;">₹${strategy.total_premium.toFixed(0)}</td>
-                    <td>₹${strategy.breakeven_lower.toFixed(0)} - ₹${strategy.breakeven_upper.toFixed(0)}</td>
-                    <td>₹${new Intl.NumberFormat('en-IN').format(strategy.margin_required)}</td>
-                    <td style="color: #27ae60; font-weight: 600;">${strategy.expected_roi.toFixed(1)}%</td>
-                    <td style="font-weight: 600;">${strategy.confidence.toFixed(0)}%</td>
-                    <td style="font-weight: 600;">${strategy.risk_level}</td>
+                    <td class="symbol" style="color: #2c3e50; font-weight: 700;">${strategy.symbol}</td>
+                    <td style="font-weight: 600;">₹${parseFloat(strategy.current_price).toFixed(2)}</td>
+                    <td>₹${parseFloat(strategy.call_strike).toFixed(2)}</td>
+                    <td>₹${parseFloat(strategy.put_strike).toFixed(2)}</td>
+                    <td style="font-weight: 700; color: #27ae60; font-size: 1.1em;">₹${Math.round(parseFloat(strategy.total_premium))}</td>
+                    <td style="font-size: 0.9em;">₹${Math.round(parseFloat(strategy.breakeven_lower))} - ₹${Math.round(parseFloat(strategy.breakeven_upper))}</td>
+                    <td style="color: #666;">₹${new Intl.NumberFormat('en-IN').format(Math.round(parseFloat(strategy.margin_required)))}</td>
+                    <td style="color: #27ae60; font-weight: 700; font-size: 1.1em;">${parseFloat(strategy.expected_roi).toFixed(1)}%</td>
+                    <td style="font-weight: 600; color: ${riskColor};">${Math.round(parseFloat(strategy.confidence))}%</td>
+                    <td style="font-weight: 600; color: ${riskColor};">${strategy.risk_level}</td>
                 `;
                 tbody.appendChild(row);
             });
+
+            console.log(`✅ Successfully displayed ${strategies.length} real-time strategies`);
         }
 
         async function loadOptionsData() {
@@ -395,22 +398,30 @@
                 const result = await response.json();
                 console.log('✅ Options API response:', result);
 
-                if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
-                    console.log('📊 Updating table with', result.strategies.length, 'strategies');
-                    updateOptionsTable(result.strategies);
-                    showData();
-                    
-                    // Update refresh button to show success
-                    const refreshBtn = document.getElementById('refreshBtn');
-                    const refreshText = document.getElementById('refreshText');
-                    refreshText.textContent = 'Data Loaded!';
-                    
-                    setTimeout(() => {
-                        refreshText.textContent = 'Generate Strategies';
-                    }, 2000);
-                    
+                if (result.status === 'success') {
+                    if (result.strategies && result.strategies.length > 0) {
+                        console.log('📊 Updating table with', result.strategies.length, 'real-time strategies');
+                        console.log('📡 Data source:', result.data_source);
+                        console.log('🔄 Refresh type:', result.refresh_type);
+                        
+                        updateOptionsTable(result.strategies);
+                        showData();
+                        
+                        // Update refresh button to show success with data source info
+                        const refreshBtn = document.getElementById('refreshBtn');
+                        const refreshText = document.getElementById('refreshText');
+                        refreshText.textContent = `Live Data Loaded! (${result.strategies.length} strategies)`;
+                        
+                        setTimeout(() => {
+                            refreshText.textContent = 'Generate Strategies';
+                        }, 3000);
+                    } else {
+                        console.log('⚠️ API success but no strategies returned');
+                        showEmpty();
+                    }
                 } else {
-                    console.log('⚠️ No strategies in response or error status');
+                    console.log('⚠️ API returned error status:', result.status);
+                    console.log('❌ Error details:', result.error_details);
                     showEmpty();
                 }
 
