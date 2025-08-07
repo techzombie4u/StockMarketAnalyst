@@ -205,7 +205,7 @@
             padding: 60px 20px;
             color: white;
         }
-        
+
         .confidence-high { background: #d4edda; color: #155724; }
         .confidence-medium { background: #fff3cd; color: #856404; }
         .confidence-low { background: #f8d7da; color: #721c24; }
@@ -219,6 +219,21 @@
 
         .verdict-cell[title]:hover {
             background: #f5f5f5;
+        }
+        .prediction-outcome {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .outcome-met {
+            color: #27ae60;
+        }
+        .outcome-in-progress {
+            color: #e67e22;
+        }
+        .stop-loss-cell {
+            font-weight: 500;
+            color: #6c757d;
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -286,8 +301,10 @@
                         <th>💰 Margin Req.</th>
                         <th>📈 ROI %</th>
                         <th>🎯 Confidence</th>
+                        <th>🏁 Prediction Outcome</th>
+                        <th>🛑 Stop Loss (SL)</th>
                         <th>🛡️ Risk Level</th>
-                        <th>⚖️ Verdict</th>
+                        <th>📌 Verdict</th>
                     </tr>
                 </thead>
                 <tbody id="optionsTableBody">
@@ -299,17 +316,52 @@
     <script>
         let isLoading = false;
 
+        function getPredictionOutcome(strategy) {
+            const current = strategy.current_price || 0;
+            const lower = strategy.breakeven_lower || 0;
+            const upper = strategy.breakeven_upper || 0;
+
+            if (current >= lower && current <= upper) {
+                return '✅ On Track';
+            } else {
+                return '⚠️ Monitor';
+            }
+        }
+
+        function getPredictionOutcomeClass(strategy) {
+            const current = strategy.current_price || 0;
+            const lower = strategy.breakeven_lower || 0;
+            const upper = strategy.breakeven_upper || 0;
+
+            if (current >= lower && current <= upper) {
+                return 'outcome-met';
+            } else {
+                return 'outcome-in-progress';
+            }
+        }
+
+        function getPredictionOutcomeTooltip(strategy) {
+            const current = strategy.current_price || 0;
+            const lower = strategy.breakeven_lower || 0;
+            const upper = strategy.breakeven_upper || 0;
+
+            if (current >= lower && current <= upper) {
+                return 'Current price within target range. Good progress.';
+            } else {
+                return 'Current price outside target range. Monitor closely.';
+            }
+        }
+
         // Helper function to determine verdict and tooltip
         function getVerdict(strategy) {
-            if (strategy.risk_level === 'Low' && strategy.confidence > 75) {
-                return 'Favorable';
-            } else if (strategy.risk_level === 'Medium' && strategy.confidence > 60) {
-                return 'Consider';
-            } else if (strategy.risk_level === 'High' && strategy.confidence > 50) {
-                return 'Caution';
-            } else {
-                return 'Neutral';
-            }
+            const roi = strategy.expected_roi || 0;
+            const confidence = strategy.confidence || 0;
+
+            if (roi >= 30 && confidence >= 80) return '✅ Top Pick';
+            if (roi >= 25 && confidence >= 75) return '✅ Recommended';
+            if (roi >= 20 && confidence >= 70) return '✅ Good';
+            if (roi >= 15 && confidence >= 60) return '⚠️ Cautious';
+            return '❌ Avoid';
         }
 
         function getVerdictTooltip(strategy) {
@@ -324,7 +376,7 @@
             tooltip += `Confidence: ${strategy.confidence.toFixed(0)}%\n`;
             tooltip += `Risk Level: ${strategy.risk_level}\n\n`;
             tooltip += `Verdict: ${getVerdict(strategy)}\n`;
-            
+
             if (getVerdict(strategy) === 'Favorable') {
                 tooltip += `Reason: Low risk and high confidence in a favorable price range.`;
             } else if (getVerdict(strategy) === 'Consider') {
@@ -393,7 +445,7 @@
             tbody.innerHTML = '';
 
             if (!strategies || strategies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #666; padding: 40px;">No options strategies available.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; color: #666; padding: 40px;">No options strategies available.</td></tr>';
                 return;
             }
 
@@ -412,7 +464,9 @@
                     <td>₹${strategy.breakeven_lower.toFixed(0)} - ₹${strategy.breakeven_upper.toFixed(0)}</td>
                     <td>₹${new Intl.NumberFormat('en-IN').format(strategy.margin_required)}</td>
                     <td style="color: #27ae60; font-weight: 600;">${strategy.expected_roi.toFixed(1)}%</td>
-                    <td class="confidence-badge ${riskBadgeClass}">${strategy.confidence.toFixed(0)}%</td>
+                    <td class="confidence-badge ${riskBadgeClass}">${strategy.confidence?.toFixed(0) || 0}%</td>
+                    <td class="prediction-outcome ${getPredictionOutcomeClass(strategy)}" title="${getPredictionOutcomeTooltip(strategy)}">${getPredictionOutcome(strategy)}</td>
+                    <td class="stop-loss-cell" title="If price breaches this level, exit trade to limit losses.">₹${Math.round(strategy.breakeven_lower * 0.93)} / ₹${Math.round(strategy.breakeven_upper * 1.07)}</td>
                     <td class="confidence-badge ${riskBadgeClass}">${strategy.risk_level}</td>
                     <td class="verdict-cell" title="${getVerdictTooltip(strategy)}">${getVerdict(strategy)}</td>
                 `;
