@@ -656,3 +656,65 @@ class ShortStrangleEngine:
             # Use real-time prices by default, or when explicitly requested
             use_live = manual_refresh or force_realtime or True  # Always try live first
             current_price = self.get_price(symbol, use_live=use_live)
+
+            if not current_price or current_price <= 0:
+                logger.warning(f"Invalid price for {symbol}: {current_price}")
+                return None
+
+            # Calculate strategy with real price
+            otm_percent = 0.04  # 4% OTM
+            call_strike = current_price * (1 + otm_percent)
+            put_strike = current_price * (1 - otm_percent)
+            
+            # Round strikes to nearest 50 for better liquidity
+            call_strike = round(call_strike / 50) * 50
+            put_strike = round(put_strike / 50) * 50
+
+            # Estimate premiums (simplified)
+            volatility = 20.0  # Default volatility
+            time_to_expiry = 30
+            
+            call_premium = max(10.0, current_price * 0.02)  # 2% of spot as premium
+            put_premium = max(10.0, current_price * 0.015)  # 1.5% of spot as premium
+            total_premium = call_premium + put_premium
+
+            # Calculate breakeven points
+            breakeven_upper = call_strike + total_premium
+            breakeven_lower = put_strike - total_premium
+
+            # Calculate margin requirement (20% of spot price)
+            margin_required = current_price * 100 * 0.20  # For 1 lot
+
+            # Calculate ROI
+            expected_roi = (total_premium / margin_required) * 100
+
+            # Risk assessment
+            confidence = min(90, max(50, 70 + (expected_roi - 3) * 5))
+            risk_level = "Low" if expected_roi >= 4 else "Medium" if expected_roi >= 2 else "High"
+
+            strategy = {
+                'symbol': symbol,
+                'current_price': round(current_price, 2),
+                'call_strike': round(call_strike, 2),
+                'put_strike': round(put_strike, 2),
+                'call_premium': round(call_premium, 2),
+                'put_premium': round(put_premium, 2),
+                'total_premium': round(total_premium, 2),
+                'breakeven_upper': round(breakeven_upper, 2),
+                'breakeven_lower': round(breakeven_lower, 2),
+                'margin_required': round(margin_required, 2),
+                'expected_roi': round(expected_roi, 2),
+                'confidence': round(confidence, 1),
+                'risk_level': risk_level,
+                'volatility': volatility,
+                'time_to_expiry': time_to_expiry,
+                'timestamp': datetime.now().isoformat(),
+                'data_source': 'yahoo_finance_real_time' if use_live else 'cached'
+            }
+
+            logger.info(f"✅ Generated strategy for {symbol}: ROI={expected_roi:.1f}%, Price=₹{current_price}")
+            return strategy
+
+        except Exception as e:
+            logger.error(f"❌ Error analyzing short strangle for {symbol}: {e}")
+            return None

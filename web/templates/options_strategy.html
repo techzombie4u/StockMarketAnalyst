@@ -494,31 +494,36 @@
                 const result = await response.json();
                 console.log('✅ API Response received:', result);
 
-                if (result.status === 'success') {
-                    if (result.strategies && Array.isArray(result.strategies) && result.strategies.length > 0) {
-                        console.log('📊 Processing strategies:', result.strategies.length);
+                // Handle both old and new response formats
+                let strategies = [];
+                if (Array.isArray(result)) {
+                    // Old format - direct array
+                    strategies = result;
+                } else if (result.strategies && Array.isArray(result.strategies)) {
+                    // New format - wrapped in object
+                    strategies = result.strategies;
+                }
 
-                        const displaySuccess = updateOptionsTable(result.strategies);
-                        if (displaySuccess) {
-                            showData();
+                if (strategies.length > 0) {
+                    console.log('📊 Processing strategies:', strategies.length);
 
-                            // Update button feedback
-                            const refreshText = document.getElementById('refreshText');
-                            refreshText.textContent = `✅ Live! (${result.strategies.length})`;
-                            setTimeout(() => {
-                                refreshText.textContent = 'Generate Strategies';
-                            }, 5000);
-                        } else {
-                            console.error('❌ Failed to display strategies');
-                            showError('Failed to display strategy data');
-                        }
+                    const displaySuccess = updateOptionsTable(strategies);
+                    if (displaySuccess) {
+                        showData();
+
+                        // Update button feedback
+                        const refreshText = document.getElementById('refreshText');
+                        refreshText.textContent = `✅ Live! (${strategies.length})`;
+                        setTimeout(() => {
+                            refreshText.textContent = 'Generate Strategies';
+                        }, 5000);
                     } else {
-                        console.log('⚠️ No strategies in response');
-                        showEmpty();
+                        console.error('❌ Failed to display strategies');
+                        showError('Failed to display strategy data');
                     }
                 } else {
-                    console.error('❌ API error status:', result.status, result.message);
-                    showError(result.message || 'API returned error status');
+                    console.log('⚠️ No strategies in response');
+                    showEmpty();
                 }
 
             } catch (error) {
