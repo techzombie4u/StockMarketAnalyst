@@ -168,7 +168,7 @@
         "risk_level": "Low",
         "volatility": 17.5,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T14:28:45.417730",
+        "timestamp": "2025-08-07T14:44:34.040137",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -187,7 +187,7 @@
         "risk_level": "Low",
         "volatility": 12.0,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T14:28:45.688298",
+        "timestamp": "2025-08-07T14:44:34.493230",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -206,7 +206,7 @@
         "risk_level": "Low",
         "volatility": 15.9,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T14:28:45.935856",
+        "timestamp": "2025-08-07T14:44:34.887704",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -225,7 +225,7 @@
         "risk_level": "Low",
         "volatility": 9.3,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T14:28:46.302743",
+        "timestamp": "2025-08-07T14:44:35.248689",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -244,7 +244,7 @@
         "risk_level": "Low",
         "volatility": 16.6,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T14:28:46.570026",
+        "timestamp": "2025-08-07T14:44:35.563199",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -263,10 +263,10 @@
         "risk_level": "Low",
         "volatility": 21.9,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T14:28:46.864240",
+        "timestamp": "2025-08-07T14:44:35.926028",
         "data_source": "yahoo_finance_real_time"
       }
     ],
-    "timestamp": "2025-08-07T14:28:46.867493"
+    "timestamp": "2025-08-07T14:44:35.926539"
   }
 }
