@@ -532,26 +532,22 @@
                 <button class="timeframe-btn" onclick="selectTimeframe('30D')" data-timeframe="30D">30D - Monthly</button>
             </div>
 
-            <!-- Enhancement Status -->
+            <!-- Enhancement Status and Live Drift Monitor -->
     <div class="row mt-4">
         <div class="col-md-6">
             <div class="card border-info">
                 <div class="card-header bg-info text-white">
                     <h5><i class="fas fa-rocket"></i> Enhancement Status</h5>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="text-center">
-                                <div class="badge badge-success p-2">✅ ACTIVE</div>
-                                <p class="small mt-1">Model Integration</p>
-                            </div>
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-around">
+                        <div class="text-center">
+                            <div class="badge badge-success p-1">✅ ACTIVE</div>
+                            <p class="small mt-1 mb-0">Model Integration</p>
                         </div>
-                        <div class="col-6">
-                            <div class="text-center">
-                                <div class="badge badge-success p-2">✅ ACTIVE</div>
-                                <p class="small mt-1">Signal Processing</p>
-                            </div>
+                        <div class="text-center">
+                            <div class="badge badge-success p-1">✅ ACTIVE</div>
+                            <p class="small mt-1 mb-0">Signal Processing</p>
                         </div>
                     </div>
                 </div>
@@ -564,32 +560,24 @@
                 <div class="card-header bg-warning text-dark">
                     <h5><i class="fas fa-chart-line"></i> Live Drift Monitor</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body py-2">
                     <div id="drift-monitor-content">
-                        <div class="row">
-                            <div class="col-3">
-                                <div class="text-center">
-                                    <div class="badge badge-success p-2" id="lstm-status">GREEN</div>
-                                    <p class="small mt-1">LSTM</p>
-                                </div>
+                        <div class="d-flex justify-content-between">
+                            <div class="text-center">
+                                <div class="badge badge-success p-1" id="lstm-status">GREEN</div>
+                                <p class="small mt-1 mb-0">LSTM</p>
                             </div>
-                            <div class="col-3">
-                                <div class="text-center">
-                                    <div class="badge badge-warning p-2" id="rf-status">YELLOW</div>
-                                    <p class="small mt-1">RF</p>
-                                </div>
+                            <div class="text-center">
+                                <div class="badge badge-warning p-1" id="rf-status">YELLOW</div>
+                                <p class="small mt-1 mb-0">RF</p>
                             </div>
-                            <div class="col-3">
-                                <div class="text-center">
-                                    <div class="badge badge-success p-2" id="ensemble-status">GREEN</div>
-                                    <p class="small mt-1">Ensemble</p>
-                                </div>
+                            <div class="text-center">
+                                <div class="badge badge-success p-1" id="ensemble-status">GREEN</div>
+                                <p class="small mt-1 mb-0">Ensemble</p>
                             </div>
-                            <div class="col-3">
-                                <div class="text-center">
-                                    <div class="badge badge-danger p-2" id="technical-status">RED</div>
-                                    <p class="small mt-1">Technical</p>
-                                </div>
+                            <div class="text-center">
+                                <div class="badge badge-danger p-1" id="technical-status">RED</div>
+                                <p class="small mt-1 mb-0">Technical</p>
                             </div>
                         </div>
                         <div class="mt-2">
