@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -857,7 +856,7 @@
         function toggleAccordion(accordionId) {
             const header = event.target.closest('.accordion-header');
             const content = document.getElementById(accordionId);
-            
+
             header.classList.toggle('active');
             content.classList.toggle('active');
         }
@@ -878,19 +877,24 @@
             loadGoAheadData();
         }
 
-        // Load Enhanced GoAhead validation data
-        async function loadGoAheadData() {
+        // Load GoAhead validation data
+        async function loadGoAheadData(forceRefresh = false, timestamp = null) {
             try {
-                console.log('Loading enhanced GoAhead validation data...');
+                console.log('Loading GoAhead validation data...', forceRefresh ? '(forced refresh)' : '');
 
-                const response = await fetch(`/api/goahead/validation?timeframe=${currentTimeframe}`);
+                let url = `/api/goahead/validation?timeframe=${currentTimeframe}`;
+                if (forceRefresh && timestamp) {
+                    url += `&refresh=true&ts=${timestamp}`;
+                }
+
+                const response = await fetch(url);
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 goAheadData = await response.json();
-                console.log('Enhanced GoAhead data loaded:', goAheadData);
+                console.log('GoAhead data loaded:', goAheadData);
 
                 updatePredictionSummary();
                 updatePerformanceHeatmap();
@@ -1202,16 +1206,21 @@
             responseElement.innerHTML = html;
         }
 
-        // Refresh Enhanced GoAhead data
+        // Refresh GoAhead data with backend sync
         function refreshGoAheadData() {
-            console.log('Refreshing enhanced GoAhead data...');
+            console.log('Refreshing GoAhead data with backend sync...');
 
             // Show loading state
             document.querySelectorAll('.loading').forEach(el => {
-                el.innerHTML = 'Loading...';
+                el.innerHTML = '🔄 Syncing with backend...';
             });
 
-            loadGoAheadData();
+            // Add timestamp to force refresh
+            const timestamp = new Date().getTime();
+            currentTimeframe = currentTimeframe || '3D';
+
+            // Force reload from backend with cache bust
+            loadGoAheadData(true, timestamp);
             loadDriftMonitorData();
             loadModelKPI();
         }
