@@ -162,13 +162,13 @@
         "total_premium": 70.88,
         "breakeven_upper": 1520.88,
         "breakeven_lower": 1279.12,
-        "margin_required": 27788.0,
-        "expected_roi": 0.26,
+        "margin_required": 20841.0,
+        "expected_roi": 34.01,
         "confidence": 72.4,
         "risk_level": "Low",
         "volatility": 17.5,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T15:28:05.154990",
+        "timestamp": "2025-08-07T15:33:27.776410",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -181,13 +181,13 @@
         "total_premium": 70.65,
         "breakeven_upper": 2170.65,
         "breakeven_lower": 1829.35,
-        "margin_required": 39908.0,
-        "expected_roi": 0.18,
+        "margin_required": 29931.0,
+        "expected_roi": 23.6,
         "confidence": 72.1,
         "risk_level": "Low",
         "volatility": 12.0,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T15:28:05.388731",
+        "timestamp": "2025-08-07T15:33:28.020669",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -200,13 +200,13 @@
         "total_premium": 141.19,
         "breakeven_upper": 3291.19,
         "breakeven_lower": 2808.81,
-        "margin_required": 60940.0,
-        "expected_roi": 0.23,
+        "margin_required": 45705.0,
+        "expected_roi": 30.89,
         "confidence": 70.8,
         "risk_level": "Low",
         "volatility": 15.9,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T15:28:05.861697",
+        "timestamp": "2025-08-07T15:33:28.258215",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -219,13 +219,13 @@
         "total_premium": 11.39,
         "breakeven_upper": 461.39,
         "breakeven_lower": 388.61,
-        "margin_required": 8272.0,
-        "expected_roi": 0.14,
+        "margin_required": 6204.0,
+        "expected_roi": 18.35,
         "confidence": 72.6,
         "risk_level": "Low",
         "volatility": 9.3,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T15:28:06.113880",
+        "timestamp": "2025-08-07T15:33:28.529197",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -238,13 +238,13 @@
         "total_premium": 69.74,
         "breakeven_upper": 1569.74,
         "breakeven_lower": 1330.26,
-        "margin_required": 28738.0,
-        "expected_roi": 0.24,
+        "margin_required": 21553.5,
+        "expected_roi": 32.36,
         "confidence": 71.7,
         "risk_level": "Low",
         "volatility": 16.6,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T15:28:06.365099",
+        "timestamp": "2025-08-07T15:33:28.783893",
         "data_source": "yahoo_finance_real_time"
       },
       {
@@ -257,16 +257,16 @@
         "total_premium": 161.11,
         "breakeven_upper": 2761.11,
         "breakeven_lower": 2238.89,
-        "margin_required": 50350.0,
-        "expected_roi": 0.32,
+        "margin_required": 37762.5,
+        "expected_roi": 42.66,
         "confidence": 75.7,
         "risk_level": "Low",
         "volatility": 21.9,
         "time_to_expiry": 30,
-        "timestamp": "2025-08-07T15:28:06.645841",
+        "timestamp": "2025-08-07T15:33:29.032533",
         "data_source": "yahoo_finance_real_time"
       }
     ],
-    "timestamp": "2025-08-07T15:28:06.646257"
+    "timestamp": "2025-08-07T15:33:29.032986"
   }
 }
