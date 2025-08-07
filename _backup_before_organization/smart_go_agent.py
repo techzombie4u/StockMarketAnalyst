@@ -344,6 +344,57 @@ class SmartGoAgent:
                 'avg_confidence': 0,
                 'predictions': []
             },
+            'outcome_validation': {
+                'success': 0,
+                'warning': 0,
+                'failure': 0,
+                'details': []
+            },
+            'gap_analysis': {
+                'gaps': []
+            },
+            'improvement_suggestions': {
+                'recommendations': []
+            },
+            'retraining_guide': {
+                'days_since_training': 0,
+                'priority_score': '0/100',
+                'should_retrain': False,
+                'recommendations': []
+            }
+        }
+
+    def get_prediction_summary(self) -> Dict[str, Any]:
+        """Get prediction summary for backend testing"""
+        try:
+            # Load real prediction data from tracking files
+            prediction_data = self._load_real_prediction_data('5D')
+            
+            return {
+                'total_predictions': prediction_data['prediction_summary']['total'],
+                'accuracy': prediction_data['prediction_summary']['accuracy'],
+                'avg_confidence': prediction_data['prediction_summary']['avg_confidence'],
+                'predictions': [{
+                    'symbol': pred['symbol'],
+                    'confidence': float(pred['confidence']),
+                    'target': float(pred['target_price'].replace('₹', '').replace(',', '')),
+                    'actual': float(pred['actual_price'].replace('₹', '').replace(',', '')),
+                    'window': pred['window']
+                } for pred in prediction_data['prediction_summary']['predictions']],
+                'timestamp': datetime.now().isoformat(),
+                'data_source': 'real_time_tracking'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting prediction summary: {str(e)}")
+            return {
+                'total_predictions': 0,
+                'accuracy': 0,
+                'avg_confidence': 0,
+                'predictions': [],
+                'timestamp': datetime.now().isoformat(),
+                'data_source': 'fallback_empty'
+            }
 
     def get_model_kpi(self):
         """Get current model KPI status"""
