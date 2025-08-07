@@ -224,6 +224,25 @@
             border-radius: 15px;
             margin: 20px 0;
         }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .verdict-cell {
+            font-weight: bold;
+            color: #2c3e50;
+            cursor: help;
+            white-space: nowrap;
+        }
+
+        .verdict-cell[title]:hover {
+            background: #f5f5f5;
+        }
     </style>
 </head>
 <body>
@@ -298,6 +317,7 @@
                         <th>📈 ROI %</th>
                         <th>🎯 Confidence</th>
                         <th>🛡️ Risk Level</th>
+                        <th>📌 Verdict</th>
                     </tr>
                 </thead>
                 <tbody id="optionsTableBody">
@@ -426,6 +446,27 @@
                 const riskColor = riskLevel === 'Low' ? '#27ae60' :
                                 riskLevel === 'Medium' ? '#f39c12' : '#e74c3c';
 
+                // Determine verdict based on ROI, Confidence, and Risk Level
+                let verdict = '';
+                let verdictTooltip = '';
+
+                if (expectedRoi >= 16 && confidence >= 70 && riskLevel === 'Low') {
+                    verdict = '✅ Top Pick';
+                    verdictTooltip = 'Stable stock with high ROI and top confidence. Ideal for short strangle.';
+                } else if (expectedRoi >= 13 && confidence >= 65) {
+                    verdict = '✅ Recommended';
+                    verdictTooltip = 'Good premium yield and confidence. Recommended trade.';
+                } else if ((expectedRoi >= 12 && expectedRoi <= 14) || confidence < 65 || riskLevel === 'Medium') {
+                    verdict = '⚠️ Cautious';
+                    verdictTooltip = 'Moderate confidence. Proceed with caution.';
+                } else if (confidence < 60 || riskLevel === 'High') {
+                    verdict = '⚠️ Avoid';
+                    verdictTooltip = 'Low confidence or high risk. Not recommended for strangle.';
+                } else {
+                    verdict = '❌ Reject';
+                    verdictTooltip = 'Invalid or risky setup. Do not trade.';
+                }
+
                 row.innerHTML = `
                     <td class="symbol">${symbol}</td>
                     <td style="font-weight: 600;">₹${currentPrice.toFixed(2)}</td>
@@ -437,6 +478,7 @@
                     <td style="color: #27ae60; font-weight: 700; font-size: 1.1em;">${expectedRoi.toFixed(1)}%</td>
                     <td style="font-weight: 600; color: ${riskColor};">${confidence.toFixed(0)}%</td>
                     <td style="font-weight: 600; color: ${riskColor};">${riskLevel}</td>
+                    <td class="verdict-cell" title="${verdictTooltip}">${verdict}</td>
                 `;
                 tbody.appendChild(row);
                 validCount++;
@@ -583,7 +625,7 @@
                     console.log("[MANUAL REFRESH] Real-time data received:", data);
                     console.log(`[MANUAL REFRESH] Data source: ${data.data_source}`);
                     console.log(`[MANUAL REFRESH] Total strategies: ${data.total_strategies}`);
-                    
+
                     if (data.strategies && data.strategies.length > 0) {
                         // Log each strategy details
                         data.strategies.forEach((strategy, index) => {
