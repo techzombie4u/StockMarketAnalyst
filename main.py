@@ -3,14 +3,39 @@ Main entry point for the Stock Market Analyst application
 Routes to either organized version or backup based on availability
 """
 
-import os
 import sys
-import traceback
+import os
 import logging
+from typing import Dict, List, Optional, Callable
+import warnings
+import importlib
+import time
+from datetime import datetime
+import traceback
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Suppress specific warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# Logging configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
+
+def clear_flask_cache():
+    """Clear Flask-related modules from cache"""
+    modules_to_clear = []
+    for module_name in sys.modules.keys():
+        if 'app' in module_name.lower() and 'flask' in str(sys.modules[module_name]):
+            modules_to_clear.append(module_name)
+
+    for module_name in modules_to_clear:
+        if module_name in sys.modules:
+            logger.info(f"Cleared module: {module_name}")
+            del sys.modules[module_name]
 
 def check_organized_structure():
     """Check if organized structure is available and functional"""
@@ -42,6 +67,71 @@ def check_organized_structure():
     except Exception as e:
         logger.error(f"Failed to check organized structure: {e}")
         return False, f"Failed to check organized structure: {e}"
+
+def try_organized_structure():
+    """Try to run the organized structure version"""
+    try:
+        # Clear any existing Flask app modules
+        clear_flask_cache()
+
+        # Try to import the organized structure
+        logger.info("🔄 Attempting to load organized structure...")
+
+        # Add src to path if not already there
+        src_path = os.path.join(os.getcwd(), 'src')
+        if src_path not in sys.path:
+            sys.path.insert(0, src_path)
+
+        # Ensure typing imports are available globally
+        import typing
+        from typing import Callable, Dict, List, Optional, Any, Union
+
+        # Make Callable available in the global namespace for imports
+        globals()['Callable'] = Callable
+
+        # Import and run the organized app
+        from src.core.app import app, initialize_app
+
+        logger.info("✅ Organized structure loaded successfully")
+
+        # Initialize the application
+        initialize_app()
+
+        return app
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Error in organized structure: {error_msg}")
+
+        # Check for specific import errors that we can handle
+        if "name 'Callable' is not defined" in error_msg:
+            logger.warning("⚠️ Callable import error detected, attempting comprehensive fix...")
+            try:
+                # Force clean import with proper typing setup
+                import typing
+                from typing import Callable, Dict, List, Optional, Any, Union
+
+                # Clear all related modules from cache
+                modules_to_clear = [k for k in sys.modules.keys() if k.startswith('src.')]
+                for module in modules_to_clear:
+                    if module in sys.modules:
+                        del sys.modules[module]
+
+                # Set up proper namespace
+                typing.Callable = Callable
+                globals()['Callable'] = Callable
+
+                # Retry import with comprehensive typing setup
+                from src.core.app import app, initialize_app
+                logger.info("✅ Fixed Callable import with comprehensive approach")
+                initialize_app()
+                return app
+
+            except Exception as fix_error:
+                logger.error(f"Failed to fix Callable import: {fix_error}")
+
+        logger.warning(f"⚠️ Error in organized structure: {error_msg}")
+        return None
 
 def run_organized_version():
     """Run the organized version of the application"""

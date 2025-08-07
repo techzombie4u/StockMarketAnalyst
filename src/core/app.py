@@ -11,7 +11,7 @@ from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import logging
 import pytz
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 
 # Import GoAhead Agent
 from src.analyzers.smart_go_agent import SmartGoAgent

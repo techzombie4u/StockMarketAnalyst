@@ -219,12 +219,17 @@ class ShortStrangleEngine:
             from scipy.stats import norm
             import math
             
-            # Convert inputs
+            # Convert inputs with validation
             S = float(spot)
             K = float(strike)
             T = float(days_to_expiry) / 365.0
             r = float(risk_free_rate)
             sigma = float(vol) / 100.0
+            
+            # Validate inputs
+            if S <= 0 or K <= 0:
+                logger.warning(f"Invalid price inputs: spot={S}, strike={K}")
+                return self._simplified_premium_calculation(spot, strike, days_to_expiry, vol, option_type)
             
             # Handle edge cases
             if T <= 0:
@@ -233,19 +238,23 @@ class ShortStrangleEngine:
                 else:
                     return max(0, K - S)
             
-            # Black-Scholes calculation
-            d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
-            d2 = d1 - sigma * math.sqrt(T)
-            
-            if option_type == 'call':
-                premium = S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
-            else:  # put
-                premium = K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
-            
-            # Ensure minimum premium and reasonable bounds
-            premium = max(5.0, min(premium, S * 0.2))  # Min ₹5, Max 20% of spot
-            
-            return float(premium)
+            # Black-Scholes calculation with error handling
+            try:
+                d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
+                d2 = d1 - sigma * math.sqrt(T)
+                
+                if option_type == 'call':
+                    premium = S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+                else:  # put
+                    premium = K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+                
+                # Ensure minimum premium and reasonable bounds
+                premium = max(5.0, min(premium, S * 0.2))  # Min ₹5, Max 20% of spot
+                
+                return float(premium)
+            except (ValueError, OverflowError, ZeroDivisionError) as calc_error:
+                logger.warning(f"Calculation error in Black-Scholes: {calc_error}")
+                return self._simplified_premium_calculation(spot, strike, days_to_expiry, vol, option_type)
             
         except ImportError:
             # Fallback calculation without scipy

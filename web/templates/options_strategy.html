@@ -346,21 +346,40 @@
             strategies.forEach((strategy, index) => {
                 const row = document.createElement('tr');
 
+                // Safe data parsing with defaults
+                const symbol = String(strategy.symbol || 'N/A');
+                const currentPrice = parseFloat(strategy.current_price || 0);
+                const callStrike = parseFloat(strategy.call_strike || 0);
+                const putStrike = parseFloat(strategy.put_strike || 0);
+                const totalPremium = parseFloat(strategy.total_premium || 0);
+                const breakevenLower = parseFloat(strategy.breakeven_lower || 0);
+                const breakevenUpper = parseFloat(strategy.breakeven_upper || 0);
+                const marginRequired = parseFloat(strategy.margin_required || 0);
+                const expectedRoi = parseFloat(strategy.expected_roi || 0);
+                const confidence = parseFloat(strategy.confidence || 0);
+                const riskLevel = String(strategy.risk_level || 'Unknown');
+
                 // Get risk level color
                 const riskColor = strategy.risk_color === 'success' ? '#27ae60' : 
                                 strategy.risk_color === 'warning' ? '#f39c12' : '#e74c3c';
 
+                // Validate data before display
+                if (currentPrice === 0 || callStrike === 0 || putStrike === 0) {
+                    console.warn(`Invalid data for ${symbol}:`, strategy);
+                    return; // Skip this row
+                }
+
                 row.innerHTML = `
-                    <td class="symbol" style="color: #2c3e50; font-weight: 700;">${strategy.symbol}</td>
-                    <td style="font-weight: 600;">₹${parseFloat(strategy.current_price).toFixed(2)}</td>
-                    <td>₹${parseFloat(strategy.call_strike).toFixed(2)}</td>
-                    <td>₹${parseFloat(strategy.put_strike).toFixed(2)}</td>
-                    <td style="font-weight: 700; color: #27ae60; font-size: 1.1em;">₹${Math.round(parseFloat(strategy.total_premium))}</td>
-                    <td style="font-size: 0.9em;">₹${Math.round(parseFloat(strategy.breakeven_lower))} - ₹${Math.round(parseFloat(strategy.breakeven_upper))}</td>
-                    <td style="color: #666;">₹${new Intl.NumberFormat('en-IN').format(Math.round(parseFloat(strategy.margin_required)))}</td>
-                    <td style="color: #27ae60; font-weight: 700; font-size: 1.1em;">${parseFloat(strategy.expected_roi).toFixed(1)}%</td>
-                    <td style="font-weight: 600; color: ${riskColor};">${Math.round(parseFloat(strategy.confidence))}%</td>
-                    <td style="font-weight: 600; color: ${riskColor};">${strategy.risk_level}</td>
+                    <td class="symbol" style="color: #2c3e50; font-weight: 700;">${symbol}</td>
+                    <td style="font-weight: 600;">₹${currentPrice.toFixed(2)}</td>
+                    <td>₹${callStrike.toFixed(2)}</td>
+                    <td>₹${putStrike.toFixed(2)}</td>
+                    <td style="font-weight: 700; color: #27ae60; font-size: 1.1em;">₹${Math.round(totalPremium)}</td>
+                    <td style="font-size: 0.9em;">₹${Math.round(breakevenLower)} - ₹${Math.round(breakevenUpper)}</td>
+                    <td style="color: #666;">₹${new Intl.NumberFormat('en-IN').format(Math.round(marginRequired))}</td>
+                    <td style="color: #27ae60; font-weight: 700; font-size: 1.1em;">${expectedRoi.toFixed(1)}%</td>
+                    <td style="font-weight: 600; color: ${riskColor};">${Math.round(confidence)}%</td>
+                    <td style="font-weight: 600; color: ${riskColor};">${riskLevel}</td>
                 `;
                 tbody.appendChild(row);
             });
@@ -380,7 +399,11 @@
             try {
                 console.log('🔄 Loading options data for timeframe:', timeframe);
                 
-                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&refresh=true&t=${Date.now()}`, {
+                // Force refresh with multiple parameters to ensure real-time data
+                const url = `/api/options-strategies?timeframe=${timeframe}&refresh=true&force_realtime=true&manual_refresh=true&t=${Date.now()}`;
+                console.log('📡 Fetching from URL:', url);
+                
+                const response = await fetch(url, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -390,43 +413,67 @@
                 });
 
                 console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', response.headers);
 
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ Response error text:', errorText);
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 const result = await response.json();
-                console.log('✅ Options API response:', result);
+                console.log('✅ Full Options API response:', JSON.stringify(result, null, 2));
 
                 if (result.status === 'success') {
                     if (result.strategies && result.strategies.length > 0) {
-                        console.log('📊 Updating table with', result.strategies.length, 'real-time strategies');
+                        console.log('📊 Processing strategies:', result.strategies);
                         console.log('📡 Data source:', result.data_source);
                         console.log('🔄 Refresh type:', result.refresh_type);
+                        console.log('🕐 Last updated:', result.last_updated);
                         
-                        updateOptionsTable(result.strategies);
-                        showData();
+                        // Validate strategy data
+                        const validStrategies = result.strategies.filter(strategy => {
+                            const valid = strategy.symbol && 
+                                         strategy.current_price && 
+                                         strategy.current_price > 0 &&
+                                         strategy.call_strike &&
+                                         strategy.put_strike;
+                            if (!valid) {
+                                console.warn('Invalid strategy data:', strategy);
+                            }
+                            return valid;
+                        });
                         
-                        // Update refresh button to show success with data source info
-                        const refreshBtn = document.getElementById('refreshBtn');
-                        const refreshText = document.getElementById('refreshText');
-                        refreshText.textContent = `Live Data Loaded! (${result.strategies.length} strategies)`;
-                        
-                        setTimeout(() => {
-                            refreshText.textContent = 'Generate Strategies';
-                        }, 3000);
+                        if (validStrategies.length > 0) {
+                            updateOptionsTable(validStrategies);
+                            showData();
+                            
+                            // Update refresh button to show success
+                            const refreshBtn = document.getElementById('refreshBtn');
+                            const refreshText = document.getElementById('refreshText');
+                            refreshText.textContent = `✅ Live Data! (${validStrategies.length} strategies)`;
+                            
+                            setTimeout(() => {
+                                refreshText.textContent = 'Generate Strategies';
+                            }, 5000);
+                        } else {
+                            console.error('❌ No valid strategies found');
+                            showEmpty();
+                        }
                     } else {
                         console.log('⚠️ API success but no strategies returned');
+                        console.log('📊 Result object:', result);
                         showEmpty();
                     }
                 } else {
                     console.log('⚠️ API returned error status:', result.status);
-                    console.log('❌ Error details:', result.error_details);
+                    console.log('❌ Error details:', result.error_details || result.message);
                     showEmpty();
                 }
 
             } catch (error) {
                 console.error('❌ Error loading options strategies:', error);
+                console.error('❌ Error stack:', error.stack);
                 showEmpty();
             } finally {
                 isLoading = false;
