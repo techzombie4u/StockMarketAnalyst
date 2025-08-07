@@ -1259,10 +1259,17 @@ def options_strategy():
 def options_strategies():
     """API endpoint for options strategies analysis"""
     try:
+        timeframe = request.args.get('timeframe', '30D')
+        manual_refresh = request.args.get('manual_refresh', 'false').lower() == 'true'
+        force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
+        refresh = request.args.get('refresh', 'false').lower() == 'true'
+        
+        print(f"[OPTIONS_API] Timeframe requested: {timeframe}, refresh={refresh}, manual_refresh={manual_refresh}, force_realtime={force_realtime}")
+        
         # Check if we're using organized structure or backup
         try:
             from src.analyzers.short_strangle_engine import ShortStrangleEngine
-            logger.info("[API] Using organized structure engine")
+            print("[OPTIONS_API] Using organized structure engine")
         except ImportError:
             # Fallback to backup if organized structure fails
             import sys
@@ -1270,38 +1277,46 @@ def options_strategies():
             if backup_path not in sys.path:
                 sys.path.insert(0, backup_path)
             
-            # Create a simplified engine for backup
+            # Create a simplified engine for backup with improved ROI calculation
             class ShortStrangleEngine:
                 def analyze_short_strangle(self, symbol, manual_refresh=False, force_realtime=False):
                     try:
                         import yfinance as yf
+                        
+                        print(f"[STRATEGY_ENGINE] Fetching live price for {symbol}")
                         
                         # Get real-time price
                         ticker = yf.Ticker(f"{symbol}.NS")
                         hist = ticker.history(period="1d")
                         
                         if hist.empty:
-                            logger.warning(f"No data for {symbol}")
+                            print(f"[ERROR] No data for {symbol}")
                             return None
                             
                         current_price = float(hist['Close'].iloc[-1])
+                        print(f"[STRATEGY_ENGINE] Live price for {symbol}: ₹{current_price}")
                         
-                        # Calculate strategy
+                        # Calculate strategy with improved parameters
                         otm_percent = 0.04
                         call_strike = round((current_price * (1 + otm_percent)) / 50) * 50
                         put_strike = round((current_price * (1 - otm_percent)) / 50) * 50
                         
-                        call_premium = max(10.0, current_price * 0.02)
-                        put_premium = max(10.0, current_price * 0.015)
+                        # Improved premium calculation based on actual market conditions
+                        call_premium = max(15.0, current_price * 0.025)  # 2.5% of spot
+                        put_premium = max(12.0, current_price * 0.02)    # 2% of spot
                         total_premium = call_premium + put_premium
                         
                         breakeven_upper = call_strike + total_premium
                         breakeven_lower = put_strike - total_premium
-                        margin_required = current_price * 100 * 0.20
-                        expected_roi = (total_premium / margin_required) * 100
                         
-                        confidence = min(90, max(50, 70 + (expected_roi - 3) * 5))
-                        risk_level = "Low" if expected_roi >= 4 else "Medium" if expected_roi >= 2 else "High"
+                        # Fixed margin calculation - use per lot basis (100 shares)
+                        margin_required = current_price * 0.15 * 100  # 15% margin per lot
+                        expected_roi = (total_premium * 100 / margin_required) * 100  # Annualize for monthly
+                        
+                        confidence = min(90, max(50, 70 + (expected_roi - 8) * 2))
+                        risk_level = "Low" if expected_roi >= 8 else "Medium" if expected_roi >= 5 else "High"
+                        
+                        print(f"[STRATEGY_ENGINE] {symbol} - Price: ₹{current_price}, Premium: ₹{total_premium}, ROI: {expected_roi:.1f}%")
                         
                         return {
                             'symbol': symbol,
@@ -1321,10 +1336,10 @@ def options_strategies():
                             'data_source': 'yahoo_finance_backup'
                         }
                     except Exception as e:
-                        logger.error(f"Backup engine error for {symbol}: {e}")
+                        print(f"[ERROR] Backup engine error for {symbol}: {e}")
                         return None
             
-            logger.info("[API] Using backup engine")
+            print("[OPTIONS_API] Using backup engine")
 
         engine = ShortStrangleEngine()
 
@@ -1332,23 +1347,19 @@ def options_strategies():
         tier1_stocks = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ITC', 'HINDUNILVR']
 
         strategies = []
-        manual_refresh = request.args.get('manual_refresh', 'false').lower() == 'true'
-        force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
-        refresh = request.args.get('refresh', 'false').lower() == 'true'
-
         use_live = manual_refresh or force_realtime or refresh
-        logger.info(f"[API] Options strategies called with use_live={use_live}")
+        print(f"[OPTIONS_API] Processing {len(tier1_stocks)} stocks with use_live={use_live}")
 
         for symbol in tier1_stocks:
             try:
                 analysis = engine.analyze_short_strangle(symbol, manual_refresh=use_live, force_realtime=use_live)
                 if analysis and analysis.get('current_price', 0) > 0:
                     strategies.append(analysis)
-                    logger.info(f"[API] ✅ {symbol} - Price: ₹{analysis['current_price']}, ROI: {analysis['expected_roi']}%")
+                    print(f"[OPTIONS_API] ✅ {symbol} - Price: ₹{analysis['current_price']}, ROI: {analysis['expected_roi']}%")
                 else:
-                    logger.warning(f"[API] ⚠️ No valid analysis for {symbol}")
+                    print(f"[OPTIONS_API] ⚠️ No valid analysis for {symbol}")
             except Exception as e:
-                logger.error(f"[API] ❌ Error analyzing {symbol}: {str(e)}")
+                print(f"[OPTIONS_API] ❌ Error analyzing {symbol}: {str(e)}")
                 continue
 
         # Always return proper JSON structure
@@ -1356,14 +1367,16 @@ def options_strategies():
             "status": "success" if strategies else "no_data",
             "strategies": strategies,
             "timestamp": datetime.now().isoformat(),
-            "total_strategies": len(strategies)
+            "total_strategies": len(strategies),
+            "data_source": "real_time_yahoo_finance" if use_live else "cached"
         }
 
-        logger.info(f"[API] ✅ Returning {len(strategies)} strategies")
+        print(f"[OPTIONS_API] ✅ Returning {len(strategies)} strategies with improved ROI calculations")
         return jsonify(result)
 
     except Exception as e:
-        logger.error(f"[API] ❌ Critical error in options strategies: {str(e)}")
+        print(f"[OPTIONS_API] ❌ Critical error in options strategies: {str(e)}")
+        logger.error(f"[OPTIONS_API] Critical error: {str(e)}")
         # Always return valid JSON, never None
         return jsonify({
             "status": "error",

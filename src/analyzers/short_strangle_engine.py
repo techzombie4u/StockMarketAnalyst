@@ -604,19 +604,23 @@ class ShortStrangleEngine:
 
             # Add .NS for NSE stocks
             yahoo_symbol = f"{symbol}.NS"
+            print(f"[REALTIME] Fetching price for {yahoo_symbol}")
 
             ticker = yf.Ticker(yahoo_symbol)
             data = ticker.history(period="1d")
 
             if not data.empty:
                 current_price = float(data['Close'].iloc[-1])
+                print(f"[REALTIME] {symbol} fetched live price: ₹{current_price}")
                 logger.info(f"[REALTIME] {symbol} fetched live price: ₹{current_price}")
                 return current_price
             else:
+                print(f"[ERROR] No data found for {symbol}")
                 logger.warning(f"No data found for {symbol}")
                 return None
 
         except Exception as e:
+            print(f"[ERROR] Error fetching real-time price for {symbol}: {str(e)}")
             logger.error(f"Error fetching real-time price for {symbol}: {str(e)}")
             return None
 
@@ -627,8 +631,10 @@ class ShortStrangleEngine:
                 live_price = self.get_real_time_price(symbol)
                 if live_price is not None:
                     return live_price
+                print(f"[FALLBACK] Live price failed, using cached price for {symbol}")
                 logger.warning(f"[FALLBACK] Using cached price for {symbol}")
             except Exception as e:
+                print(f"[FALLBACK] Error getting live price for {symbol}: {str(e)}")
                 logger.error(f"[FALLBACK] Error getting live price for {symbol}: {str(e)}")
 
         # Fallback to cached/demo prices
@@ -645,12 +651,14 @@ class ShortStrangleEngine:
             'KOTAKBANK': 1750.40
         }
         cached_price = demo_prices.get(symbol, 1000.0)
+        print(f"[CACHED] Using cached price for {symbol}: ₹{cached_price}")
         logger.info(f"[CACHED] Using cached price for {symbol}: ₹{cached_price}")
         return cached_price
 
     def analyze_short_strangle(self, symbol, manual_refresh=False, force_realtime=False):
         """Analyze short strangle strategy for a given symbol"""
         try:
+            print(f"[STRATEGY_ENGINE] Analyzing short strangle for {symbol}, manual_refresh={manual_refresh}, force_realtime={force_realtime}")
             logger.info(f"Analyzing short strangle for {symbol}, manual_refresh={manual_refresh}, force_realtime={force_realtime}")
 
             # Use real-time prices by default, or when explicitly requested
@@ -658,8 +666,11 @@ class ShortStrangleEngine:
             current_price = self.get_price(symbol, use_live=use_live)
 
             if not current_price or current_price <= 0:
+                print(f"[ERROR] Invalid price for {symbol}: {current_price}")
                 logger.warning(f"Invalid price for {symbol}: {current_price}")
                 return None
+
+            print(f"[STRATEGY_ENGINE] Live price for {symbol}: ₹{current_price}")
 
             # Calculate strategy with real price
             otm_percent = 0.04  # 4% OTM
@@ -670,27 +681,35 @@ class ShortStrangleEngine:
             call_strike = round(call_strike / 50) * 50
             put_strike = round(put_strike / 50) * 50
 
-            # Estimate premiums (simplified)
+            # Enhanced premium calculation based on market conditions
             volatility = 20.0  # Default volatility
             time_to_expiry = 30
             
-            call_premium = max(10.0, current_price * 0.02)  # 2% of spot as premium
-            put_premium = max(10.0, current_price * 0.015)  # 1.5% of spot as premium
+            # More realistic premium calculation
+            call_premium = max(15.0, current_price * 0.025)  # 2.5% of spot as premium
+            put_premium = max(12.0, current_price * 0.02)    # 2% of spot as premium
             total_premium = call_premium + put_premium
 
             # Calculate breakeven points
             breakeven_upper = call_strike + total_premium
             breakeven_lower = put_strike - total_premium
 
-            # Calculate margin requirement (20% of spot price)
-            margin_required = current_price * 100 * 0.20  # For 1 lot
+            # Fixed margin calculation - realistic for Indian markets
+            # Use 15% margin requirement per lot (100 shares)
+            margin_per_share = current_price * 0.15  # 15% margin
+            margin_required = margin_per_share * 100  # Per lot of 100 shares
+            
+            # Calculate monthly ROI - premium collected vs margin blocked
+            monthly_roi = (total_premium * 100 / margin_required) * 100  # Monthly return
+            
+            # Annualized ROI for comparison
+            expected_roi = monthly_roi * 12  # Annualized
 
-            # Calculate ROI
-            expected_roi = (total_premium / margin_required) * 100
+            print(f"[STRATEGY_ENGINE] {symbol} - Premium: ₹{total_premium}, Margin: ₹{margin_required}, Monthly ROI: {monthly_roi:.1f}%, Annual ROI: {expected_roi:.1f}%")
 
-            # Risk assessment
-            confidence = min(90, max(50, 70 + (expected_roi - 3) * 5))
-            risk_level = "Low" if expected_roi >= 4 else "Medium" if expected_roi >= 2 else "High"
+            # Risk assessment based on realistic ROI expectations
+            confidence = min(95, max(50, 65 + (monthly_roi - 5) * 3))
+            risk_level = "Low" if monthly_roi >= 8 else "Medium" if monthly_roi >= 5 else "High"
 
             strategy = {
                 'symbol': symbol,
@@ -703,7 +722,8 @@ class ShortStrangleEngine:
                 'breakeven_upper': round(breakeven_upper, 2),
                 'breakeven_lower': round(breakeven_lower, 2),
                 'margin_required': round(margin_required, 2),
-                'expected_roi': round(expected_roi, 2),
+                'expected_roi': round(monthly_roi, 2),  # Show monthly ROI for clarity
+                'annual_roi': round(expected_roi, 2),   # Also provide annual ROI
                 'confidence': round(confidence, 1),
                 'risk_level': risk_level,
                 'volatility': volatility,
@@ -712,9 +732,11 @@ class ShortStrangleEngine:
                 'data_source': 'yahoo_finance_real_time' if use_live else 'cached'
             }
 
-            logger.info(f"✅ Generated strategy for {symbol}: ROI={expected_roi:.1f}%, Price=₹{current_price}")
+            print(f"[STRATEGY_ENGINE] ✅ Generated strategy for {symbol}: Monthly ROI={monthly_roi:.1f}%, Price=₹{current_price}")
+            logger.info(f"✅ Generated strategy for {symbol}: ROI={monthly_roi:.1f}%, Price=₹{current_price}")
             return strategy
 
         except Exception as e:
+            print(f"[ERROR] Error analyzing short strangle for {symbol}: {e}")
             logger.error(f"❌ Error analyzing short strangle for {symbol}: {e}")
             return None

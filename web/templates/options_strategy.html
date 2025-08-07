@@ -484,6 +484,7 @@
                 });
 
                 console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', response.headers);
 
                 if (!response.ok) {
                     const errorText = await response.text();
@@ -492,24 +493,36 @@
                 }
 
                 const result = await response.json();
-                console.log('✅ API Response received:', result);
+                console.log('✅ Options API response:', result);
+                console.log('📊 Response data source:', result.data_source);
+                console.log('📊 Response timestamp:', result.timestamp);
 
                 // Handle both old and new response formats
                 let strategies = [];
                 if (Array.isArray(result)) {
                     // Old format - direct array
                     strategies = result;
+                    console.log('📊 Using old format - direct array');
                 } else if (result.strategies && Array.isArray(result.strategies)) {
                     // New format - wrapped in object
                     strategies = result.strategies;
+                    console.log('📊 Using new format - wrapped object');
                 }
 
+                console.log('📊 Total strategies found:', strategies.length);
+
                 if (strategies.length > 0) {
-                    console.log('📊 Processing strategies:', strategies.length);
+                    console.log('📊 Updating table with', strategies.length, 'strategies');
+
+                    // Log each strategy for verification
+                    strategies.forEach((strategy, index) => {
+                        console.log(`📈 Strategy ${index + 1}: ${strategy.symbol} - Price: ₹${strategy.current_price}, ROI: ${strategy.expected_roi}%`);
+                    });
 
                     const displaySuccess = updateOptionsTable(strategies);
                     if (displaySuccess) {
                         showData();
+                        console.log('✅ Successfully displayed strategies table');
 
                         // Update button feedback
                         const refreshText = document.getElementById('refreshText');
@@ -536,23 +549,29 @@
         }
 
         function manualRefreshData() {
-            console.log("Manual refresh triggered");
+            console.log("[MANUAL REFRESH] Manual refresh triggered");
 
             // Show loading state
             setManualButtonState(true);
             showLoading();
 
             const timeframe = document.getElementById('timeframeSelect').value;
+            const timestamp = Date.now();
 
-            // Force refresh with real-time data
-            fetch(`/api/options-strategies?manual_refresh=true&force_realtime=true&t=${Date.now()}`, {
+            console.log(`[MANUAL REFRESH] Requesting fresh data for timeframe: ${timeframe}`);
+
+            // Force refresh with real-time data and disable all caching
+            fetch(`/api/options-strategies?manual_refresh=true&force_realtime=true&timeframe=${timeframe}&t=${timestamp}`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                 }
             })
                 .then(response => {
+                    console.log(`[MANUAL REFRESH] Response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -560,18 +579,31 @@
                 })
                 .then(data => {
                     console.log("[MANUAL REFRESH] Real-time data received:", data);
-                    // The original code used populateStrategiesTable, but the current version uses updateOptionsTable
-                    // Assuming updateOptionsTable is the correct function to use here
-                    const displaySuccess = updateOptionsTable(data.strategies);
-                    if (displaySuccess) {
-                        showData();
+                    console.log(`[MANUAL REFRESH] Data source: ${data.data_source}`);
+                    console.log(`[MANUAL REFRESH] Total strategies: ${data.total_strategies}`);
+                    
+                    if (data.strategies && data.strategies.length > 0) {
+                        // Log each strategy details
+                        data.strategies.forEach((strategy, index) => {
+                            console.log(`[MANUAL REFRESH] Strategy ${index + 1}: ${strategy.symbol} - ₹${strategy.current_price}, ROI: ${strategy.expected_roi}%`);
+                        });
+
+                        const displaySuccess = updateOptionsTable(data.strategies);
+                        if (displaySuccess) {
+                            showData();
+                            console.log('[MANUAL REFRESH] ✅ Successfully displayed refreshed data');
+                        } else {
+                            console.error('[MANUAL REFRESH] ❌ Failed to display data');
+                            showError('Failed to display refreshed strategy data');
+                        }
                     } else {
-                        showEmpty(); // Show empty if no strategies are returned
+                        console.log('[MANUAL REFRESH] ⚠️ No strategies in response');
+                        showEmpty();
                     }
                     setManualButtonState(false);
                 })
                 .catch(error => {
-                    console.error('[MANUAL REFRESH] Error:', error);
+                    console.error('[MANUAL REFRESH] ❌ Error:', error);
                     showError('Failed to refresh data: ' + error.message);
                     setManualButtonState(false);
                 });
