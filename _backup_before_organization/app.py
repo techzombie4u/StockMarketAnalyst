@@ -1012,6 +1012,66 @@ def goahead_retrain():
             'error': str(e)
         }), 500
 
+@app.route('/api/goahead/model-kpi')
+def goahead_model_kpi():
+    """API endpoint for model KPI data"""
+    try:
+        from smart_go_agent import SmartGoAgent
+        smart_agent = SmartGoAgent()
+        kpi_data = smart_agent.get_model_kpi()
+        return jsonify(kpi_data)
+    except ImportError:
+        logger.warning("SmartGoAgent not found, returning fallback KPI data")
+        return jsonify({
+            'models': {
+                'LSTM': {'accuracy': 82.5, 'status': 'good'},
+                'RandomForest': {'accuracy': 78.3, 'status': 'monitor'},
+                'LinearRegression': {'accuracy': 65.2, 'status': 'fallback'}
+            },
+            'thresholds': {
+                'soft_retrain_accuracy': 70.0,
+                'hard_retrain_accuracy': 50.0
+            }
+        })
+    except Exception as e:
+        logger.error(f"GoAhead model KPI error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/goahead/ai-copilot', methods=['POST'])
+def goahead_ai_copilot():
+    """API endpoint for AI co-pilot queries"""
+    try:
+        data = request.get_json() or {}
+        query = data.get('query', '')
+        
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+        
+        try:
+            from smart_go_agent import SmartGoAgent
+            smart_agent = SmartGoAgent()
+            response = smart_agent.query_ai_copilot(query)
+            return jsonify(response)
+        except ImportError:
+            logger.warning("SmartGoAgent not found, returning fallback AI response")
+            return jsonify({
+                'response': f"I understand you're asking about: '{query}'. The enhanced AI co-pilot is currently initializing. Please try asking about prediction failures, model recommendations, confidence levels, or retraining schedules.",
+                'type': 'fallback',
+                'suggested_queries': [
+                    "Why was [stock] prediction wrong?",
+                    "Which model is best for [stock]?",
+                    "What's the confidence for [stock]?",
+                    "When should we retrain?"
+                ]
+            })
+        
+    except Exception as e:
+        logger.error(f"GoAhead AI co-pilot error: {str(e)}")
+        return jsonify({
+            'response': f'Error processing query: {str(e)}',
+            'type': 'error'
+        }), 500
+
 @app.route('/api/force-demo', methods=['POST'])
 def force_demo_data():
     """Generate demo data for testing when no real data available"""

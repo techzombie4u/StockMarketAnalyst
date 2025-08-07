@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GoAhead - AI Validation & Self-Healing System</title>
+    <title>GoAhead - Enhanced AI Validation & Self-Healing System</title>
     <style>
         * {
             margin: 0;
@@ -72,14 +72,26 @@
             max-width: 1400px;
             margin: 0 auto;
             padding: 30px 20px;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
         }
 
-        .smart-go-agent {
+        .main-content {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
             padding: 30px;
-            margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .ai-copilot-sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 120px;
         }
 
         .agent-header {
@@ -188,7 +200,7 @@
 
         .prediction-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
         }
@@ -222,28 +234,6 @@
             margin-bottom: 8px;
         }
 
-        .retrain-button {
-            background: #e74c3c;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .retrain-button:hover {
-            background: #c0392b;
-            transform: translateY(-2px);
-        }
-
-        .retrain-button:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-        }
-
         .timeframe-selector {
             display: flex;
             gap: 10px;
@@ -266,6 +256,142 @@
             color: white;
         }
 
+        .ai-copilot {
+            margin-bottom: 20px;
+        }
+
+        .ai-copilot h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .copilot-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .copilot-btn {
+            width: 100%;
+            padding: 10px;
+            background: #9b59b6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .copilot-btn:hover {
+            background: #8e44ad;
+        }
+
+        .copilot-response {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            line-height: 1.4;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .suggested-queries {
+            margin-top: 15px;
+        }
+
+        .suggested-query {
+            background: #e8f4fd;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.3s ease;
+        }
+
+        .suggested-query:hover {
+            background: #d1ecf1;
+        }
+
+        .heatmap-container {
+            margin: 20px 0;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+            margin: 15px 0;
+        }
+
+        .heatmap-cell {
+            padding: 10px 8px;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .heatmap-cell.header {
+            background: #34495e;
+            color: white;
+        }
+
+        .heatmap-cell.green {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .heatmap-cell.yellow {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .heatmap-cell.red {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .correction-item {
+            background: #fff3cd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #f39c12;
+        }
+
+        .what-if-scenario {
+            background: #e8f4fd;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .dynamic-recommendation {
+            background: #d1ecf1;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .insight-item {
+            background: #f0f9ff;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 4px solid #0ea5e9;
+            font-size: 0.9em;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -278,6 +404,17 @@
             padding: 15px;
             border-radius: 8px;
             margin: 15px 0;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .ai-copilot-sidebar {
+                order: -1;
+                position: static;
+            }
         }
 
         @media (max-width: 768px) {
@@ -298,22 +435,22 @@
 </head>
 <body>
     <div class="header">
-        <h1>🤖 GoAhead</h1>
-        <p class="subtitle">AI Validation & Self-Healing System</p>
+        <h1>🤖 GoAhead Enhanced</h1>
+        <p class="subtitle">AI Validation & Self-Healing System v3.0</p>
         
         <div class="navigation">
             <a href="/" class="nav-btn home">🏠 Home</a>
             <a href="/analysis" class="nav-btn analysis">📊 Analysis</a>
-            <a href="/options_strategy" class="nav-btn options">📈 Options</a>
+            <a href="/options-strategy" class="nav-btn options">📈 Options</a>
             <button onclick="refreshGoAheadData()" class="nav-btn refresh">🔄 Refresh</button>
         </div>
     </div>
 
     <div class="container">
-        <div class="smart-go-agent">
+        <div class="main-content">
             <div class="agent-header">
-                <h2>🧠 SmartGoAgent</h2>
-                <span class="agent-status active">ACTIVE & MONITORING</span>
+                <h2>🧠 SmartGoAgent Enhanced</h2>
+                <span class="agent-status active">ACTIVE & META-LEARNING</span>
             </div>
 
             <!-- Timeframe Selector -->
@@ -326,9 +463,9 @@
             </div>
 
             <div class="sections-grid">
-                <!-- Section 1: Prediction Summary Viewer -->
+                <!-- Section 1: Enhanced Prediction Summary -->
                 <div class="section-card">
-                    <h3><span class="section-icon">📊</span>Prediction Summary Viewer</h3>
+                    <h3><span class="section-icon">📊</span>Prediction Summary & Meta-Analysis</h3>
                     <div class="metrics-grid">
                         <div class="metric-item">
                             <span class="metric-value" id="total-predictions">-</span>
@@ -339,65 +476,81 @@
                             <span class="metric-label">Accuracy Rate</span>
                         </div>
                         <div class="metric-item">
-                            <span class="metric-value" id="confidence-avg">-</span>
-                            <span class="metric-label">Avg Confidence</span>
+                            <span class="metric-value" id="meta-score">-</span>
+                            <span class="metric-label">Meta Score</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-value" id="recommended-model">-</span>
+                            <span class="metric-label">Best Model</span>
                         </div>
                     </div>
                     <div id="prediction-summary-list" class="loading">Loading predictions...</div>
                 </div>
 
-                <!-- Section 2: Outcome Validator -->
+                <!-- Section 2: Model Performance Heatmap -->
                 <div class="section-card">
-                    <h3><span class="section-icon">✅</span>Outcome Validator</h3>
-                    <div class="metrics-grid">
-                        <div class="metric-item">
-                            <span class="metric-value" id="success-count">-</span>
-                            <span class="metric-label">✅ Success</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value" id="warning-count">-</span>
-                            <span class="metric-label">⚠️ Needs Review</span>
-                        </div>
-                        <div class="metric-item">
-                            <span class="metric-value" id="failure-count">-</span>
-                            <span class="metric-label">❌ Failure</span>
-                        </div>
-                    </div>
-                    <div id="validation-results" class="loading">Analyzing outcomes...</div>
+                    <h3><span class="section-icon">🔥</span>Model Performance Heatmap</h3>
+                    <div id="performance-heatmap" class="loading">Generating heatmap...</div>
                 </div>
 
-                <!-- Section 3: Gap Analyzer -->
+                <!-- Section 3: Prediction Correction Engine -->
                 <div class="section-card">
-                    <h3><span class="section-icon">🔍</span>Gap Analyzer</h3>
+                    <h3><span class="section-icon">🔧</span>Prediction Correction Engine</h3>
+                    <div id="prediction-corrections" class="loading">Analyzing corrections...</div>
+                </div>
+
+                <!-- Section 4: Dynamic Timeframe Advisor -->
+                <div class="section-card">
+                    <h3><span class="section-icon">⏰</span>Dynamic Timeframe Advisor</h3>
+                    <div id="timeframe-recommendations" class="loading">Calculating optimal windows...</div>
+                </div>
+
+                <!-- Section 5: Enhanced Gap Analyzer -->
+                <div class="section-card">
+                    <h3><span class="section-icon">🔍</span>Enhanced Gap Analyzer</h3>
                     <div id="gap-analysis" class="loading">Detecting prediction gaps...</div>
                 </div>
 
-                <!-- Section 4: Improvement Suggestor -->
+                <!-- Section 6: AI Insights Dashboard -->
                 <div class="section-card">
-                    <h3><span class="section-icon">💡</span>Improvement Suggestor</h3>
-                    <div id="improvement-suggestions" class="loading">Generating recommendations...</div>
+                    <h3><span class="section-icon">🧠</span>AI Insights Dashboard</h3>
+                    <div id="ai-insights" class="loading">Generating insights...</div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Section 5: Model Retraining Guide -->
-                <div class="section-card">
-                    <h3><span class="section-icon">⚙️</span>Model Retraining Guide</h3>
-                    <div id="retraining-guide">
-                        <div class="metrics-grid">
-                            <div class="metric-item">
-                                <span class="metric-value" id="model-age">-</span>
-                                <span class="metric-label">Days Since Training</span>
-                            </div>
-                            <div class="metric-item">
-                                <span class="metric-value" id="retrain-score">-</span>
-                                <span class="metric-label">Retrain Priority</span>
-                            </div>
-                        </div>
-                        <div id="retrain-recommendations" class="loading">Evaluating model health...</div>
-                        <button id="retrain-button" class="retrain-button" disabled onclick="triggerRetraining()">
-                            Manual Retrain (Disabled)
-                        </button>
+        <!-- AI Co-pilot Sidebar -->
+        <div class="ai-copilot-sidebar">
+            <div class="ai-copilot">
+                <h3>🤖 AI Co-pilot</h3>
+                <input type="text" id="copilot-query" class="copilot-input" placeholder="Ask me about predictions, models, or performance...">
+                <button onclick="askAICopilot()" class="copilot-btn">Ask AI</button>
+                
+                <div id="copilot-response" class="copilot-response" style="display: none;">
+                    <!-- AI responses will appear here -->
+                </div>
+                
+                <div class="suggested-queries">
+                    <h4 style="margin-bottom: 10px; color: #2c3e50;">Suggested Queries:</h4>
+                    <div class="suggested-query" onclick="askSuggestedQuery('Why was INFY prediction wrong?')">
+                        Why was INFY prediction wrong?
+                    </div>
+                    <div class="suggested-query" onclick="askSuggestedQuery('Which model is best for TCS?')">
+                        Which model is best for TCS?
+                    </div>
+                    <div class="suggested-query" onclick="askSuggestedQuery('What\'s the confidence for SBIN?')">
+                        What's the confidence for SBIN?
+                    </div>
+                    <div class="suggested-query" onclick="askSuggestedQuery('When should we retrain?')">
+                        When should we retrain?
                     </div>
                 </div>
+            </div>
+            
+            <!-- Model KPI Quick View -->
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                <h4 style="color: #2c3e50; margin-bottom: 15px;">Model KPIs</h4>
+                <div id="model-kpi-quick" class="loading">Loading KPIs...</div>
             </div>
         </div>
     </div>
@@ -406,10 +559,18 @@
         let currentTimeframe = '3D';
         let goAheadData = null;
 
-        // Initialize GoAhead system
+        // Initialize Enhanced GoAhead system
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('GoAhead AI Validation System loaded');
+            console.log('Enhanced GoAhead AI Validation System loaded');
             loadGoAheadData();
+            loadModelKPI();
+            
+            // Enable Enter key for AI co-pilot
+            document.getElementById('copilot-query').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    askAICopilot();
+                }
+            });
         });
 
         // Timeframe selection
@@ -428,10 +589,10 @@
             loadGoAheadData();
         }
 
-        // Load GoAhead validation data
+        // Load Enhanced GoAhead validation data
         async function loadGoAheadData() {
             try {
-                console.log('Loading GoAhead validation data...');
+                console.log('Loading enhanced GoAhead validation data...');
                 
                 const response = await fetch(`/api/goahead/validation?timeframe=${currentTimeframe}`);
                 
@@ -440,29 +601,32 @@
                 }
                 
                 goAheadData = await response.json();
-                console.log('GoAhead data loaded:', goAheadData);
+                console.log('Enhanced GoAhead data loaded:', goAheadData);
                 
                 updatePredictionSummary();
-                updateOutcomeValidator();
+                updatePerformanceHeatmap();
+                updatePredictionCorrections();
+                updateTimeframeRecommendations();
                 updateGapAnalyzer();
-                updateImprovementSuggestor();
-                updateRetrainingGuide();
+                updateAIInsights();
                 
             } catch (error) {
-                console.error('Error loading GoAhead data:', error);
+                console.error('Error loading enhanced GoAhead data:', error);
                 showError('Failed to load validation data. Please try refreshing.');
             }
         }
 
-        // Update Prediction Summary Viewer
+        // Update Enhanced Prediction Summary
         function updatePredictionSummary() {
             if (!goAheadData) return;
             
             const summary = goAheadData.prediction_summary || {};
+            const meta = goAheadData.meta_analysis || {};
             
             document.getElementById('total-predictions').textContent = summary.total || 0;
             document.getElementById('accuracy-rate').textContent = `${(summary.accuracy || 0).toFixed(1)}%`;
-            document.getElementById('confidence-avg').textContent = `${(summary.avg_confidence || 0).toFixed(1)}%`;
+            document.getElementById('meta-score').textContent = `${(meta.meta_score || 0).toFixed(1)}`;
+            document.getElementById('recommended-model').textContent = meta.recommended_model || 'N/A';
             
             const listElement = document.getElementById('prediction-summary-list');
             if (summary.predictions && summary.predictions.length > 0) {
@@ -473,7 +637,7 @@
                             <span class="prediction-label label-${pred.status}">${pred.label}</span>
                         </div>
                         <div>Target: ${pred.target_price} | Actual: ${pred.actual_price} | Confidence: ${pred.confidence}%</div>
-                        <div>Window: ${pred.window} | Direction: ${pred.direction}</div>
+                        <div>Model: ${pred.model_used || 'LSTM'} | Direction: ${pred.direction} | Window: ${pred.window}</div>
                     </div>
                 `).join('');
             } else {
@@ -481,42 +645,142 @@
             }
         }
 
-        // Update Outcome Validator
-        function updateOutcomeValidator() {
+        // Update Performance Heatmap
+        function updatePerformanceHeatmap() {
             if (!goAheadData) return;
             
-            const validation = goAheadData.outcome_validation || {};
+            const heatmap = goAheadData.performance_heatmap || {};
+            const heatmapElement = document.getElementById('performance-heatmap');
             
-            document.getElementById('success-count').textContent = validation.success || 0;
-            document.getElementById('warning-count').textContent = validation.warning || 0;
-            document.getElementById('failure-count').textContent = validation.failure || 0;
-            
-            const resultsElement = document.getElementById('validation-results');
-            if (validation.details && validation.details.length > 0) {
-                resultsElement.innerHTML = validation.details.map(detail => `
-                    <div class="prediction-item ${detail.outcome}">
-                        <div class="prediction-header">
-                            <span class="prediction-symbol">${detail.symbol}</span>
-                            <span class="prediction-label label-${detail.outcome}">${detail.outcome_label}</span>
-                        </div>
-                        <div>Confidence Gap: ${detail.confidence_gap}% | Direction: ${detail.direction_correct ? '✅' : '❌'}</div>
-                        <div>Reason: ${detail.validation_reason}</div>
-                    </div>
-                `).join('');
+            if (heatmap.heatmap_data && heatmap.heatmap_data.length > 0) {
+                let heatmapHTML = '<div class="heatmap-container">';
+                heatmapHTML += '<div class="heatmap-grid">';
+                
+                // Headers
+                heatmapHTML += '<div class="heatmap-cell header">Stock</div>';
+                ['3D', '5D', '10D', '15D', '30D'].forEach(tf => {
+                    heatmapHTML += `<div class="heatmap-cell header">${tf}</div>`;
+                });
+                
+                // Data rows
+                heatmap.heatmap_data.forEach(stockData => {
+                    heatmapHTML += `<div class="heatmap-cell header">${stockData.stock}</div>`;
+                    stockData.performance.forEach(perf => {
+                        heatmapHTML += `<div class="heatmap-cell ${perf.color}" title="${perf.accuracy}% accuracy">${perf.accuracy}%</div>`;
+                    });
+                });
+                
+                heatmapHTML += '</div>';
+                
+                // Legend
+                if (heatmap.legend) {
+                    heatmapHTML += '<div style="margin-top: 15px; font-size: 0.9em;">';
+                    Object.entries(heatmap.legend).forEach(([color, description]) => {
+                        heatmapHTML += `<div style="display: inline-block; margin-right: 15px;"><span class="heatmap-cell ${color}" style="padding: 3px 8px; margin-right: 5px;"></span>${description}</div>`;
+                    });
+                    heatmapHTML += '</div>';
+                }
+                
+                heatmapHTML += '</div>';
+                heatmapElement.innerHTML = heatmapHTML;
             } else {
-                resultsElement.innerHTML = '<p>No validation results available.</p>';
+                heatmapElement.innerHTML = '<p>No heatmap data available for selected timeframe.</p>';
             }
         }
 
-        // Update Gap Analyzer
+        // Update Prediction Corrections
+        function updatePredictionCorrections() {
+            if (!goAheadData) return;
+            
+            const corrections = goAheadData.prediction_corrections || {};
+            const correctionsElement = document.getElementById('prediction-corrections');
+            
+            if (corrections.corrections && corrections.corrections.length > 0) {
+                correctionsElement.innerHTML = corrections.corrections.map(correction => `
+                    <div class="correction-item">
+                        <h4>${correction.symbol} - Correction Analysis</h4>
+                        <div><strong>Original:</strong> ${correction.original_prediction.direction} @ ${correction.original_prediction.confidence}% confidence</div>
+                        <div><strong>Suggested:</strong> ${correction.suggested_correction.direction} @ ${correction.suggested_correction.confidence}% confidence</div>
+                        <div><strong>Reason:</strong> ${correction.suggested_correction.reason}</div>
+                        ${correction.what_if_scenarios.map(scenario => `
+                            <div class="what-if-scenario">
+                                <strong>What-if ${scenario.model}:</strong> ${scenario.would_predict} (${scenario.accuracy_improvement} improvement)
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            } else {
+                correctionsElement.innerHTML = '<p>✅ No corrections needed for current predictions.</p>';
+            }
+        }
+
+        // Update Timeframe Recommendations
+        function updateTimeframeRecommendations() {
+            if (!goAheadData) return;
+            
+            const recommendations = goAheadData.timeframe_recommendations || {};
+            const recommendationsElement = document.getElementById('timeframe-recommendations');
+            
+            if (recommendations.timeframe_recommendations && recommendations.timeframe_recommendations.length > 0) {
+                let html = '';
+                
+                if (recommendations.volatility_analysis) {
+                    html += `<div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                        <strong>Market Volatility:</strong> ${recommendations.volatility_analysis.market_volatility} (VIX: ${recommendations.volatility_analysis.vix_level})
+                    </div>`;
+                }
+                
+                html += recommendations.timeframe_recommendations.map(rec => `
+                    <div class="dynamic-recommendation">
+                        <h4>${rec.stock} - Dynamic Window Adjustment</h4>
+                        <div><strong>Volatility:</strong> ${rec.current_volatility}</div>
+                        <div><strong>Recommendation:</strong> Use ${rec.recommended_timeframe} instead of ${rec.instead_of}</div>
+                        <div><strong>Reason:</strong> ${rec.reason}</div>
+                        <div><strong>Expected Boost:</strong> ${rec.confidence_boost}</div>
+                    </div>
+                `).join('');
+                
+                recommendationsElement.innerHTML = html;
+            } else {
+                recommendationsElement.innerHTML = '<p>✅ Current timeframe selections are optimal for market conditions.</p>';
+            }
+        }
+
+        // Update Enhanced Gap Analyzer
         function updateGapAnalyzer() {
             if (!goAheadData) return;
             
             const gapAnalysis = goAheadData.gap_analysis || {};
+            const meta = goAheadData.meta_analysis || {};
             const analysisElement = document.getElementById('gap-analysis');
             
+            let html = '';
+            
+            // Add failure cause mapping
+            if (meta.failure_cause_mapping) {
+                html += '<div style="margin-bottom: 20px;">';
+                html += '<h4>Failure Cause Analysis</h4>';
+                
+                if (meta.failure_cause_mapping.internal) {
+                    html += '<div style="margin: 10px 0;"><strong>Internal Causes:</strong></div>';
+                    meta.failure_cause_mapping.internal.forEach(cause => {
+                        html += `<div class="prediction-item failure">${cause}</div>`;
+                    });
+                }
+                
+                if (meta.failure_cause_mapping.external) {
+                    html += '<div style="margin: 10px 0;"><strong>External Causes:</strong></div>';
+                    meta.failure_cause_mapping.external.forEach(cause => {
+                        html += `<div class="prediction-item warning">${cause}</div>`;
+                    });
+                }
+                
+                html += '</div>';
+            }
+            
+            // Add specific gaps
             if (gapAnalysis.gaps && gapAnalysis.gaps.length > 0) {
-                analysisElement.innerHTML = gapAnalysis.gaps.map(gap => `
+                html += gapAnalysis.gaps.map(gap => `
                     <div class="prediction-item failure">
                         <div class="prediction-header">
                             <span class="prediction-symbol">${gap.symbol}</span>
@@ -527,69 +791,131 @@
                         <div><strong>Confidence:</strong> ${gap.confidence}%</div>
                     </div>
                 `).join('');
-            } else {
-                analysisElement.innerHTML = '<p>✅ No significant gaps detected in current predictions.</p>';
+            } else if (!meta.failure_cause_mapping) {
+                html = '<p>✅ No significant gaps detected in current predictions.</p>';
             }
+            
+            analysisElement.innerHTML = html;
         }
 
-        // Update Improvement Suggestor
-        function updateImprovementSuggestor() {
+        // Update AI Insights
+        function updateAIInsights() {
             if (!goAheadData) return;
             
-            const suggestions = goAheadData.improvement_suggestions || {};
-            const suggestionsElement = document.getElementById('improvement-suggestions');
+            const insights = goAheadData.ai_insights || [];
+            const insightsElement = document.getElementById('ai-insights');
             
-            if (suggestions.recommendations && suggestions.recommendations.length > 0) {
-                suggestionsElement.innerHTML = suggestions.recommendations.map(rec => `
-                    <div class="recommendation-item">
-                        <h4>${rec.action}</h4>
-                        <p>${rec.description}</p>
-                        <div><strong>Priority:</strong> ${rec.priority} | <strong>Impact:</strong> ${rec.expected_impact}</div>
-                    </div>
+            if (insights.length > 0) {
+                insightsElement.innerHTML = insights.map(insight => `
+                    <div class="insight-item">${insight}</div>
                 `).join('');
             } else {
-                suggestionsElement.innerHTML = '<p>✅ System is performing well. No immediate improvements needed.</p>';
+                insightsElement.innerHTML = '<p>🔄 AI insights are being generated...</p>';
             }
         }
 
-        // Update Retraining Guide
-        function updateRetrainingGuide() {
-            if (!goAheadData) return;
-            
-            const retraining = goAheadData.retraining_guide || {};
-            
-            document.getElementById('model-age').textContent = retraining.days_since_training || '-';
-            document.getElementById('retrain-score').textContent = retraining.priority_score || '-';
-            
-            const recommendationsElement = document.getElementById('retrain-recommendations');
-            const retrainButton = document.getElementById('retrain-button');
-            
-            if (retraining.should_retrain) {
-                retrainButton.disabled = false;
-                retrainButton.textContent = 'Manual Retrain (Ready)';
-                retrainButton.style.background = '#e74c3c';
-            } else {
-                retrainButton.disabled = true;
-                retrainButton.textContent = 'Manual Retrain (Not Needed)';
-                retrainButton.style.background = '#27ae60';
-            }
-            
-            if (retraining.recommendations && retraining.recommendations.length > 0) {
-                recommendationsElement.innerHTML = retraining.recommendations.map(rec => `
-                    <div class="recommendation-item">
-                        <h4>${rec.parameter}</h4>
-                        <p>Current: ${rec.current} → Suggested: ${rec.suggested}</p>
-                        <p>${rec.reason}</p>
-                    </div>
-                `).join('');
-            } else {
-                recommendationsElement.innerHTML = '<p>✅ Current model parameters are optimal.</p>';
+        // Load Model KPI
+        async function loadModelKPI() {
+            try {
+                const response = await fetch('/api/goahead/model-kpi');
+                if (response.ok) {
+                    const kpiData = await response.json();
+                    updateModelKPIQuick(kpiData);
+                }
+            } catch (error) {
+                console.error('Error loading model KPI:', error);
             }
         }
 
-        // Refresh GoAhead data
+        // Update Model KPI Quick View
+        function updateModelKPIQuick(kpiData) {
+            const quickElement = document.getElementById('model-kpi-quick');
+            
+            if (kpiData.models) {
+                let html = '';
+                Object.entries(kpiData.models).forEach(([model, stats]) => {
+                    const accuracy = stats.accuracy || 0;
+                    const color = accuracy >= 80 ? 'green' : accuracy >= 70 ? 'yellow' : 'red';
+                    
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 6px;">
+                            <span style="font-weight: 600;">${model}</span>
+                            <span class="heatmap-cell ${color}" style="padding: 4px 8px;">${accuracy.toFixed(1)}%</span>
+                        </div>
+                    `;
+                });
+                quickElement.innerHTML = html;
+            } else {
+                quickElement.innerHTML = '<p>No KPI data available</p>';
+            }
+        }
+
+        // AI Co-pilot Functions
+        async function askAICopilot() {
+            const query = document.getElementById('copilot-query').value.trim();
+            if (!query) return;
+            
+            const responseElement = document.getElementById('copilot-response');
+            responseElement.style.display = 'block';
+            responseElement.innerHTML = '<div class="loading">🤖 Thinking...</div>';
+            
+            try {
+                const response = await fetch('/api/goahead/ai-copilot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                if (response.ok) {
+                    const aiResponse = await response.json();
+                    displayAIResponse(aiResponse);
+                } else {
+                    throw new Error('Failed to get AI response');
+                }
+            } catch (error) {
+                console.error('AI co-pilot error:', error);
+                responseElement.innerHTML = '<div class="error">Sorry, I encountered an error. Please try again.</div>';
+            }
+            
+            // Clear input
+            document.getElementById('copilot-query').value = '';
+        }
+
+        function askSuggestedQuery(query) {
+            document.getElementById('copilot-query').value = query;
+            askAICopilot();
+        }
+
+        function displayAIResponse(aiResponse) {
+            const responseElement = document.getElementById('copilot-response');
+            
+            let html = `<div><strong>🤖 AI Response:</strong></div>`;
+            html += `<div style="margin: 10px 0; line-height: 1.5;">${aiResponse.response}</div>`;
+            
+            if (aiResponse.model_rankings) {
+                html += '<div style="margin-top: 15px;"><strong>Model Rankings:</strong></div>';
+                Object.entries(aiResponse.model_rankings).forEach(([model, info]) => {
+                    html += `<div style="margin: 5px 0; padding: 8px; background: #e8f4fd; border-radius: 4px;">
+                        <strong>${model}:</strong> ${info.accuracy}% - ${info.best_for}
+                    </div>`;
+                });
+            }
+            
+            if (aiResponse.confidence_breakdown) {
+                html += '<div style="margin-top: 15px;"><strong>Confidence Breakdown:</strong></div>';
+                Object.entries(aiResponse.confidence_breakdown).forEach(([level, stocks]) => {
+                    html += `<div style="margin: 5px 0;"><strong>${level.replace('_', ' ')}:</strong> ${stocks.join(', ')}</div>`;
+                });
+            }
+            
+            responseElement.innerHTML = html;
+        }
+
+        // Refresh Enhanced GoAhead data
         function refreshGoAheadData() {
-            console.log('Refreshing GoAhead data...');
+            console.log('Refreshing enhanced GoAhead data...');
             
             // Show loading state
             document.querySelectorAll('.loading').forEach(el => {
@@ -597,38 +923,7 @@
             });
             
             loadGoAheadData();
-        }
-
-        // Trigger retraining (manual)
-        function triggerRetraining() {
-            if (!confirm('Are you sure you want to trigger model retraining? This may take several minutes.')) {
-                return;
-            }
-            
-            console.log('Triggering manual model retraining...');
-            
-            fetch('/api/goahead/retrain', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    timeframe: currentTimeframe,
-                    trigger: 'manual'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Retraining initiated successfully! Check logs for progress.');
-                } else {
-                    alert('Retraining failed: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Retraining error:', error);
-                alert('Failed to initiate retraining. Please check logs.');
-            });
+            loadModelKPI();
         }
 
         // Show error message
