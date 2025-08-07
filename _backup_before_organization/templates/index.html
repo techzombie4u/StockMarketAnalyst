@@ -327,6 +327,27 @@
             font-size: 1.5em;
         }
 
+        .nav-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-btn.analysis { background: #27ae60; color: white; }
+        .nav-btn.options { background: #f39c12; color: white; }
+        .nav-btn.lookup { background: #667eea; color: white; }
+        .nav-btn.goahead { background: #9b59b6; color: white; }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.6em;
@@ -362,9 +383,10 @@
         <h1>📈 Stock Market Analyst</h1>
         <p>AI-Enhanced Real-Time Indian Stock Screening Dashboard</p>
         <div style="margin-top: 15px;">
-            <a href="/analysis" style="background: #27ae60; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-right: 10px;">📊 View Analysis</a>
-            <a href="/lookup" target="_blank" style="background: #667eea; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-right: 10px;">🔍 Stock Lookup</a>
-            <a href="/options-strategy" style="background: #f39c12; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">💰 Options Income</a>
+            <a href="/analysis" class="nav-btn analysis">📊 Analysis</a>
+            <a href="/options-strategy" class="nav-btn options">💰 Options Income</a>
+            <a href="/lookup" class="nav-btn lookup" target="_blank">🔍 Stock Lookup</a>
+            <a href="/goahead" class="nav-btn goahead">🤖 GoAhead AI</a>
         </div>
 
         <div class="header-info">
