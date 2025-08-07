@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -422,8 +423,75 @@
             }
         }
 
+        function getPredictionOutcome(symbol, current_price, breakeven_lower, breakeven_upper) {
+            // Try to get outcome from tracking data first
+            const trackingData = window.optionsTracking || {};
+            
+            if (trackingData[symbol]) {
+                const data = trackingData[symbol];
+                if (data.prediction_outcome) {
+                    return {
+                        display: data.prediction_outcome === 'Met' ? '✅ Met' :
+                                data.prediction_outcome === 'Not Met' ? '❌ Not Met' :
+                                data.prediction_outcome === 'On Track' ? '✅ On Track' :
+                                '⚠️ In Progress',
+                        class: data.prediction_outcome === 'Met' ? 'outcome-met' :
+                               data.prediction_outcome === 'Not Met' ? 'outcome-not-met' :
+                               data.prediction_outcome === 'On Track' ? 'outcome-met' :
+                               'outcome-in-progress',
+                        tooltip: data.prediction_outcome === 'Met' ? 'Target price stayed within breakeven range till expiry.' :
+                                data.prediction_outcome === 'Not Met' ? 'Breached upper/lower breakeven before expiry.' :
+                                data.prediction_outcome === 'On Track' ? 'Current price within target range. Good progress.' :
+                                'Strategy still running. Awaiting expiry.'
+                    };
+                }
+            }
+            
+            // Fallback: check current price against breakeven
+            if (current_price >= breakeven_lower && current_price <= breakeven_upper) {
+                return {
+                    display: '✅ On Track',
+                    class: 'outcome-met',
+                    tooltip: 'Current price within target range. Good progress.'
+                };
+            } else {
+                return {
+                    display: '⚠️ Monitor',
+                    class: 'outcome-in-progress',
+                    tooltip: 'Current price outside target range. Monitor closely.'
+                };
+            }
+        }
+
+        function getVerdict(expected_roi, confidence, risk_level) {
+            let verdict = '';
+            let tooltip = '';
+
+            if (expected_roi >= 30 && confidence >= 80 && risk_level === 'Low') {
+                verdict = '✅ Top Pick';
+                tooltip = 'Exceptional ROI with high confidence. Prime opportunity for short strangle.';
+            } else if (expected_roi >= 25 && confidence >= 75) {
+                verdict = '✅ Recommended';
+                tooltip = 'Strong premium yield and confidence. Highly recommended trade.';
+            } else if (expected_roi >= 20 && confidence >= 70) {
+                verdict = '✅ Good';
+                tooltip = 'Good premium yield and decent confidence. Solid trade opportunity.';
+            } else if (expected_roi >= 15 && confidence >= 60) {
+                verdict = '⚠️ Cautious';
+                tooltip = 'Moderate returns and confidence. Proceed with caution.';
+            } else if (expected_roi < 15 || confidence < 60) {
+                verdict = '⚠️ Avoid';
+                tooltip = 'Low returns or confidence. Not recommended for strangle strategy.';
+            } else {
+                verdict = '❌ Reject';
+                tooltip = 'Poor setup. Do not trade this strategy.';
+            }
+
+            return { verdict, tooltip };
+        }
+
         function updateOptionsTable(strategies) {
-            console.log('📊 Updating table with strategies:', strategies);
+            console.log('📊 Updating options table with strategies:', strategies);
             const tbody = document.getElementById('optionsTableBody');
             tbody.innerHTML = '';
 
@@ -467,46 +535,8 @@
                 const riskColor = riskLevel === 'Low' ? '#27ae60' :
                                 riskLevel === 'Medium' ? '#f39c12' : '#e74c3c';
 
-                // Determine prediction outcome with actual data lookup
-                let predictionOutcome = '⚠️ In Progress';
-                let outcomeTooltip = 'Strategy still running. Awaiting expiry.';
-                let outcomeClass = 'outcome-in-progress';
-
-                // Enhanced prediction outcome logic with real data
-                if (strategy.prediction_outcome) {
-                    switch (strategy.prediction_outcome) {
-                        case 'Met':
-                            predictionOutcome = '✅ Met';
-                            outcomeTooltip = 'Target price stayed within breakeven range till expiry.';
-                            outcomeClass = 'outcome-met';
-                            break;
-                        case 'Not Met':
-                            predictionOutcome = '❌ Not Met';
-                            outcomeTooltip = 'Breached upper/lower breakeven before expiry.';
-                            outcomeClass = 'outcome-not-met';
-                            break;
-                        case 'In Progress':
-                            predictionOutcome = '⚠️ In Progress';
-                            outcomeTooltip = 'Strategy still running. Awaiting expiry.';
-                            outcomeClass = 'outcome-in-progress';
-                            break;
-                        default:
-                            predictionOutcome = '❓ Data Missing';
-                            outcomeTooltip = 'Missing expiry or price data.';
-                            outcomeClass = 'outcome-missing';
-                    }
-                } else {
-                    // Check current price against breakeven to simulate real-time outcome
-                    if (currentPrice >= breakevenLower && currentPrice <= breakevenUpper) {
-                        predictionOutcome = '✅ On Track';
-                        outcomeTooltip = 'Current price within target range. Good progress.';
-                        outcomeClass = 'outcome-met';
-                    } else {
-                        predictionOutcome = '⚠️ Monitor';
-                        outcomeTooltip = 'Current price outside target range. Monitor closely.';
-                        outcomeClass = 'outcome-in-progress';
-                    }
-                }
+                // Get prediction outcome
+                const predictionOutcome = getPredictionOutcome(symbol, currentPrice, breakevenLower, breakevenUpper);
 
                 // Calculate Stop Loss levels (±7% beyond breakeven)
                 const lowerSL = Math.round(breakevenLower * 0.93);
@@ -514,26 +544,8 @@
                 const stopLossDisplay = `₹${lowerSL} / ₹${upperSL}`;
                 const stopLossTooltip = 'If price breaches this level, exit trade to limit losses.';
 
-                // Determine verdict based on ROI, Confidence, and Risk Level
-                let verdict = '';
-                let verdictTooltip = '';
-
-                if (expectedRoi >= 16 && confidence >= 70 && riskLevel === 'Low') {
-                    verdict = '✅ Top Pick';
-                    verdictTooltip = 'Stable stock with high ROI and top confidence. Ideal for short strangle.';
-                } else if (expectedRoi >= 13 && confidence >= 65) {
-                    verdict = '✅ Recommended';
-                    verdictTooltip = 'Good premium yield and confidence. Recommended trade.';
-                } else if ((expectedRoi >= 12 && expectedRoi <= 14) || confidence < 65 || riskLevel === 'Medium') {
-                    verdict = '⚠️ Cautious';
-                    verdictTooltip = 'Moderate confidence. Proceed with caution.';
-                } else if (confidence < 60 || riskLevel === 'High') {
-                    verdict = '⚠️ Avoid';
-                    verdictTooltip = 'Low confidence or high risk. Not recommended for strangle.';
-                } else {
-                    verdict = '❌ Reject';
-                    verdictTooltip = 'Invalid or risky setup. Do not trade.';
-                }
+                // Get verdict
+                const verdictData = getVerdict(expectedRoi, confidence, riskLevel);
 
                 row.innerHTML = `
                     <td class="symbol">${symbol}</td>
@@ -545,10 +557,10 @@
                     <td style="color: #666;">₹${new Intl.NumberFormat('en-IN').format(marginRequired)}</td>
                     <td style="color: #27ae60; font-weight: 700; font-size: 1.1em;">${expectedRoi.toFixed(1)}%</td>
                     <td style="font-weight: 600; color: ${riskColor};">${confidence.toFixed(0)}%</td>
-                    <td class="prediction-outcome ${outcomeClass}" title="${outcomeTooltip}">${predictionOutcome}</td>
+                    <td class="prediction-outcome ${predictionOutcome.class}" title="${predictionOutcome.tooltip}">${predictionOutcome.display}</td>
                     <td class="stop-loss-cell" title="${stopLossTooltip}">${stopLossDisplay}</td>
                     <td style="font-weight: 600; color: ${riskColor};">${riskLevel}</td>
-                    <td class="verdict-cell" title="${verdictTooltip}">${verdict}</td>
+                    <td class="verdict-cell" title="${verdictData.tooltip}">${verdictData.verdict}</td>
                 `;
                 tbody.appendChild(row);
                 validCount++;
@@ -596,7 +608,6 @@
                 });
 
                 console.log('📡 Response status:', response.status);
-                console.log('📡 Response headers:', response.headers);
 
                 if (!response.ok) {
                     const errorText = await response.text();
@@ -606,39 +617,35 @@
 
                 const result = await response.json();
                 console.log('[OPTIONS] ✅ Raw API response received:', result);
-                console.log('[OPTIONS] 📊 Response status:', result.status);
-                console.log('[OPTIONS] 📊 Response data source:', result.data_source);
-                console.log('[OPTIONS] 📊 Response timestamp:', result.timestamp);
-                console.log('[OPTIONS] 📊 Total strategies in response:', result.total_strategies || (result.strategies ? result.strategies.length : 0));
+
+                // Load tracking data
+                try {
+                    const trackingResponse = await fetch('/options_tracking.json');
+                    if (trackingResponse.ok) {
+                        window.optionsTracking = await trackingResponse.json();
+                        console.log('📊 Loaded options tracking data:', window.optionsTracking);
+                    }
+                } catch (trackingError) {
+                    console.warn('⚠️ Could not load tracking data:', trackingError);
+                    window.optionsTracking = {};
+                }
 
                 // Handle both old and new response formats
                 let strategies = [];
                 if (Array.isArray(result)) {
-                    // Old format - direct array
                     strategies = result;
-                    console.log('📊 Using old format - direct array');
                 } else if (result.strategies && Array.isArray(result.strategies)) {
-                    // New format - wrapped in object
                     strategies = result.strategies;
-                    console.log('📊 Using new format - wrapped object');
                 }
 
                 console.log('📊 Total strategies found:', strategies.length);
 
                 if (strategies.length > 0) {
-                    console.log('📊 Updating table with', strategies.length, 'strategies');
-
-                    // Log each strategy for verification
-                    strategies.forEach((strategy, index) => {
-                        console.log(`📈 Strategy ${index + 1}: ${strategy.symbol} - Price: ₹${strategy.current_price}, ROI: ${strategy.expected_roi}%`);
-                    });
-
                     const displaySuccess = updateOptionsTable(strategies);
                     if (displaySuccess) {
                         showData();
                         console.log('✅ Successfully displayed strategies table');
 
-                        // Update button feedback
                         const refreshText = document.getElementById('refreshText');
                         refreshText.textContent = `✅ Live! (${strategies.length})`;
                         setTimeout(() => {
@@ -665,7 +672,6 @@
         function manualRefreshData() {
             console.log("[MANUAL REFRESH] Manual refresh triggered");
 
-            // Show loading state
             setManualButtonState(true);
             showLoading();
 
@@ -674,7 +680,6 @@
 
             console.log(`[MANUAL REFRESH] Requesting fresh data for timeframe: ${timeframe}`);
 
-            // Force refresh with real-time data and disable all caching
             fetch(`/api/options-strategies?manual_refresh=true&force_realtime=true&timeframe=${timeframe}&t=${timestamp}`, {
                 method: 'GET',
                 headers: {
@@ -693,11 +698,26 @@
                 })
                 .then(data => {
                     console.log("[MANUAL REFRESH] Real-time data received:", data);
-                    console.log(`[MANUAL REFRESH] Data source: ${data.data_source}`);
-                    console.log(`[MANUAL REFRESH] Total strategies: ${data.total_strategies}`);
 
+                    // Load tracking data for manual refresh too
+                    return fetch('/options_tracking.json')
+                        .then(trackingResponse => {
+                            if (trackingResponse.ok) {
+                                return trackingResponse.json();
+                            }
+                            return {};
+                        })
+                        .then(trackingData => {
+                            window.optionsTracking = trackingData;
+                            return data;
+                        })
+                        .catch(() => {
+                            window.optionsTracking = {};
+                            return data;
+                        });
+                })
+                .then(data => {
                     if (data.strategies && data.strategies.length > 0) {
-                        // Log each strategy details
                         data.strategies.forEach((strategy, index) => {
                             console.log(`[MANUAL REFRESH] Strategy ${index + 1}: ${strategy.symbol} - ₹${strategy.current_price}, ROI: ${strategy.expected_roi}%`);
                         });
@@ -746,7 +766,7 @@
                 console.log('🔄 Auto-refresh triggered');
                 loadOptionsData();
             }
-        }, 300000); // 5 minutes
+        }, 300000);
     </script>
 </body>
 </html>
