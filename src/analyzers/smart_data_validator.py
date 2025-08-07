@@ -674,3 +674,586 @@ def main():
 
 if __name__ == "__main__":
     main()
+"""
+Smart Data Validator - Intelligent Data Quality Monitoring
+Detects OHLC gaps, validates data integrity, and marks questionable predictions
+"""
+
+import json
+import os
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional, Tuple
+import pandas as pd
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+class SmartDataValidator:
+    def __init__(self, gap_threshold: float = 0.05, quality_threshold: float = 0.8):
+        """
+        Initialize Smart Data Validator
+        
+        Args:
+            gap_threshold: Threshold for detecting significant gaps (5% default)
+            quality_threshold: Minimum data quality score (80% default)
+        """
+        self.gap_threshold = gap_threshold
+        self.quality_threshold = quality_threshold
+        self.validation_log_path = "logs/goahead/validation"
+        
+        # Ensure directories exist
+        os.makedirs(self.validation_log_path, exist_ok=True)
+        
+    def validate_ohlc_data(self, stock_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate OHLC data for gaps and anomalies
+        
+        Args:
+            stock_data: Dictionary containing OHLC data for a stock
+            
+        Returns:
+            Dict with validation results and quality score
+        """
+        try:
+            symbol = stock_data.get('symbol', 'UNKNOWN')
+            ohlc = stock_data.get('ohlc', {})
+            
+            validation_result = {
+                'symbol': symbol,
+                'timestamp': datetime.now().isoformat(),
+                'quality_score': 1.0,
+                'issues': [],
+                'gaps_detected': [],
+                'recommendations': [],
+                'should_skip_prediction': False
+            }
+            
+            # Check for missing OHLC values
+            required_fields = ['open', 'high', 'low', 'close', 'volume']
+            missing_fields = [field for field in required_fields if field not in ohlc or ohlc[field] is None]
+            
+            if missing_fields:
+                validation_result['issues'].append({
+                    'type': 'missing_data',
+                    'severity': 'HIGH',
+                    'fields': missing_fields,
+                    'message': f"Missing OHLC fields: {', '.join(missing_fields)}"
+                })
+                validation_result['quality_score'] *= 0.5
+                validation_result['should_skip_prediction'] = True
+            
+            if not missing_fields:
+                # Check for logical inconsistencies
+                open_price = float(ohlc.get('open', 0))
+                high_price = float(ohlc.get('high', 0))
+                low_price = float(ohlc.get('low', 0))
+                close_price = float(ohlc.get('close', 0))
+                volume = float(ohlc.get('volume', 0))
+                
+                # Validate OHLC relationships
+                ohlc_issues = self._validate_ohlc_relationships(open_price, high_price, low_price, close_price)
+                validation_result['issues'].extend(ohlc_issues)
+                
+                # Check for price gaps
+                gaps = self._detect_price_gaps(stock_data)
+                validation_result['gaps_detected'] = gaps
+                
+                # Check for volume anomalies
+                volume_issues = self._validate_volume(volume, stock_data.get('avg_volume', volume))
+                validation_result['issues'].extend(volume_issues)
+                
+                # Calculate overall quality score
+                validation_result['quality_score'] = self._calculate_quality_score(validation_result)
+                
+                # Determine if prediction should be skipped
+                validation_result['should_skip_prediction'] = (
+                    validation_result['quality_score'] < self.quality_threshold or
+                    any(issue['severity'] == 'HIGH' for issue in validation_result['issues']) or
+                    len(validation_result['gaps_detected']) > 0
+                )
+                
+                # Generate recommendations
+                validation_result['recommendations'] = self._generate_recommendations(validation_result)
+            
+            # Log validation result
+            self._log_validation_result(validation_result)
+            
+            return validation_result
+            
+        except Exception as e:
+            logger.error(f"Error validating OHLC data for {stock_data.get('symbol', 'UNKNOWN')}: {str(e)}")
+            return {
+                'symbol': stock_data.get('symbol', 'UNKNOWN'),
+                'error': str(e),
+                'should_skip_prediction': True,
+                'quality_score': 0.0
+            }
+    
+    def validate_historical_data(self, symbol: str, data_points: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Validate historical data series for continuity and quality
+        
+        Args:
+            symbol: Stock symbol
+            data_points: List of historical data points
+            
+        Returns:
+            Dict with historical validation results
+        """
+        try:
+            if not data_points:
+                return {
+                    'symbol': symbol,
+                    'error': 'No historical data available',
+                    'should_skip_prediction': True
+                }
+            
+            validation_result = {
+                'symbol': symbol,
+                'timestamp': datetime.now().isoformat(),
+                'data_points': len(data_points),
+                'continuity_score': 1.0,
+                'quality_score': 1.0,
+                'gaps': [],
+                'anomalies': [],
+                'recommendations': []
+            }
+            
+            # Check for date gaps
+            date_gaps = self._detect_date_gaps(data_points)
+            validation_result['gaps'] = date_gaps
+            
+            # Check for price anomalies
+            price_anomalies = self._detect_price_anomalies(data_points)
+            validation_result['anomalies'] = price_anomalies
+            
+            # Calculate continuity score
+            validation_result['continuity_score'] = self._calculate_continuity_score(date_gaps, len(data_points))
+            
+            # Calculate quality score
+            validation_result['quality_score'] = self._calculate_historical_quality_score(
+                validation_result['continuity_score'], 
+                price_anomalies
+            )
+            
+            # Generate recommendations
+            validation_result['recommendations'] = self._generate_historical_recommendations(validation_result)
+            
+            return validation_result
+            
+        except Exception as e:
+            logger.error(f"Error validating historical data for {symbol}: {str(e)}")
+            return {
+                'symbol': symbol,
+                'error': str(e),
+                'should_skip_prediction': True
+            }
+    
+    def get_data_quality_report(self, timeframe: str = "24h") -> Dict[str, Any]:
+        """
+        Get comprehensive data quality report
+        
+        Args:
+            timeframe: Report timeframe (24h, 7d, 30d)
+            
+        Returns:
+            Dict with quality metrics and recommendations
+        """
+        try:
+            # Load recent validation logs
+            validation_files = self._get_validation_files(timeframe)
+            all_validations = []
+            
+            for file_path in validation_files:
+                try:
+                    with open(file_path, 'r') as f:
+                        data = json.load(f)
+                        all_validations.extend(data.get('validations', []))
+                except Exception as e:
+                    logger.warning(f"Could not load validation file {file_path}: {str(e)}")
+            
+            if not all_validations:
+                return {
+                    'timeframe': timeframe,
+                    'message': 'No validation data available for the specified timeframe'
+                }
+            
+            # Calculate aggregate metrics
+            total_validations = len(all_validations)
+            avg_quality_score = np.mean([v.get('quality_score', 0) for v in all_validations])
+            skip_rate = np.mean([1 if v.get('should_skip_prediction', False) else 0 for v in all_validations])
+            
+            # Count issues by type
+            issue_counts = {}
+            gap_counts = 0
+            
+            for validation in all_validations:
+                for issue in validation.get('issues', []):
+                    issue_type = issue.get('type', 'unknown')
+                    issue_counts[issue_type] = issue_counts.get(issue_type, 0) + 1
+                
+                gap_counts += len(validation.get('gaps_detected', []))
+            
+            # Generate quality summary by stock
+            stock_quality = {}
+            for validation in all_validations:
+                symbol = validation.get('symbol', 'UNKNOWN')
+                if symbol not in stock_quality:
+                    stock_quality[symbol] = {
+                        'validations': 0,
+                        'total_quality': 0,
+                        'skip_count': 0
+                    }
+                
+                stock_quality[symbol]['validations'] += 1
+                stock_quality[symbol]['total_quality'] += validation.get('quality_score', 0)
+                if validation.get('should_skip_prediction', False):
+                    stock_quality[symbol]['skip_count'] += 1
+            
+            # Calculate averages for each stock
+            for symbol in stock_quality:
+                stock_quality[symbol]['avg_quality'] = (
+                    stock_quality[symbol]['total_quality'] / stock_quality[symbol]['validations']
+                )
+                stock_quality[symbol]['skip_rate'] = (
+                    stock_quality[symbol]['skip_count'] / stock_quality[symbol]['validations']
+                )
+            
+            return {
+                'timeframe': timeframe,
+                'timestamp': datetime.now().isoformat(),
+                'summary': {
+                    'total_validations': total_validations,
+                    'average_quality_score': avg_quality_score,
+                    'prediction_skip_rate': skip_rate,
+                    'total_gaps_detected': gap_counts
+                },
+                'issue_breakdown': issue_counts,
+                'stock_quality': stock_quality,
+                'recommendations': self._generate_system_recommendations(
+                    avg_quality_score, skip_rate, issue_counts
+                )
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating data quality report: {str(e)}")
+            return {'error': str(e)}
+    
+    def _validate_ohlc_relationships(self, open_price: float, high_price: float, 
+                                   low_price: float, close_price: float) -> List[Dict[str, Any]]:
+        """Validate logical relationships between OHLC values"""
+        issues = []
+        
+        # High should be >= max(open, close)
+        if high_price < max(open_price, close_price):
+            issues.append({
+                'type': 'ohlc_logic_error',
+                'severity': 'HIGH',
+                'message': f"High price ({high_price}) is less than max(open, close) ({max(open_price, close_price)})"
+            })
+        
+        # Low should be <= min(open, close)
+        if low_price > min(open_price, close_price):
+            issues.append({
+                'type': 'ohlc_logic_error',
+                'severity': 'HIGH',
+                'message': f"Low price ({low_price}) is greater than min(open, close) ({min(open_price, close_price)})"
+            })
+        
+        # Check for zero or negative prices
+        if any(price <= 0 for price in [open_price, high_price, low_price, close_price]):
+            issues.append({
+                'type': 'invalid_price',
+                'severity': 'HIGH',
+                'message': "Zero or negative prices detected"
+            })
+        
+        return issues
+    
+    def _detect_price_gaps(self, stock_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect significant price gaps"""
+        gaps = []
+        
+        try:
+            current_price = float(stock_data.get('ohlc', {}).get('close', 0))
+            previous_close = float(stock_data.get('previous_close', current_price))
+            
+            if previous_close > 0:
+                gap_percentage = abs(current_price - previous_close) / previous_close
+                
+                if gap_percentage >= self.gap_threshold:
+                    gaps.append({
+                        'type': 'price_gap',
+                        'gap_percentage': gap_percentage,
+                        'current_price': current_price,
+                        'previous_close': previous_close,
+                        'severity': 'HIGH' if gap_percentage >= 0.10 else 'MEDIUM'
+                    })
+        
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Error detecting price gaps: {str(e)}")
+        
+        return gaps
+    
+    def _validate_volume(self, current_volume: float, avg_volume: float) -> List[Dict[str, Any]]:
+        """Validate volume data for anomalies"""
+        issues = []
+        
+        try:
+            if current_volume <= 0:
+                issues.append({
+                    'type': 'invalid_volume',
+                    'severity': 'MEDIUM',
+                    'message': "Zero or negative volume detected"
+                })
+            elif avg_volume > 0:
+                volume_ratio = current_volume / avg_volume
+                
+                if volume_ratio > 5.0:  # Volume spike
+                    issues.append({
+                        'type': 'volume_anomaly',
+                        'severity': 'MEDIUM',
+                        'message': f"Unusual volume spike: {volume_ratio:.1f}x average"
+                    })
+                elif volume_ratio < 0.1:  # Very low volume
+                    issues.append({
+                        'type': 'volume_anomaly',
+                        'severity': 'LOW',
+                        'message': f"Unusually low volume: {volume_ratio:.1%} of average"
+                    })
+        
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Error validating volume: {str(e)}")
+        
+        return issues
+    
+    def _calculate_quality_score(self, validation_result: Dict[str, Any]) -> float:
+        """Calculate overall data quality score"""
+        base_score = 1.0
+        
+        # Reduce score based on issues
+        for issue in validation_result.get('issues', []):
+            if issue['severity'] == 'HIGH':
+                base_score *= 0.6
+            elif issue['severity'] == 'MEDIUM':
+                base_score *= 0.8
+            elif issue['severity'] == 'LOW':
+                base_score *= 0.9
+        
+        # Reduce score for gaps
+        gap_count = len(validation_result.get('gaps_detected', []))
+        if gap_count > 0:
+            base_score *= (0.8 ** gap_count)
+        
+        return max(0.0, base_score)
+    
+    def _detect_date_gaps(self, data_points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Detect gaps in historical data dates"""
+        gaps = []
+        
+        try:
+            # Sort by date
+            sorted_points = sorted(data_points, key=lambda x: x.get('date', ''))
+            
+            for i in range(1, len(sorted_points)):
+                current_date = datetime.fromisoformat(sorted_points[i]['date'].replace('Z', '+00:00'))
+                previous_date = datetime.fromisoformat(sorted_points[i-1]['date'].replace('Z', '+00:00'))
+                
+                # Check for weekend gaps (acceptable)
+                days_diff = (current_date - previous_date).days
+                
+                # Flag gaps longer than 3 days (excluding weekends)
+                if days_diff > 3:
+                    gaps.append({
+                        'type': 'date_gap',
+                        'start_date': previous_date.isoformat(),
+                        'end_date': current_date.isoformat(),
+                        'days_missing': days_diff
+                    })
+        
+        except Exception as e:
+            logger.warning(f"Error detecting date gaps: {str(e)}")
+        
+        return gaps
+    
+    def _detect_price_anomalies(self, data_points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Detect price anomalies in historical data"""
+        anomalies = []
+        
+        try:
+            if len(data_points) < 5:
+                return anomalies
+            
+            # Extract close prices
+            prices = [float(point.get('close', 0)) for point in data_points if point.get('close')]
+            
+            if len(prices) < 5:
+                return anomalies
+            
+            # Calculate moving average and standard deviation
+            window_size = min(10, len(prices) // 2)
+            
+            for i in range(window_size, len(prices)):
+                window_prices = prices[i-window_size:i]
+                mean_price = np.mean(window_prices)
+                std_price = np.std(window_prices)
+                
+                current_price = prices[i]
+                
+                # Flag prices that are more than 3 standard deviations away
+                if std_price > 0:
+                    z_score = abs(current_price - mean_price) / std_price
+                    
+                    if z_score > 3:
+                        anomalies.append({
+                            'type': 'price_anomaly',
+                            'date': data_points[i].get('date', ''),
+                            'price': current_price,
+                            'expected_range': f"{mean_price - 2*std_price:.2f} - {mean_price + 2*std_price:.2f}",
+                            'z_score': z_score
+                        })
+        
+        except Exception as e:
+            logger.warning(f"Error detecting price anomalies: {str(e)}")
+        
+        return anomalies
+    
+    def _calculate_continuity_score(self, gaps: List[Dict[str, Any]], total_points: int) -> float:
+        """Calculate data continuity score"""
+        if total_points == 0:
+            return 0.0
+        
+        # Base score
+        continuity_score = 1.0
+        
+        # Reduce score for each gap
+        for gap in gaps:
+            days_missing = gap.get('days_missing', 1)
+            # Reduce score based on gap size
+            continuity_score *= max(0.1, 1.0 - (days_missing / 30.0))
+        
+        return max(0.0, continuity_score)
+    
+    def _calculate_historical_quality_score(self, continuity_score: float, 
+                                          anomalies: List[Dict[str, Any]]) -> float:
+        """Calculate overall historical data quality score"""
+        base_score = continuity_score
+        
+        # Reduce score for anomalies
+        anomaly_count = len(anomalies)
+        if anomaly_count > 0:
+            base_score *= max(0.5, 1.0 - (anomaly_count / 100.0))
+        
+        return max(0.0, base_score)
+    
+    def _generate_recommendations(self, validation_result: Dict[str, Any]) -> List[str]:
+        """Generate recommendations based on validation results"""
+        recommendations = []
+        
+        if validation_result['should_skip_prediction']:
+            recommendations.append("SKIP prediction due to poor data quality")
+        
+        if validation_result['quality_score'] < 0.8:
+            recommendations.append("Consider using alternative data sources")
+        
+        for issue in validation_result.get('issues', []):
+            if issue['type'] == 'ohlc_logic_error':
+                recommendations.append("Verify OHLC data source and collection process")
+            elif issue['type'] == 'volume_anomaly':
+                recommendations.append("Investigate volume spike - possible news event")
+        
+        if validation_result.get('gaps_detected'):
+            recommendations.append("Check for market halts or data feed issues")
+        
+        return recommendations
+    
+    def _generate_historical_recommendations(self, validation_result: Dict[str, Any]) -> List[str]:
+        """Generate recommendations for historical data issues"""
+        recommendations = []
+        
+        if validation_result.get('continuity_score', 1.0) < 0.8:
+            recommendations.append("Fill historical data gaps before training models")
+        
+        anomaly_count = len(validation_result.get('anomalies', []))
+        if anomaly_count > 5:
+            recommendations.append(f"Review {anomaly_count} price anomalies - may need data cleaning")
+        
+        return recommendations
+    
+    def _generate_system_recommendations(self, avg_quality: float, skip_rate: float, 
+                                       issue_counts: Dict[str, int]) -> List[str]:
+        """Generate system-level recommendations"""
+        recommendations = []
+        
+        if avg_quality < 0.7:
+            recommendations.append("URGENT: Review data collection processes - quality below acceptable threshold")
+        
+        if skip_rate > 0.2:
+            recommendations.append(f"HIGH: {skip_rate:.1%} of predictions being skipped due to data quality")
+        
+        if issue_counts.get('ohlc_logic_error', 0) > 0:
+            recommendations.append("Review OHLC data validation logic - logic errors detected")
+        
+        if issue_counts.get('price_gap', 0) > 10:
+            recommendations.append("Investigate frequent price gaps - may indicate feed issues")
+        
+        return recommendations
+    
+    def _log_validation_result(self, validation_result: Dict[str, Any]):
+        """Log validation result to daily file"""
+        try:
+            today = datetime.now().strftime('%Y-%m-%d')
+            log_file = os.path.join(self.validation_log_path, f"{today}.json")
+            
+            # Load existing validations
+            validations = []
+            if os.path.exists(log_file):
+                with open(log_file, 'r') as f:
+                    data = json.load(f)
+                    validations = data.get('validations', [])
+            
+            # Add new validation
+            validations.append(validation_result)
+            
+            # Save updated validations
+            log_data = {
+                'date': today,
+                'validations': validations,
+                'summary': {
+                    'total_validations': len(validations),
+                    'avg_quality': np.mean([v.get('quality_score', 0) for v in validations]),
+                    'skip_rate': np.mean([1 if v.get('should_skip_prediction', False) else 0 for v in validations])
+                }
+            }
+            
+            with open(log_file, 'w') as f:
+                json.dump(log_data, f, indent=2)
+                
+        except Exception as e:
+            logger.error(f"Error logging validation result: {str(e)}")
+    
+    def _get_validation_files(self, timeframe: str) -> List[str]:
+        """Get validation log files for specified timeframe"""
+        files = []
+        
+        try:
+            if timeframe == "24h":
+                days = 1
+            elif timeframe == "7d":
+                days = 7
+            elif timeframe == "30d":
+                days = 30
+            else:
+                days = 1
+            
+            for i in range(days):
+                date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+                file_path = os.path.join(self.validation_log_path, f"{date}.json")
+                if os.path.exists(file_path):
+                    files.append(file_path)
+        
+        except Exception as e:
+            logger.error(f"Error getting validation files: {str(e)}")
+        
+        return files

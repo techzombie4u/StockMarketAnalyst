@@ -478,3 +478,398 @@ def main():
 
 if __name__ == "__main__":
     main()
+"""
+Live Drift Tracker - Real-time Model Performance Monitoring
+Tracks accuracy degradation and alerts for model drift
+"""
+
+import json
+import os
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+class LiveDriftTracker:
+    def __init__(self, drift_threshold: float = 0.15, alert_threshold: float = 0.10):
+        """
+        Initialize Live Drift Tracker
+        
+        Args:
+            drift_threshold: Threshold for significant drift (15% default)
+            alert_threshold: Threshold for alerts (10% default)
+        """
+        self.drift_threshold = drift_threshold
+        self.alert_threshold = alert_threshold
+        self.drift_log_path = "logs/goahead/drift"
+        self.model_kpi_path = "logs/goahead/ModelKPI.json"
+        
+        # Ensure directories exist
+        os.makedirs(self.drift_log_path, exist_ok=True)
+        os.makedirs(os.path.dirname(self.model_kpi_path), exist_ok=True)
+        
+    def track_prediction_accuracy(self, model_name: str, stock: str, 
+                                predicted: float, actual: float, 
+                                timeframe: str, confidence: float) -> Dict[str, Any]:
+        """
+        Track a single prediction's accuracy and update drift metrics
+        
+        Args:
+            model_name: Name of the model (LSTM, RF, etc.)
+            stock: Stock symbol
+            predicted: Predicted value
+            actual: Actual value
+            timeframe: Prediction timeframe (3D, 5D, etc.)
+            confidence: Model confidence
+            
+        Returns:
+            Dict with drift status and alerts
+        """
+        try:
+            # Calculate accuracy metrics
+            accuracy = 1.0 - abs(predicted - actual) / abs(actual) if actual != 0 else 0.0
+            direction_correct = (predicted > 0) == (actual > 0)
+            
+            # Create tracking entry
+            tracking_entry = {
+                'timestamp': datetime.now().isoformat(),
+                'model': model_name,
+                'stock': stock,
+                'timeframe': timeframe,
+                'predicted': predicted,
+                'actual': actual,
+                'accuracy': accuracy,
+                'direction_correct': direction_correct,
+                'confidence': confidence,
+                'error_percentage': abs(predicted - actual) / abs(actual) * 100 if actual != 0 else 100
+            }
+            
+            # Save to daily log
+            self._save_drift_entry(tracking_entry)
+            
+            # Update model KPI
+            self._update_model_kpi(model_name, tracking_entry)
+            
+            # Check for drift
+            drift_status = self._check_drift(model_name, timeframe)
+            
+            return {
+                'accuracy': accuracy,
+                'direction_correct': direction_correct,
+                'drift_status': drift_status,
+                'alerts': self._generate_alerts(drift_status)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error tracking prediction accuracy: {str(e)}")
+            return {'error': str(e)}
+    
+    def get_drift_status(self, timeframe: str = "all") -> Dict[str, Any]:
+        """
+        Get current drift status for all models
+        
+        Args:
+            timeframe: Specific timeframe or "all"
+            
+        Returns:
+            Dict with drift status for each model
+        """
+        try:
+            model_kpi = self._load_model_kpi()
+            drift_status = {}
+            
+            for model_name, stats in model_kpi.get('models', {}).items():
+                if timeframe == "all" or timeframe in stats.get('timeframes', {}):
+                    recent_accuracy = stats.get('recent_accuracy', 0.0)
+                    baseline_accuracy = stats.get('baseline_accuracy', 0.0)
+                    
+                    drift_amount = baseline_accuracy - recent_accuracy if baseline_accuracy > 0 else 0.0
+                    
+                    if drift_amount >= self.drift_threshold:
+                        status = "RED"
+                        alert_level = "HIGH"
+                    elif drift_amount >= self.alert_threshold:
+                        status = "YELLOW"
+                        alert_level = "MEDIUM"
+                    else:
+                        status = "GREEN"
+                        alert_level = "LOW"
+                    
+                    drift_status[model_name] = {
+                        'status': status,
+                        'alert_level': alert_level,
+                        'drift_amount': drift_amount,
+                        'recent_accuracy': recent_accuracy,
+                        'baseline_accuracy': baseline_accuracy,
+                        'prediction_count': stats.get('prediction_count', 0),
+                        'last_updated': stats.get('last_updated', datetime.now().isoformat())
+                    }
+            
+            return {
+                'timestamp': datetime.now().isoformat(),
+                'drift_status': drift_status,
+                'summary': self._generate_drift_summary(drift_status)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting drift status: {str(e)}")
+            return {'error': str(e)}
+    
+    def get_real_time_alerts(self) -> List[Dict[str, Any]]:
+        """
+        Get real-time drift alerts
+        
+        Returns:
+            List of active alerts
+        """
+        try:
+            drift_status = self.get_drift_status()
+            alerts = []
+            
+            for model_name, status in drift_status.get('drift_status', {}).items():
+                if status['alert_level'] in ['HIGH', 'MEDIUM']:
+                    alerts.append({
+                        'type': 'drift_alert',
+                        'model': model_name,
+                        'severity': status['alert_level'],
+                        'message': f"Model {model_name} showing {status['drift_amount']:.1%} accuracy drift",
+                        'recommendation': self._get_drift_recommendation(status),
+                        'timestamp': datetime.now().isoformat()
+                    })
+            
+            # Add data quality alerts
+            data_alerts = self._check_data_quality_alerts()
+            alerts.extend(data_alerts)
+            
+            return alerts
+            
+        except Exception as e:
+            logger.error(f"Error getting real-time alerts: {str(e)}")
+            return [{'error': str(e)}]
+    
+    def _save_drift_entry(self, entry: Dict[str, Any]):
+        """Save drift tracking entry to daily log"""
+        try:
+            today = datetime.now().strftime('%Y-%m-%d')
+            log_file = os.path.join(self.drift_log_path, f"{today}.json")
+            
+            # Load existing entries
+            entries = []
+            if os.path.exists(log_file):
+                with open(log_file, 'r') as f:
+                    data = json.load(f)
+                    entries = data.get('entries', [])
+            
+            # Add new entry
+            entries.append(entry)
+            
+            # Save updated entries
+            log_data = {
+                'date': today,
+                'entries': entries,
+                'summary': self._calculate_daily_summary(entries)
+            }
+            
+            with open(log_file, 'w') as f:
+                json.dump(log_data, f, indent=2)
+                
+        except Exception as e:
+            logger.error(f"Error saving drift entry: {str(e)}")
+    
+    def _update_model_kpi(self, model_name: str, entry: Dict[str, Any]):
+        """Update model KPI with new prediction result"""
+        try:
+            # Load existing KPI
+            model_kpi = self._load_model_kpi()
+            
+            if 'models' not in model_kpi:
+                model_kpi['models'] = {}
+            
+            if model_name not in model_kpi['models']:
+                model_kpi['models'][model_name] = {
+                    'prediction_count': 0,
+                    'total_accuracy': 0.0,
+                    'recent_accuracy': 0.0,
+                    'baseline_accuracy': 0.75,  # Default baseline
+                    'timeframes': {},
+                    'created': datetime.now().isoformat()
+                }
+            
+            model_stats = model_kpi['models'][model_name]
+            
+            # Update overall stats
+            model_stats['prediction_count'] += 1
+            model_stats['total_accuracy'] += entry['accuracy']
+            model_stats['average_accuracy'] = model_stats['total_accuracy'] / model_stats['prediction_count']
+            
+            # Calculate recent accuracy (last 10 predictions)
+            if model_stats['prediction_count'] <= 10:
+                model_stats['recent_accuracy'] = model_stats['average_accuracy']
+            else:
+                # For simplicity, use average accuracy as recent accuracy
+                # In production, this would track last N predictions
+                model_stats['recent_accuracy'] = model_stats['average_accuracy']
+            
+            # Update timeframe stats
+            timeframe = entry['timeframe']
+            if timeframe not in model_stats['timeframes']:
+                model_stats['timeframes'][timeframe] = {
+                    'count': 0,
+                    'accuracy': 0.0,
+                    'direction_accuracy': 0.0
+                }
+            
+            tf_stats = model_stats['timeframes'][timeframe]
+            tf_stats['count'] += 1
+            tf_stats['accuracy'] = (tf_stats['accuracy'] * (tf_stats['count'] - 1) + entry['accuracy']) / tf_stats['count']
+            tf_stats['direction_accuracy'] = (tf_stats['direction_accuracy'] * (tf_stats['count'] - 1) + 
+                                           (1.0 if entry['direction_correct'] else 0.0)) / tf_stats['count']
+            
+            model_stats['last_updated'] = datetime.now().isoformat()
+            model_kpi['last_updated'] = datetime.now().isoformat()
+            
+            # Save updated KPI
+            with open(self.model_kpi_path, 'w') as f:
+                json.dump(model_kpi, f, indent=2)
+                
+        except Exception as e:
+            logger.error(f"Error updating model KPI: {str(e)}")
+    
+    def _load_model_kpi(self) -> Dict[str, Any]:
+        """Load model KPI data"""
+        try:
+            if os.path.exists(self.model_kpi_path):
+                with open(self.model_kpi_path, 'r') as f:
+                    return json.load(f)
+            else:
+                return {
+                    'created': datetime.now().isoformat(),
+                    'models': {}
+                }
+        except Exception as e:
+            logger.error(f"Error loading model KPI: {str(e)}")
+            return {'models': {}}
+    
+    def _check_drift(self, model_name: str, timeframe: str) -> Dict[str, Any]:
+        """Check if model is experiencing drift"""
+        try:
+            model_kpi = self._load_model_kpi()
+            model_stats = model_kpi.get('models', {}).get(model_name, {})
+            
+            recent_accuracy = model_stats.get('recent_accuracy', 0.0)
+            baseline_accuracy = model_stats.get('baseline_accuracy', 0.75)
+            
+            drift_amount = baseline_accuracy - recent_accuracy
+            
+            return {
+                'model': model_name,
+                'timeframe': timeframe,
+                'drift_detected': drift_amount >= self.alert_threshold,
+                'drift_amount': drift_amount,
+                'severity': 'HIGH' if drift_amount >= self.drift_threshold else 'MEDIUM' if drift_amount >= self.alert_threshold else 'LOW'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error checking drift: {str(e)}")
+            return {'error': str(e)}
+    
+    def _generate_alerts(self, drift_status: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate alerts based on drift status"""
+        alerts = []
+        
+        if drift_status.get('drift_detected', False):
+            alerts.append({
+                'type': 'accuracy_drift',
+                'severity': drift_status.get('severity', 'MEDIUM'),
+                'message': f"Model {drift_status.get('model')} accuracy drift detected: {drift_status.get('drift_amount', 0):.1%}",
+                'recommendation': self._get_drift_recommendation(drift_status)
+            })
+        
+        return alerts
+    
+    def _get_drift_recommendation(self, status: Dict[str, Any]) -> str:
+        """Get recommendation based on drift status"""
+        drift_amount = status.get('drift_amount', 0)
+        
+        if drift_amount >= 0.20:
+            return "URGENT: Consider immediate model retraining or switching to backup model"
+        elif drift_amount >= 0.15:
+            return "HIGH: Schedule model retraining within 24 hours"
+        elif drift_amount >= 0.10:
+            return "MEDIUM: Monitor closely and consider retraining within 48 hours"
+        else:
+            return "LOW: Continue monitoring"
+    
+    def _generate_drift_summary(self, drift_status: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate summary of drift status"""
+        total_models = len(drift_status)
+        red_count = sum(1 for status in drift_status.values() if status['status'] == 'RED')
+        yellow_count = sum(1 for status in drift_status.values() if status['status'] == 'YELLOW')
+        green_count = sum(1 for status in drift_status.values() if status['status'] == 'GREEN')
+        
+        return {
+            'total_models': total_models,
+            'red_alerts': red_count,
+            'yellow_alerts': yellow_count,
+            'green_status': green_count,
+            'overall_health': 'CRITICAL' if red_count > 0 else 'WARNING' if yellow_count > 0 else 'HEALTHY'
+        }
+    
+    def _calculate_daily_summary(self, entries: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate daily summary from entries"""
+        if not entries:
+            return {}
+        
+        total_predictions = len(entries)
+        avg_accuracy = sum(e['accuracy'] for e in entries) / total_predictions
+        direction_accuracy = sum(1 for e in entries if e['direction_correct']) / total_predictions
+        
+        model_stats = {}
+        for entry in entries:
+            model = entry['model']
+            if model not in model_stats:
+                model_stats[model] = {'count': 0, 'accuracy': 0.0}
+            model_stats[model]['count'] += 1
+            model_stats[model]['accuracy'] += entry['accuracy']
+        
+        for model in model_stats:
+            model_stats[model]['accuracy'] /= model_stats[model]['count']
+        
+        return {
+            'total_predictions': total_predictions,
+            'average_accuracy': avg_accuracy,
+            'direction_accuracy': direction_accuracy,
+            'model_breakdown': model_stats
+        }
+    
+    def _check_data_quality_alerts(self) -> List[Dict[str, Any]]:
+        """Check for data quality issues that might affect predictions"""
+        alerts = []
+        
+        # Check for missing data patterns
+        try:
+            # Check if we have recent drift data
+            today = datetime.now().strftime('%Y-%m-%d')
+            yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+            
+            recent_files = [
+                os.path.join(self.drift_log_path, f"{today}.json"),
+                os.path.join(self.drift_log_path, f"{yesterday}.json")
+            ]
+            
+            recent_data_count = sum(1 for f in recent_files if os.path.exists(f))
+            
+            if recent_data_count == 0:
+                alerts.append({
+                    'type': 'data_quality',
+                    'severity': 'HIGH',
+                    'message': 'No recent drift tracking data available',
+                    'recommendation': 'Check data collection system'
+                })
+            
+        except Exception as e:
+            logger.error(f"Error checking data quality: {str(e)}")
+        
+        return alerts
