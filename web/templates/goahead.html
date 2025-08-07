@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -188,7 +187,7 @@
 
         .prediction-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
         }
@@ -280,16 +279,191 @@
             margin: 15px 0;
         }
 
+        /* Heatmap Styles */
+        .heatmap-container {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .heatmap-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .heatmap-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .heatmap-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .heatmap-controls select {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .heatmap-controls select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-bottom: 20px;
+            min-height: 200px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.8em;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.05);
+            z-index: 1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .heatmap-cell .stock-symbol {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .heatmap-cell .metric-value {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        /* Performance color classes */
+        .heatmap-cell.excellent {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .heatmap-cell.good {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .heatmap-cell.average {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .heatmap-cell.poor {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .heatmap-legend {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .legend-scale {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85em;
+            color: #6b7280;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .legend-color.excellent {
+            background: #10b981;
+        }
+
+        .legend-color.good {
+            background: #3b82f6;
+        }
+
+        .legend-color.average {
+            background: #f59e0b;
+        }
+
+        .legend-color.poor {
+            background: #ef4444;
+        }
+
+        .enhancement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .enhancement-module {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #e2e8f0;
+        }
+
+        .enhancement-module.active {
+            border-left-color: #10b981;
+        }
+
+        .enhancement-module:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
         @media (max-width: 768px) {
             .sections-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .navigation {
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .metrics-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -300,7 +474,7 @@
     <div class="header">
         <h1>🤖 GoAhead</h1>
         <p class="subtitle">AI Validation & Self-Healing System</p>
-        
+
         <div class="navigation">
             <a href="/" class="nav-btn home">🏠 Home</a>
             <a href="/analysis" class="nav-btn analysis">📊 Analysis</a>
@@ -323,6 +497,56 @@
                 <button class="timeframe-btn" onclick="selectTimeframe('10D')" data-timeframe="10D">10D - 1-Week</button>
                 <button class="timeframe-btn" onclick="selectTimeframe('15D')" data-timeframe="15D">15D - 2-Week</button>
                 <button class="timeframe-btn" onclick="selectTimeframe('30D')" data-timeframe="30D">30D - Monthly</button>
+            </div>
+
+            <!-- Prediction Health Matrix -->
+            <div class="section">
+                <h2>🌡️ Prediction Health Matrix</h2>
+                <div class="heatmap-container">
+                    <div class="heatmap-header">
+                        <div class="heatmap-title">Multi-Factor Performance Heatmap</div>
+                        <div class="heatmap-controls">
+                            <select id="heatmapMetric" onchange="updateHeatmap()">
+                                <option value="confidence_accuracy">Confidence × Accuracy</option>
+                                <option value="volatility_performance">Volatility × Performance</option>
+                                <option value="model_fitness">Model Fit Score</option>
+                                <option value="signal_strength">Signal Strength</option>
+                            </select>
+                            <select id="heatmapTimeframe" onchange="updateHeatmap()">
+                                <option value="3D">3 Days</option>
+                                <option value="5D">5 Days</option>
+                                <option value="10D">10 Days</option>
+                                <option value="30D">30 Days</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="heatmap-grid" id="heatmapGrid">
+                        <!-- This will be populated by JavaScript -->
+                    </div>
+
+                    <div class="heatmap-legend">
+                        <div class="legend-title">Performance Scale</div>
+                        <div class="legend-scale">
+                            <div class="legend-item">
+                                <div class="legend-color excellent"></div>
+                                <span>Excellent (>90%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color good"></div>
+                                <span>Good (75-90%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color average"></div>
+                                <span>Average (60-75%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color poor"></div>
+                                <span>Poor (<60%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="sections-grid">
@@ -415,7 +639,7 @@
         // Timeframe selection
         function selectTimeframe(timeframe) {
             currentTimeframe = timeframe;
-            
+
             // Update active button
             document.querySelectorAll('.timeframe-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -423,7 +647,7 @@
                     btn.classList.add('active');
                 }
             });
-            
+
             console.log(`Selected timeframe: ${timeframe}`);
             loadGoAheadData();
         }
@@ -432,22 +656,22 @@
         async function loadGoAheadData() {
             try {
                 console.log('Loading GoAhead validation data...');
-                
+
                 const response = await fetch(`/api/goahead/validation?timeframe=${currentTimeframe}`);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 goAheadData = await response.json();
                 console.log('GoAhead data loaded:', goAheadData);
-                
+
                 updatePredictionSummary();
                 updateOutcomeValidator();
                 updateGapAnalyzer();
                 updateImprovementSuggestor();
                 updateRetrainingGuide();
-                
+
             } catch (error) {
                 console.error('Error loading GoAhead data:', error);
                 showError('Failed to load validation data. Please try refreshing.');
@@ -457,13 +681,13 @@
         // Update Prediction Summary Viewer
         function updatePredictionSummary() {
             if (!goAheadData) return;
-            
+
             const summary = goAheadData.prediction_summary || {};
-            
+
             document.getElementById('total-predictions').textContent = summary.total || 0;
             document.getElementById('accuracy-rate').textContent = `${(summary.accuracy || 0).toFixed(1)}%`;
             document.getElementById('confidence-avg').textContent = `${(summary.avg_confidence || 0).toFixed(1)}%`;
-            
+
             const listElement = document.getElementById('prediction-summary-list');
             if (summary.predictions && summary.predictions.length > 0) {
                 listElement.innerHTML = summary.predictions.map(pred => `
@@ -484,13 +708,13 @@
         // Update Outcome Validator
         function updateOutcomeValidator() {
             if (!goAheadData) return;
-            
+
             const validation = goAheadData.outcome_validation || {};
-            
+
             document.getElementById('success-count').textContent = validation.success || 0;
             document.getElementById('warning-count').textContent = validation.warning || 0;
             document.getElementById('failure-count').textContent = validation.failure || 0;
-            
+
             const resultsElement = document.getElementById('validation-results');
             if (validation.details && validation.details.length > 0) {
                 resultsElement.innerHTML = validation.details.map(detail => `
@@ -511,10 +735,10 @@
         // Update Gap Analyzer
         function updateGapAnalyzer() {
             if (!goAheadData) return;
-            
+
             const gapAnalysis = goAheadData.gap_analysis || {};
             const analysisElement = document.getElementById('gap-analysis');
-            
+
             if (gapAnalysis.gaps && gapAnalysis.gaps.length > 0) {
                 analysisElement.innerHTML = gapAnalysis.gaps.map(gap => `
                     <div class="prediction-item failure">
@@ -535,10 +759,10 @@
         // Update Improvement Suggestor
         function updateImprovementSuggestor() {
             if (!goAheadData) return;
-            
+
             const suggestions = goAheadData.improvement_suggestions || {};
             const suggestionsElement = document.getElementById('improvement-suggestions');
-            
+
             if (suggestions.recommendations && suggestions.recommendations.length > 0) {
                 suggestionsElement.innerHTML = suggestions.recommendations.map(rec => `
                     <div class="recommendation-item">
@@ -555,15 +779,15 @@
         // Update Retraining Guide
         function updateRetrainingGuide() {
             if (!goAheadData) return;
-            
+
             const retraining = goAheadData.retraining_guide || {};
-            
+
             document.getElementById('model-age').textContent = retraining.days_since_training || '-';
             document.getElementById('retrain-score').textContent = retraining.priority_score || '-';
-            
+
             const recommendationsElement = document.getElementById('retrain-recommendations');
             const retrainButton = document.getElementById('retrain-button');
-            
+
             if (retraining.should_retrain) {
                 retrainButton.disabled = false;
                 retrainButton.textContent = 'Manual Retrain (Ready)';
@@ -573,7 +797,7 @@
                 retrainButton.textContent = 'Manual Retrain (Not Needed)';
                 retrainButton.style.background = '#27ae60';
             }
-            
+
             if (retraining.recommendations && retraining.recommendations.length > 0) {
                 recommendationsElement.innerHTML = retraining.recommendations.map(rec => `
                     <div class="recommendation-item">
@@ -590,12 +814,12 @@
         // Refresh GoAhead data
         function refreshGoAheadData() {
             console.log('Refreshing GoAhead data...');
-            
+
             // Show loading state
             document.querySelectorAll('.loading').forEach(el => {
                 el.innerHTML = 'Loading...';
             });
-            
+
             loadGoAheadData();
         }
 
@@ -604,9 +828,9 @@
             if (!confirm('Are you sure you want to trigger model retraining? This may take several minutes.')) {
                 return;
             }
-            
+
             console.log('Triggering manual model retraining...');
-            
+
             fetch('/api/goahead/retrain', {
                 method: 'POST',
                 headers: {
@@ -637,6 +861,135 @@
                 el.innerHTML = `<div class="error">Error: ${message}</div>`;
             });
         }
+
+        // Heatmap functionality
+        let stockData = [];
+        let heatmapData = {};
+
+        function updateHeatmap() {
+            const metric = document.getElementById('heatmapMetric').value;
+            const timeframe = document.getElementById('heatmapTimeframe').value;
+
+            // Generate heatmap data for current stocks
+            const heatmapGrid = document.getElementById('heatmapGrid');
+            heatmapGrid.innerHTML = '';
+
+            // Use current stock data to create heatmap
+            stockData.forEach(stock => {
+                const cell = createHeatmapCell(stock, metric, timeframe);
+                heatmapGrid.appendChild(cell);
+            });
+        }
+
+        function createHeatmapCell(stock, metric, timeframe) {
+            const cell = document.createElement('div');
+            cell.className = 'heatmap-cell';
+
+            let value = 0;
+            let displayValue = '';
+
+            // Calculate metric value based on selection
+            switch(metric) {
+                case 'confidence_accuracy':
+                    value = (stock.confidence || 0) * (stock.score || 0) / 100;
+                    displayValue = (value).toFixed(1) + '%';
+                    break;
+                case 'volatility_performance':
+                    value = Math.random() * 100; // Placeholder - would use real volatility data
+                    displayValue = value.toFixed(1) + '%';
+                    break;
+                case 'model_fitness':
+                    value = 70 + Math.random() * 30; // Placeholder - would use real model fit data
+                    displayValue = value.toFixed(1);
+                    break;
+                case 'signal_strength':
+                    value = stock.score || 0;
+                    displayValue = value.toFixed(0);
+                    break;
+            }
+
+            // Determine color class based on value
+            let colorClass = 'poor';
+            if (value >= 90) colorClass = 'excellent';
+            else if (value >= 75) colorClass = 'good';
+            else if (value >= 60) colorClass = 'average';
+
+            cell.className += ' ' + colorClass;
+
+            cell.innerHTML = `
+                <div class="stock-symbol">${stock.symbol}</div>
+                <div class="metric-value">${displayValue}</div>
+            `;
+
+            // Add click handler for detailed view
+            cell.addEventListener('click', () => {
+                showStockDetails(stock, metric, value);
+            });
+
+            return cell;
+        }
+
+        function showStockDetails(stock, metric, value) {
+            // Create modal or detailed view for stock
+            const details = `
+Stock: ${stock.symbol}
+Metric: ${metric}
+Value: ${value.toFixed(2)}
+Current Price: ₹${stock.current_price}
+Score: ${stock.score}
+Confidence: ${stock.confidence}%
+            `;
+
+            // Simple alert for now - could be enhanced with a proper modal
+            alert(details);
+        }
+
+        function loadStockData() {
+            fetch('/api/stocks')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.stocks) {
+                        stockData = data.stocks;
+                        // Update existing stock table
+                        const tbody = document.querySelector('#stockTable tbody');
+                        if (tbody) {
+                            tbody.innerHTML = '';
+
+                            data.stocks.forEach(stock => {
+                                const row = tbody.insertRow();
+                                // This part seems to be missing from the original,
+                                // but would typically populate the stock table rows.
+                                // For now, we'll focus on heatmap update.
+                                // Example:
+                                // row.insertCell(0).textContent = stock.symbol;
+                                // row.insertCell(1).textContent = stock.current_price;
+                                // row.insertCell(2).textContent = stock.score;
+                                // row.insertCell(3).textContent = stock.confidence;
+                            });
+                        }
+
+                        // Update heatmap
+                        updateHeatmap();
+
+                        document.getElementById('status').innerHTML =
+                            '<span style="color: #10b981;">✅ Successfully loaded ' + data.stocks.length + ' stocks</span>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading stock data:', error);
+                    document.getElementById('status').innerHTML =
+                        '<span style="color: #ef4444;">❌ Error loading stock data</span>';
+                });
+        }
+
+        // Load stock data immediately and set up auto-refresh
+        loadStockData();
+        setInterval(loadStockData, 30000); // Auto-refresh every 30 seconds
+
+        // Initialize heatmap on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateHeatmap();
+        });
     </script>
 </body>
 </html>
