@@ -206,6 +206,25 @@
             padding: 60px 20px;
             color: white;
         }
+
+        .data-indicator {
+            background: #27ae60;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-left: 10px;
+            display: inline-block;
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #e74c3c;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -226,6 +245,7 @@
             <h3>📈 Monthly Short Strangle Strategy</h3>
             <p><strong>Tier 1 Stocks Only:</strong> RELIANCE, HDFC BANK, TCS, ITC, INFY, HUL - handpicked for consistent passive income.</p>
             <p><strong>Strategy:</strong> Sell OTM Call + OTM Put (±3-5% strikes). Max profit = Premium collected. Best when price stays within breakeven range.</p>
+            <span id="dataIndicator" class="data-indicator" style="display: none;">🔴 Loading...</span>
         </div>
 
         <div class="controls">
@@ -244,7 +264,7 @@
                 </button>
                 <button class="refresh-btn" id="manualRefreshBtn" onclick="manualRefreshData()" style="margin-left: 15px; background: linear-gradient(45deg, #27ae60, #2ecc71);">
                     <span id="manualRefreshIcon">⚡</span>
-                    <span id="manualRefreshText">Refresh Data</span>
+                    <span id="manualRefreshText">Force Refresh</span>
                 </button>
             </div>
         </div>
@@ -252,12 +272,18 @@
         <div class="table-container">
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <div>Analyzing options opportunities...</div>
+                <div>Analyzing real-time options opportunities...</div>
+            </div>
+
+            <div id="error" class="error-state" style="display: none;">
+                <h3>❌ Error Loading Data</h3>
+                <p id="errorMessage">Unable to fetch real-time options data.</p>
+                <button onclick="loadOptionsData()" style="margin-top: 15px; padding: 10px 20px; background: #e67e22; color: white; border: none; border-radius: 5px; cursor: pointer;">Retry</button>
             </div>
 
             <div id="empty" class="empty-state" style="display: none;">
-                <h3>📊 No Opportunities Available</h3>
-                <p>Try adjusting your filters or check back when market conditions improve.</p>
+                <h3>📊 No Live Opportunities Available</h3>
+                <p>Market conditions don't favor strangle strategies right now. Try refreshing or check back later.</p>
             </div>
 
             <table id="optionsTable" style="display: none;">
@@ -283,23 +309,45 @@
 
     <script>
         let isLoading = false;
+        let lastLoadTime = 0;
 
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('optionsTable').style.display = 'none';
             document.getElementById('empty').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            updateDataIndicator('🔄 Loading...', '#f39c12');
         }
 
         function showData() {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('empty').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
             document.getElementById('optionsTable').style.display = 'table';
         }
 
         function showEmpty() {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('optionsTable').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
             document.getElementById('empty').style.display = 'block';
+            updateDataIndicator('⚠️ No Data', '#e67e22');
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('optionsTable').style.display = 'none';
+            document.getElementById('empty').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+            updateDataIndicator('❌ Error', '#e74c3c');
+        }
+
+        function updateDataIndicator(text, color) {
+            const indicator = document.getElementById('dataIndicator');
+            indicator.textContent = text;
+            indicator.style.background = color;
+            indicator.style.display = 'inline-block';
         }
 
         function setButtonState(loading) {
@@ -330,23 +378,33 @@
             } else {
                 btn.disabled = false;
                 icon.textContent = '⚡';
-                text.textContent = 'Refresh Data';
+                text.textContent = 'Force Refresh';
             }
         }
 
         function updateOptionsTable(strategies) {
+            console.log('📊 Updating table with strategies:', strategies);
             const tbody = document.getElementById('optionsTableBody');
             tbody.innerHTML = '';
 
             if (!strategies || strategies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #666; padding: 40px;">No real-time options strategies available. Click "Generate Strategies" to fetch live data.</td></tr>';
-                return;
+                console.warn('⚠️ No strategies provided to updateOptionsTable');
+                return false;
             }
 
+            let validCount = 0;
             strategies.forEach((strategy, index) => {
+                console.log(`📈 Processing strategy ${index + 1}:`, strategy);
+
+                // Validate required fields
+                if (!strategy.symbol || !strategy.current_price || strategy.current_price <= 0) {
+                    console.warn(`❌ Invalid strategy data for index ${index}:`, strategy);
+                    return;
+                }
+
                 const row = document.createElement('tr');
 
-                // Safe data parsing with defaults
+                // Extract and validate data
                 const symbol = String(strategy.symbol || 'N/A');
                 const currentPrice = parseFloat(strategy.current_price || 0);
                 const callStrike = parseFloat(strategy.call_strike || 0);
@@ -357,40 +415,54 @@
                 const marginRequired = parseFloat(strategy.margin_required || 0);
                 const expectedRoi = parseFloat(strategy.expected_roi || 0);
                 const confidence = parseFloat(strategy.confidence || 0);
-                const riskLevel = String(strategy.risk_level || 'Unknown');
+                const riskLevel = String(strategy.risk_level || 'Medium');
 
-                // Get risk level color
-                const riskColor = strategy.risk_color === 'success' ? '#27ae60' : 
-                                strategy.risk_color === 'warning' ? '#f39c12' : '#e74c3c';
-
-                // Validate data before display
+                // Skip invalid data
                 if (currentPrice === 0 || callStrike === 0 || putStrike === 0) {
-                    console.warn(`Invalid data for ${symbol}:`, strategy);
-                    return; // Skip this row
+                    console.warn(`❌ Skipping ${symbol} - invalid price data`);
+                    return;
                 }
 
+                // Get risk color
+                const riskColor = riskLevel === 'Low' ? '#27ae60' : 
+                                riskLevel === 'Medium' ? '#f39c12' : '#e74c3c';
+
                 row.innerHTML = `
-                    <td class="symbol" style="color: #2c3e50; font-weight: 700;">${symbol}</td>
+                    <td class="symbol">${symbol}</td>
                     <td style="font-weight: 600;">₹${currentPrice.toFixed(2)}</td>
                     <td>₹${callStrike.toFixed(2)}</td>
                     <td>₹${putStrike.toFixed(2)}</td>
-                    <td style="font-weight: 700; color: #27ae60; font-size: 1.1em;">₹${Math.round(totalPremium)}</td>
-                    <td style="font-size: 0.9em;">₹${Math.round(breakevenLower)} - ₹${Math.round(breakevenUpper)}</td>
-                    <td style="color: #666;">₹${new Intl.NumberFormat('en-IN').format(Math.round(marginRequired))}</td>
+                    <td style="font-weight: 700; color: #27ae60; font-size: 1.1em;">₹${totalPremium.toFixed(0)}</td>
+                    <td style="font-size: 0.9em;">₹${breakevenLower.toFixed(0)} - ₹${breakevenUpper.toFixed(0)}</td>
+                    <td style="color: #666;">₹${new Intl.NumberFormat('en-IN').format(marginRequired)}</td>
                     <td style="color: #27ae60; font-weight: 700; font-size: 1.1em;">${expectedRoi.toFixed(1)}%</td>
-                    <td style="font-weight: 600; color: ${riskColor};">${Math.round(confidence)}%</td>
+                    <td style="font-weight: 600; color: ${riskColor};">${confidence.toFixed(0)}%</td>
                     <td style="font-weight: 600; color: ${riskColor};">${riskLevel}</td>
                 `;
                 tbody.appendChild(row);
+                validCount++;
+                console.log(`✅ Added ${symbol} to table with ROI: ${expectedRoi.toFixed(1)}%`);
             });
 
-            console.log(`✅ Successfully displayed ${strategies.length} real-time strategies`);
+            console.log(`✅ Successfully displayed ${validCount} real-time strategies`);
+            updateDataIndicator(`🟢 Live Data (${validCount} strategies)`, '#27ae60');
+            return validCount > 0;
         }
 
         async function loadOptionsData() {
-            if (isLoading) return;
+            if (isLoading) {
+                console.log('⚠️ Already loading, skipping request');
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastLoadTime < 5000) {
+                console.log('⚠️ Rate limiting - too frequent requests');
+                return;
+            }
 
             isLoading = true;
+            lastLoadTime = now;
             setButtonState(true);
             showLoading();
 
@@ -399,82 +471,60 @@
             try {
                 console.log('🔄 Loading options data for timeframe:', timeframe);
                 
-                // Force refresh with multiple parameters to ensure real-time data
-                const url = `/api/options-strategies?timeframe=${timeframe}&refresh=true&force_realtime=true&manual_refresh=true&t=${Date.now()}`;
+                const url = `/api/options-strategies?timeframe=${timeframe}&force_realtime=true&refresh=true&t=${now}`;
                 console.log('📡 Fetching from URL:', url);
                 
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
                     }
                 });
 
                 console.log('📡 Response status:', response.status);
-                console.log('📡 Response headers:', response.headers);
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('❌ Response error text:', errorText);
+                    console.error('❌ HTTP Error:', response.status, errorText);
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 const result = await response.json();
-                console.log('✅ Full Options API response:', JSON.stringify(result, null, 2));
+                console.log('✅ API Response received:', result);
 
                 if (result.status === 'success') {
-                    if (result.strategies && result.strategies.length > 0) {
-                        console.log('📊 Processing strategies:', result.strategies);
-                        console.log('📡 Data source:', result.data_source);
-                        console.log('🔄 Refresh type:', result.refresh_type);
-                        console.log('🕐 Last updated:', result.last_updated);
+                    if (result.strategies && Array.isArray(result.strategies) && result.strategies.length > 0) {
+                        console.log('📊 Processing strategies:', result.strategies.length);
                         
-                        // Validate strategy data
-                        const validStrategies = result.strategies.filter(strategy => {
-                            const valid = strategy.symbol && 
-                                         strategy.current_price && 
-                                         strategy.current_price > 0 &&
-                                         strategy.call_strike &&
-                                         strategy.put_strike;
-                            if (!valid) {
-                                console.warn('Invalid strategy data:', strategy);
-                            }
-                            return valid;
-                        });
-                        
-                        if (validStrategies.length > 0) {
-                            updateOptionsTable(validStrategies);
+                        const displaySuccess = updateOptionsTable(result.strategies);
+                        if (displaySuccess) {
                             showData();
                             
-                            // Update refresh button to show success
-                            const refreshBtn = document.getElementById('refreshBtn');
+                            // Update button feedback
                             const refreshText = document.getElementById('refreshText');
-                            refreshText.textContent = `✅ Live Data! (${validStrategies.length} strategies)`;
-                            
+                            refreshText.textContent = `✅ Live! (${result.strategies.length})`;
                             setTimeout(() => {
                                 refreshText.textContent = 'Generate Strategies';
                             }, 5000);
                         } else {
-                            console.error('❌ No valid strategies found');
-                            showEmpty();
+                            console.error('❌ Failed to display strategies');
+                            showError('Failed to display strategy data');
                         }
                     } else {
-                        console.log('⚠️ API success but no strategies returned');
-                        console.log('📊 Result object:', result);
+                        console.log('⚠️ No strategies in response');
                         showEmpty();
                     }
                 } else {
-                    console.log('⚠️ API returned error status:', result.status);
-                    console.log('❌ Error details:', result.error_details || result.message);
-                    showEmpty();
+                    console.error('❌ API error status:', result.status, result.message);
+                    showError(result.message || 'API returned error status');
                 }
 
             } catch (error) {
                 console.error('❌ Error loading options strategies:', error);
-                console.error('❌ Error stack:', error.stack);
-                showEmpty();
+                showError(`Network error: ${error.message}`);
             } finally {
                 isLoading = false;
                 setButtonState(false);
@@ -491,11 +541,12 @@
             const timeframe = document.getElementById('timeframeSelect').value;
 
             try {
-                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&manual_refresh=true&force_realtime=true`, {
+                console.log('⚡ Manual refresh triggered');
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&manual_refresh=true&force_realtime=true&t=${Date.now()}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
-                        'Cache-Control': 'no-cache'
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
                     }
                 });
 
@@ -504,41 +555,59 @@
                 }
 
                 const result = await response.json();
-                console.log('Manual refresh response:', result);
+                console.log('⚡ Manual refresh response:', result);
 
                 if (result.status === 'success' && result.strategies && result.strategies.length > 0) {
-                    updateOptionsTable(result.strategies);
-                    showData();
-                    
-                    // Show success feedback
-                    const refreshBtn = document.getElementById('manualRefreshBtn');
-                    refreshBtn.querySelector('#manualRefreshText').textContent = 'Data Refreshed!';
-                    
-                    setTimeout(() => {
-                        refreshBtn.querySelector('#manualRefreshText').textContent = 'Refresh Data';
-                    }, 3000);
+                    const displaySuccess = updateOptionsTable(result.strategies);
+                    if (displaySuccess) {
+                        showData();
+                        
+                        // Success feedback
+                        const refreshBtn = document.getElementById('manualRefreshBtn');
+                        refreshBtn.querySelector('#manualRefreshText').textContent = 'Refreshed!';
+                        setTimeout(() => {
+                            refreshBtn.querySelector('#manualRefreshText').textContent = 'Force Refresh';
+                        }, 3000);
+                    } else {
+                        showError('Failed to display refreshed data');
+                    }
                 } else {
                     showEmpty();
                 }
 
             } catch (error) {
-                console.error('Error in manual refresh:', error);
-                showEmpty();
+                console.error('❌ Manual refresh error:', error);
+                showError(`Refresh failed: ${error.message}`);
             } finally {
                 isLoading = false;
                 setManualButtonState(false);
             }
         }
 
-        // Initialize
+        // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('Options Strategy page loaded');
-            setTimeout(loadOptionsData, 1000);
+            console.log('📱 Options Strategy page loaded');
+            
+            // Add timeframe change listener
+            document.getElementById('timeframeSelect').addEventListener('change', () => {
+                console.log('🔄 Timeframe changed, reloading data');
+                loadOptionsData();
+            });
+
+            // Load data immediately
+            setTimeout(() => {
+                console.log('🚀 Starting initial data load');
+                loadOptionsData();
+            }, 500);
         });
 
-        document.getElementById('timeframeSelect').addEventListener('change', () => {
-            loadOptionsData();
-        });
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            if (!isLoading) {
+                console.log('🔄 Auto-refresh triggered');
+                loadOptionsData();
+            }
+        }, 300000); // 5 minutes
     </script>
 </body>
 </html>
