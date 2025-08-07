@@ -6,12 +6,12 @@ Web interface for displaying stock screening results with auto-refresh.
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import logging
 import pytz
-from typing import Dict, List, Optional, Callable
+from typing import Callable, Optional, Dict, Any, List
 
 # Import GoAhead Agent
 from src.analyzers.smart_go_agent import SmartGoAgent
@@ -1257,53 +1257,31 @@ def options_strategy():
 
 @app.route('/api/options-strategies')
 def get_options_strategies():
-    """Get short strangle options strategies with real-time data"""
+    """Get options strategies with real-time data"""
     try:
         timeframe = request.args.get('timeframe', '30D')
+        force_refresh = request.args.get('refresh', 'false').lower() == 'true'
         manual_refresh = request.args.get('manual_refresh', 'false').lower() == 'true'
         force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
-        refresh_flag = request.args.get('refresh', 'false').lower() == 'true'
 
-        # Determine if we should force refresh
-        force_refresh = manual_refresh or force_realtime or refresh_flag
+        logger.info(f"🔄 Options API called: timeframe={timeframe}, force_refresh={force_refresh}")
 
-        logger.info(f"🔄 Options API called: timeframe={timeframe}, manual_refresh={manual_refresh}, force_refresh={force_refresh}")
-
+        # Import the engine
         from src.analyzers.short_strangle_engine import ShortStrangleEngine
+
+        # Create engine and generate strategies
         engine = ShortStrangleEngine()
+        strategies = engine.generate_strategies(timeframe=timeframe, force_refresh=True)
 
-        # Generate strategies with real-time data
-        strategies = engine.generate_strategies(timeframe, force_refresh=force_refresh)
-
-        data_source = 'real_time_yahoo_finance' if force_refresh else 'cached_yahoo_finance'
-        refresh_type = 'manual_refresh' if manual_refresh else 'auto_refresh' if force_refresh else 'cached'
-
-        if strategies:
-            logger.info(f"✅ Successfully generated {len(strategies)} strategies from {data_source}")
-
+        if not strategies:
+            logger.warning("⚠️ No strategies generated")
             return jsonify({
-                'status': 'success',
-                'strategies': strategies,
-                'count': len(strategies),
-                'data_source': data_source,
-                'refresh_type': refresh_type,
-                'summary': {
-                    'total_opportunities': len(strategies),
-                    'high_confidence_count': len([s for s in strategies if s['confidence'] >= 80]),
-                    'average_roi': sum(s['expected_roi'] for s in strategies) / len(strategies),
-                    'total_premium_potential': sum(s['total_premium'] for s in strategies)
-                },
-                'timeframe': timeframe,
-                'last_updated': datetime.now().isoformat()
-            })
-        else:
-            logger.warning(f"⚠️ No strategies generated for {timeframe}")
-            return jsonify({
-                'status': 'success',
+                'status': 'error',
+                'message': 'No options strategies could be generated at this time',
                 'strategies': [],
                 'count': 0,
-                'data_source': data_source,
-                'refresh_type': refresh_type,
+                'data_source': 'none',
+                'refresh_type': 'none',
                 'summary': {
                     'total_opportunities': 0,
                     'high_confidence_count': 0,
@@ -1314,8 +1292,34 @@ def get_options_strategies():
                 'last_updated': datetime.now().isoformat()
             })
 
+        # Calculate summary statistics
+        high_confidence_count = len([s for s in strategies if s.get('confidence', 0) >= 80])
+        average_roi = sum(s.get('expected_roi', 0) for s in strategies) / len(strategies) if strategies else 0
+        total_premium_potential = sum(s.get('total_premium', 0) for s in strategies)
+
+        logger.info(f"✅ Successfully generated {len(strategies)} strategies from real_time_yahoo_finance")
+
+        return jsonify({
+            'status': 'success',
+            'message': f'Successfully generated {len(strategies)} real-time options strategies',
+            'strategies': strategies,
+            'count': len(strategies),
+            'data_source': 'yahoo_finance_realtime',
+            'refresh_type': 'manual' if manual_refresh else 'auto',
+            'summary': {
+                'total_opportunities': len(strategies),
+                'high_confidence_count': high_confidence_count,
+                'average_roi': round(average_roi, 2),
+                'total_premium_potential': round(total_premium_potential, 2)
+            },
+            'timeframe': timeframe,
+            'last_updated': datetime.now().isoformat()
+        })
+
     except Exception as e:
         logger.error(f"❌ Error generating options strategies: {e}")
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         return jsonify({
             'status': 'error',
             'error_details': str(e),
@@ -1333,6 +1337,7 @@ def get_options_strategies():
             'timeframe': timeframe,
             'last_updated': datetime.now().isoformat()
         }), 500
+
 
 def load_interactive_tracking_data():
     """Load enhanced tracking data for interactive charts with persistence"""
