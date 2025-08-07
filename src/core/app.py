@@ -1264,12 +1264,16 @@ def options_strategies():
         force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
         refresh = request.args.get('refresh', 'false').lower() == 'true'
         
-        print(f"[OPTIONS_API] Timeframe requested: {timeframe}, refresh={refresh}, manual_refresh={manual_refresh}, force_realtime={force_realtime}")
+        print(f"[OPTIONS_API] ⚡ API called with timeframe: {timeframe}, refresh={refresh}, manual_refresh={manual_refresh}, force_realtime={force_realtime}")
+        logger.info(f"[OPTIONS_API] ⚡ API called with timeframe: {timeframe}, refresh={refresh}")
+        
+        # Force real-time data usage
+        use_live = manual_refresh or force_realtime or refresh or True  # Always use live by default
         
         # Check if we're using organized structure or backup
         try:
             from src.analyzers.short_strangle_engine import ShortStrangleEngine
-            print("[OPTIONS_API] Using organized structure engine")
+            print("[OPTIONS_API] ✅ Using organized structure engine")
         except ImportError:
             # Fallback to backup if organized structure fails
             import sys
@@ -1347,19 +1351,23 @@ def options_strategies():
         tier1_stocks = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ITC', 'HINDUNILVR']
 
         strategies = []
-        use_live = manual_refresh or force_realtime or refresh
-        print(f"[OPTIONS_API] Processing {len(tier1_stocks)} stocks with use_live={use_live}")
+        print(f"[OPTIONS_API] 📊 Processing {len(tier1_stocks)} stocks with FORCED real-time data")
 
         for symbol in tier1_stocks:
             try:
-                analysis = engine.analyze_short_strangle(symbol, manual_refresh=use_live, force_realtime=use_live)
+                print(f"[OPTIONS_API] 📡 Fetching real-time data for {symbol}...")
+                analysis = engine.analyze_short_strangle(symbol, manual_refresh=True, force_realtime=True)
+                
                 if analysis and analysis.get('current_price', 0) > 0:
                     strategies.append(analysis)
-                    print(f"[OPTIONS_API] ✅ {symbol} - Price: ₹{analysis['current_price']}, ROI: {analysis['expected_roi']}%")
+                    print(f"[OPTIONS_API] ✅ {symbol} - Live Price: ₹{analysis['current_price']}, Monthly ROI: {analysis['expected_roi']:.1f}%")
+                    logger.info(f"[OPTIONS_API] ✅ {symbol} - Live Price: ₹{analysis['current_price']}, ROI: {analysis['expected_roi']:.1f}%")
                 else:
-                    print(f"[OPTIONS_API] ⚠️ No valid analysis for {symbol}")
+                    print(f"[OPTIONS_API] ❌ Invalid analysis for {symbol}")
+                    logger.warning(f"[OPTIONS_API] ❌ Invalid analysis for {symbol}")
             except Exception as e:
                 print(f"[OPTIONS_API] ❌ Error analyzing {symbol}: {str(e)}")
+                logger.error(f"[OPTIONS_API] ❌ Error analyzing {symbol}: {str(e)}")
                 continue
 
         # Always return proper JSON structure

@@ -450,13 +450,13 @@
 
         async function loadOptionsData() {
             if (isLoading) {
-                console.log('⚠️ Already loading, skipping request');
+                console.log('[OPTIONS] ⚠️ Already loading, skipping request');
                 return;
             }
 
             const now = Date.now();
             if (now - lastLoadTime < 5000) {
-                console.log('⚠️ Rate limiting - too frequent requests');
+                console.log('[OPTIONS] ⚠️ Rate limiting - too frequent requests');
                 return;
             }
 
@@ -468,10 +468,10 @@
             const timeframe = document.getElementById('timeframeSelect').value;
 
             try {
-                console.log('🔄 Loading options data for timeframe:', timeframe);
+                console.log('[OPTIONS] 🚀 Loading real-time options data for timeframe:', timeframe);
 
-                const url = `/api/options-strategies?timeframe=${timeframe}&force_realtime=true&refresh=true&t=${now}`;
-                console.log('📡 Fetching from URL:', url);
+                const url = `/api/options-strategies?timeframe=${timeframe}&force_realtime=true&refresh=true&manual_refresh=true&t=${now}`;
+                console.log('[OPTIONS] 📡 Fetching from URL:', url);
 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -493,9 +493,11 @@
                 }
 
                 const result = await response.json();
-                console.log('✅ Options API response:', result);
-                console.log('📊 Response data source:', result.data_source);
-                console.log('📊 Response timestamp:', result.timestamp);
+                console.log('[OPTIONS] ✅ Raw API response received:', result);
+                console.log('[OPTIONS] 📊 Response status:', result.status);
+                console.log('[OPTIONS] 📊 Response data source:', result.data_source);
+                console.log('[OPTIONS] 📊 Response timestamp:', result.timestamp);
+                console.log('[OPTIONS] 📊 Total strategies in response:', result.total_strategies || (result.strategies ? result.strategies.length : 0));
 
                 // Handle both old and new response formats
                 let strategies = [];

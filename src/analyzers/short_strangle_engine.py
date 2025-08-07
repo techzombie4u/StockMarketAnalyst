@@ -274,6 +274,9 @@ class ShortStrangleEngine:
             elif moneyness < 0.95:  # ITM
                 time_premium *= 1.2
 
+            # Ensure time premium is not negative
+            time_premium = max(0, time_premium)
+
             premium = intrinsic + time_premium
 
             # Ensure reasonable bounds
@@ -471,15 +474,18 @@ class ShortStrangleEngine:
             breakeven_upper = call_strike + total_premium
             breakeven_lower = put_strike - total_premium
 
-            # Estimate margin requirement (approximate)
-            margin_required = max(
-                current_price * 0.20,  # 20% of stock price
-                abs(current_price - put_strike) + put_premium,
-                abs(call_strike - current_price) + call_premium
-            ) * 100  # For 1 lot (100 shares)
+            # Calculate margin requirement for Indian markets (per lot basis)
+            # Use realistic SPAN + Exposure margin calculation
+            margin_per_share = current_price * 0.12  # 12% SPAN margin
+            exposure_margin = current_price * 0.03   # 3% exposure margin
+            total_margin_per_share = margin_per_share + exposure_margin
+            margin_required = total_margin_per_share * 100  # Per lot of 100 shares
 
-            # Calculate ROI
-            expected_roi = (total_premium / margin_required) * 100
+            # Premium received is also per lot
+            premium_received = total_premium * 100  # Premium for 100 shares
+
+            # Calculate monthly ROI (premium received / margin blocked)
+            expected_roi = (premium_received / margin_required) * 100
 
             # Risk assessment
             price_range = breakeven_upper - breakeven_lower
@@ -507,7 +513,7 @@ class ShortStrangleEngine:
                 'breakeven_upper': round(breakeven_upper, 2),
                 'breakeven_lower': round(breakeven_lower, 2),
                 'margin_required': round(margin_required, 2),
-                'expected_roi': round(expected_roi, 2),
+                'expected_roi': round(expected_roi, 2),  # Show monthly ROI for clarity
                 'confidence': round(confidence, 1),
                 'risk_level': risk_level,
                 'volatility': round(volatility, 1),
@@ -676,7 +682,7 @@ class ShortStrangleEngine:
             otm_percent = 0.04  # 4% OTM
             call_strike = current_price * (1 + otm_percent)
             put_strike = current_price * (1 - otm_percent)
-            
+
             # Round strikes to nearest 50 for better liquidity
             call_strike = round(call_strike / 50) * 50
             put_strike = round(put_strike / 50) * 50
@@ -684,7 +690,7 @@ class ShortStrangleEngine:
             # Enhanced premium calculation based on market conditions
             volatility = 20.0  # Default volatility
             time_to_expiry = 30
-            
+
             # More realistic premium calculation
             call_premium = max(15.0, current_price * 0.025)  # 2.5% of spot as premium
             put_premium = max(12.0, current_price * 0.02)    # 2% of spot as premium
@@ -694,22 +700,24 @@ class ShortStrangleEngine:
             breakeven_upper = call_strike + total_premium
             breakeven_lower = put_strike - total_premium
 
-            # Fixed margin calculation - realistic for Indian markets
-            # Use 15% margin requirement per lot (100 shares)
-            margin_per_share = current_price * 0.15  # 15% margin
-            margin_required = margin_per_share * 100  # Per lot of 100 shares
-            
-            # Calculate monthly ROI - premium collected vs margin blocked
-            monthly_roi = (total_premium * 100 / margin_required) * 100  # Monthly return
-            
-            # Annualized ROI for comparison
-            expected_roi = monthly_roi * 12  # Annualized
+            # Calculate margin requirement for Indian markets (per lot basis)
+            # Use realistic SPAN + Exposure margin calculation
+            margin_per_share = current_price * 0.12  # 12% SPAN margin
+            exposure_margin = current_price * 0.03   # 3% exposure margin
+            total_margin_per_share = margin_per_share + exposure_margin
+            margin_required = total_margin_per_share * 100  # Per lot of 100 shares
 
-            print(f"[STRATEGY_ENGINE] {symbol} - Premium: ₹{total_premium}, Margin: ₹{margin_required}, Monthly ROI: {monthly_roi:.1f}%, Annual ROI: {expected_roi:.1f}%")
+            # Premium received is also per lot
+            premium_received = total_premium * 100  # Premium for 100 shares
+
+            # Calculate monthly ROI (premium received / margin blocked)
+            expected_roi = (premium_received / margin_required) * 100
+
+            print(f"[STRATEGY_ENGINE] {symbol} - Premium: ₹{total_premium}, Margin: ₹{margin_required}, Monthly ROI: {expected_roi:.1f}%")
 
             # Risk assessment based on realistic ROI expectations
-            confidence = min(95, max(50, 65 + (monthly_roi - 5) * 3))
-            risk_level = "Low" if monthly_roi >= 8 else "Medium" if monthly_roi >= 5 else "High"
+            confidence = min(95, max(50, 65 + (expected_roi - 5) * 3))
+            risk_level = "Low" if expected_roi >= 8 else "Medium" if expected_roi >= 5 else "High"
 
             strategy = {
                 'symbol': symbol,
@@ -722,8 +730,7 @@ class ShortStrangleEngine:
                 'breakeven_upper': round(breakeven_upper, 2),
                 'breakeven_lower': round(breakeven_lower, 2),
                 'margin_required': round(margin_required, 2),
-                'expected_roi': round(monthly_roi, 2),  # Show monthly ROI for clarity
-                'annual_roi': round(expected_roi, 2),   # Also provide annual ROI
+                'expected_roi': round(expected_roi, 2),  # Show monthly ROI for clarity
                 'confidence': round(confidence, 1),
                 'risk_level': risk_level,
                 'volatility': volatility,
@@ -732,8 +739,8 @@ class ShortStrangleEngine:
                 'data_source': 'yahoo_finance_real_time' if use_live else 'cached'
             }
 
-            print(f"[STRATEGY_ENGINE] ✅ Generated strategy for {symbol}: Monthly ROI={monthly_roi:.1f}%, Price=₹{current_price}")
-            logger.info(f"✅ Generated strategy for {symbol}: ROI={monthly_roi:.1f}%, Price=₹{current_price}")
+            print(f"[STRATEGY_ENGINE] ✅ Generated strategy for {symbol}: Monthly ROI={expected_roi:.1f}%, Price=₹{current_price}")
+            logger.info(f"✅ Generated strategy for {symbol}: ROI={expected_roi:.1f}%, Price=₹{current_price}")
             return strategy
 
         except Exception as e:
