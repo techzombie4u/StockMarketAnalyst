@@ -499,6 +499,66 @@
                 <button class="timeframe-btn" onclick="selectTimeframe('30D')" data-timeframe="30D">30D - Monthly</button>
             </div>
 
+            <!-- Enhancement Status and Live Drift Monitor -->
+            <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5><i class="fas fa-rocket"></i> Enhancement Status</h5>
+                </div>
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-around">
+                        <div class="text-center">
+                            <div class="badge badge-success p-1">✅ ACTIVE</div>
+                            <p class="small mt-1 mb-0">Model Integration</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="badge badge-success p-1">✅ ACTIVE</div>
+                            <p class="small mt-1 mb-0">Signal Processing</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Drift Monitor Panel -->
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5><i class="fas fa-chart-line"></i> Live Drift Monitor</h5>
+                </div>
+                <div class="card-body py-2">
+                    <div id="drift-monitor-content">
+                        <div class="d-flex justify-content-between">
+                            <div class="text-center">
+                                <div class="badge badge-success p-1" id="lstm-status">GREEN</div>
+                                <p class="small mt-1 mb-0">LSTM</p>
+                            </div>
+                            <div class="text-center">
+                                <div class="badge badge-warning p-1" id="rf-status">YELLOW</div>
+                                <p class="small mt-1 mb-0">RF</p>
+                            </div>
+                            <div class="text-center">
+                                <div class="badge badge-success p-1" id="ensemble-status">GREEN</div>
+                                <p class="small mt-1 mb-0">Ensemble</p>
+                            </div>
+                            <div class="text-center">
+                                <div class="badge badge-danger p-1" id="technical-status">RED</div>
+                                <p class="small mt-1 mb-0">Technical</p>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-exclamation-triangle text-warning"></i> 
+                                <span id="active-alerts">2 accuracy drift alerts</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+
             <!-- Prediction Health Matrix -->
             <div class="section">
                 <h2>🌡️ Prediction Health Matrix</h2>
