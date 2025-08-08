@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import logging
 import json
+import os
 from typing import Dict, List, Tuple
 from datetime import datetime, timedelta
 import yfinance as yf
@@ -192,8 +193,7 @@ class EnsemblePredictionSystem:
         except Exception as e:
             logger.error(f"Error updating method performance: {str(e)}")
 
-            
-            def technical_prediction(self, technical: Dict) -> Dict:
+    def technical_prediction(self, technical: Dict) -> Dict:
         """Technical analysis based prediction"""
         try:
             prediction = {'24h': 0, '5d': 0, '1mo': 0}
@@ -464,6 +464,22 @@ class EnsemblePredictionSystem:
         except Exception as e:
             logger.error(f"Error applying market regime adjustment: {str(e)}")
             return prediction
+
+    def get_best_model(self):
+        """Get the best performing prediction method"""
+        if not self.performance_history:
+            return None
+        
+        best_method = None
+        best_accuracy = 0
+        
+        for method, stats in self.performance_history.items():
+            accuracy = stats.get('accuracy', 0)
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                best_method = method
+        
+        return best_method
 
 # Integration function for main stock screener
 def get_ensemble_prediction(symbol: str, data: Dict) -> Dict:
