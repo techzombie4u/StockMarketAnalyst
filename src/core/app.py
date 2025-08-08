@@ -1560,30 +1560,114 @@ def goahead_validation():
             }
         }), 500
 
-@app.route('/api/goahead/retrain', methods=['POST'])
-def goahead_retrain():
-    """API endpoint for triggering model retraining"""
+@app.route('/api/goahead/refresh', methods=['POST'])
+def refresh_goahead_data():
+    """Refresh GoAhead analysis data"""
     try:
-        data = request.get_json() or {}
-        timeframe = data.get('timeframe', '5D')
-        trigger = data.get('trigger', 'manual')
+        # Trigger data refresh
+        from src.analyzers.smart_go_agent import SmartGoAgent
+        agent = SmartGoAgent()
 
-        # Initialize SmartGoAgent
-        smart_agent = SmartGoAgent()
+        # Get fresh analysis for key stocks
+        key_stocks = ['RELIANCE', 'TCS', 'INFY', 'SBIN', 'ITC']
+        results = []
 
-        # Trigger retraining
-        result = smart_agent.trigger_retraining(timeframe)
+        for symbol in key_stocks:
+            analysis = agent.get_enhanced_agent_analysis(symbol, {})
+            if analysis:
+                results.append({
+                    'symbol': symbol,
+                    'analysis': analysis
+                })
 
-        if result['success']:
-            return jsonify(result)
-        else:
-            return jsonify(result), 500
+        return jsonify({
+            'status': 'success',
+            'message': 'GoAhead data refreshed',
+            'stocks_updated': len(results),
+            'results': results
+        })
 
     except Exception as e:
-        logger.error(f"GoAhead retrain API error: {str(e)}")
+        logger.error(f"Error refreshing GoAhead data: {str(e)}")
         return jsonify({
-            'success': False,
-            'error': str(e)
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/goahead/retrain', methods=['POST'])
+def retrain_models():
+    """Trigger model retraining with 5-year historical data"""
+    try:
+        from src.ml.train_models import ModelTrainer
+
+        trainer = ModelTrainer()
+
+        # Check if specific stocks requested
+        data = request.get_json() or {}
+        symbols = data.get('symbols', [])
+
+        if symbols:
+            # Train specific stocks
+            results = {}
+            for symbol in symbols[:5]:  # Limit to 5 stocks per request
+                results[symbol] = trainer.train_single_stock(symbol)
+        else:
+            # Train all models
+            results = trainer.train_all_models()
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Model retraining completed',
+            'results': results,
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Error retraining models: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/models/status', methods=['GET'])
+def get_model_status():
+    """Get current model training status and KPIs"""
+    try:
+        from src.utils.file_utils import load_json_safe
+
+        kpi_data = load_json_safe('data/tracking/model_kpi.json', {})
+
+        # Add model file existence check
+        models_dir = "models_trained"
+        model_files = {}
+
+        if os.path.exists(models_dir):
+            for file in os.listdir(models_dir):
+                if file.endswith('.h5') or file.endswith('.pkl'):
+                    symbol = file.split('_')[0]
+                    model_type = 'lstm' if file.endswith('.h5') else 'rf'
+
+                    if symbol not in model_files:
+                        model_files[symbol] = {}
+                    model_files[symbol][model_type] = {
+                        'file': file,
+                        'last_modified': datetime.fromtimestamp(
+                            os.path.getmtime(os.path.join(models_dir, file))
+                        ).isoformat()
+                    }
+
+        return jsonify({
+            'status': 'success',
+            'kpi_data': kpi_data,
+            'model_files': model_files,
+            'models_directory': models_dir
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting model status: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
         }), 500
 
 @app.route('/api/options-prediction-dashboard')

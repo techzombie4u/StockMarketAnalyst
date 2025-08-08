@@ -18,6 +18,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 from collections import defaultdict
 
+# Import safe file utilities
+from src.utils.file_utils import load_json_safe, save_json_safe
+
 logger = logging.getLogger(__name__)
 
 class SmartGoAgent:
@@ -44,6 +47,11 @@ class SmartGoAgent:
 
         # Initialize model KPI tracking
         self._initialize_model_kpi()
+
+        # Load tracking data using safe methods
+        self.locked_predictions = load_json_safe('data/tracking/locked_predictions.json', {})
+        self.decision_history = load_json_safe('data/tracking/agent_decisions.json', [])
+
 
     def _initialize_model_kpi(self):
         """Initialize Model KPI tracking system"""
@@ -147,16 +155,26 @@ class SmartGoAgent:
                 })
         return {'gaps': gaps}
 
-    def _generate_improvement_suggestions(self, prediction_data: Dict) -> Dict:
-        """Generate improvement suggestions based on prediction performance"""
-        # Placeholder for improvement suggestions
+    def _generate_improvement_suggestions(self, accuracy: float) -> List[Dict]:
+        """Generate improvement suggestions based on accuracy"""
         suggestions = []
-        accuracy = self._analyze_predictions(prediction_data, '5D').get('accuracy', 0) # Using 5D for general suggestion
-        if accuracy < 70:
-            suggestions.append({'action': 'Retrain Models', 'description': 'Consider retraining models with updated data.'})
-        elif accuracy < 85:
-            suggestions.append({'action': 'Feature Engineering', 'description': 'Explore additional features for better prediction accuracy.'})
-        return {'recommendations': suggestions}
+
+        if accuracy < 75:
+            suggestions.append({
+                'action': 'Increase Training Data Window',
+                'description': 'Current confidence levels show room for improvement. Consider extending training window from 180 to 360 days.',
+                'priority': 'HIGH',
+                'expected_impact': '15-20% improvement in confidence scores'
+            })
+
+        if accuracy < 80:
+            suggestions.append({
+                'action': 'Add News Sentiment Analysis',
+                'description': 'Incorporate market sentiment data to handle sudden news-driven price movements better.',
+                'priority': 'MEDIUM',
+                'expected_impact': 'Better handling of volatility during news events'
+            })
+        return suggestions
 
     def _assess_retraining_needs(self, prediction_data: Dict) -> Dict:
         """Assess retraining needs based on prediction performance"""
@@ -205,10 +223,10 @@ class SmartGoAgent:
                     continue
 
                 # Check if this is an active trade
-                if (entry.get('locked') == True and 
-                    entry.get('status') == 'in_progress' and 
+                if (entry.get('locked') == True and
+                    entry.get('status') == 'in_progress' and
                     entry.get('expiry_date')):
-                    
+
                     try:
                         expiry_date = datetime.strptime(entry['expiry_date'], '%Y-%m-%d').date()
                         if expiry_date >= current_date:
@@ -251,44 +269,44 @@ class SmartGoAgent:
         try:
             symbol = entry.get('symbol', '')
             base_confidence = 75.0  # Default confidence
-            
+
             # Try to get ML-based confidence from various sources
             try:
                 from src.analyzers.short_strangle_engine import ShortStrangleEngine
                 engine = ShortStrangleEngine()
-                
+
                 # Get current market analysis which includes confidence
                 current_analysis = engine.analyze_short_strangle(symbol, force_realtime=True)
-                
+
                 if current_analysis and current_analysis.get('confidence'):
                     ml_confidence = current_analysis['confidence']
                     print(f"📊 ML confidence for {symbol}: {ml_confidence}%")
-                    
+
                     # Adjust confidence based on volatility and trend alignment
                     volatility = current_analysis.get('volatility', 15.0)
-                    
+
                     # High volatility reduces confidence
                     if volatility > 20:
                         ml_confidence *= 0.9  # Reduce by 10%
                     elif volatility < 10:
                         ml_confidence *= 1.05  # Increase by 5%
-                    
+
                     # Check trend alignment
                     expected_roi = current_analysis.get('expected_roi', 0)
                     predicted_roi = entry.get('predicted_roi', 0)
-                    
+
                     if predicted_roi > 0:
                         alignment = abs(expected_roi - predicted_roi) / predicted_roi
                         if alignment < 0.1:  # Good alignment
                             ml_confidence *= 1.1
                         elif alignment > 0.3:  # Poor alignment
                             ml_confidence *= 0.85
-                    
+
                     return min(95.0, max(45.0, ml_confidence))  # Cap between 45-95%
-                    
+
             except Exception as e:
                 print(f"⚠️ Failed to get ML confidence for {symbol}: {e}")
-            
+
             # Fallback: calculate confidence based on entry data
             days_since_entry = 0
             try:
@@ -296,21 +314,21 @@ class SmartGoAgent:
                 days_since_entry = (datetime.now() - entry_date).days
             except:
                 pass
-            
+
             # Confidence decreases with time if prediction is diverging
             current_roi = entry.get('current_roi', 0)
             predicted_roi = entry.get('predicted_roi', 0)
-            
+
             if predicted_roi > 0:
                 roi_accuracy = 1 - abs(current_roi - predicted_roi) / predicted_roi
                 base_confidence = base_confidence * max(0.5, roi_accuracy)
-            
+
             # Time decay factor
             time_factor = max(0.7, 1 - (days_since_entry * 0.02))  # 2% per day
             base_confidence *= time_factor
-            
+
             return round(min(95.0, max(45.0, base_confidence)), 1)
-            
+
         except Exception as e:
             logger.error(f"Error updating confidence scores: {str(e)}")
             return 75.0
@@ -376,10 +394,10 @@ class SmartGoAgent:
                         for entry in tracking_data:
                             if isinstance(entry, dict) and entry.get('timeframe') == timeframe:
                                 total += 1
-                                
+
                                 try:
                                     expiry_date = datetime.strptime(entry['expiry_date'], '%Y-%m-%d').date()
-                                    
+
                                     if expiry_date >= current_date:
                                         in_progress += 1
                                     else:
@@ -394,7 +412,7 @@ class SmartGoAgent:
                                         else:
                                             # Still in progress based on status
                                             in_progress += 1
-                                            
+
                                 except (ValueError, TypeError, KeyError) as e:
                                     logger.warning(f"Error processing list entry for {timeframe}: {e}")
                                     failed += 1
@@ -1120,27 +1138,6 @@ class SmartGoAgent:
         }
         return causes.get(symbol, 'Market volatility exceeded expected range')
 
-    def _generate_improvement_suggestions(self, accuracy: float) -> List[Dict]:
-        """Generate improvement suggestions based on accuracy"""
-        suggestions = []
-
-        if accuracy < 75:
-            suggestions.append({
-                'action': 'Increase Training Data Window',
-                'description': 'Current confidence levels show room for improvement. Consider extending training window from 180 to 360 days.',
-                'priority': 'HIGH',
-                'expected_impact': '15-20% improvement in confidence scores'
-            })
-
-        if accuracy < 80:
-            suggestions.append({
-                'action': 'Add News Sentiment Analysis',
-                'description': 'Incorporate market sentiment data to handle sudden news-driven price movements better.',
-                'priority': 'MEDIUM',
-                'expected_impact': 'Better handling of volatility during news events'
-            })
-
-        return suggestions
 
     def _get_retraining_recommendations(self) -> Dict[str, Any]:
         """Get retraining recommendations"""
@@ -1199,15 +1196,15 @@ class SmartGoAgent:
         try:
             symbol = entry.get('symbol', '')
             initial_predicted_roi = entry.get('predicted_roi', 0)
-            
+
             # Try to get real-time data from ShortStrangleEngine
             try:
                 from src.analyzers.short_strangle_engine import ShortStrangleEngine
                 engine = ShortStrangleEngine()
-                
+
                 # Get current market analysis
                 current_analysis = engine.analyze_short_strangle(symbol, force_realtime=True)
-                
+
                 if current_analysis and current_analysis.get('expected_roi'):
                     # Use real-time calculated ROI
                     real_time_roi = current_analysis['expected_roi']
@@ -1215,20 +1212,20 @@ class SmartGoAgent:
                     return real_time_roi
                 else:
                     print(f"⚠️ No real-time data for {symbol}, using current_roi")
-                    
+
             except Exception as e:
                 print(f"⚠️ Failed to get real-time data for {symbol}: {e}")
-            
+
             # Fallback to stored current_roi or simulate based on entry date
             current_roi = entry.get('current_roi', initial_predicted_roi)
-            
+
             # Add small random variation to simulate market movement
             import random
             variation = random.uniform(-0.15, 0.15)  # ±15% variation
             simulated_roi = current_roi * (1 + variation)
-            
+
             return round(simulated_roi, 1)
-            
+
         except Exception as e:
             logger.error(f"Error calculating real-time ROI: {str(e)}")
             return entry.get('current_roi', entry.get('predicted_roi', 0))
@@ -1238,10 +1235,10 @@ class SmartGoAgent:
         try:
             if predicted_roi == 0:
                 return "Monitoring"
-            
+
             # Calculate percentage difference
             roi_difference = abs(current_roi - predicted_roi) / abs(predicted_roi) * 100
-            
+
             # Fixed 10% threshold as specified
             if roi_difference > 10:
                 if current_roi < predicted_roi:
@@ -1250,7 +1247,7 @@ class SmartGoAgent:
                     return "Outperforming"
             else:
                 return "On Track"
-                
+
         except Exception as e:
             logger.error(f"Error determining real-time outcome: {str(e)}")
             return "Unknown"
@@ -1271,9 +1268,9 @@ class SmartGoAgent:
         try:
             if predicted_roi == 0:
                 return ""
-            
+
             roi_difference = abs(current_roi - predicted_roi) / abs(predicted_roi) * 100
-            
+
             if roi_difference > 10:
                 if current_roi < predicted_roi * 0.9:
                     return "ROI declined"
@@ -1281,9 +1278,9 @@ class SmartGoAgent:
                     return "ROI exceeded expectations"
                 else:
                     return "Performance diverging"
-            
+
             return ""
-            
+
         except Exception as e:
             logger.error(f"Error getting divergence reason: {str(e)}")
             return ""
@@ -1304,6 +1301,79 @@ class SmartGoAgent:
         predicted_roi = entry.get(f'predicted_roi_{timeframe_key}', entry.get('predicted_roi', 0))
         current_roi = entry.get(f'current_roi_{timeframe_key}', entry.get('current_roi', 0))
         return self._get_real_time_divergence_reason(entry, current_roi, predicted_roi)
+
+    def evaluate_prediction_success(self, prediction, actual_price, actual_volume=None):
+        """Enhanced prediction evaluation with stricter success criteria and realistic ROI thresholds"""
+        try:
+            predicted_price = prediction.get('predicted_price', 0)
+            confidence = prediction.get('confidence', 0)
+            prediction_type = prediction.get('prediction_type', 'unknown')
+            entry_price = prediction.get('entry_price', predicted_price)
+
+            if predicted_price == 0 or entry_price == 0:
+                return {
+                    'success': False,
+                    'reason': 'invalid_prediction',
+                    'reason_for_failure': 'missing_price_data'
+                }
+
+            # Calculate ROI based on actual trading scenario
+            if prediction_type == 'BUY':
+                roi = ((actual_price - entry_price) / entry_price) * 100
+            else:  # SELL or SHORT
+                roi = ((entry_price - actual_price) / entry_price) * 100
+
+            # Enhanced success criteria with realistic thresholds
+            reason_for_failure = None
+
+            if roi < 0:
+                success_level = 'failure'
+                reason_for_failure = 'negative_roi'
+            elif roi >= 1.0 and confidence >= 80:
+                success_level = 'high_confidence_success'
+            elif roi >= 0.5:
+                success_level = 'success'
+            elif roi > 0:
+                success_level = 'marginal_success'
+            else:
+                success_level = 'failure'
+                reason_for_failure = 'breakeven_miss'
+
+            # Additional validation checks
+            if actual_volume and actual_volume < prediction.get('min_volume', 0):
+                if success_level != 'failure':
+                    success_level = 'marginal_success'
+                reason_for_failure = 'volume_low'
+
+            # Volatility check
+            volatility = prediction.get('volatility_forecast', 0)
+            actual_volatility = abs(((actual_price - entry_price) / entry_price) * 100)
+
+            if volatility > 0 and abs(actual_volatility - volatility) > volatility * 0.5:
+                if success_level == 'high_confidence_success':
+                    success_level = 'success'
+                reason_for_failure = 'volatility_miss'
+
+            return {
+                'success': success_level in ['success', 'marginal_success', 'high_confidence_success'],
+                'success_level': success_level,
+                'roi': round(roi, 2),
+                'confidence': confidence,
+                'predicted': predicted_price,
+                'actual': actual_price,
+                'entry_price': entry_price,
+                'reason_for_failure': reason_for_failure,
+                'prediction_type': prediction_type,
+                'is_profitable': roi > 0
+            }
+
+        except Exception as e:
+            logger.error(f"Error evaluating prediction success: {str(e)}")
+            return {
+                'success': False,
+                'reason': 'evaluation_error',
+                'reason_for_failure': 'calculation_error'
+            }
 
 
 def main():

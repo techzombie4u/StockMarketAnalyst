@@ -327,6 +327,72 @@
             font-size: 1.5em;
         }
 
+        /* Model Status Section Styles */
+        .model-status-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .model-status-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .model-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .model-info-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .model-info-item .label {
+            color: #7f8c8d;
+            font-weight: 500;
+            font-size: 0.9em;
+            margin-bottom: 3px;
+        }
+
+        .model-info-item .value {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 1.6em;
@@ -353,6 +419,10 @@
 
             th, td {
                 padding: 10px 8px;
+            }
+
+            .model-info-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -408,6 +478,31 @@
                 <div class="stat-label">Top Predicted Gain %</div>
             </div>
         </div>
+
+        <!-- Model Training Status Section -->
+        <div class="model-status-section" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <h3>📚 Model Training Status</h3>
+            <div class="model-info-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+                <div class="model-info-item">
+                    <span class="label">Last Trained:</span>
+                    <span class="value" id="last-training-date">Never</span>
+                </div>
+                <div class="model-info-item">
+                    <span class="label">Models Available:</span>
+                    <span class="value" id="models-count">0</span>
+                </div>
+                <div class="model-info-item">
+                    <span class="label">Avg Accuracy:</span>
+                    <span class="value" id="avg-model-accuracy">N/A</span>
+                </div>
+                <div class="model-info-item">
+                    <button id="retrain-models-btn" class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">
+                        🔄 Retrain Models
+                    </button>
+                </div>
+            </div>
+        </div>
+
 
         <div class="table-container">
             <div class="loading" id="loading">
@@ -890,6 +985,110 @@
                 setRefreshButtonState(false);
             });
         }
+
+        // Model Status Functions
+        function loadModelStatus() {
+            console.log('[INFO] Loading model status...');
+
+            fetch('/api/models/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateModelStatusDisplay(data);
+                    } else {
+                        console.warn('[WARN] Model status load failed:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('[ERROR] Error loading model status:', error);
+                });
+        }
+
+        function updateModelStatusDisplay(data) {
+            const kpiData = data.kpi_data || {};
+            const modelFiles = data.model_files || {};
+
+            // Update last training date
+            const lastTraining = kpiData.last_training;
+            if (lastTraining && lastTraining.date) {
+                try {
+                    const date = new Date(lastTraining.date).toLocaleDateString();
+                    document.getElementById('last-training-date').textContent = date;
+                } catch (e) {
+                    document.getElementById('last-training-date').textContent = 'Invalid Date';
+                }
+            } else {
+                document.getElementById('last-training-date').textContent = 'Never';
+            }
+
+
+            // Count available models
+            const modelCount = Object.keys(modelFiles).length;
+            document.getElementById('models-count').textContent = modelCount;
+
+            // Calculate average accuracy
+            let totalAccuracy = 0;
+            let accuracyCount = 0;
+
+            // Iterate through each stock's KPI data for accuracy
+            Object.keys(kpiData).forEach(symbol => {
+                const stockData = kpiData[symbol];
+                if (stockData && stockData.rf_accuracy !== undefined && stockData.rf_accuracy !== null) {
+                    totalAccuracy += stockData.rf_accuracy;
+                    accuracyCount++;
+                }
+            });
+
+            if (accuracyCount > 0) {
+                const avgAccuracy = (totalAccuracy / accuracyCount * 100).toFixed(1);
+                document.getElementById('avg-model-accuracy').textContent = avgAccuracy + '%';
+            } else {
+                document.getElementById('avg-model-accuracy').textContent = 'N/A';
+            }
+
+            console.log('[INFO] Model status updated');
+        }
+
+        function retrainModels() {
+            const button = document.getElementById('retrain-models-btn');
+            const originalText = button.textContent;
+
+            button.textContent = '🔄 Training...';
+            button.disabled = true;
+
+            fetch('/api/goahead/retrain', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    symbols: ['RELIANCE', 'TCS', 'INFY', 'SBIN', 'ITC'] // Train key stocks
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errData => { throw new Error(errData.message || `HTTP error ${response.status}`); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('✅ Model retraining completed successfully!');
+                    loadModelStatus(); // Refresh status
+                } else {
+                    alert('❌ Model retraining failed: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('[ERROR] Retraining error:', error);
+                alert('❌ Error during retraining: ' + error.message);
+            })
+            .finally(() => {
+                button.textContent = originalText;
+                button.disabled = false;
+            });
+        }
+
 
         // Initialize application
         function initializeApp() {

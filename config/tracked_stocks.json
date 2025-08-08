@@ -1,0 +1,15 @@
+
+{
+  "stocks": [
+    "RELIANCE", "HDFCBANK", "TCS", "ITC", "INFY", "HUL", "SBIN", 
+    "BHARTIARTL", "NTPC", "POWERGRID", "ONGC", "COALINDIA",
+    "TATASTEEL", "JSWSTEEL", "HINDALCO", "TATAMOTORS", "M&M", 
+    "BPCL", "GAIL", "IOC", "SAIL", "VEDL", "BANKBARODA", "CANBK", 
+    "PNB", "UNIONBANK", "BANKINDIA", "CENTRALBK", "INDIANB"
+  ],
+  "options_stocks": [
+    "RELIANCE", "HDFCBANK", "TCS", "ITC", "INFY", "HUL"
+  ],
+  "last_updated": "2025-01-08T00:00:00Z",
+  "total_count": 29
+}

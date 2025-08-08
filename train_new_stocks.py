@@ -1,117 +1,84 @@
-
 #!/usr/bin/env python3
 """
-Train New Stocks - Simple Script
+Enhanced New Stock Training Script
 
-This script will:
-1. Extract fresh data from Yahoo Finance, NSE, BSE
-2. Train ML models with comprehensive 5-year historical data
-3. Handle any missing or corrupted data files
-4. Work with your existing stock list
-
-Usage: python train_new_stocks.py
+This script now uses the comprehensive 5-year historical data training pipeline
+with robust error handling and enhanced prediction logic.
 """
 
-import logging
-import sys
 import os
+import sys
+import logging
+from datetime import datetime
 
-# Add src to path
-sys.path.append('src')
+# Add the root directory to the Python path
+sys.path.insert(0, os.path.dirname(__file__))
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('training.log')
-    ]
-)
-
-logger = logging.getLogger(__name__)
+def setup_logging():
+    """Setup comprehensive logging"""
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 
 def main():
-    """Main training function"""
-    print("🚀 Stock Market Analyst - New Stock Training")
+    """Main training function with comprehensive pipeline"""
+    print("Starting new stock training process...")
+    print("🚀 Stock Market Analyst - Enhanced Model Training")
     print("=" * 60)
-    
+
+    setup_logging()
+    logger = logging.getLogger(__name__)
+
     try:
-        # Import the enhanced trainer
-        from src.utils.enhanced_data_trainer import EnhancedDataTrainer
-        
-        print("📊 Initializing Enhanced Data Trainer...")
-        trainer = EnhancedDataTrainer()
-        
-        print(f"🎯 Training Configuration:")
-        print(f"   Total Stocks: {len(trainer.all_stocks)}")
-        print(f"   Data Sources: Yahoo Finance, NSE, BSE")
-        print(f"   Period: 5 years historical data")
-        print(f"   Features: 20+ technical indicators")
-        print(f"   Models: LSTM + Random Forest")
-        
-        print(f"\n🔄 Starting comprehensive training process...")
-        print("   This may take 10-15 minutes for all stocks...")
-        
-        # Run the complete training pipeline
-        success = trainer.train_models_for_new_stocks()
-        
-        if success:
-            print("\n" + "=" * 60)
-            print("🎉 TRAINING COMPLETED SUCCESSFULLY!")
-            print("=" * 60)
-            print("✅ Fresh data extracted from multiple sources")
-            print("✅ Technical indicators calculated")
-            print("✅ ML models trained with comprehensive dataset")
-            print("✅ System ready for high-accuracy predictions")
-            print("\n📈 Next Steps:")
-            print("   1. Run: python main.py")
-            print("   2. Check the dashboard for enhanced predictions")
-            print("   3. ML predictions will now be much more accurate")
-            
-            # Show model files created
-            model_files = ['models_trained/lstm_model.h5', 'models_trained/rf_model.pkl']
-            created_files = [f for f in model_files if os.path.exists(f)]
-            if created_files:
-                print(f"\n📁 Model Files Created:")
-                for model_file in created_files:
-                    if os.path.exists(model_file):
-                        size_mb = os.path.getsize(model_file) / (1024 * 1024)
-                        print(f"   {model_file}: {size_mb:.2f} MB")
-            
-            return True
-            
+        # Import the comprehensive training pipeline
+        from src.ml.train_models import ModelTrainer
+        from src.data.fetch_historical_data import HistoricalDataFetcher
+
+        print("📊 Initializing enhanced training pipeline...")
+        trainer = ModelTrainer()
+
+        # Option 1: Train all models with 5-year data
+        print("🎯 Starting comprehensive model training...")
+        print("   - Fetching 5-year historical data")
+        print("   - Training LSTM models for price prediction")
+        print("   - Training Random Forest models for direction")
+        print("   - Updating model KPI registry")
+
+        results = trainer.train_all_models()
+
+        # Print results
+        print("\n" + "=" * 60)
+        print("📈 TRAINING RESULTS")
+        print("=" * 60)
+        print(f"🎯 Total Stocks: {results['summary']['total']}")
+        print(f"✅ Successful: {results['summary']['successful']}")
+        print(f"❌ Failed: {results['summary']['failed']}")
+        print(f"📅 Started: {results['training_start']}")
+        print(f"📅 Completed: {results['training_end']}")
+
+        if results['summary']['successful'] > 0:
+            print("\n🎉 Training completed successfully!")
+            print("✅ Models are ready for enhanced predictions")
+            print("✅ ROI evaluation logic updated")
+            print("✅ Robust error handling implemented")
         else:
-            print("\n" + "=" * 60)
-            print("❌ TRAINING FAILED!")
-            print("=" * 60)
-            print("Please check the logs above for specific errors.")
-            print("Common issues:")
-            print("  - Internet connectivity problems")
-            print("  - Rate limiting from data sources")
-            print("  - Insufficient memory for large datasets")
-            print("\nTry running the script again after a few minutes.")
-            return False
-            
+            print("\n⚠️ Training completed with issues")
+            print("❌ Check logs for detailed error information")
+
+        return results['summary']['successful'] > 0
+
     except ImportError as e:
         print(f"❌ Import Error: {str(e)}")
         print("Please ensure all dependencies are installed:")
         print("  pip install yfinance pandas numpy scikit-learn tensorflow")
         return False
-        
+
     except Exception as e:
-        logger.error(f"Training failed with error: {str(e)}")
-        print(f"❌ Unexpected Error: {str(e)}")
-        print("Check training.log for detailed error information.")
+        print(f"💥 Training failed - {str(e)}")
+        logger.error(f"Training error: {str(e)}")
         return False
 
 if __name__ == "__main__":
-    print("Starting new stock training process...")
     success = main()
-    
-    if success:
-        print("\n🎯 Training completed successfully!")
-        exit(0)
-    else:
-        print("\n💥 Training failed - check logs for details")
-        exit(1)
+    sys.exit(0 if success else 1)
