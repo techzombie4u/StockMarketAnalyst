@@ -15,12 +15,65 @@ class ShortStrangleEngine:
     """Engine for generating short strangle options strategies with real-time data"""
 
     def __init__(self):
-        self.tier1_stocks = [
-            'RELIANCE.NS', 'HDFCBANK.NS', 'TCS.NS', 'ITC.NS',
-            'INFY.NS', 'HINDUNILVR.NS'
-        ]
-        self.cache_file = 'data/tracking/options_signals.json'
-        os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
+        self.cache_file = 'options_cache.json'
+        self.cache_expiry = 300  # 5 minutes
+
+        # Create cache directory if it doesn't exist
+        cache_dir = os.path.dirname(self.cache_file)
+        if cache_dir and not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+
+        # NSE Lot Sizes (as of 2025) - Critical for accurate margin calculation
+        self.nse_lot_sizes = {
+            'RELIANCE': 505,
+            'TCS': 300,
+            'HDFCBANK': 550,
+            'INFY': 600,
+            'ITC': 3200,
+            'HINDUNILVR': 300,
+            'BHARTIARTL': 1800,
+            'KOTAKBANK': 400,
+            'SBIN': 1500,
+            'BAJFINANCE': 250,
+            'MARUTI': 100,
+            'ASIANPAINT': 150,
+            'NESTLEIND': 50,
+            'TATAMOTORS': 1500,
+            'AXISBANK': 1200,
+            'ULTRACEMCO': 150,
+            'WIPRO': 1200,
+            'TITAN': 400,
+            'SUNPHARMA': 400,
+            'LT': 450,
+            'TECHM': 400,
+            'POWERGRID': 2700,
+            'DRREDDY': 125,
+            'JSWSTEEL': 800,
+            'ONGC': 4500,
+            'COALINDIA': 2400,
+            'BPCL': 1000,
+            'GRASIM': 300,
+            'HINDALCO': 1200,
+            'TATASTEEL': 800,
+            'ADANIPORTS': 1100,
+            'DIVISLAB': 125,
+            'CIPLA': 750,
+            'BRITANNIA': 150,
+            'APOLLOHOSP': 125,
+            'LUPIN': 500,
+            'BIOCON': 2500,
+            'HCLTECH': 500,
+            'HEROMOTOCO': 250,
+            'EICHERMOT': 250,
+            'BAJAJFINSV': 450,
+            'MPHASIS': 250,
+            'LTIM': 300,
+            'LTTS': 750,
+            'COFORGE': 150,
+            'PERSISTENT': 200,
+            'CYIENT': 800
+        }
+
 
     def generate_strategies(self, timeframe='30D', force_refresh=False):
         """Generate short strangle strategies for tier 1 stocks with real-time data"""
@@ -157,21 +210,30 @@ class ShortStrangleEngine:
             breakeven_range_pct = ((breakeven_upper - breakeven_lower) / current_price) * 100
 
             # Calculate margin requirement (SPAN + Exposure margin for Indian markets)
-            margin_required = self._calculate_margin_requirement(current_price, call_strike, put_strike, total_premium)
+            margin_required = self._calculate_margin_requirement(
+                symbol, current_price, call_strike, put_strike, total_premium
+            )
 
-            # Calculate ROI
-            expected_roi = (total_premium / (margin_required / 100)) * 100
+
+            # Get lot size for this symbol
+            lot_size = self.nse_lot_sizes.get(symbol, 100)
+
+            # Premium received per actual lot
+            premium_received = total_premium * lot_size
+
+            # Calculate monthly ROI (premium received / margin blocked)
+            monthly_roi = (premium_received / margin_required) * 100 if margin_required > 0 else 0
 
             # Calculate annualized ROI
             annual_factor = 365 / days_to_expiry
-            annualized_roi = expected_roi * annual_factor
+            annualized_roi = monthly_roi * annual_factor
 
             # Determine confidence and risk level based on real metrics
             confidence = self._calculate_confidence_score(symbol, breakeven_range_pct, implied_vol, historical_vol)
-            risk_level, risk_color = self._determine_risk_level(expected_roi, confidence, implied_vol)
+            risk_level, risk_color = self._determine_risk_level(monthly_roi, confidence, implied_vol)
 
             strategy_data = {
-                'symbol': str(symbol),
+                'symbol': symbol,
                 'current_price': float(current_price),
                 'call_strike': float(call_strike),
                 'put_strike': float(put_strike),
@@ -182,15 +244,18 @@ class ShortStrangleEngine:
                 'breakeven_lower': float(breakeven_lower),
                 'breakeven_range_pct': float(breakeven_range_pct),
                 'margin_required': float(margin_required),
-                'expected_roi': float(expected_roi),
-                'annualized_roi': float(annualized_roi),
+                'expected_roi': float(monthly_roi),
+                'annualized_roi': float(monthly_roi * 12),
                 'confidence': float(confidence),
                 'implied_volatility': float(implied_vol),
                 'historical_volatility': float(historical_vol),
-                'risk_level': str(risk_level),
-                'risk_color': str(risk_color),
-                'days_to_expiry': int(days_to_expiry),
-                'timeframe': str(timeframe),
+                'risk_level': risk_level,
+                'risk_color': 'success' if risk_level == 'Low' else 'warning' if risk_level == 'Moderate' else 'danger',
+                'days_to_expiry': days_to_expiry,
+                'timeframe': timeframe,
+                'lot_size': lot_size,  # Include lot size for reference
+                'contract_value': float(current_price * lot_size),  # Total contract value
+                'premium_per_lot': float(total_premium * lot_size),  # Premium for full lot
                 'last_updated': datetime.now().isoformat(),
                 'data_source': 'yahoo_finance_realtime'
             }
@@ -287,28 +352,54 @@ class ShortStrangleEngine:
             logger.warning(f"⚠️ Error in simplified premium calculation: {e}")
             return max(10.0, spot * 0.02)  # Absolute fallback
 
-    def _calculate_margin_requirement(self, spot_price, call_strike, put_strike, total_premium):
-        """Calculate margin requirement for short strangle in Indian markets"""
+    def _calculate_margin_requirement(self, symbol, spot_price, call_strike, put_strike, total_premium):
+        """Calculate margin requirement for short strangle in Indian markets using SPAN + Exposure"""
         try:
-            # SPAN margin calculation (simplified)
-            # For Indian markets: typically 10-20% of underlying value
-            spot_margin_rate = 0.15  # 15% of spot price
-            base_margin = spot_price * 100 * spot_margin_rate  # Per lot (assuming 100 shares)
+            lot_size = self.nse_lot_sizes.get(symbol, 100) # Default to 100 if not found
 
-            # Exposure margin (additional 3-5% in Indian markets)
-            exposure_margin = spot_price * 100 * 0.04  # 4%
+            # SPAN Margin approximation: Typically a percentage of the total notional value of the options.
+            # This percentage varies but can be approximated.
+            # A common rule of thumb is around 10-20% of the total premium * lot_size, or a percentage of underlying.
+            # Let's use a slightly more robust estimation based on underlying and strikes.
+            notional_value = spot_price * lot_size
+            span_margin_rate = 0.15  # Example: 15% of notional for SPAN
+            span_margin = notional_value * span_margin_rate
 
-            # Total margin = SPAN + Exposure - Premium received
-            total_margin = base_margin + exposure_margin - (total_premium * 100)
+            # Exposure Margin: Additional margin to cover adverse price movements.
+            # Typically 3-5% of the underlying value or premium.
+            exposure_margin_rate = 0.05 # Example: 5% of notional
+            exposure_margin = notional_value * exposure_margin_rate
 
-            # Ensure minimum margin
-            minimum_margin = spot_price * 100 * 0.10  # At least 10%
+            # Total Margin = SPAN + Exposure - Premium Received (net of taxes/fees)
+            # For simplicity, we use the gross premium here.
+            premium_received_for_lot = total_premium * lot_size
 
-            return max(minimum_margin, total_margin)
+            # Ensure premium received is subtracted correctly and margin is not negative
+            total_margin = max(0, span_margin + exposure_margin - premium_received_for_lot)
+
+            # Minimum Margin Rule: Ensure a minimum margin is always blocked.
+            # This is often a percentage of the premium or a fixed amount per lot.
+            # A common minimum is 10% of the underlying value or a fixed amount.
+            minimum_margin_rate = 0.10 # Example: 10% of notional
+            minimum_margin = notional_value * minimum_margin_rate
+
+            # Final margin is the higher of calculated total margin or the minimum margin.
+            final_margin = max(minimum_margin, total_margin)
+
+            # Add a small buffer for rounding and potential fluctuations
+            margin_buffer = final_margin * 0.02
+            final_margin += margin_buffer
+
+            logger.info(f"📈 Margin Calc for {symbol} (Lot: {lot_size}): Notional={notional_value:.2f}, SPAN={span_margin:.2f}, Exposure={exposure_margin:.2f}, Premium={premium_received_for_lot:.2f}, MinMargin={minimum_margin:.2f}, FinalMargin={final_margin:.2f}")
+
+            return round(final_margin, 2)
 
         except Exception as e:
-            logger.warning(f"⚠️ Error calculating margin: {e}")
-            return spot_price * 100 * 0.20  # 20% fallback
+            logger.warning(f"⚠️ Error calculating margin for {symbol}: {e}")
+            # Fallback margin calculation (e.g., percentage of premium or notional)
+            lot_size = self.nse_lot_sizes.get(symbol, 100)
+            fallback_margin = max(spot_price * lot_size * 0.10, total_premium * lot_size * 3) # 10% of notional or 3x premium
+            return round(fallback_margin, 2)
 
     def _calculate_confidence_score(self, symbol, breakeven_range_pct, implied_vol, historical_vol):
         """Calculate confidence score based on real market metrics"""
@@ -477,16 +568,18 @@ class ShortStrangleEngine:
 
             # Calculate margin requirement for Indian markets (per lot basis)
             # Use realistic SPAN + Exposure margin calculation
-            margin_per_share = current_price * 0.12  # 12% SPAN margin
-            exposure_margin = current_price * 0.03   # 3% exposure margin
-            total_margin_per_share = margin_per_share + exposure_margin
-            margin_required = total_margin_per_share * 100  # Per lot of 100 shares
+            margin_required = self._calculate_margin_requirement(
+                symbol, current_price, call_strike, put_strike, total_premium
+            )
 
-            # Premium received is also per lot
-            premium_received = total_premium * 100  # Premium for 100 shares
+            # Get actual lot size for this symbol
+            lot_size = self.nse_lot_sizes.get(symbol, 100)
+
+            # Premium received per actual lot
+            premium_received = total_premium * lot_size
 
             # Calculate monthly ROI (premium received / margin blocked)
-            monthly_roi = (premium_received / margin_required) * 100
+            monthly_roi = (premium_received / margin_required) * 100 if margin_required > 0 else 0
 
             # Risk assessment
             price_range = breakeven_upper - breakeven_lower
@@ -707,16 +800,18 @@ class ShortStrangleEngine:
 
             # Calculate margin requirement for Indian markets (per lot basis)
             # Use realistic SPAN + Exposure margin calculation
-            margin_per_share = current_price * 0.12  # 12% SPAN margin
-            exposure_margin = current_price * 0.03   # 3% exposure margin
-            total_margin_per_share = margin_per_share + exposure_margin
-            margin_required = total_margin_per_share * 100  # Per lot of 100 shares
+            margin_required = self._calculate_margin_requirement(
+                symbol, current_price, call_strike, put_strike, total_premium
+            )
 
-            # Premium received is also per lot
-            premium_received = total_premium * 100  # Premium for 100 shares
+            # Get actual lot size for this symbol
+            lot_size = self.nse_lot_sizes.get(symbol, 100)
+
+            # Premium received per actual lot
+            premium_received = total_premium * lot_size
 
             # Calculate monthly ROI (premium received / margin blocked)
-            monthly_roi = (premium_received / margin_required) * 100
+            monthly_roi = (premium_received / margin_required) * 100 if margin_required > 0 else 0
 
             print(f"[STRATEGY_ENGINE] {symbol} - Premium: ₹{total_premium}, Margin: ₹{margin_required}, Monthly ROI: {monthly_roi:.1f}%")
 

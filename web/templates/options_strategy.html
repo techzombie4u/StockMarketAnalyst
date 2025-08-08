@@ -755,6 +755,9 @@
     <script>
         let isLoading = false;
         let lastLoadTime = 0;
+        let totalPremium = 0; // Initialize for summary calculation
+        let totalMargin = 0;  // Initialize for summary calculation
+        let validStrategies = 0; // Initialize counter for valid strategies
 
         function showLoadingState() {
             document.getElementById('loading').style.display = 'block';
@@ -779,7 +782,7 @@
             document.getElementById('optionsTable').style.display = 'none';
             document.getElementById('error').style.display = 'none';
             document.getElementById('empty').style.display = 'block';
-            updateDataIndicator('⚠️ No Data', '#e67e22');
+            updateDataIndicator(`🟢 Live Data (0)`, '#27ae60');
         }
 
         function showErrorState(message) {
@@ -908,8 +911,12 @@
                 updateDataIndicator(`🟢 Live Data (0)`, '#27ae60');
                 return false;
             }
+            
+            // Reset summary calculations for each load
+            totalPremium = 0;
+            totalMargin = 0;
+            validStrategies = 0;
 
-            let validCount = 0;
             strategies.forEach((strategy, index) => {
                 console.log(`📈 Processing strategy ${index + 1}:`, strategy);
 
@@ -926,7 +933,7 @@
                 const currentPrice = parseFloat(strategy.current_price || 0);
                 const callStrike = parseFloat(strategy.call_strike || 0);
                 const putStrike = parseFloat(strategy.put_strike || 0);
-                const totalPremium = parseFloat(strategy.total_premium || 0);
+                const totalPremiumRaw = parseFloat(strategy.total_premium || 0); // Use raw value for summation
                 const breakevenLower = parseFloat(strategy.breakeven_lower || 0);
                 const breakevenUpper = parseFloat(strategy.breakeven_upper || 0);
                 const marginRequired = parseFloat(strategy.margin_required || 0);
@@ -956,43 +963,74 @@
                 // Get verdict
                 const verdictData = getVerdict(expectedRoi, confidence, riskLevel);
 
+                // Check for unusually low margin (potential error indicator)
+                const lotSize = strategy.lot_size || 100; // Default lot size if not provided
+                const contractValue = currentPrice * lotSize;
+                const marginAlert = marginRequired < contractValue * 0.08 ? ' ⚠️' : ''; // Threshold: 8% of contract value
+                const marginTooltip = marginRequired < contractValue * 0.08 ? 
+                    'Warning: Margin appears unusually low. Verify calculation.' : 
+                    `Margin for ${lotSize} shares (1 lot). Includes SPAN + Exposure - Premium collected.`;
+
+                // Update summary calculations
+                totalPremium += totalPremiumRaw;
+                totalMargin += marginRequired;
+                validStrategies++;
+
                 row.innerHTML = `
                     <td class="symbol">${symbol}</td>
                     <td style="font-weight: 600;">₹${currentPrice.toFixed(2)}</td>
                     <td>₹${callStrike.toFixed(2)}</td>
                     <td>₹${putStrike.toFixed(2)}</td>
-                    <td style="font-weight: 700; color: #27ae60; font-size: 1.1em;">₹${totalPremium.toFixed(0)}</td>
+                    <td style="font-weight: 700; color: #27ae60; font-size: 1.1em;">₹${totalPremiumRaw.toFixed(0)}</td>
                     <td style="font-size: 0.9em;">₹${breakevenLower.toFixed(0)} - ₹${breakevenUpper.toFixed(0)}</td>
-                    <td style="color: #666;">₹${new Intl.NumberFormat('en-IN').format(marginRequired)}</td>
+                    <td style="color: #666;" title="${marginTooltip}">
+                        ₹${new Intl.NumberFormat('en-IN').format(marginRequired)}${marginAlert}
+                        ${lotSize !== 100 ? `<br><small style="color: #666; font-size: 0.75em;">Lot: ${lotSize}</small>` : ''}
+                    </td>
                     <td>
-                                    ${expectedRoi.toFixed(1)}%
-                                    <span class="roi-trend" data-trend="predicted" title="Predicted performance trend">📈</span>
-                                </td>
+                        ${expectedRoi.toFixed(1)}%
+                        <span class="roi-trend" data-trend="predicted" title="Predicted performance trend">📈</span>
+                    </td>
                     <td>
-                                    <span class="confidence-badge"
-                                          title="Confidence based on model accuracy (${confidence > 85 ? 'high' : confidence > 70 ? 'medium' : 'low'}), volatility analysis, and signal strength">
-                                        ${confidence.toFixed(0)}%
-                                    </span>
-                                </td>
+                        <span class="confidence-badge"
+                              title="Confidence based on model accuracy (${confidence > 85 ? 'high' : confidence > 70 ? 'medium' : 'low'}), volatility analysis, and signal strength">
+                            ${confidence.toFixed(0)}%
+                        </span>
+                    </td>
                     <td class="prediction-outcome ${predictionOutcome.class}" title="${predictionOutcome.tooltip}">${predictionOutcome.display}</td>
                     <td class="stop-loss-cell" title="${stopLossTooltip}">${stopLossDisplay}</td>
                     <td style="font-weight: 600; color: ${riskColor};">${riskLevel}</td>
                     <td>
-                                    <span class="verdict-badge verdict-${verdictData.verdict.toLowerCase().replace(' ', '-')}"
-                                          title="${verdictData.tooltip}">
-                                        ${verdictData.verdict}
-                                    </span>
-                                </td>
+                        <span class="verdict-badge verdict-${verdictData.verdict.toLowerCase().replace(' ', '-')}"
+                              title="${verdictData.tooltip}">
+                            ${verdictData.verdict}
+                        </span>
+                    </td>
                 `;
                 tbody.appendChild(row);
-                validCount++;
                 console.log(`✅ Added ${symbol} to table with ROI: ${expectedRoi.toFixed(1)}%`);
             });
 
-            console.log(`✅ Successfully displayed ${validCount} real-time strategies`);
-            updateDataIndicator(`🟢 Live Data (${validCount})`, '#27ae60');
-            return validCount > 0;
+            console.log(`✅ Successfully displayed ${validStrategies} real-time strategies`);
+            updateDataIndicator(`🟢 Live Data (${validStrategies})`, '#27ae60');
+            updateSummaryKPIs(validStrategies); // Update summary KPIs
+            return validStrategies > 0;
         }
+
+        function updateSummaryKPIs(count) {
+            document.getElementById('totalPremium').textContent = `₹${new Intl.NumberFormat('en-IN').format(totalPremium)}`;
+            document.getElementById('totalTrades').textContent = `${count}`;
+
+            const averageROI = count > 0 ? (totalPremium / (totalMargin || 1)) * 100 : 0; // Avoid division by zero
+            document.getElementById('averageROI').textContent = `${averageROI.toFixed(2)}%`;
+
+            // Placeholder for Win Rate, Max Drawdown, Sharpe Ratio, Volatility
+            document.getElementById('winRate').textContent = `N/A`;
+            document.getElementById('maxDrawdown').textContent = `N/A`;
+            document.getElementById('sharpeRatio').textContent = `N/A`;
+            document.getElementById('volatility').textContent = `N/A`;
+        }
+
 
         async function loadOptionsData() {
             if (isLoading) {
