@@ -58,6 +58,7 @@ def main():
         )
 
     except Exception as e:
+        import sys
         logger.error(f"❌ Failed to start application: {str(e)}")
         print(f"\n❌ Error: {str(e)}")
         print("Please check the logs for more details.")
