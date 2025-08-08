@@ -1,0 +1,42 @@
+{
+  "last_updated": "2025-08-08T06:32:43.779203",
+  "models": {
+    "LSTM": {
+      "accuracy": 75.0,
+      "last_training": "2025-08-08T06:32:43.779214",
+      "drift_level": "low",
+      "volatility_stress_pass": true,
+      "prediction_count": 0,
+      "success_count": 0
+    },
+    "RandomForest": {
+      "accuracy": 75.0,
+      "last_training": "2025-08-08T06:32:43.779218",
+      "drift_level": "low",
+      "volatility_stress_pass": true,
+      "prediction_count": 0,
+      "success_count": 0
+    },
+    "LinearRegression": {
+      "accuracy": 75.0,
+      "last_training": "2025-08-08T06:32:43.779222",
+      "drift_level": "low",
+      "volatility_stress_pass": true,
+      "prediction_count": 0,
+      "success_count": 0
+    },
+    "NaiveForecast": {
+      "accuracy": 75.0,
+      "last_training": "2025-08-08T06:32:43.779225",
+      "drift_level": "low",
+      "volatility_stress_pass": true,
+      "prediction_count": 0,
+      "success_count": 0
+    }
+  },
+  "thresholds": {
+    "soft_retrain_accuracy": 70.0,
+    "hard_retrain_accuracy": 50.0,
+    "min_predictions_for_eval": 10
+  }
+}
