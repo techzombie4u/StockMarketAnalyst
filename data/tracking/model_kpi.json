@@ -40,9 +40,129 @@
     "min_predictions_for_eval": 10
   },
   "last_training": {
-    "date": "2025-08-08T12:59:09.743703",
-    "total_stocks": 0,
+    "date": "2025-08-08T13:15:29.455544",
+    "total_stocks": 20,
     "successful": 0,
-    "failed": 0
+    "failed": 20
+  },
+  "SBIN": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "BHARTIARTL": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "ITC": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "NTPC": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "POWERGRID": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "ONGC": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "COALINDIA": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "TATASTEEL": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "JSWSTEEL": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "HINDALCO": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "TATAMOTORS": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "M_M": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "BPCL": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "GAIL": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "IOC": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "SAIL": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "VEDL": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "BANKBARODA": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "CANBK": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
+  },
+  "PNB": {
+    "last_trained": null,
+    "data_rows": 0,
+    "lstm_val_loss": null,
+    "rf_accuracy": null
   }
 }
