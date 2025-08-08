@@ -895,7 +895,7 @@ def run_now():
                             'data_ready': False,
                             'timestamp': datetime.now(IST).isoformat()
                         })
-                except Exception as e: # Added missing exception handling block
+                except Exception as e:
                     logger.error(f"Error during manual standalone screening: {str(e)}")
                     error_message = str(e)
                     return jsonify({
@@ -1543,22 +1543,22 @@ def options_prediction_dashboard():
         # Initialize Smart Go Agent
         if SmartGoAgent:
             smart_agent = SmartGoAgent()
-            
+
             # Get active trades
             active_trades = smart_agent.get_active_options_predictions()
             print(f"[API] Active trades found: {len(active_trades)}")
-            
+
             # Get prediction accuracy summary
             accuracy_summary = smart_agent.get_prediction_accuracy_summary()
             print(f"[API] Accuracy summary timeframes: {list(accuracy_summary.keys())}")
-            
+
             dashboard_data = {
                 'status': 'success',
                 'timestamp': datetime.now(IST).isoformat(),
                 'live_trades': active_trades,
                 'summary_stats': accuracy_summary
             }
-            
+
             print("[API] options-prediction-dashboard response:", dashboard_data)
             logger.info(f"✅ Options prediction dashboard data prepared: {len(active_trades)} active trades")
             return jsonify(dashboard_data)
