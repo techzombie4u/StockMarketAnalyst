@@ -1533,9 +1533,60 @@ def goahead_retrain():
             'error': str(e)
         }), 500
 
+@app.route('/api/options-prediction-dashboard')
+def options_prediction_dashboard():
+    """API endpoint for options prediction dashboard data"""
+    try:
+        logger.info("📈 Loading options prediction dashboard data...")
+
+        # Initialize Smart Go Agent
+        if SmartGoAgent:
+            smart_agent = SmartGoAgent()
+            
+            # Get active trades
+            active_trades = smart_agent.get_active_options_predictions()
+            
+            # Get prediction accuracy summary
+            accuracy_summary = smart_agent.get_prediction_accuracy_summary()
+            
+            dashboard_data = {
+                'status': 'success',
+                'timestamp': datetime.now(IST).isoformat(),
+                'live_trades': active_trades,
+                'prediction_summary': accuracy_summary
+            }
+            
+            logger.info(f"✅ Options prediction dashboard data prepared: {len(active_trades)} active trades")
+            return jsonify(dashboard_data)
+        else:
+            # Fallback if SmartGoAgent is not available
+            dashboard_data = {
+                'status': 'success',
+                'timestamp': datetime.now(IST).isoformat(),
+                'live_trades': [],
+                'prediction_summary': {
+                    '3D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
+                    '5D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
+                    '10D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
+                    '15D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
+                    '30D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0}
+                }
+            }
+            return jsonify(dashboard_data)
+
+    except Exception as e:
+        logger.error(f"Error in options prediction dashboard: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.now(IST).isoformat(),
+            'live_trades': [],
+            'prediction_summary': {}
+        }), 500
+
 @app.route('/api/prediction-performance-dashboard')
 def prediction_performance_dashboard():
-    """API endpoint for prediction performance dashboard data"""
+    """API endpoint for prediction performance dashboard data (legacy endpoint)"""
     try:
         logger.info("📈 Loading prediction performance dashboard data...")
 
