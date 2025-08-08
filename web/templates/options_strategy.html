@@ -471,8 +471,11 @@
                 </tbody>
             </table>
 
-            <!-- Tab Navigation -->
-            <div class="mt-4">
+            </div>
+
+        <!-- Tab Navigation Section (Outside table-container for proper visibility) -->
+        <div class="mt-4">
+            <div class="table-container">
                 <ul class="nav nav-tabs" id="optionsTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
@@ -495,10 +498,9 @@
                         </button>
                     </li>
                 </ul>
-            </div>
 
-            <!-- Tab Content -->
-            <div class="tab-content mt-4" id="optionsTabsContent">
+                <!-- Tab Content -->
+                <div class="tab-content" id="optionsTabsContent">
                 <!-- Summary Tab -->
                 <div class="tab-pane fade show active" id="summary" role="tabpanel" aria-labelledby="summary-tab">
                     <div class="row">
@@ -619,6 +621,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -1161,48 +1164,56 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📱 Options Strategy page loaded');
 
-            // Wait for Bootstrap to be available
+            // Initialize Bootstrap 5 tabs properly
             setTimeout(() => {
-                // Tab switching with data loading
-                const triggerTabList = [].slice.call(document.querySelectorAll('#optionsTabs button'));
+                // Get all tab trigger elements
+                const triggerTabList = [].slice.call(document.querySelectorAll('#optionsTabs button[data-bs-toggle="tab"]'));
+                console.log(`📋 Found ${triggerTabList.length} tab triggers:`, triggerTabList.map(el => el.id));
+                
                 if (triggerTabList.length > 0) {
-                    triggerTabList.forEach(function (triggerEl) {
+                    // Initialize Bootstrap tabs
+                    const tabList = triggerTabList.map(function (triggerEl) {
+                        const tabTrigger = new bootstrap.Tab(triggerEl);
+                        
                         triggerEl.addEventListener('click', function (event) {
                             event.preventDefault();
+                            console.log(`📋 Tab clicked: ${triggerEl.id}`);
                             
-                            // Remove active class from all tabs
-                            triggerTabList.forEach(tab => {
-                                tab.classList.remove('active');
-                                const target = tab.getAttribute('data-bs-target');
-                                if (target) {
-                                    const pane = document.querySelector(target);
-                                    if (pane) {
-                                        pane.classList.remove('show', 'active');
-                                    }
-                                }
-                            });
-                            
-                            // Add active class to clicked tab
-                            triggerEl.classList.add('active');
-                            const target = triggerEl.getAttribute('data-bs-target');
-                            if (target) {
-                                const pane = document.querySelector(target);
-                                if (pane) {
-                                    pane.classList.add('show', 'active');
-                                }
-                            }
-
                             // Load performance data when Performance tab is clicked
                             if (triggerEl.id === 'performance-tab') {
+                                console.log('📈 Loading Performance Dashboard...');
                                 loadPerformanceDashboard();
                             }
                         });
+                        
+                        // Add shown event listener for when tab is fully visible
+                        triggerEl.addEventListener('shown.bs.tab', function (event) {
+                            console.log(`✅ Tab shown: ${event.target.id}`);
+                            if (event.target.id === 'performance-tab') {
+                                loadPerformanceDashboard();
+                            }
+                        });
+                        
+                        return tabTrigger;
                     });
-                    console.log(`✅ Initialized ${triggerTabList.length} tab triggers`);
+                    
+                    console.log(`✅ Initialized ${tabList.length} Bootstrap tabs`);
+                    
+                    // Ensure the first tab is properly activated
+                    if (triggerTabList[0]) {
+                        triggerTabList[0].classList.add('active');
+                        const firstTarget = triggerTabList[0].getAttribute('data-bs-target');
+                        if (firstTarget) {
+                            const firstPane = document.querySelector(firstTarget);
+                            if (firstPane) {
+                                firstPane.classList.add('show', 'active');
+                            }
+                        }
+                    }
                 } else {
                     console.log('⚠️ No tab triggers found');
                 }
-            }, 100);
+            }, 200);
 
             // Initialize tooltips
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

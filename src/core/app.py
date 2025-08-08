@@ -1263,13 +1263,13 @@ def options_strategies():
         manual_refresh = request.args.get('manual_refresh', 'false').lower() == 'true'
         force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
         refresh = request.args.get('refresh', 'false').lower() == 'true'
-        
+
         print(f"[OPTIONS_API] ⚡ API called with timeframe: {timeframe}, refresh={refresh}, manual_refresh={manual_refresh}, force_realtime={force_realtime}")
         logger.info(f"[OPTIONS_API] ⚡ API called with timeframe: {timeframe}, refresh={refresh}")
-        
+
         # Force real-time data usage
         use_live = manual_refresh or force_realtime or refresh or True  # Always use live by default
-        
+
         # Check if we're using organized structure or backup
         try:
             from src.analyzers.short_strangle_engine import ShortStrangleEngine
@@ -1280,48 +1280,48 @@ def options_strategies():
             backup_path = os.path.join(os.path.dirname(__file__), '..', '..', '_backup_before_organization')
             if backup_path not in sys.path:
                 sys.path.insert(0, backup_path)
-            
+
             # Create a simplified engine for backup with improved ROI calculation
             class ShortStrangleEngine:
                 def analyze_short_strangle(self, symbol, manual_refresh=False, force_realtime=False):
                     try:
                         import yfinance as yf
-                        
+
                         print(f"[STRATEGY_ENGINE] Fetching live price for {symbol}")
-                        
+
                         # Get real-time price
                         ticker = yf.Ticker(f"{symbol}.NS")
                         hist = ticker.history(period="1d")
-                        
+
                         if hist.empty:
                             print(f"[ERROR] No data for {symbol}")
                             return None
-                            
+
                         current_price = float(hist['Close'].iloc[-1])
                         print(f"[STRATEGY_ENGINE] Live price for {symbol}: ₹{current_price}")
-                        
+
                         # Calculate strategy with improved parameters
                         otm_percent = 0.04
                         call_strike = round((current_price * (1 + otm_percent)) / 50) * 50
                         put_strike = round((current_price * (1 - otm_percent)) / 50) * 50
-                        
+
                         # Improved premium calculation based on actual market conditions
                         call_premium = max(15.0, current_price * 0.025)  # 2.5% of spot
                         put_premium = max(12.0, current_price * 0.02)    # 2% of spot
                         total_premium = call_premium + put_premium
-                        
+
                         breakeven_upper = call_strike + total_premium
                         breakeven_lower = put_strike - total_premium
-                        
+
                         # Fixed margin calculation - use per lot basis (100 shares)
                         margin_required = current_price * 0.15 * 100  # 15% margin per lot
                         expected_roi = (total_premium * 100 / margin_required) * 100  # Annualize for monthly
-                        
+
                         confidence = min(90, max(50, 70 + (expected_roi - 8) * 2))
                         risk_level = "Low" if expected_roi >= 8 else "Medium" if expected_roi >= 5 else "High"
-                        
+
                         print(f"[STRATEGY_ENGINE] {symbol} - Price: ₹{current_price}, Premium: ₹{total_premium}, ROI: {expected_roi:.1f}%")
-                        
+
                         return {
                             'symbol': symbol,
                             'current_price': round(current_price, 2),
@@ -1342,7 +1342,7 @@ def options_strategies():
                     except Exception as e:
                         print(f"[ERROR] Backup engine error for {symbol}: {e}")
                         return None
-            
+
             print("[OPTIONS_API] Using backup engine")
 
         engine = ShortStrangleEngine()
@@ -1357,7 +1357,7 @@ def options_strategies():
             try:
                 print(f"[OPTIONS_API] 📡 Fetching real-time data for {symbol}...")
                 analysis = engine.analyze_short_strangle(symbol, manual_refresh=True, force_realtime=True)
-                
+
                 if analysis and analysis.get('current_price', 0) > 0:
                     strategies.append(analysis)
                     print(f"[OPTIONS_API] ✅ {symbol} - Live Price: ₹{analysis['current_price']}, Monthly ROI: {analysis['expected_roi']:.1f}%")
@@ -1544,7 +1544,7 @@ def prediction_performance_dashboard():
     """API endpoint for prediction performance dashboard data"""
     try:
         logger.info("📈 Loading prediction performance dashboard data...")
-        
+
         # Initialize response structure
         dashboard_data = {
             'status': 'success',
@@ -1552,24 +1552,24 @@ def prediction_performance_dashboard():
             'in_progress': [],
             'summary': {}
         }
-        
+
         # Load options tracking data
         options_tracking_data = load_options_tracking_data()
-        
+
         # Load current options strategies for real-time comparison
         current_strategies = get_current_options_strategies()
-        
+
         # Process in-progress trades
         in_progress_trades = process_in_progress_trades(options_tracking_data, current_strategies)
         dashboard_data['in_progress'] = in_progress_trades
-        
+
         # Process performance summary by timeframe
         performance_summary = process_performance_summary(options_tracking_data)
         dashboard_data['summary'] = performance_summary
-        
+
         logger.info(f"✅ Performance dashboard data prepared: {len(in_progress_trades)} active trades")
         return jsonify(dashboard_data)
-        
+
     except Exception as e:
         logger.error(f"Error in prediction performance dashboard: {str(e)}")
         return jsonify({
@@ -1598,11 +1598,11 @@ def get_current_options_strategies():
         # Use existing options strategies endpoint logic
         from src.analyzers.short_strangle_engine import ShortStrangleEngine
         engine = ShortStrangleEngine()
-        
+
         # Get current strategies for major stocks
         current_stocks = ['RELIANCE', 'HDFCBANK', 'TCS', 'ITC', 'INFY', 'HINDUNILVR']
         strategies = []
-        
+
         for symbol in current_stocks[:3]:  # Limit to avoid timeouts
             try:
                 analysis = engine.analyze_short_strangle(symbol, force_realtime=True)
@@ -1611,9 +1611,9 @@ def get_current_options_strategies():
             except Exception as e:
                 logger.warning(f"Error getting current strategy for {symbol}: {str(e)}")
                 continue
-        
+
         return strategies
-        
+
     except Exception as e:
         logger.error(f"Error getting current options strategies: {str(e)}")
         return []
@@ -1622,25 +1622,25 @@ def process_in_progress_trades(tracking_data, current_strategies):
     """Process in-progress trades for the dashboard"""
     try:
         in_progress = []
-        
+
         # Create lookup for current strategies
         current_lookup = {s.get('symbol'): s for s in current_strategies}
-        
+
         for symbol, trades in tracking_data.items():
             if not isinstance(trades, dict):
                 continue
-                
+
             for trade_id, trade_data in trades.items():
                 if not isinstance(trade_data, dict):
                     continue
-                    
+
                 # Check if trade is still active
                 if trade_data.get('status') == 'active':
                     current_strategy = current_lookup.get(symbol, {})
-                    
+
                     # Calculate divergence reasons
                     reason = calculate_divergence_reason(trade_data, current_strategy)
-                    
+
                     # Build in-progress trade entry
                     in_progress_trade = {
                         'due_date': trade_data.get('expiry_date', ''),
@@ -1651,14 +1651,14 @@ def process_in_progress_trades(tracking_data, current_strategies):
                         'current_roi': current_strategy.get('expected_roi', 0),
                         'reason': reason
                     }
-                    
+
                     in_progress.append(in_progress_trade)
-        
+
         # Sort by reason (non-empty first), then by due date
         in_progress.sort(key=lambda x: (x['reason'] == '', x['due_date']))
-        
+
         return in_progress
-        
+
     except Exception as e:
         logger.error(f"Error processing in-progress trades: {str(e)}")
         return []
@@ -1668,7 +1668,7 @@ def process_performance_summary(tracking_data):
     try:
         timeframes = ['3D', '5D', '10D', '15D', '30D']
         summary = {}
-        
+
         for timeframe in timeframes:
             timeframe_data = {
                 'total': 0,
@@ -1680,54 +1680,54 @@ def process_performance_summary(tracking_data):
                 'max_drawdown': 0,
                 'sharpe_ratio': 0
             }
-            
+
             # Aggregate data for this timeframe
             roi_values = []
-            
+
             for symbol, trades in tracking_data.items():
                 if not isinstance(trades, dict):
                     continue
-                    
+
                 for trade_id, trade_data in trades.items():
                     if not isinstance(trade_data, dict):
                         continue
-                        
+
                     if trade_data.get('timeframe') == timeframe:
                         timeframe_data['total'] += 1
-                        
+
                         status = trade_data.get('final_status', trade_data.get('status', 'in_progress'))
-                        
+
                         if status == 'success':
                             timeframe_data['successful'] += 1
                         elif status == 'failed':
                             timeframe_data['failed'] += 1
                         else:
                             timeframe_data['in_progress'] += 1
-                        
+
                         # Collect ROI for calculations
                         roi = trade_data.get('actual_roi', trade_data.get('predicted_roi', 0))
                         if roi:
                             roi_values.append(roi)
-            
+
             # Calculate metrics
             if timeframe_data['total'] > 0:
                 completed_trades = timeframe_data['successful'] + timeframe_data['failed']
                 if completed_trades > 0:
                     timeframe_data['accuracy'] = (timeframe_data['successful'] / completed_trades) * 100
-            
+
             if roi_values:
                 timeframe_data['avg_roi'] = sum(roi_values) / len(roi_values)
                 timeframe_data['max_drawdown'] = min(roi_values) if roi_values else 0
-                
+
                 # Simple Sharpe ratio calculation (assuming 5% risk-free rate)
                 risk_free_rate = 5.0
                 roi_std = calculate_std_dev(roi_values) if len(roi_values) > 1 else 1
                 timeframe_data['sharpe_ratio'] = (timeframe_data['avg_roi'] - risk_free_rate) / roi_std if roi_std > 0 else 0
-            
+
             summary[timeframe] = timeframe_data
-        
+
         return summary
-        
+
     except Exception as e:
         logger.error(f"Error processing performance summary: {str(e)}")
         return {}
@@ -1736,35 +1736,35 @@ def calculate_divergence_reason(trade_data, current_strategy):
     """Calculate why a trade might be diverging from predictions"""
     try:
         reasons = []
-        
+
         # Check ROI deviation
         predicted_roi = trade_data.get('predicted_roi', 0)
         current_roi = current_strategy.get('expected_roi', 0)
-        
+
         if abs(current_roi - predicted_roi) > predicted_roi * 0.2:  # 20% deviation
             if current_roi < predicted_roi:
                 reasons.append("ROI declined")
             else:
                 reasons.append("ROI exceeded")
-        
+
         # Check confidence drop
         predicted_confidence = trade_data.get('predicted_confidence', 0)
         current_confidence = current_strategy.get('confidence', 0)
-        
+
         if current_confidence < predicted_confidence * 0.8:  # 20% confidence drop
             reasons.append("Confidence dropped")
-        
+
         # Check breakeven breach (simplified)
         current_price = current_strategy.get('current_price', 0)
         breakeven_upper = trade_data.get('breakeven_upper', 0)
         breakeven_lower = trade_data.get('breakeven_lower', 0)
-        
+
         if current_price > 0 and breakeven_upper > 0 and breakeven_lower > 0:
             if current_price > breakeven_upper or current_price < breakeven_lower:
                 reasons.append("Breakeven breached")
-        
+
         return "; ".join(reasons)
-        
+
     except Exception as e:
         logger.warning(f"Error calculating divergence reason: {str(e)}")
         return ""
@@ -1775,7 +1775,7 @@ def determine_current_outcome(trade_data, current_strategy):
         # Simple logic to determine current status
         current_roi = current_strategy.get('expected_roi', 0)
         predicted_roi = trade_data.get('predicted_roi', 0)
-        
+
         if abs(current_roi - predicted_roi) <= predicted_roi * 0.1:  # Within 10%
             return "On Track"
         elif current_roi > predicted_roi * 1.2:  # 20% better
@@ -1784,7 +1784,7 @@ def determine_current_outcome(trade_data, current_strategy):
             return "At Risk"
         else:
             return "On Track"
-            
+
     except Exception:
         return "Unknown"
 
@@ -1793,11 +1793,11 @@ def calculate_std_dev(values):
     try:
         if len(values) <= 1:
             return 1
-        
+
         mean = sum(values) / len(values)
         variance = sum((x - mean) ** 2 for x in values) / (len(values) - 1)
         return variance ** 0.5
-        
+
     except Exception:
         return 1
 
