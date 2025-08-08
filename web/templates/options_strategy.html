@@ -351,6 +351,43 @@
         .badge.bg-info { background-color: #17a2b8 !important; }
         .badge.bg-secondary { background-color: #6c757d !important; }
 
+        /* Tab Navigation Styles */
+        .nav-tabs {
+            border-bottom: 2px solid #e67e22;
+            margin-bottom: 0;
+        }
+
+        .nav-tabs .nav-link {
+            color: #666;
+            border: none;
+            padding: 12px 20px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.8);
+            margin-right: 5px;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tabs .nav-link:hover {
+            background: rgba(230, 126, 34, 0.1);
+            color: #e67e22;
+            border-color: transparent;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        .tab-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 0 0 15px 15px;
+            padding: 0;
+            min-height: 400px;
+        }
+
     </style>
 </head>
 <body>
@@ -433,6 +470,32 @@
                 <tbody id="optionsTableBody">
                 </tbody>
             </table>
+
+            <!-- Tab Navigation -->
+            <div class="mt-4">
+                <ul class="nav nav-tabs" id="optionsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
+                            📊 Summary
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="performance-tab" data-bs-toggle="tab" data-bs-target="#performance" type="button" role="tab" aria-controls="performance" aria-selected="false">
+                            📈 Prediction Tracker
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="heatmap-tab" data-bs-toggle="tab" data-bs-target="#heatmap" type="button" role="tab" aria-controls="heatmap" aria-selected="false">
+                            🔥 Heatmap
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="false">
+                            📋 Details
+                        </button>
+                    </li>
+                </ul>
+            </div>
 
             <!-- Tab Content -->
             <div class="tab-content mt-4" id="optionsTabsContent">
@@ -1098,21 +1161,48 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📱 Options Strategy page loaded');
 
-            // Tab switching with data loading
-            const triggerTabList = [].slice.call(document.querySelectorAll('#optionsTabs button'));
-            triggerTabList.forEach(function (triggerEl) {
-                const tabTrigger = new bootstrap.Tab(triggerEl);
+            // Wait for Bootstrap to be available
+            setTimeout(() => {
+                // Tab switching with data loading
+                const triggerTabList = [].slice.call(document.querySelectorAll('#optionsTabs button'));
+                if (triggerTabList.length > 0) {
+                    triggerTabList.forEach(function (triggerEl) {
+                        triggerEl.addEventListener('click', function (event) {
+                            event.preventDefault();
+                            
+                            // Remove active class from all tabs
+                            triggerTabList.forEach(tab => {
+                                tab.classList.remove('active');
+                                const target = tab.getAttribute('data-bs-target');
+                                if (target) {
+                                    const pane = document.querySelector(target);
+                                    if (pane) {
+                                        pane.classList.remove('show', 'active');
+                                    }
+                                }
+                            });
+                            
+                            // Add active class to clicked tab
+                            triggerEl.classList.add('active');
+                            const target = triggerEl.getAttribute('data-bs-target');
+                            if (target) {
+                                const pane = document.querySelector(target);
+                                if (pane) {
+                                    pane.classList.add('show', 'active');
+                                }
+                            }
 
-                triggerEl.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    tabTrigger.show();
-
-                    // Load performance data when Performance tab is clicked
-                    if (triggerEl.id === 'performance-tab') {
-                        loadPerformanceDashboard();
-                    }
-                });
-            });
+                            // Load performance data when Performance tab is clicked
+                            if (triggerEl.id === 'performance-tab') {
+                                loadPerformanceDashboard();
+                            }
+                        });
+                    });
+                    console.log(`✅ Initialized ${triggerTabList.length} tab triggers`);
+                } else {
+                    console.log('⚠️ No tab triggers found');
+                }
+            }, 100);
 
             // Initialize tooltips
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
