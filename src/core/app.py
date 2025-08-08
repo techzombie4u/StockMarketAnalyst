@@ -1538,6 +1538,7 @@ def options_prediction_dashboard():
     """API endpoint for options prediction dashboard data"""
     try:
         logger.info("📈 Loading options prediction dashboard data...")
+        print("[API] options-prediction-dashboard called")
 
         # Initialize Smart Go Agent
         if SmartGoAgent:
@@ -1545,9 +1546,11 @@ def options_prediction_dashboard():
             
             # Get active trades
             active_trades = smart_agent.get_active_options_predictions()
+            print(f"[API] Active trades found: {len(active_trades)}")
             
             # Get prediction accuracy summary
             accuracy_summary = smart_agent.get_prediction_accuracy_summary()
+            print(f"[API] Accuracy summary timeframes: {list(accuracy_summary.keys())}")
             
             dashboard_data = {
                 'status': 'success',
@@ -1556,9 +1559,11 @@ def options_prediction_dashboard():
                 'summary_stats': accuracy_summary
             }
             
+            print("[API] options-prediction-dashboard response:", dashboard_data)
             logger.info(f"✅ Options prediction dashboard data prepared: {len(active_trades)} active trades")
             return jsonify(dashboard_data)
         else:
+            print("[API] SmartGoAgent not available, using fallback data")
             # Fallback if SmartGoAgent is not available
             dashboard_data = {
                 'status': 'success',
@@ -1572,17 +1577,27 @@ def options_prediction_dashboard():
                     '30D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0}
                 }
             }
+            print("[API] options-prediction-dashboard response:", dashboard_data)
             return jsonify(dashboard_data)
 
     except Exception as e:
+        print(f"[API] Error in options prediction dashboard: {str(e)}")
         logger.error(f"Error in options prediction dashboard: {str(e)}")
-        return jsonify({
+        error_response = {
             'status': 'error',
             'error': str(e),
             'timestamp': datetime.now(IST).isoformat(),
             'live_trades': [],
-            'summary_stats': {}
-        }), 500
+            'summary_stats': {
+                '3D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
+                '5D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
+                '10D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
+                '15D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
+                '30D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0}
+            }
+        }
+        print("[API] options-prediction-dashboard error response:", error_response)
+        return jsonify(error_response), 200  # Return 200 to avoid frontend errors
 
 @app.route('/api/prediction-performance-dashboard')
 def prediction_performance_dashboard():

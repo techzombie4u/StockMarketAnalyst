@@ -1037,15 +1037,22 @@
 
         // Update Live Trade Divergence Monitor to show proper empty state and handle data correctly
         function updateLiveTradeDivergenceMonitor(inProgressTrades) {
-            const tbody = document.querySelector('#inProgressTableBody'); // Corrected selector
+            console.log('📊 Updating Live Trade Divergence Monitor with', inProgressTrades ? inProgressTrades.length : 0, 'trades');
+            const tbody = document.querySelector('#inProgressTableBody');
+            
+            if (!tbody) {
+                console.error('❌ Could not find #inProgressTableBody');
+                return;
+            }
+            
             tbody.innerHTML = '';
 
             if (!inProgressTrades || inProgressTrades.length === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" class="text-center text-muted">
-                            <div class="text-lg mb-2">📊</div>
-                            <div class="font-medium">No active trades in progress</div>
+                            <div class="mb-2">📊</div>
+                            <div class="fw-bold">No active trades in progress</div>
                             <div class="text-sm">Lock predictions in the main dashboard to track them here</div>
                         </td>
                     </tr>
@@ -1059,17 +1066,17 @@
                 const bHasReason = b.reason && b.reason.trim() !== '';
                 if (aHasReason && !bHasReason) return -1;
                 if (!aHasReason && bHasReason) return 1;
-                return new Date(a.due_date) - new Date(b.due_date);
+                return new Date(a.due_date || '2025-01-01') - new Date(b.due_date || '2025-01-01');
             });
 
             inProgressTrades.forEach(trade => {
                 const row = document.createElement('tr');
 
-                // Determine status color
-                let statusColor = 'text-gray-600';
-                if (trade.current_outcome === 'Exceeded') statusColor = 'text-green-600';
-                else if (trade.current_outcome === 'At Risk') statusColor = 'text-red-600';
-                else if (trade.current_outcome === 'On Track') statusColor = 'text-blue-600';
+                // Determine status color using Bootstrap classes
+                let statusColor = 'text-muted';
+                if (trade.current_outcome === 'Exceeded') statusColor = 'text-success';
+                else if (trade.current_outcome === 'At Risk') statusColor = 'text-danger';
+                else if (trade.current_outcome === 'On Track') statusColor = 'text-primary';
 
                 // Determine reason color and content
                 let reasonHtml = '';
@@ -1077,35 +1084,44 @@
                     const isNegative = trade.reason.toLowerCase().includes('declined') ||
                                      trade.reason.toLowerCase().includes('below') ||
                                      trade.reason.toLowerCase().includes('risk');
-                    const reasonColor = isNegative ? 'text-red-600' : 'text-orange-600';
-                    reasonHtml = `<span class="${reasonColor} font-medium">${trade.reason}</span>`;
+                    const reasonColor = isNegative ? 'text-danger' : 'text-warning';
+                    reasonHtml = `<span class="${reasonColor} fw-bold">${trade.reason}</span>`;
                 } else {
-                    reasonHtml = '<span class="text-gray-400">-</span>';
+                    reasonHtml = '<span class="text-muted">-</span>';
                 }
 
                 // Format ROI comparison
                 const predictedRoi = typeof trade.predicted_roi === 'number' ? trade.predicted_roi : 0;
                 const currentRoi = typeof trade.current_roi === 'number' ? trade.current_roi : 0;
-                const roiColor = currentRoi >= predictedRoi ? 'text-green-600' : 'text-red-600';
+                const roiColor = currentRoi >= predictedRoi ? 'text-success' : 'text-danger';
 
                 row.innerHTML = `
-                    <td class="px-4 py-2 text-sm">${trade.due_date}</td>
-                    <td class="px-4 py-2 text-sm font-medium">${trade.stock}</td>
-                    <td class="px-4 py-2 text-sm">${trade.predicted_outcome}</td>
-                    <td class="px-4 py-2 text-sm ${statusColor} font-medium">${trade.current_outcome}</td>
-                    <td class="px-4 py-2 text-sm text-gray-600">${predictedRoi.toFixed(1)}%</td>
-                    <td class="px-4 py-2 text-sm">
-                        <span class="${roiColor} font-medium">${currentRoi.toFixed(1)}%</span>
+                    <td>${trade.due_date || 'N/A'}</td>
+                    <td class="fw-bold">${trade.stock || 'N/A'}</td>
+                    <td>${trade.predicted_outcome || 'N/A'}</td>
+                    <td class="${statusColor} fw-bold">${trade.current_outcome || 'N/A'}</td>
+                    <td class="text-end">${predictedRoi.toFixed(1)}%</td>
+                    <td class="text-end">
+                        <span class="${roiColor} fw-bold">${currentRoi.toFixed(1)}%</span>
                     </td>
-                    <td class="px-4 py-2 text-sm">${reasonHtml}</td>
+                    <td class="text-end">${reasonHtml}</td>
                 `;
                 tbody.appendChild(row);
             });
+            
+            console.log('✅ Live Trade Divergence Monitor updated with', inProgressTrades.length, 'trades');
         }
 
         // Update Prediction Accuracy Dashboard to show proper data and empty states
         function updatePredictionAccuracyDashboard(summary) {
-            const tbody = document.querySelector('#accuracyTableBody'); // Corrected selector
+            console.log('📈 Updating Prediction Accuracy Dashboard with summary:', summary);
+            const tbody = document.querySelector('#accuracyTableBody');
+            
+            if (!tbody) {
+                console.error('❌ Could not find #accuracyTableBody');
+                return;
+            }
+            
             tbody.innerHTML = '';
 
             const timeframes = ['3D', '5D', '10D', '15D', '30D'];
@@ -1127,17 +1143,17 @@
 
                 const row = document.createElement('tr');
 
-                // Color code accuracy
-                let accuracyColor = 'text-gray-600';
-                if (data.accuracy >= 70) accuracyColor = 'text-green-600';
-                else if (data.accuracy >= 50) accuracyColor = 'text-yellow-600';
-                else if (data.accuracy > 0) accuracyColor = 'text-red-600';
+                // Color code accuracy using Bootstrap classes
+                let accuracyColor = 'text-muted';
+                if (data.accuracy >= 70) accuracyColor = 'text-success';
+                else if (data.accuracy >= 50) accuracyColor = 'text-warning';
+                else if (data.accuracy > 0) accuracyColor = 'text-danger';
 
-                // Color code ROI
-                let roiColor = 'text-gray-600';
-                if (data.avg_roi > 10) roiColor = 'text-green-600';
-                else if (data.avg_roi > 0) roiColor = 'text-blue-600';
-                else if (data.avg_roi < 0) roiColor = 'text-red-600';
+                // Color code ROI using Bootstrap classes
+                let roiColor = 'text-muted';
+                if (data.avg_roi > 10) roiColor = 'text-success';
+                else if (data.avg_roi > 0) roiColor = 'text-primary';
+                else if (data.avg_roi < 0) roiColor = 'text-danger';
 
                 // Show dash for zero values
                 const formatValue = (value, suffix = '') => {
@@ -1145,15 +1161,15 @@
                 };
 
                 row.innerHTML = `
-                    <td class="px-4 py-2 text-sm font-medium">${timeframe}</td>
-                    <td class="px-4 py-2 text-sm">${formatValue(data.total)}</td>
-                    <td class="px-4 py-2 text-sm text-green-600">${formatValue(data.successful)}</td>
-                    <td class="px-4 py-2 text-sm text-red-600">${formatValue(data.failed)}</td>
-                    <td class="px-4 py-2 text-sm text-blue-600">${formatValue(data.in_progress)}</td>
-                    <td class="px-4 py-2 text-sm ${accuracyColor} font-medium">${data.accuracy > 0 ? data.accuracy.toFixed(1) + '%' : '-'}</td>
-                    <td class="px-4 py-2 text-sm ${roiColor}">${data.avg_roi !== 0 ? data.avg_roi.toFixed(1) + '%' : '-'}</td>
-                    <td class="px-4 py-2 text-sm text-red-600">${data.max_drawdown !== 0 ? data.max_drawdown.toFixed(1) + '%' : '-'}</td>
-                    <td class="px-4 py-2 text-sm">${data.sharpe_ratio !== 0 ? data.sharpe_ratio.toFixed(2) : '-'}</td>
+                    <td class="fw-bold">${timeframe}</td>
+                    <td class="text-center">${formatValue(data.total)}</td>
+                    <td class="text-center text-success">${formatValue(data.successful)}</td>
+                    <td class="text-center text-danger">${formatValue(data.failed)}</td>
+                    <td class="text-center text-primary">${formatValue(data.in_progress)}</td>
+                    <td class="text-center ${accuracyColor} fw-bold">${data.accuracy > 0 ? data.accuracy.toFixed(1) + '%' : '-'}</td>
+                    <td class="text-center ${roiColor}">${data.avg_roi !== 0 ? data.avg_roi.toFixed(1) + '%' : '-'}</td>
+                    <td class="text-center text-danger">${data.max_drawdown !== 0 ? data.max_drawdown.toFixed(1) + '%' : '-'}</td>
+                    <td class="text-center">${data.sharpe_ratio !== 0 ? data.sharpe_ratio.toFixed(2) : '-'}</td>
                 `;
                 tbody.appendChild(row);
             });
@@ -1162,14 +1178,117 @@
             if (!hasAnyData) {
                 const infoRow = document.createElement('tr');
                 infoRow.innerHTML = `
-                    <td colspan="9" class="px-4 py-4 text-center text-gray-500 bg-gray-50">
-                        <div class="text-sm">
-                            <div class="font-medium mb-1">📈 No completed predictions yet</div>
+                    <td colspan="9" class="text-center text-muted bg-light py-4">
+                        <div>
+                            <div class="fw-bold mb-1">📈 No completed predictions yet</div>
                             <div>Start locking predictions to build historical performance data</div>
                         </div>
                     </td>
                 `;
                 tbody.appendChild(infoRow);
+            }
+            
+            console.log('✅ Prediction Accuracy Dashboard updated');
+        }
+
+        // Load Prediction Performance Dashboard with proper error handling
+        async function loadPredictionPerformanceDashboard() {
+            console.log('📈 Starting to load Prediction Performance Dashboard...');
+            
+            // Show loading indicators
+            const inProgressTableBody = document.querySelector('#inProgressTableBody');
+            const accuracyTableBody = document.querySelector('#accuracyTableBody');
+            
+            if (inProgressTableBody) {
+                inProgressTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            Loading in-progress trades...
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            if (accuracyTableBody) {
+                accuracyTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center">
+                            <div class="spinner-border text-success" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            Loading performance data...
+                        </td>
+                    </tr>
+                `;
+            }
+
+            try {
+                console.log('📡 Fetching from /api/options-prediction-dashboard...');
+                const response = await fetch('/api/options-prediction-dashboard', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                console.log('📡 Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`API failure: HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('📊 Prediction dashboard data received:', data);
+
+                // Update Live Trade Divergence Monitor
+                if (data.live_trades) {
+                    updateLiveTradeDivergenceMonitor(data.live_trades);
+                } else {
+                    console.warn('⚠️ No live_trades in response');
+                    updateLiveTradeDivergenceMonitor([]);
+                }
+
+                // Update Prediction Accuracy Dashboard
+                if (data.summary_stats) {
+                    updatePredictionAccuracyDashboard(data.summary_stats);
+                } else {
+                    console.warn('⚠️ No summary_stats in response');
+                    updatePredictionAccuracyDashboard({});
+                }
+
+                console.log('✅ Prediction Performance Dashboard loaded successfully');
+
+            } catch (error) {
+                console.error('❌ Prediction dashboard load error:', error);
+                
+                // Show error state
+                if (inProgressTableBody) {
+                    inProgressTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center text-danger">
+                                <div class="mb-2">❌ Error loading data</div>
+                                <div class="text-sm">${error.message}</div>
+                                <button onclick="loadPredictionPerformanceDashboard()" class="btn btn-sm btn-primary mt-2">Retry</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                if (accuracyTableBody) {
+                    accuracyTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="text-center text-danger">
+                                <div class="mb-2">❌ Error loading performance data</div>
+                                <div class="text-sm">${error.message}</div>
+                                <button onclick="loadPredictionPerformanceDashboard()" class="btn btn-sm btn-primary mt-2">Retry</button>
+                            </td>
+                        </tr>
+                    `;
+                }
             }
         }
 
