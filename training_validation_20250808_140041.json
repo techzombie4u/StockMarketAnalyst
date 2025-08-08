@@ -1,0 +1,76 @@
+{
+  "timestamp": "2025-08-08T14:00:40.593243",
+  "models_found": 102,
+  "kpi_stocks": 23,
+  "validation_errors": [],
+  "successful_stocks": [
+    "RELIANCE",
+    "TCS",
+    "INFY",
+    "HDFCBANK",
+    "ICICIBANK",
+    "HINDUNILVR",
+    "KOTAKBANK",
+    "LT",
+    "AXISBANK",
+    "MARUTI",
+    "SUNPHARMA",
+    "TITAN",
+    "ULTRACEMCO",
+    "ASIANPAINT",
+    "BAJFINANCE",
+    "NESTLEIND",
+    "HCLTECH",
+    "TECHM",
+    "WIPRO",
+    "DRREDDY",
+    "ADANIPORTS",
+    "GRASIM",
+    "BAJAJFINSV",
+    "HEROMOTOCO",
+    "EICHERMOT",
+    "INDUSINDBK",
+    "TATACONSUM",
+    "UPL",
+    "LTIM",
+    "AUBANK",
+    "BANDHANBNK",
+    "M",
+    "BRITANNIA",
+    "DIVISLAB",
+    "CIPLA",
+    "LUPIN",
+    "BIOCON",
+    "APOLLOHOSP",
+    "FORTIS",
+    "MAXHEALTH",
+    "NMDC",
+    "HINDZINC",
+    "MANAPPURAM",
+    "CHOLAFIN",
+    "M&MFIN",
+    "MPHASIS",
+    "COFORGE",
+    "PERSISTENT",
+    "LTTS",
+    "CYIENT"
+  ],
+  "missing_models": [
+    {
+      "stock": "lstm",
+      "has_lstm": true,
+      "has_rf": false,
+      "files": [
+        "lstm_model.h5"
+      ]
+    },
+    {
+      "stock": "rf",
+      "has_lstm": false,
+      "has_rf": true,
+      "files": [
+        "rf_model.pkl"
+      ]
+    }
+  ]
+}
