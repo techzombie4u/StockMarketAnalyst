@@ -1,6 +1,6 @@
-# 📈 Stock Market Analyst
+# 📊 Stock Market Analyst v1.7.4
 
-A comprehensive AI-powered stock screener and analysis dashboard for Indian stock markets. This application automatically screens stocks based on fundamental analysis, technical indicators, and market sentiment to identify high-potential investment opportunities.
+Advanced AI-powered stock analysis and prediction platform with real-time market insights.
 
 ## 🌟 Features
 
@@ -68,20 +68,29 @@ A comprehensive AI-powered stock screener and analysis dashboard for Indian stoc
 
 4. **Open dashboard**: Navigate to `http://localhost:5000`
 
-## 📁 Project Structure
+## 🏗️ Consolidated Project Structure
 
 ```
-stock-market-analyst/
-├── main.py                 # Application entry point
-├── app.py                  # Flask web application
-├── stock_screener.py       # Core screening logic
-├── scheduler.py            # APScheduler automation
-├── templates/
-│   └── index.html         # Dashboard HTML template
-├── top10.json             # Generated stock results (auto-created)
-├── jobs.sqlite            # Scheduler database (auto-created)
-├── pyproject.toml         # Python dependencies
-└── README.md              # This file
+Stock Market Analyst v1.7.4/
+├── src/                    # ✨ Consolidated active codebase
+│   ├── analyzers/         # Market analysis engines
+│   ├── agents/           # AI prediction agents  
+│   ├── core/             # Flask app & initialization
+│   ├── managers/         # Data & cache management
+│   ├── orchestrators/    # Optimization logic
+│   ├── reporters/        # Insight generation
+│   ├── strategies/       # Trading strategies
+│   └── utils/            # Helper utilities
+├── web/templates/         # Frontend templates
+├── data/                 # Data storage & tracking
+│   ├── historical/       # Historical market data
+│   ├── tracking/         # Prediction tracking
+│   └── cache/            # Performance cache
+├── models_trained/        # ML models
+├── docs/                 # Documentation
+├── tests/                # Test suites
+├── legacy_archive_2025/   # 🗄️ Archived backup code
+└── main.py               # ✨ Clean application entry point
 ```
 
 ## 🎮 Usage Guide

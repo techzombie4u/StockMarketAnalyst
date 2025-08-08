@@ -4,72 +4,61 @@ Stock Market Analyst - Flask Dashboard
 Web interface for displaying stock screening results with auto-refresh.
 """
 
-import json
+import sys
 import os
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify, request
-from flask_cors import CORS
-import logging
 import pytz
-from typing import Callable, Optional, Dict, Any, List
+import json
+import logging
+from typing import Dict, List, Optional, Any, Union
+from flask import Flask, render_template, jsonify, request, abort
+from flask_caching import Cache
+import traceback
+import atexit
 
-# Import GoAhead Agent
-from src.analyzers.smart_go_agent import SmartGoAgent
+# Time zone setup
+IST = pytz.timezone('Asia/Kolkata')
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-# Import required classes - with fallback handling
+# Initialize Flask app with consolidated structure
+logger.info("🚀 Starting Stock Market Analyst - Version 1.7.4 (Consolidated)")
+logger.info("📁 Using consolidated /src/ structure")
+
+# Initialize Flask application
+app = Flask(__name__,
+           template_folder='../../web/templates',
+           static_folder='../../web/static')
+
+# Configure Flask app
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+app.config['CACHE_TYPE'] = 'simple'
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+
+# Initialize cache
+cache = Cache(app)
+
+# Import consolidated modules
 try:
-    from src.analyzers.historical_analyzer import HistoricalAnalyzer
-    from src.analyzers.daily_technical_analyzer import DailyTechnicalAnalyzer
-    from src.analyzers.stock_screener import EnhancedStockScreener
-    from src.analyzers.short_strangle_engine import ShortStrangleEngine
-    from src.models.predictor import StockPredictor
-    from src.managers.interactive_tracker_manager import InteractiveTrackerManager
-    from src.managers.enhanced_error_handler import EnhancedErrorHandler
-    from src.core.scheduler import SchedulerManager
+    from analyzers.smart_go_agent import SmartGoAgent
+    from analyzers.short_strangle_engine import ShortStrangleEngine
+    from managers.enhanced_error_handler import enhanced_error_handler
+    from utils.external_data_importer import ExternalDataImporter
+    logger.info("✅ Successfully imported all consolidated modules")
 except ImportError as e:
-    logger.warning(f"Import warning: {e}")
-    # Create minimal fallback classes
-    class HistoricalAnalyzer:
-        def get_historical_trends(self): return {}
-
-    class DailyTechnicalAnalyzer:
-        def analyze(self, *args, **kwargs): return {}
-
-    class EnhancedStockScreener:
-        def run_enhanced_screener(self): return False
-        def scrape_screener_data(self, symbol): return {}
-        def calculate_enhanced_technical_indicators(self, symbol): return {}
-        def enhanced_score_and_rank(self, data): return []
-
-    class ShortStrangleEngine:
-        def generate_strategies(self, *args, **kwargs): return []
-
-    class StockPredictor:
-        def predict(self, *args, **kwargs): return {}
-
-    class InteractiveTrackerManager:
-        def get_all_tracking_data(self): return {}
-        def load_tracking_data(self): return {}
-        def update_lock_status(self, *args, **kwargs): return True
-        def update_daily_actual_prices(self): return {}
-        def _ensure_current_stocks_tracked(self): pass
-
-    class EnhancedErrorHandler:
-        def handle_error(self, *args, **kwargs): pass
-        def get_error_summary(self): return {}
-
-    class SchedulerManager:
-        def start_scheduler(self, *args, **kwargs): pass
+    logger.error(f"❌ Import error in consolidated structure: {e}")
+    raise e
 
 # Set template folder to the correct location
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates')
-if not os.path.exists(template_dir):
-    # Fallback to backup templates
-    template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '_backup_before_organization', 'templates')
+app.template_folder = template_dir
 
-app = Flask(__name__, template_folder=template_dir)
+
 CORS(app)  # Enable CORS for all routes
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 
@@ -77,7 +66,7 @@ app.config['SECRET_KEY'] = 'your-secret-key-here'
 scheduler = None
 
 # Initialize managers
-error_handler = EnhancedErrorHandler()
+error_handler = enhanced_error_handler()
 interactive_tracker = InteractiveTrackerManager()
 scheduler_manager = SchedulerManager()
 strangle_engine = ShortStrangleEngine()
@@ -150,7 +139,7 @@ def get_stocks():
                 # Try to run a quick screening to get fresh data
                 try:
                     logger.info("Attempting to generate fresh data...")
-                    from src.analyzers.stock_screener import EnhancedStockScreener
+                    from analyzers.stock_screener import EnhancedStockScreener
                     screener = EnhancedStockScreener()
 
                     # Get a few stocks quickly for recovery
@@ -213,7 +202,7 @@ def get_stocks():
 
         # Add backtesting summary
         try:
-            from src.managers.backtesting_manager import BacktestingManager
+            from managers.backtesting_manager import BacktestingManager
             backtester = BacktestingManager()
             backtest_summary = backtester.get_latest_backtest_summary()
             data['backtesting'] = backtest_summary
@@ -475,7 +464,7 @@ def load_screening_sessions_count():
         # First, try to get session count from scheduler globals
         global scheduler
         if scheduler and hasattr(scheduler, 'successful_sessions'):
-            from src.core.scheduler import successful_sessions, total_sessions_run
+            from core.scheduler import successful_sessions, total_sessions_run
             logger.info(f"Retrieved session count from scheduler: total={total_sessions_run}, successful={successful_sessions}")
             return total_sessions_run  # Return total runs as requested
 
@@ -566,7 +555,7 @@ def calculate_historical_accuracy(sessions_count, high_score_count, total_stocks
 def load_tracking_metrics_for_analysis():
     """Load tracking metrics to support enhanced analysis"""
     try:
-        from src.managers.interactive_tracker_manager import InteractiveTrackerManager
+        from managers.interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
         tracking_data = tracker_manager.get_all_tracking_data()
 
@@ -741,7 +730,7 @@ def api_status():
             'scheduler': get_scheduler_status(),
             'data_freshness': check_data_freshness(),
             'prediction_stability': {},
-            'version': '1.3.0'
+            'version': '1.7.4'
         }
 
         # Get prediction stability status
@@ -847,7 +836,7 @@ def run_now():
             else:
                 # Run standalone screening
                 logger.info("Using standalone screening")
-                from src.analyzers.stock_screener import EnhancedStockScreener
+                from analyzers.stock_screener import EnhancedStockScreener
                 screener = EnhancedStockScreener()
                 success = screener.run_enhanced_screener() # Corrected method call
                 if success:
@@ -1022,7 +1011,7 @@ def get_analysis():
         successful_sessions_count = 0
         successful_refresh_count = 0
         try:
-            from src.core.scheduler import successful_sessions, total_sessions_run
+            from core.scheduler import successful_sessions, total_sessions_run
             successful_sessions_count = successful_sessions
             total_runs = total_sessions_run
             successful_refresh_count = successful_sessions_count  # Use successful sessions as refresh count
@@ -1168,7 +1157,7 @@ def lookup_stock(symbol):
         logger.info(f"Looking up stock: {symbol}")
 
         # Import here to avoid circular imports
-        from src.analyzers.stock_screener import EnhancedStockScreener
+        from analyzers.stock_screener import EnhancedStockScreener
 
         screener = EnhancedStockScreener()
 
@@ -1199,7 +1188,7 @@ def lookup_stock(symbol):
 
         # Try to add ML predictions if available
         try:
-            from src.models.predictor import enrich_with_ml_predictions
+            from models.predictor import enrich_with_ml_predictions
             enhanced_stocks = enrich_with_ml_predictions([stock_result])
             if enhanced_stocks:
                 stock_result = enhanced_stocks[0]
@@ -1220,7 +1209,7 @@ def lookup_stock(symbol):
 def get_backtest_results():
     """Get backtesting analysis results"""
     try:
-        from src.managers.backtesting_manager import BacktestingManager
+        from managers.backtesting_manager import BacktestingManager
         backtester = BacktestingManager()
 
         # Run fresh backtest analysis
@@ -1270,84 +1259,24 @@ def options_strategies():
         # Force real-time data usage
         use_live = manual_refresh or force_realtime or refresh or True  # Always use live by default
 
-        # Check if we're using organized structure or backup
+        # Import consolidated modules
         try:
-            from src.analyzers.short_strangle_engine import ShortStrangleEngine
+            from analyzers.short_strangle_engine import ShortStrangleEngine
             print("[OPTIONS_API] ✅ Using organized structure engine")
         except ImportError:
-            # Fallback to backup if organized structure fails
-            import sys
-            backup_path = os.path.join(os.path.dirname(__file__), '..', '..', '_backup_before_organization')
-            if backup_path not in sys.path:
-                sys.path.insert(0, backup_path)
-
-            # Create a simplified engine for backup with improved ROI calculation
-            class ShortStrangleEngine:
-                def analyze_short_strangle(self, symbol, manual_refresh=False, force_realtime=False):
-                    try:
-                        import yfinance as yf
-
-                        print(f"[STRATEGY_ENGINE] Fetching live price for {symbol}")
-
-                        # Get real-time price
-                        ticker = yf.Ticker(f"{symbol}.NS")
-                        hist = ticker.history(period="1d")
-
-                        if hist.empty:
-                            print(f"[ERROR] No data for {symbol}")
-                            return None
-
-                        current_price = float(hist['Close'].iloc[-1])
-                        print(f"[STRATEGY_ENGINE] Live price for {symbol}: ₹{current_price}")
-
-                        # Calculate strategy with improved parameters
-                        otm_percent = 0.04
-                        call_strike = round((current_price * (1 + otm_percent)) / 50) * 50
-                        put_strike = round((current_price * (1 - otm_percent)) / 50) * 50
-
-                        # Improved premium calculation based on actual market conditions
-                        call_premium = max(15.0, current_price * 0.025)  # 2.5% of spot
-                        put_premium = max(12.0, current_price * 0.02)    # 2% of spot
-                        total_premium = call_premium + put_premium
-
-                        breakeven_upper = call_strike + total_premium
-                        breakeven_lower = put_strike - total_premium
-
-                        # Fixed margin calculation - use per lot basis (100 shares)
-                        margin_required = current_price * 0.15 * 100  # 15% margin per lot
-                        expected_roi = (total_premium * 100 / margin_required) * 100  # Annualize for monthly
-
-                        confidence = min(90, max(50, 70 + (expected_roi - 8) * 2))
-                        risk_level = "Low" if expected_roi >= 8 else "Medium" if expected_roi >= 5 else "High"
-
-                        print(f"[STRATEGY_ENGINE] {symbol} - Price: ₹{current_price}, Premium: ₹{total_premium}, ROI: {expected_roi:.1f}%")
-
-                        return {
-                            'symbol': symbol,
-                            'current_price': round(current_price, 2),
-                            'call_strike': round(call_strike, 2),
-                            'put_strike': round(put_strike, 2),
-                            'call_premium': round(call_premium, 2),
-                            'put_premium': round(put_premium, 2),
-                            'total_premium': round(total_premium, 2),
-                            'breakeven_upper': round(breakeven_upper, 2),
-                            'breakeven_lower': round(breakeven_lower, 2),
-                            'margin_required': round(margin_required, 2),
-                            'expected_roi': round(expected_roi, 2),
-                            'confidence': round(confidence, 1),
-                            'risk_level': risk_level,
-                            'timestamp': datetime.now().isoformat(),
-                            'data_source': 'yahoo_finance_backup'
-                        }
-                    except Exception as e:
-                        print(f"[ERROR] Backup engine error for {symbol}: {e}")
-                        return None
-
-            print("[OPTIONS_API] Using backup engine")
+            # This fallback logic should ideally not be reached if consolidation is successful
+            print("[OPTIONS_API] ❌ ERROR: Could not import ShortStrangleEngine from organized structure.")
+            return jsonify({
+                "status": "error",
+                "strategies": [],
+                "error": "Failed to load core strategy engine.",
+                "timestamp": datetime.now().isoformat(),
+                "total_strategies": 0
+            }), 500
 
         engine = ShortStrangleEngine()
 
-        # Top tier 1 stocks for options trading  
+        # Top tier 1 stocks for options trading
         tier1_stocks = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ITC', 'HINDUNILVR']
 
         strategies = []
@@ -1398,7 +1327,7 @@ def options_strategies():
 def load_interactive_tracking_data():
     """Load enhanced tracking data for interactive charts with persistence"""
     try:
-        from src.managers.interactive_tracker_manager import InteractiveTrackerManager
+        from managers.interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
         tracking_data = tracker_manager.load_tracking_data()
 
@@ -1413,7 +1342,7 @@ def load_interactive_tracking_data():
 def save_lock_status(symbol, period, locked, timestamp, persistent=True):
     """Save lock status for a stock prediction with persistence support"""
     try:
-        from src.managers.interactive_tracker_manager import InteractiveTrackerManager
+        from managers.interactive_tracker_manager import InteractiveTrackerManager
         tracker_manager = InteractiveTrackerManager()
 
         # Ensure current stocks are tracked before saving lock status
@@ -1442,7 +1371,7 @@ def initialize_app():
         # Create initial demo data
         create_initial_demo_data()
 
-        from src.core.scheduler import StockAnalystScheduler
+        from core.scheduler import StockAnalystScheduler
         scheduler = StockAnalystScheduler()
         scheduler.start_scheduler(interval_minutes=60)
         logger.info("✅ Scheduler started successfully")
@@ -1596,7 +1525,7 @@ def get_current_options_strategies():
     """Get current options strategies for comparison"""
     try:
         # Use existing options strategies endpoint logic
-        from src.analyzers.short_strangle_engine import ShortStrangleEngine
+        from analyzers.short_strangle_engine import ShortStrangleEngine
         engine = ShortStrangleEngine()
 
         # Get current strategies for major stocks
