@@ -37,7 +37,11 @@ class ModelTrainer:
     def __init__(self):
         self.models_dir = "models_trained"
         self.data_dir = "data/historical/downloaded_historical_data"
+        self.logs_dir = "logs"
         self.kpi_file = "data/tracking/model_kpi.json"
+
+        # Initialize data fetcher
+        self.data_fetcher = HistoricalDataFetcher()
 
         # Ensure directories exist
         os.makedirs(self.models_dir, exist_ok=True)
@@ -55,6 +59,55 @@ class ModelTrainer:
         }
 
         self.scaler = MinMaxScaler() if SKLEARN_AVAILABLE else None
+
+    def calculate_technical_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calculate technical indicators for the DataFrame"""
+        try:
+            df = df.copy()
+            
+            # Calculate ATR (Average True Range)
+            df['H-L'] = df['High'] - df['Low']
+            df['H-PC'] = abs(df['High'] - df['Close'].shift(1))
+            df['L-PC'] = abs(df['Low'] - df['Close'].shift(1))
+            df['TR'] = df[['H-L', 'H-PC', 'L-PC']].max(axis=1)
+            df['ATR'] = df['TR'].rolling(window=14).mean()
+            
+            # Calculate RSI
+            delta = df['Close'].diff()
+            gain = delta.where(delta > 0, 0)
+            loss = -delta.where(delta < 0, 0)
+            avg_gain = gain.rolling(window=14).mean()
+            avg_loss = loss.rolling(window=14).mean()
+            rs = avg_gain / avg_loss
+            df['RSI'] = 100 - (100 / (1 + rs))
+            
+            # Calculate Volume Ratio
+            df['Volume_Ratio'] = df['Volume'] / df['Volume'].rolling(window=20).mean()
+            
+            # Calculate Volatility
+            df['Volatility'] = df['Close'].rolling(window=20).std()
+            
+            # Calculate Moving Averages
+            df['MA20'] = df['Close'].rolling(window=20).mean()
+            df['Price_vs_MA20'] = df['Close'] / df['MA20'] - 1
+            
+            # Calculate Momentum
+            df['Momentum_5d'] = df['Close'] / df['Close'].shift(5) - 1
+            df['Momentum_20d'] = df['Close'] / df['Close'].shift(20) - 1
+            
+            # Clean up temporary columns
+            df.drop(['H-L', 'H-PC', 'L-PC', 'TR'], axis=1, inplace=True)
+            
+            # Fill NaN values
+            df.fillna(method='ffill', inplace=True)
+            df.fillna(0, inplace=True)
+            
+            logger.info(f"✅ Technical indicators calculated for {len(df)} rows")
+            return df
+            
+        except Exception as e:
+            logger.error(f"Error calculating technical indicators: {str(e)}")
+            return df
 
     def prepare_lstm_data(self, df: pd.DataFrame, lookback_window: int = 60) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
         """Prepare time-series data for LSTM training"""
@@ -237,13 +290,19 @@ class ModelTrainer:
             # Load data
             if os.path.exists(effective_data_path):
                 df = pd.read_csv(effective_data_path)
+                # Convert Date column to datetime if needed
+                if 'Date' in df.columns:
+                    df['Date'] = pd.to_datetime(df['Date'])
             else:
                 # Fetch fresh data
-                df = self.data_fetcher.get_stock_history(symbol, period="5y")
+                df = self.data_fetcher.fetch_historical_data(symbol)
 
             if df is None or len(df) < 500:
                 logger.warning(f"Insufficient data for {symbol}. Found {len(df)} rows.")
                 return {'success': False, 'error': f'Insufficient data for {symbol}', 'symbol': symbol}
+
+            # Calculate technical indicators
+            df = self.calculate_technical_indicators(df)
 
             results = {
                 'symbol': symbol,
@@ -270,8 +329,16 @@ class ModelTrainer:
                     logger.error(f"RF training failed for {symbol}: {rf_results.get('error')}")
 
             # Log results
+            os.makedirs(self.logs_dir, exist_ok=True)
             log_path = os.path.join(self.logs_dir, f"{datetime.now().strftime('%Y-%m-%d')}_{normalized_symbol}.json")
-            save_json_safe(log_path, results)
+            try:
+                save_json_safe(log_path, results)
+            except Exception as e:
+                logger.warning(f"Could not save training log: {str(e)}")
+                # Save to backup location
+                backup_log_path = f"training_log_{normalized_symbol}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                with open(backup_log_path, 'w') as f:
+                    json.dump(results, f, indent=2)
 
             logger.info(f"✅ Training completed for {symbol}")
             return results
@@ -293,17 +360,21 @@ class ModelTrainer:
             'summary': {'total': 0, 'successful': 0, 'failed': 0}
         }
 
-        # First, fetch all data
+        # First, get list of stocks to train (from existing CSV files or predefined list)
         try:
-            data_results = self.data_fetcher.fetch_all_tracked_stocks()
-            logger.info(f"Fetched data for {len(data_results.get('successful', []))} stocks.")
+            # Get symbols from existing CSV files
+            if os.path.exists(self.data_dir):
+                csv_files = [f for f in os.listdir(self.data_dir) if f.endswith('.csv')]
+                symbols_to_train = [f.replace('.csv', '') for f in csv_files][:20]  # Limit to first 20
+            else:
+                # Default stock list if no CSV files exist
+                symbols_to_train = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'ITC', 'HINDUNILVR', 'KOTAKBANK']
+            
+            logger.info(f"Training models for {len(symbols_to_train)} stocks.")
         except Exception as e:
-            logger.error(f"Failed to fetch all tracked stocks: {str(e)}")
-            results['summary']['failed'] = len(self.data_fetcher.get_all_tracked_symbols()) # Assume all failed if fetch fails
+            logger.error(f"Failed to get stock symbols: {str(e)}")
+            results['summary']['failed'] = 20  # Assume default count failed
             return results
-
-        # Train models for each successful data fetch
-        symbols_to_train = data_results.get('successful', [])[:20] # Limit to first 20 for efficiency
         results['summary']['total'] = len(symbols_to_train)
 
         for symbol in symbols_to_train:
