@@ -13,6 +13,7 @@ import logging
 from typing import Dict, List, Optional, Any, Union
 from flask import Flask, render_template, jsonify, request, abort
 from flask_caching import Cache
+from flask_cors import CORS
 import traceback
 import atexit
 
@@ -58,9 +59,8 @@ except ImportError as e:
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates')
 app.template_folder = template_dir
 
-
-CORS(app)  # Enable CORS for all routes
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+# Enable CORS for all routes
+CORS(app)
 
 # Global scheduler instance
 scheduler = None
