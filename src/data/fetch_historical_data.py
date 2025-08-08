@@ -18,20 +18,64 @@ class HistoricalDataFetcher:
     def __init__(self):
         self.session = requests.Session()
         self.setup_headers()
+        # Enhanced symbol alias mapping for Yahoo Finance compatibility
         self.symbol_map = {
-            "M&M": "MAHINDRA AND MAHINDRA",
-            "M_M": "MAHINDRA AND MAHINDRA",
-            "TATA STEEL": "TATASTEEL",
-            "SBIN": "SBIN",
-            "COALINDIA": "COALINDIA",
-            "BANKBARODA": "BANKBARODA",
-            "PNB": "PNB",
-            "CANARA": "CANBK",
-            "UNIONBANK": "UNIONBANK",
-            "BANKINDIA": "BANKINDIA",
-            "CENTRALBANK": "CENTRALBK",
-            "INDIANBANK": "INDIANB",
-            "FEDERALBANK": "FEDERALBNK"
+            "M&M": "M&M.NS",
+            "M_M": "M&M.NS", 
+            "TATA STEEL": "TATASTEEL.NS",
+            "TATASTEEL": "TATASTEEL.NS",
+            "SBIN": "SBIN.NS",
+            "COALINDIA": "COALINDIA.NS",
+            "BANKBARODA": "BANKBARODA.NS",
+            "PNB": "PNB.NS",
+            "CANARA": "CANBK.NS",
+            "CANBK": "CANBK.NS",
+            "UNIONBANK": "UNIONBANK.NS",
+            "BANKINDIA": "BANKINDIA.NS",
+            "CENTRALBANK": "CENTRALBK.NS",
+            "CENTRALBK": "CENTRALBK.NS",
+            "INDIANBANK": "INDIANB.NS",
+            "INDIANB": "INDIANB.NS",
+            "FEDERALBANK": "FEDERALBNK.NS",
+            "FEDERALBNK": "FEDERALBNK.NS",
+            "ITC": "ITC.NS",
+            "RELIANCE": "RELIANCE.NS",
+            "TCS": "TCS.NS",
+            "INFY": "INFY.NS",
+            "HDFCBANK": "HDFCBANK.NS",
+            "ICICIBANK": "ICICIBANK.NS",
+            "BHARTIARTL": "BHARTIARTL.NS",
+            "HINDUNILVR": "HINDUNILVR.NS",
+            "KOTAKBANK": "KOTAKBANK.NS",
+            "ADANIPORTS": "ADANIPORTS.NS",
+            "ASIANPAINT": "ASIANPAINT.NS",
+            "AXISBANK": "AXISBANK.NS",
+            "BAJFINANCE": "BAJFINANCE.NS",
+            "BAJAJFINSV": "BAJAJFINSV.NS",
+            "DRREDDY": "DRREDDY.NS",
+            "EICHERMOT": "EICHERMOT.NS",
+            "GRASIM": "GRASIM.NS",
+            "HCLTECH": "HCLTECH.NS",
+            "HEROMOTOCO": "HEROMOTOCO.NS",
+            "HINDALCO": "HINDALCO.NS",
+            "HINDUNILVR": "HINDUNILVR.NS",
+            "INDUSINDBK": "INDUSINDBK.NS",
+            "JSWSTEEL": "JSWSTEEL.NS",
+            "LTIM": "LTIM.NS",
+            "LT": "LT.NS",
+            "MARUTI": "MARUTI.NS",
+            "NESTLEIND": "NESTLEIND.NS",
+            "NTPC": "NTPC.NS",
+            "ONGC": "ONGC.NS",
+            "POWERGRID": "POWERGRID.NS",
+            "SUNPHARMA": "SUNPHARMA.NS",
+            "TATACONSUM": "TATACONSUM.NS",
+            "TATAMOTORS": "TATAMOTORS.NS",
+            "TECHM": "TECHM.NS",
+            "TITAN": "TITAN.NS",
+            "ULTRACEMCO": "ULTRACEMCO.NS",
+            "UPL": "UPL.NS",
+            "WIPRO": "WIPRO.NS"
         }
         
     def setup_headers(self):
@@ -58,36 +102,62 @@ class HistoricalDataFetcher:
         return self.symbol_map.get(symbol, symbol)
 
     def fetch_yfinance_data(self, symbol, period="5y"):
-        """Primary: Fetch data using yfinance"""
+        """Primary: Fetch data using yfinance with enhanced symbol mapping"""
         try:
             logger.info(f"📡 Fetching 5Y data for {symbol} via yfinance...")
             
-            # Try different symbol formats
+            # Apply symbol mapping first
+            mapped_symbol = self.symbol_map.get(symbol.upper(), symbol)
+            
+            # Try different symbol formats with comprehensive variations
             symbol_variations = [
+                mapped_symbol,
                 f"{symbol}.NS",
-                f"{symbol}.BO", 
-                symbol
+                f"{symbol}.BO",
+                f"{mapped_symbol}.NS" if not mapped_symbol.endswith('.NS') else mapped_symbol,
+                f"{mapped_symbol}.BO" if not mapped_symbol.endswith('.BO') else mapped_symbol,
+                symbol.upper(),
+                f"{symbol.upper()}.NS",
+                f"{symbol.upper()}.BO"
             ]
+            
+            # Remove duplicates while preserving order
+            symbol_variations = list(dict.fromkeys(symbol_variations))
             
             for sym_variant in symbol_variations:
                 try:
                     ticker = yf.Ticker(sym_variant)
                     data = ticker.history(period=period)
                     
-                    if not data.empty and len(data) > 100:  # Minimum 100 days
+                    # Validate data quality - require minimum 1000 rows for 5-year training
+                    if not data.empty and len(data) >= 1000:
                         logger.info(f"✅ yfinance success: {symbol} -> {sym_variant} ({len(data)} rows)")
                         
-                        # Ensure proper column names
+                        # Ensure proper column names and structure
                         data.reset_index(inplace=True)
                         if 'Adj Close' not in data.columns:
                             data['Adj Close'] = data['Close']
                         
+                        # Validate required columns exist
+                        required_cols = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+                        if all(col in data.columns for col in required_cols):
+                            return data[['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
+                        else:
+                            logger.warning(f"⚠️ Missing required columns in {sym_variant} data")
+                            continue
+                    elif not data.empty and len(data) > 100:
+                        logger.warning(f"⚠️ Insufficient data for {sym_variant}: {len(data)} rows < 1000 required")
+                        # Still try to use it but mark for extension
+                        data.reset_index(inplace=True)
+                        if 'Adj Close' not in data.columns:
+                            data['Adj Close'] = data['Close']
                         return data[['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
                         
                 except Exception as e:
                     logger.warning(f"⚠️ yfinance failed for {sym_variant}: {str(e)}")
                     continue
                     
+            logger.warning(f"⚠️ All yfinance variations failed for {symbol}")
             return None
             
         except Exception as e:
