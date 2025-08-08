@@ -350,9 +350,16 @@ class SmartGoAgent:
 
             # Filter data based on mode
             if mode == 'live':
-                # Only include entries with source: "live"
+                # Only include entries with source: "live" (exclude test/mock data)
                 tracking_data = {k: v for k, v in tracking_data.items()
-                               if isinstance(v, dict) and v.get('source') == 'live'}
+                               if isinstance(v, dict) and v.get('source', '').lower() == 'live'}
+            elif mode == 'dev':
+                # Include all data (live + test)
+                pass
+            else:
+                # Default to live mode for safety
+                tracking_data = {k: v for k, v in tracking_data.items()
+                               if isinstance(v, dict) and v.get('source', '').lower() == 'live'}
 
             # Group by timeframe
             timeframe_stats = {}

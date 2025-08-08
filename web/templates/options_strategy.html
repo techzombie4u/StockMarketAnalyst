@@ -890,7 +890,7 @@
 
                 const row = document.createElement('tr');
 
-                // Extract and validate data
+                // Extract and validate data with safe fallbacks
                 const symbol = String(strategy.symbol || 'N/A');
                 const currentPrice = parseFloat(strategy.current_price || 0);
                 const callStrike = parseFloat(strategy.call_strike || 0);
@@ -899,7 +899,7 @@
                 const breakevenLower = parseFloat(strategy.breakeven_lower || 0);
                 const breakevenUpper = parseFloat(strategy.breakeven_upper || 0);
                 const marginRequired = parseFloat(strategy.margin_required || 0);
-                const expectedRoi = parseFloat(strategy.expected_roi || 0);
+                const expectedRoi = parseFloat(strategy.expected_roi || strategy.roi || 0);
                 const confidence = parseFloat(strategy.confidence || 0);
                 const riskLevel = String(strategy.risk_level || 'Medium');
 
@@ -1164,6 +1164,23 @@
                 `;
                 return;
             }
+
+            // Validate each trade has required fields
+            inProgressTrades = inProgressTrades.filter(trade => {
+                if (!trade || typeof trade !== 'object') {
+                    console.warn('⚠️ Invalid trade data:', trade);
+                    return false;
+                }
+                // Ensure required fields with safe fallbacks
+                trade.stock = trade.stock || 'Unknown';
+                trade.predicted_roi = trade.predicted_roi || trade.expected_roi || 0;
+                trade.current_roi = trade.current_roi || 0;
+                trade.predicted_outcome = trade.predicted_outcome || 'Unknown';
+                trade.current_outcome = trade.current_outcome || 'Unknown';
+                trade.due_date = trade.due_date || trade.expiry_date || 'N/A';
+                trade.reason = trade.reason || '';
+                return true;
+            });
 
             // Sort trades - show entries with reasons first
             inProgressTrades.sort((a, b) => {

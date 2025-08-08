@@ -1672,27 +1672,56 @@ def get_model_status():
 
 @app.route('/api/options-prediction-dashboard')
 def options_prediction_dashboard():
-    """API endpoint for options prediction dashboard data with mode support"""
+    """Enhanced options prediction dashboard API"""
     try:
-        from src.analyzers.smart_go_agent import SmartGoAgent
+        print("📈 Starting prediction performance dashboard load...")
 
-        # Get mode parameter (live or dev)
+        # Get mode from query parameter
         mode = request.args.get('mode', 'live')
+        print(f"📊 Loading dashboard in mode: {mode}")
 
+        # Initialize SmartGoAgent
         smart_agent = SmartGoAgent()
-        dashboard_data = smart_agent.get_prediction_accuracy_summary(mode=mode)
 
-        return jsonify(dashboard_data)
+        # Get active options predictions for Live Trade Divergence Monitor
+        active_trades = smart_agent.get_active_options_predictions()
+        print(f"📊 Found {len(active_trades)} active trades")
+
+        # Ensure all trades have required fields with safe fallbacks
+        for trade in active_trades:
+            if 'expected_roi' not in trade and 'predicted_roi' in trade:
+                trade['expected_roi'] = trade['predicted_roi']
+            if 'expected_roi' not in trade:
+                trade['expected_roi'] = 0
+            if 'confidence' not in trade:
+                trade['confidence'] = 75.0
+            if 'status' not in trade:
+                trade['status'] = 'in_progress'
+
+        # Get prediction accuracy summary for main dashboard
+        summary = smart_agent.get_prediction_accuracy_summary(mode=mode)
+        print(f"📈 Summary loaded: {summary.get('success', False)}")
+
+        return jsonify({
+            'success': True,
+            'live_trades': active_trades,
+            'summary_stats': summary.get('summary_stats', {}),
+            'overall_accuracy': summary.get('overall_accuracy', 0),
+            'total_predictions': summary.get('total_predictions', 0),
+            'last_updated': datetime.now().isoformat()
+        })
 
     except Exception as e:
-        logger.error(f"Options prediction dashboard API error: {str(e)}")
+        logger.error(f"Error in options prediction dashboard: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e),
+            'details': 'Dashboard load failed',
+            'live_trades': [],
             'summary_stats': {},
             'overall_accuracy': 0,
             'total_predictions': 0
-        })
+        }), 500
 
 @app.route('/api/prediction-performance-dashboard')
 def prediction_performance_dashboard():
