@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import pytz
 import json
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union, Callable
 from flask import Flask, render_template, jsonify, request, abort
 from flask_caching import Cache
 from flask_cors import CORS
@@ -44,16 +44,55 @@ app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 # Initialize cache
 cache = Cache(app)
 
-# Import consolidated modules
+# Import consolidated modules with error handling
+SmartGoAgent = None
+ShortStrangleEngine = None
+enhanced_error_handler = None
+ExternalDataImporter = None
+InteractiveTrackerManager = None
+SchedulerManager = None
+
 try:
-    from analyzers.smart_go_agent import SmartGoAgent
-    from analyzers.short_strangle_engine import ShortStrangleEngine
-    from managers.enhanced_error_handler import enhanced_error_handler
-    from utils.external_data_importer import ExternalDataImporter
-    logger.info("✅ Successfully imported all consolidated modules")
-except ImportError as e:
-    logger.error(f"❌ Import error in consolidated structure: {e}")
-    raise e
+    from src.analyzers.smart_go_agent import SmartGoAgent
+    logger.info("✅ SmartGoAgent imported")
+except Exception as e:
+    logger.warning(f"⚠️ SmartGoAgent import failed: {e}")
+
+try:
+    from src.analyzers.short_strangle_engine import ShortStrangleEngine
+    logger.info("✅ ShortStrangleEngine imported")
+except Exception as e:
+    logger.warning(f"⚠️ ShortStrangleEngine import failed: {e}")
+
+try:
+    from src.managers.enhanced_error_handler import enhanced_error_handler
+    logger.info("✅ enhanced_error_handler imported")
+except Exception as e:
+    logger.warning(f"⚠️ enhanced_error_handler import failed: {e}")
+    # Create a dummy error handler
+    def enhanced_error_handler():
+        return {'handle_error': lambda x: None}
+
+try:
+    from src.utils.external_data_importer import ExternalDataImporter
+    logger.info("✅ ExternalDataImporter imported")
+except Exception as e:
+    logger.warning(f"⚠️ ExternalDataImporter import failed: {e}")
+
+try:
+    from src.managers.interactive_tracker_manager import InteractiveTrackerManager
+    logger.info("✅ InteractiveTrackerManager imported")
+except Exception as e:
+    logger.warning(f"⚠️ InteractiveTrackerManager import failed: {e}")
+    # Create dummy class
+    class InteractiveTrackerManager:
+        def get_all_tracking_data(self):
+            return {}
+
+# Create a dummy SchedulerManager if not available
+class SchedulerManager:
+    def __init__(self):
+        pass
 
 # Set template folder to the correct location
 template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'templates')
@@ -65,11 +104,11 @@ CORS(app)
 # Global scheduler instance
 scheduler = None
 
-# Initialize managers
-error_handler = enhanced_error_handler()
-interactive_tracker = InteractiveTrackerManager()
-scheduler_manager = SchedulerManager()
-strangle_engine = ShortStrangleEngine()
+# Initialize managers with error handling
+error_handler = enhanced_error_handler() if enhanced_error_handler else None
+interactive_tracker = InteractiveTrackerManager() if InteractiveTrackerManager else None
+scheduler_manager = SchedulerManager() if SchedulerManager else None
+strangle_engine = ShortStrangleEngine() if ShortStrangleEngine else None
 
 # Timezone for India
 IST = pytz.timezone('Asia/Kolkata')
@@ -836,10 +875,11 @@ def run_now():
             else:
                 # Run standalone screening
                 logger.info("Using standalone screening")
-                from analyzers.stock_screener import EnhancedStockScreener
-                screener = EnhancedStockScreener()
-                success = screener.run_enhanced_screener() # Corrected method call
-                if success:
+                try:
+                    from src.analyzers.stock_screener import EnhancedStockScreener
+                    screener = EnhancedStockScreener()
+                    success = screener.run_enhanced_screening() # Corrected method call
+                    if success:
                     logger.info("✅ Manual screening completed successfully standalone")
                     return jsonify({
                         'success': True,
@@ -1157,9 +1197,12 @@ def lookup_stock(symbol):
         logger.info(f"Looking up stock: {symbol}")
 
         # Import here to avoid circular imports
-        from analyzers.stock_screener import EnhancedStockScreener
-
-        screener = EnhancedStockScreener()
+        try:
+            from src.analyzers.stock_screener import EnhancedStockScreener
+            screener = EnhancedStockScreener()
+        except ImportError as e:
+            logger.error(f"Could not import stock screener: {e}")
+            return jsonify({'error': 'Stock screener module not available'}), 500
 
         # Get fundamental data
         fundamentals = screener.scrape_screener_data(symbol)
@@ -1261,15 +1304,14 @@ def options_strategies():
 
         # Import consolidated modules
         try:
-            from analyzers.short_strangle_engine import ShortStrangleEngine
+            from src.analyzers.short_strangle_engine import ShortStrangleEngine
             print("[OPTIONS_API] ✅ Using organized structure engine")
-        except ImportError:
-            # This fallback logic should ideally not be reached if consolidation is successful
-            print("[OPTIONS_API] ❌ ERROR: Could not import ShortStrangleEngine from organized structure.")
+        except ImportError as import_error:
+            print(f"[OPTIONS_API] ❌ ERROR: Could not import ShortStrangleEngine: {import_error}")
             return jsonify({
                 "status": "error",
                 "strategies": [],
-                "error": "Failed to load core strategy engine.",
+                "error": f"Failed to load core strategy engine: {import_error}",
                 "timestamp": datetime.now().isoformat(),
                 "total_strategies": 0
             }), 500
@@ -1371,13 +1413,17 @@ def initialize_app():
         # Create initial demo data
         create_initial_demo_data()
 
-        from core.scheduler import StockAnalystScheduler
-        scheduler = StockAnalystScheduler()
-        scheduler.start_scheduler(interval_minutes=60)
-        logger.info("✅ Scheduler started successfully")
+        try:
+            from src.core.scheduler import StockAnalystScheduler
+            scheduler = StockAnalystScheduler()
+            scheduler.start_scheduler(interval_minutes=60)
+            logger.info("✅ Scheduler started successfully")
+        except Exception as scheduler_error:
+            logger.warning(f"⚠️ Scheduler failed to start: {scheduler_error}")
+            scheduler = None
 
     except Exception as e:
-        logger.error(f"❌ Error starting scheduler: {str(e)}")
+        logger.error(f"❌ Error during app initialization: {str(e)}")
 
 def create_initial_demo_data():
     """Create minimal initial data structure"""

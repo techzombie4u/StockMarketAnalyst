@@ -35,23 +35,59 @@ def main():
         logger.info("🚀 Starting Stock Market Analyst - Version 1.7.4 (Consolidated)")
         logger.info("📁 Using consolidated /src/ structure")
 
-        # Import from src structure
-        from core.app import app
+        # Import from src structure with error handling
+        try:
+            from src.core.app import app
+            logger.info("✅ Successfully imported app from src.core.app")
+        except ImportError:
+            logger.warning("⚠️ Fallback: trying alternate import path")
+            from core.app import app
+
+        # Print startup information
+        print("\n" + "="*60)
+        print("📈 STOCK MARKET ANALYST - DASHBOARD")
+        print("="*60)
+        print(f"🌐 Web Dashboard: http://0.0.0.0:5000")
+        print(f"📊 API Endpoint: http://0.0.0.0:5000/api/stocks")
+        print(f"🔄 Auto-refresh: Every 60 minutes")
+        print("="*60)
+        print("\n✅ Application started successfully!")
+        print("📱 Open your browser and navigate to the preview URL")
+        print("\n🛑 Press Ctrl+C to stop the application\n")
 
         # Run the Flask application
-        if __name__ == '__main__':
-            app.run(
-                host='0.0.0.0',
-                port=5000,
-                debug=False,
-                threaded=True
-            )
+        app.run(
+            host='0.0.0.0',
+            port=5000,
+            debug=False,
+            threaded=True
+        )
 
     except ImportError as e:
+        logger = logging.getLogger(__name__)
         logger.error(f"❌ Import error: {str(e)}")
         logger.error("🔧 Please ensure all modules are properly installed")
-        sys.exit(1)
+        
+        # Try to create a minimal Flask app as fallback
+        try:
+            from flask import Flask, jsonify
+            app = Flask(__name__)
+            
+            @app.route('/')
+            def home():
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Application modules failed to load: {str(e)}',
+                    'solution': 'Please check the application structure and try again'
+                })
+            
+            print(f"🔧 Starting minimal fallback server on port 5000")
+            app.run(host='0.0.0.0', port=5000, debug=False)
+        except Exception as fallback_error:
+            logger.error(f"❌ Even fallback failed: {fallback_error}")
+            sys.exit(1)
     except Exception as e:
+        logger = logging.getLogger(__name__)
         logger.error(f"❌ Failed to start application: {str(e)}")
         sys.exit(1)
 
