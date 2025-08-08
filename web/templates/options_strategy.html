@@ -416,18 +416,101 @@
             color: #007bff;
         }
 
+        .confidence-badge[title],
+        .verdict-cell[title],
+        .stop-loss-cell[title] {
+            cursor: help;
+        }
+
         .confidence-badge[title]:hover,
         .verdict-cell[title]:hover,
         .stop-loss-cell[title]:hover {
             background: #f5f5f5;
         }
-        
+
         .confidence-badge {
             cursor: help;
         }
 
         .verdict-badge {
             cursor: help;
+        }
+
+        /* Styles for the new trade details section */
+        .accuracy-dashboard {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
+        .expand-trades-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .expand-trades-btn:hover {
+            background: #2980b9;
+        }
+
+        .trade-details-section {
+            margin-top: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .trade-details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .trade-details-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .trade-details-table td {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .trade-status-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .trade-status-failure {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .trade-status-progress {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+
+        .dev-mode-toggle {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .dev-mode-toggle label {
+            font-weight: 500;
+            margin-left: 8px;
         }
 
     </style>
@@ -613,39 +696,15 @@
                     </div>
 
                     <!-- Prediction Accuracy Dashboard (Bottom Section) -->
-                    <div class="card">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0">📋 Prediction Accuracy Dashboard</h5>
-                            <small>Aggregate prediction performance across timeframes</small>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover" id="predictionAccuracyTable">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>Timeframe</th>
-                                            <th class="text-center">Total Trades</th>
-                                            <th class="text-center">Successful</th>
-                                            <th class="text-center">Failed</th>
-                                            <th class="text-center">In Progress</th>
-                                            <th class="text-center">Accuracy (%)</th>
-                                            <th class="text-center">Avg ROI (%)</th>
-                                            <th class="text-center" data-bs-toggle="tooltip" title="Maximum portfolio decline">Max Drawdown</th>
-                                            <th class="text-center" data-bs-toggle="tooltip" title="Risk-adjusted return measure">Sharpe Ratio</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="accuracyTableBody">
-                                        <tr>
-                                            <td colspan="9" class="text-center">
-                                                <div class="spinner-border text-success" role="status">
-                                                    <span class="visually-hidden">Loading...</span>
-                                                </div>
-                                                Loading performance data...
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                    <div class="dev-mode-toggle">
+                        <input type="checkbox" id="dev-mode-toggle">
+                        <label for="dev-mode-toggle">Include test data (dev mode)</label>
+                    </div>
+
+                    <div class="accuracy-dashboard">
+                        <h3>📊 Prediction Accuracy Dashboard</h3>
+                        <div id="accuracy-stats" class="accuracy-stats">
+                            <!-- Accuracy stats will be loaded here -->
                         </div>
                     </div>
                 </div>
@@ -864,7 +923,7 @@
                 const stopLossTooltip = 'If price breaches this level, exit trade to limit losses.';
 
                 // Get verdict
-                const verdictData = getVerdict(expectedRoi, confidence, riskLevel);
+                const verdictData = getVerdict(expected_roi, confidence, riskLevel);
 
                 row.innerHTML = `
                     <td class="symbol">${symbol}</td>
@@ -1189,7 +1248,8 @@
                     accuracy: 0,
                     avg_roi: 0,
                     max_drawdown: 0,
-                    sharpe_ratio: 0
+                    sharpe_ratio: 0,
+                    trades: [] // Ensure trades array exists
                 };
 
                 if (data.total > 0) hasAnyData = true;
@@ -1432,6 +1492,90 @@
                 loadOptionsData();
             }
         }, 300000);
+
+        function toggleTradeDetails(timeframe) {
+            const detailsSection = document.getElementById(`trades-${timeframe}`);
+            const expandBtn = document.querySelector(`[onclick="toggleTradeDetails('${timeframe}')"]`);
+            const expandIcon = expandBtn.querySelector('.expand-icon');
+
+            if (detailsSection.style.display === 'none') {
+                detailsSection.style.display = 'block';
+                expandIcon.textContent = '▲';
+                expandBtn.innerHTML = `<span class="expand-icon">▲</span> Hide Trades`;
+                loadTradeDetails(timeframe);
+            } else {
+                detailsSection.style.display = 'none';
+                expandIcon.textContent = '▼';
+                expandBtn.innerHTML = `<span class="expand-icon">▼</span> View Trades`;
+            }
+        }
+
+        function loadTradeDetails(timeframe) {
+            const mode = document.getElementById('dev-mode-toggle').checked ? 'dev' : 'live';
+
+            fetch(`/api/options-prediction-dashboard?mode=${mode}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Ensure summary_stats and trades are available
+                    if (data.success && data.summary_stats && data.summary_stats[timeframe] && Array.isArray(data.summary_stats[timeframe].trades)) {
+                        populateTradeTable(timeframe, data.summary_stats[timeframe].trades);
+                    } else {
+                        console.warn(`No trade data found for timeframe ${timeframe} or data format issue.`);
+                        // Optionally, display a message in the table body
+                        const tbody = document.getElementById(`trades-body-${timeframe}`);
+                        if (tbody) {
+                            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No trade details available.</td></tr>`;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error loading trade details for ${timeframe}:`, error);
+                    const tbody = document.getElementById(`trades-body-${timeframe}`);
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Failed to load trade details.</td></tr>`;
+                    }
+                });
+        }
+
+        function populateTradeTable(timeframe, trades) {
+            const tbody = document.getElementById(`trades-body-${timeframe}`);
+            if (!tbody) {
+                console.error(`Could not find tbody for trades-${timeframe}`);
+                return;
+            }
+            tbody.innerHTML = '';
+
+            if (!trades || trades.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No trades recorded for this timeframe.</td></tr>`;
+                return;
+            }
+
+            trades.forEach(trade => {
+                const row = document.createElement('tr');
+                const statusClass =
+                    trade.status === 'Success' ? 'trade-status-success' :
+                    trade.status === 'Failure' ? 'trade-status-failure' :
+                    'trade-status-progress';
+
+                row.innerHTML = `
+                    <td>${trade.stock || 'N/A'}</td>
+                    <td>${trade.lock_date || 'N/A'}</td>
+                    <td>${trade.expiry || 'N/A'}</td>
+                    <td>${trade.predicted || 'N/A'}</td>
+                    <td>${trade.actual || 'Pending'}</td>
+                    <td>${trade.roi !== undefined ? trade.roi.toFixed(2) + '%' : 'N/A'}</td>
+                    <td class="${statusClass}">
+                        ${trade.status === 'Success' ? '✅' : trade.status === 'Failure' ? '❌' : '⏳'} ${trade.status || 'Unknown'}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
     </script>
 </body>
 </html>

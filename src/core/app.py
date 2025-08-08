@@ -1671,73 +1671,28 @@ def get_model_status():
         }), 500
 
 @app.route('/api/options-prediction-dashboard')
-def get_prediction_dashboard():
-    """Get prediction dashboard data"""
+def options_prediction_dashboard():
+    """API endpoint for options prediction dashboard data with mode support"""
     try:
-        logger.info("📈 Loading options prediction dashboard data...")
+        from src.analyzers.smart_go_agent import SmartGoAgent
 
-        # Refresh locked predictions data
-        print("[API] options-prediction-dashboard called")
-        print("🔄 Refreshing locked predictions data...")
+        # Get mode parameter (live or dev)
+        mode = request.args.get('mode', 'live')
 
-        try:
-            interactive_tracker.refresh_data()
-            locked_predictions = interactive_tracker.get_locked_predictions()
-            active_count = len([p for p in locked_predictions.values() if any(
-                p.get(f'locked_{tf}') for tf in ['5d', '10d', '30d']
-            )]) if locked_predictions else 0
-            print(f"✅ Refreshed: Found {active_count} active locked predictions")
-        except Exception as tracker_error:
-            logger.warning(f"Tracker refresh failed: {tracker_error}")
-            print(f"⚠️ Tracker refresh failed: {tracker_error}")
-            locked_predictions = {}
-            active_count = 0
-
-        # Get active options predictions using SmartGoAgent
-        try:
-            smart_agent = SmartGoAgent()
-            live_trades = smart_agent.get_active_options_predictions()
-        except Exception as smart_agent_error:
-            logger.error(f"SmartGoAgent get_active_options_predictions failed: {smart_agent_error}")
-            print(f"🔥 SmartGoAgent active predictions error: {smart_agent_error}")
-            live_trades = []
-
-        # Get prediction accuracy summary
-        try:
-            if 'smart_agent' in locals():
-                summary_stats = smart_agent.get_prediction_accuracy_summary()
-            else:
-                smart_agent = SmartGoAgent()
-                summary_stats = smart_agent.get_prediction_accuracy_summary()
-        except Exception as summary_error:
-            logger.error(f"SmartGoAgent get_prediction_accuracy_summary failed: {summary_error}")
-            print(f"🔥 SmartGoAgent summary error: {summary_error}")
-            summary_stats = {}
-
-        dashboard_data = {
-            'live_trades': live_trades or [],
-            'summary_stats': summary_stats or {},
-            'timestamp': datetime.now().isoformat(),
-            'status': 'success'
-        }
+        smart_agent = SmartGoAgent()
+        dashboard_data = smart_agent.get_prediction_accuracy_summary(mode=mode)
 
         return jsonify(dashboard_data)
 
     except Exception as e:
-        error_message = str(e)
-        logger.error(f"Error loading options prediction dashboard: {error_message}")
-        print(f"[API] Error: {error_message}")
-        import traceback
-        traceback.print_exc()
-
+        logger.error(f"Options prediction dashboard API error: {str(e)}")
         return jsonify({
-            'error': 'Internal server error',
-            'details': error_message,
-            'live_trades': [],
+            'success': False,
+            'error': str(e),
             'summary_stats': {},
-            'timestamp': datetime.now().isoformat(),
-            'status': 'error'
-        }), 500
+            'overall_accuracy': 0,
+            'total_predictions': 0
+        })
 
 @app.route('/api/prediction-performance-dashboard')
 def prediction_performance_dashboard():
