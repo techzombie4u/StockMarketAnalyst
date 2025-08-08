@@ -98,7 +98,11 @@ class HistoricalDataFetcher:
 
     def normalize_symbol(self, symbol):
         """Normalize symbol for consistent lookup"""
-        symbol = symbol.upper().strip()
+        symbol = (symbol.upper()
+                 .strip()
+                 .replace("&", "AND")
+                 .replace(" ", "")
+                 .replace(".", ""))
         return self.symbol_map.get(symbol, symbol)
 
     def fetch_yfinance_data(self, symbol, period="5y"):
@@ -313,13 +317,13 @@ class HistoricalDataFetcher:
         data_source = "yfinance"
         
         # Method 2: Yahoo Finance scraping
-        if data is None or len(data) < 100:
-            logger.warning(f"⚠️ yfinance failed for {symbol}, trying Yahoo scraping...")
+        if data is None or len(data) < 1000:
+            logger.warning(f"⚠️ {symbol}: Data too short from yfinance ({len(data) if data is not None else 0} rows). Trying web scrape fallback...")
             data = self.scrape_yahoo_finance(normalized_symbol)
             data_source = "yahoo_scraping"
         
         # Method 3: NSE fallback
-        if data is None or len(data) < 100:
+        if data is None or len(data) < 1000:
             logger.warning(f"⚠️ Yahoo scraping failed for {symbol}, trying NSE fallback...")
             data = self.scrape_nse_data(normalized_symbol)
             data_source = "nse_fallback"

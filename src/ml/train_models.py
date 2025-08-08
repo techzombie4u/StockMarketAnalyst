@@ -183,7 +183,7 @@ class ModelTrainer:
             df.drop(['H-L', 'H-PC', 'L-PC', 'TR'], axis=1, inplace=True)
             
             # Fill NaN values
-            df.fillna(method='ffill', inplace=True)
+            df.ffill(inplace=True)
             df.fillna(0, inplace=True)
             
             logger.info(f"✅ Technical indicators calculated for {len(df)} rows")
@@ -209,7 +209,7 @@ class ModelTrainer:
                 return None, None
 
             # Clean data
-            df_clean = df[available_cols].fillna(method='ffill').fillna(method='bfill').fillna(0)
+            df_clean = df[available_cols].ffill().bfill().fillna(0)
 
             if len(df_clean) < lookback_window + 1:
                 logger.warning(f"Insufficient data: {len(df_clean)} < {lookback_window + 1}")
@@ -311,8 +311,8 @@ class ModelTrainer:
             val_loss = history.history['val_loss'][-1]
 
             # Save model
-            model_path = os.path.join(self.models_dir, f"{symbol}_lstm.h5")
-            model.save(model_path)
+            model_path = os.path.join(self.models_dir, f"{symbol}_lstm.keras")
+            model.save(model_path, save_format="keras")
 
             return {
                 'success': True,
@@ -381,9 +381,13 @@ class ModelTrainer:
                 # Fetch fresh data
                 df = self.data_fetcher.fetch_historical_data(symbol)
 
-            if df is None or len(df) < 500:
+            if df is None:
+                logger.error(f"No data available for {symbol}")
+                return {'success': False, 'error': f'No data available for {symbol}', 'symbol': symbol}
+            
+            if len(df) < 500:
                 logger.warning(f"Insufficient data for {symbol}. Found {len(df)} rows.")
-                return {'success': False, 'error': f'Insufficient data for {symbol}', 'symbol': symbol}
+                return {'success': False, 'error': f'Insufficient data for {symbol} - only {len(df)} rows', 'symbol': symbol}
 
             # Calculate technical indicators
             df = self.calculate_technical_indicators(df)

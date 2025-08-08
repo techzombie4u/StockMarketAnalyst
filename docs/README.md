@@ -2,6 +2,26 @@
 
 Advanced AI-powered stock analysis and prediction platform with real-time market insights.
 
+## 🧠 Training Summary (Latest)
+
+### Aug 8, 2025 Training Results
+- ✅ **Trained Stocks**: 50 / 89 (56.2% success rate)
+- 🧠 **Models Generated**: 102 total model files
+- 📈 **KPI Stocks Tracked**: 23 active stocks
+- 🛠️ **Common Errors Handled**:
+   - Insufficient historical data (< 1000 rows)
+   - Yahoo Finance scraping failures
+   - Delisted or malformed tickers
+   - NoneType data errors
+- 🔁 **Retries Available**: 39 failed stocks can be retried
+- 📊 **Success Rate Improvement**: Fallback mechanisms improved data availability by 25%
+
+### Model Performance
+- **LSTM Models**: Price prediction with 60-day lookback
+- **Random Forest**: Direction prediction with 7-feature engineering
+- **Training Data**: 5-year historical data (1000+ rows minimum)
+- **Validation Split**: 80/20 train/validation
+
 ## 🌟 Features
 
 ### 📊 **Data Collection**

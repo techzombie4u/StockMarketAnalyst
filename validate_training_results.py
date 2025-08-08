@@ -32,7 +32,7 @@ def validate_training_results():
     # 1. Check models directory
     models_dir = "models_trained"
     if os.path.exists(models_dir):
-        model_files = [f for f in os.listdir(models_dir) if f.endswith(('.h5', '.pkl'))]
+        model_files = [f for f in os.listdir(models_dir) if f.endswith(('.h5', '.pkl', '.keras'))]
         validation_results['models_found'] = len(model_files)
         
         # Group by stock symbol
