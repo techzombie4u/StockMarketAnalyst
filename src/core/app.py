@@ -1413,7 +1413,10 @@ def options_strategies():
                 logger.error(f"[OPTIONS_API] ❌ Error analyzing {symbol}: {str(e)}")
                 continue
 
-        # Always return proper JSON structure
+        # Always return proper JSON structure with fallback
+        if not strategies:
+            strategies = []
+        
         result = {
             "status": "success" if strategies else "no_data",
             "strategies": strategies,

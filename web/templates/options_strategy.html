@@ -333,6 +333,7 @@
         .bg-danger { background-color: #dc3545 !important; }
         .bg-info { background-color: #17a2b8 !important; }
         .bg-secondary { background-color: #6c757d !important; }
+        .bg-light { background-color: #f8f9fa !important; }
         .badge {
             display: inline-block;
             padding: .35em .65em;
@@ -593,6 +594,7 @@
                     </tr>
                 </thead>
                 <tbody id="optionsTableBody">
+                    <tr><td colspan="9" class="text-center text-muted">Loading strategies...</td></tr>
                 </tbody>
             </table>
 
@@ -703,8 +705,32 @@
 
                     <div class="accuracy-dashboard">
                         <h3>📊 Prediction Accuracy Dashboard</h3>
-                        <div id="accuracy-stats" class="accuracy-stats">
-                            <!-- Accuracy stats will be loaded here -->
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="accuracyTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Timeframe</th>
+                                        <th class="text-center">Total</th>
+                                        <th class="text-center">Success</th>
+                                        <th class="text-center">Failure</th>
+                                        <th class="text-center">In Progress</th>
+                                        <th class="text-center">Accuracy</th>
+                                        <th class="text-center">Avg ROI</th>
+                                        <th class="text-center">Max Drawdown</th>
+                                        <th class="text-center">Sharpe Ratio</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="accuracyTableBody">
+                                    <tr>
+                                        <td colspan="9" class="text-center">
+                                            <div class="spinner-border text-success" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            Loading performance data...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -730,7 +756,7 @@
         let isLoading = false;
         let lastLoadTime = 0;
 
-        function showLoading() {
+        function showLoadingState() {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('optionsTable').style.display = 'none';
             document.getElementById('empty').style.display = 'none';
@@ -738,14 +764,17 @@
             updateDataIndicator('🔄 Loading...', '#f39c12');
         }
 
-        function showData() {
+        function hideLoadingState() {
             document.getElementById('loading').style.display = 'none';
+        }
+
+        function showDataState() {
             document.getElementById('empty').style.display = 'none';
             document.getElementById('error').style.display = 'none';
             document.getElementById('optionsTable').style.display = 'table';
         }
 
-        function showEmpty() {
+        function showEmptyState() {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('optionsTable').style.display = 'none';
             document.getElementById('error').style.display = 'none';
@@ -753,7 +782,7 @@
             updateDataIndicator('⚠️ No Data', '#e67e22');
         }
 
-        function showError(message) {
+        function showErrorState(message) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('optionsTable').style.display = 'none';
             document.getElementById('empty').style.display = 'none';
@@ -868,13 +897,15 @@
             return { verdict, tooltip };
         }
 
-        function updateOptionsTable(strategies) {
+        function displayStrategies(strategies) {
             console.log('📊 Updating options table with strategies:', strategies);
             const tbody = document.getElementById('optionsTableBody');
             tbody.innerHTML = '';
 
-            if (!strategies || strategies.length === 0) {
-                console.warn('⚠️ No strategies provided to updateOptionsTable');
+            if (!Array.isArray(strategies) || strategies.length === 0) {
+                console.warn('⚠️ No strategies provided to displayStrategies');
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No strategies available. Click "Generate Strategies" to load data.</td></tr>';
+                updateDataIndicator(`🟢 Live Data (0)`, '#27ae60');
                 return false;
             }
 
@@ -899,7 +930,7 @@
                 const breakevenLower = parseFloat(strategy.breakeven_lower || 0);
                 const breakevenUpper = parseFloat(strategy.breakeven_upper || 0);
                 const marginRequired = parseFloat(strategy.margin_required || 0);
-                const expectedRoi = parseFloat(strategy.expected_roi || strategy.roi || 0);
+                const expectedRoi = parseFloat(strategy.expected_roi !== undefined ? strategy.expected_roi : (strategy.predicted_roi || 0));
                 const confidence = parseFloat(strategy.confidence || 0);
                 const riskLevel = String(strategy.risk_level || 'Medium');
 
@@ -923,7 +954,7 @@
                 const stopLossTooltip = 'If price breaches this level, exit trade to limit losses.';
 
                 // Get verdict
-                const verdictData = getVerdict(expected_roi, confidence, riskLevel);
+                const verdictData = getVerdict(expectedRoi, confidence, riskLevel);
 
                 row.innerHTML = `
                     <td class="symbol">${symbol}</td>
@@ -938,7 +969,7 @@
                                     <span class="roi-trend" data-trend="predicted" title="Predicted performance trend">📈</span>
                                 </td>
                     <td>
-                                    <span class="confidence-badge" 
+                                    <span class="confidence-badge"
                                           title="Confidence based on model accuracy (${confidence > 85 ? 'high' : confidence > 70 ? 'medium' : 'low'}), volatility analysis, and signal strength">
                                         ${confidence.toFixed(0)}%
                                     </span>
@@ -947,7 +978,7 @@
                     <td class="stop-loss-cell" title="${stopLossTooltip}">${stopLossDisplay}</td>
                     <td style="font-weight: 600; color: ${riskColor};">${riskLevel}</td>
                     <td>
-                                    <span class="verdict-badge verdict-${verdictData.verdict.toLowerCase().replace(' ', '-')}" 
+                                    <span class="verdict-badge verdict-${verdictData.verdict.toLowerCase().replace(' ', '-')}"
                                           title="${verdictData.tooltip}">
                                         ${verdictData.verdict}
                                     </span>
@@ -959,7 +990,7 @@
             });
 
             console.log(`✅ Successfully displayed ${validCount} real-time strategies`);
-            updateDataIndicator(`🟢 Live Data (${validCount} strategies)`, '#27ae60');
+            updateDataIndicator(`🟢 Live Data (${validCount})`, '#27ae60');
             return validCount > 0;
         }
 
@@ -978,7 +1009,7 @@
             isLoading = true;
             lastLoadTime = now;
             setButtonState(true);
-            showLoading();
+            showLoadingState();
 
             const timeframe = document.getElementById('timeframeSelect').value;
 
@@ -1032,9 +1063,9 @@
                 console.log('📊 Total strategies found:', strategies.length);
 
                 if (strategies.length > 0) {
-                    const displaySuccess = updateOptionsTable(strategies);
+                    const displaySuccess = displayStrategies(strategies);
                     if (displaySuccess) {
-                        showData();
+                        showDataState();
                         console.log('✅ Successfully displayed strategies table');
 
                         const refreshText = document.getElementById('refreshText');
@@ -1044,16 +1075,16 @@
                         }, 5000);
                     } else {
                         console.error('❌ Failed to display strategies');
-                        showError('Failed to display strategy data');
+                        showErrorState('Failed to display strategy data');
                     }
                 } else {
                     console.log('⚠️ No strategies in response');
-                    showEmpty();
+                    showEmptyState();
                 }
 
             } catch (error) {
                 console.error('❌ Error loading options strategies:', error);
-                showError(`Network error: ${error.message}`);
+                showErrorState(`Network error: ${error.message}`);
             } finally {
                 isLoading = false;
                 setButtonState(false);
@@ -1064,7 +1095,7 @@
             console.log("[MANUAL REFRESH] Manual refresh triggered");
 
             setManualButtonState(true);
-            showLoading();
+            showLoadingState();
 
             const timeframe = document.getElementById('timeframeSelect').value;
             const timestamp = Date.now();
@@ -1108,28 +1139,31 @@
                         });
                 })
                 .then(data => {
-                    if (data.strategies && data.strategies.length > 0) {
-                        data.strategies.forEach((strategy, index) => {
-                            console.log(`[MANUAL REFRESH] Strategy ${index + 1}: ${strategy.symbol} - ₹${strategy.current_price}, ROI: ${strategy.expected_roi}%`);
+                    // Ensure strategies is always an array
+                    const strategies = Array.isArray(data.strategies) ? data.strategies : [];
+
+                    if (strategies.length > 0) {
+                        strategies.forEach((strategy, index) => {
+                            console.log(`[MANUAL REFRESH] Strategy ${index + 1}: ${strategy.symbol} - ₹${strategy.current_price}, ROI: ${strategy.expected_roi !== undefined ? strategy.expected_roi : (strategy.predicted_roi || 0)}%`);
                         });
 
-                        const displaySuccess = updateOptionsTable(data.strategies);
+                        const displaySuccess = displayStrategies(strategies);
                         if (displaySuccess) {
-                            showData();
+                            showDataState();
                             console.log('[MANUAL REFRESH] ✅ Successfully displayed refreshed data');
                         } else {
                             console.error('[MANUAL REFRESH] ❌ Failed to display data');
-                            showError('Failed to display refreshed strategy data');
+                            showErrorState('Failed to display refreshed strategy data');
                         }
                     } else {
                         console.log('[MANUAL REFRESH] ⚠️ No strategies in response');
-                        showEmpty();
+                        showEmptyState();
                     }
                     setManualButtonState(false);
                 })
                 .catch(error => {
                     console.error('[MANUAL REFRESH] ❌ Error:', error);
-                    showError('Failed to refresh data: ' + error.message);
+                    showErrorState('Failed to refresh data: ' + error.message);
                     setManualButtonState(false);
                 });
         }
@@ -1177,7 +1211,7 @@
                 trade.current_roi = trade.current_roi || 0;
                 trade.predicted_outcome = trade.predicted_outcome || 'Unknown';
                 trade.current_outcome = trade.current_outcome || 'Unknown';
-                trade.due_date = trade.due_date || trade.expiry_date || 'N/A';
+                trade.due_date = trade.due_date || 'N/A'; // Corrected from expiry_date
                 trade.reason = trade.reason || '';
                 return true;
             });
@@ -1188,7 +1222,10 @@
                 const bHasReason = b.reason && b.reason.trim() !== '';
                 if (aHasReason && !bHasReason) return -1;
                 if (!aHasReason && bHasReason) return 1;
-                return new Date(a.due_date || '2025-01-01') - new Date(b.due_date || '2025-01-01');
+                // Robust date comparison
+                const dateA = a.due_date && a.due_date !== 'N/A' ? new Date(a.due_date) : new Date('2025-01-01');
+                const dateB = b.due_date && b.due_date !== 'N/A' ? new Date(b.due_date) : new Date('2025-01-01');
+                return dateA - dateB;
             });
 
             inProgressTrades.forEach(trade => {
@@ -1228,7 +1265,7 @@
                     </td>
                     <td class="text-end">
                         ${currentRoi}%
-                        <span class="roi-trend ${trade.current_outcome === 'Outperforming' ? 'roi-outperforming' : trade.current_outcome === 'Diverging' ? 'roi-underperforming' : 'roi-on-track'}" 
+                        <span class="roi-trend ${trade.current_outcome === 'Outperforming' ? 'roi-outperforming' : trade.current_outcome === 'Diverging' ? 'roi-underperforming' : 'roi-on-track'}"
                               title="Current performance vs prediction">
                             ${trade.current_outcome === 'Outperforming' ? '🔺' : trade.current_outcome === 'Diverging' ? '🔻' : '➡️'}
                         </span>
@@ -1290,16 +1327,26 @@
                     return value === 0 ? '-' : `${value}${suffix}`;
                 };
 
+                // Ensure all values are displayed safely
+                const total = formatValue(data.total);
+                const successful = formatValue(data.successful);
+                const failed = formatValue(data.failed);
+                const inProgress = formatValue(data.in_progress);
+                const accuracy = data.accuracy > 0 ? data.accuracy.toFixed(1) + '%' : '-';
+                const avgRoi = data.avg_roi !== 0 ? data.avg_roi.toFixed(1) + '%' : '-';
+                const maxDrawdown = data.max_drawdown !== 0 ? data.max_drawdown.toFixed(1) + '%' : '-';
+                const sharpeRatio = data.sharpe_ratio !== 0 ? data.sharpe_ratio.toFixed(2) : '-';
+
                 row.innerHTML = `
                     <td class="fw-bold">${timeframe}</td>
-                    <td class="text-center">${formatValue(data.total)}</td>
-                    <td class="text-center text-success">${formatValue(data.successful)}</td>
-                    <td class="text-center text-danger">${formatValue(data.failed)}</td>
-                    <td class="text-center text-primary">${formatValue(data.in_progress)}</td>
-                    <td class="text-center ${accuracyColor} fw-bold">${data.accuracy > 0 ? data.accuracy.toFixed(1) + '%' : '-'}</td>
-                    <td class="text-center ${roiColor}">${data.avg_roi !== 0 ? data.avg_roi.toFixed(1) + '%' : '-'}</td>
-                    <td class="text-center text-danger">${data.max_drawdown !== 0 ? data.max_drawdown.toFixed(1) + '%' : '-'}</td>
-                    <td class="text-center">${data.sharpe_ratio !== 0 ? data.sharpe_ratio.toFixed(2) : '-'}</td>
+                    <td class="text-center">${total}</td>
+                    <td class="text-center text-success">${successful}</td>
+                    <td class="text-center text-danger">${failed}</td>
+                    <td class="text-center text-primary">${inProgress}</td>
+                    <td class="text-center ${accuracyColor} fw-bold">${accuracy}</td>
+                    <td class="text-center ${roiColor}">${avgRoi}</td>
+                    <td class="text-center text-danger">${maxDrawdown}</td>
+                    <td class="text-center">${sharpeRatio}</td>
                 `;
                 tbody.appendChild(row);
             });

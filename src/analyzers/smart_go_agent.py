@@ -243,8 +243,11 @@ class SmartGoAgent:
                                 'predicted_outcome': entry.get('predicted_outcome', 'On Track'),
                                 'current_outcome': current_outcome,
                                 'predicted_roi': predicted_roi,
+                                'expected_roi': predicted_roi,  # Add for backward compatibility
                                 'current_roi': current_roi,
-                                'reason': reason
+                                'reason': reason,
+                                'confidence': entry.get('confidence', 75.0),
+                                'status': entry.get('status', 'in_progress')
                             }
                             active_trades.append(trade)
                             print(f"✅ Added active trade for {symbol}: {predicted_roi}% → {current_roi}% ({current_outcome})")
