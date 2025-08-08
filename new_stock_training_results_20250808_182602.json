@@ -1,0 +1,1231 @@
+{
+  "training_start": "2025-08-08T17:59:19.237787",
+  "total_planned": 89,
+  "successful": 49,
+  "failed": 40,
+  "stock_results": {
+    "RELIANCE": {
+      "symbol": "RELIANCE",
+      "training_date": "2025-08-08T17:59:19.271189",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/RELIANCE_lstm.keras",
+        "train_loss": 0.002626251894980669,
+        "val_loss": 0.002104273997247219,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/RELIANCE_rf.pkl",
+        "accuracy": 0.5247933884297521,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "TCS": {
+      "symbol": "TCS",
+      "training_date": "2025-08-08T17:59:43.718154",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/TCS_lstm.keras",
+        "train_loss": 0.002321249572560191,
+        "val_loss": 0.0029028120916336775,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/TCS_rf.pkl",
+        "accuracy": 0.5289256198347108,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "INFY": {
+      "symbol": "INFY",
+      "training_date": "2025-08-08T18:00:08.854231",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/INFY_lstm.keras",
+        "train_loss": 0.002652060706168413,
+        "val_loss": 0.0015146469231694937,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/INFY_rf.pkl",
+        "accuracy": 0.5082644628099173,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "HDFCBANK": {
+      "symbol": "HDFCBANK",
+      "training_date": "2025-08-08T18:00:37.867430",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/HDFCBANK_lstm.keras",
+        "train_loss": 0.0022132638841867447,
+        "val_loss": 0.0031041023321449757,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/HDFCBANK_rf.pkl",
+        "accuracy": 0.5165289256198347,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "ICICIBANK": {
+      "symbol": "ICICIBANK",
+      "training_date": "2025-08-08T18:01:24.447027",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/ICICIBANK_lstm.keras",
+        "train_loss": 0.000980730401352048,
+        "val_loss": 0.000736614631023258,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/ICICIBANK_rf.pkl",
+        "accuracy": 0.45041322314049587,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "BHARTIARTL": {
+      "success": false,
+      "error": "Insufficient data for BHARTIARTL - only 251 rows",
+      "symbol": "BHARTIARTL"
+    },
+    "ITC": {
+      "success": false,
+      "error": "Insufficient data for ITC - only 251 rows",
+      "symbol": "ITC"
+    },
+    "HINDUNILVR": {
+      "symbol": "HINDUNILVR",
+      "training_date": "2025-08-08T18:01:52.986134",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/HINDUNILVR_lstm.keras",
+        "train_loss": 0.002616326091811061,
+        "val_loss": 0.001858111354522407,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/HINDUNILVR_rf.pkl",
+        "accuracy": 0.4834710743801653,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "KOTAKBANK": {
+      "symbol": "KOTAKBANK",
+      "training_date": "2025-08-08T18:02:39.387123",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/KOTAKBANK_lstm.keras",
+        "train_loss": 0.003007638268172741,
+        "val_loss": 0.005217410158365965,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/KOTAKBANK_rf.pkl",
+        "accuracy": 0.5082644628099173,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "LT": {
+      "symbol": "LT",
+      "training_date": "2025-08-08T18:03:06.720106",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/LT_lstm.keras",
+        "train_loss": 0.0016543938545510173,
+        "val_loss": 0.0012467628112062812,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/LT_rf.pkl",
+        "accuracy": 0.5289256198347108,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "AXISBANK": {
+      "symbol": "AXISBANK",
+      "training_date": "2025-08-08T18:03:35.806229",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/AXISBANK_lstm.keras",
+        "train_loss": 0.0024003805592656136,
+        "val_loss": 0.0017169859493151307,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/AXISBANK_rf.pkl",
+        "accuracy": 0.5413223140495868,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "MARUTI": {
+      "symbol": "MARUTI",
+      "training_date": "2025-08-08T18:03:59.738260",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/MARUTI_lstm.keras",
+        "train_loss": 0.0019071376882493496,
+        "val_loss": 0.0018819567048922181,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/MARUTI_rf.pkl",
+        "accuracy": 0.5371900826446281,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "SUNPHARMA": {
+      "symbol": "SUNPHARMA",
+      "training_date": "2025-08-08T18:04:28.073842",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/SUNPHARMA_lstm.keras",
+        "train_loss": 0.001245317398570478,
+        "val_loss": 0.0016463109059259295,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/SUNPHARMA_rf.pkl",
+        "accuracy": 0.5041322314049587,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "TITAN": {
+      "symbol": "TITAN",
+      "training_date": "2025-08-08T18:04:56.683943",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/TITAN_lstm.keras",
+        "train_loss": 0.002501492854207754,
+        "val_loss": 0.0012686591362580657,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/TITAN_rf.pkl",
+        "accuracy": 0.44214876033057854,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "ULTRACEMCO": {
+      "symbol": "ULTRACEMCO",
+      "training_date": "2025-08-08T18:05:25.769997",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/ULTRACEMCO_lstm.keras",
+        "train_loss": 0.0015686103142797947,
+        "val_loss": 0.0013314704410731792,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/ULTRACEMCO_rf.pkl",
+        "accuracy": 0.5743801652892562,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "ASIANPAINT": {
+      "symbol": "ASIANPAINT",
+      "training_date": "2025-08-08T18:05:56.887989",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/ASIANPAINT_lstm.keras",
+        "train_loss": 0.004151728469878435,
+        "val_loss": 0.0035792612470686436,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/ASIANPAINT_rf.pkl",
+        "accuracy": 0.5454545454545454,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "BAJFINANCE": {
+      "symbol": "BAJFINANCE",
+      "training_date": "2025-08-08T18:06:25.823104",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/BAJFINANCE_lstm.keras",
+        "train_loss": 0.002327593043446541,
+        "val_loss": 0.005096998065710068,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/BAJFINANCE_rf.pkl",
+        "accuracy": 0.47107438016528924,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "NESTLEIND": {
+      "symbol": "NESTLEIND",
+      "training_date": "2025-08-08T18:07:11.167313",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/NESTLEIND_lstm.keras",
+        "train_loss": 0.0020877716597169638,
+        "val_loss": 0.0023233143147081137,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/NESTLEIND_rf.pkl",
+        "accuracy": 0.512396694214876,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "HCLTECH": {
+      "symbol": "HCLTECH",
+      "training_date": "2025-08-08T18:07:41.474959",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/HCLTECH_lstm.keras",
+        "train_loss": 0.0008802465163171291,
+        "val_loss": 0.0027399647515267134,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/HCLTECH_rf.pkl",
+        "accuracy": 0.5247933884297521,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "TECHM": {
+      "symbol": "TECHM",
+      "training_date": "2025-08-08T18:08:11.437589",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/TECHM_lstm.keras",
+        "train_loss": 0.0017348352121189237,
+        "val_loss": 0.0012630861019715667,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/TECHM_rf.pkl",
+        "accuracy": 0.5454545454545454,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "WIPRO": {
+      "symbol": "WIPRO",
+      "training_date": "2025-08-08T18:08:42.534619",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/WIPRO_lstm.keras",
+        "train_loss": 0.0022497158497571945,
+        "val_loss": 0.0011563431471586227,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/WIPRO_rf.pkl",
+        "accuracy": 0.5206611570247934,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "DRREDDY": {
+      "symbol": "DRREDDY",
+      "training_date": "2025-08-08T18:09:14.131292",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/DRREDDY_lstm.keras",
+        "train_loss": 0.0024527558125555515,
+        "val_loss": 0.0027385572902858257,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/DRREDDY_rf.pkl",
+        "accuracy": 0.5247933884297521,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "JSWSTEEL": {
+      "success": false,
+      "error": "Insufficient data for JSWSTEEL - only 251 rows",
+      "symbol": "JSWSTEEL"
+    },
+    "HINDALCO": {
+      "success": false,
+      "error": "Insufficient data for HINDALCO - only 251 rows",
+      "symbol": "HINDALCO"
+    },
+    "ADANIPORTS": {
+      "symbol": "ADANIPORTS",
+      "training_date": "2025-08-08T18:09:43.327343",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/ADANIPORTS_lstm.keras",
+        "train_loss": 0.0018567899242043495,
+        "val_loss": 0.0012707954738289118,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/ADANIPORTS_rf.pkl",
+        "accuracy": 0.5041322314049587,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "GRASIM": {
+      "symbol": "GRASIM",
+      "training_date": "2025-08-08T18:10:28.315632",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/GRASIM_lstm.keras",
+        "train_loss": 0.0015276664635166526,
+        "val_loss": 0.0009003099985420704,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/GRASIM_rf.pkl",
+        "accuracy": 0.5454545454545454,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "BAJAJFINSV": {
+      "symbol": "BAJAJFINSV",
+      "training_date": "2025-08-08T18:10:56.901090",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/BAJAJFINSV_lstm.keras",
+        "train_loss": 0.0022862220648676157,
+        "val_loss": 0.0012350794859230518,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/BAJAJFINSV_rf.pkl",
+        "accuracy": 0.5495867768595041,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "HEROMOTOCO": {
+      "symbol": "HEROMOTOCO",
+      "training_date": "2025-08-08T18:11:23.554907",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/HEROMOTOCO_lstm.keras",
+        "train_loss": 0.0009993824642151594,
+        "val_loss": 0.0010215899674221873,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/HEROMOTOCO_rf.pkl",
+        "accuracy": 0.4834710743801653,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "EICHERMOT": {
+      "symbol": "EICHERMOT",
+      "training_date": "2025-08-08T18:11:56.062035",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/EICHERMOT_lstm.keras",
+        "train_loss": 0.0011500553227961063,
+        "val_loss": 0.003670172765851021,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/EICHERMOT_rf.pkl",
+        "accuracy": 0.45454545454545453,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "INDUSINDBK": {
+      "symbol": "INDUSINDBK",
+      "training_date": "2025-08-08T18:12:24.073629",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/INDUSINDBK_lstm.keras",
+        "train_loss": 0.00237698620185256,
+        "val_loss": 0.003364552278071642,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/INDUSINDBK_rf.pkl",
+        "accuracy": 0.4793388429752066,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "TATACONSUM": {
+      "symbol": "TATACONSUM",
+      "training_date": "2025-08-08T18:13:09.242098",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/TATACONSUM_lstm.keras",
+        "train_loss": 0.0016717184334993362,
+        "val_loss": 0.0025656078942120075,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/TATACONSUM_rf.pkl",
+        "accuracy": 0.47520661157024796,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "UPL": {
+      "symbol": "UPL",
+      "training_date": "2025-08-08T18:13:37.697486",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/UPL_lstm.keras",
+        "train_loss": 0.0039787511341273785,
+        "val_loss": 0.0023545760195702314,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/UPL_rf.pkl",
+        "accuracy": 0.5165289256198347,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "LTIM": {
+      "symbol": "LTIM",
+      "training_date": "2025-08-08T18:14:07.026456",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/LTIM_lstm.keras",
+        "train_loss": 0.002288559451699257,
+        "val_loss": 0.0015594675205647945,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/LTIM_rf.pkl",
+        "accuracy": 0.5371900826446281,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "POWERGRID": {
+      "success": false,
+      "error": "Insufficient data for POWERGRID - only 251 rows",
+      "symbol": "POWERGRID"
+    },
+    "NTPC": {
+      "success": false,
+      "error": "Insufficient data for NTPC - only 251 rows",
+      "symbol": "NTPC"
+    },
+    "ONGC": {
+      "success": false,
+      "error": "Insufficient data for ONGC - only 251 rows",
+      "symbol": "ONGC"
+    },
+    "COALINDIA": {
+      "success": false,
+      "error": "Insufficient data for COALINDIA - only 251 rows",
+      "symbol": "COALINDIA"
+    },
+    "TATAMOTORS": {
+      "success": false,
+      "error": "Insufficient data for TATAMOTORS - only 251 rows",
+      "symbol": "TATAMOTORS"
+    },
+    "SBIN": {
+      "success": false,
+      "error": "Insufficient data for SBIN - only 251 rows",
+      "symbol": "SBIN"
+    },
+    "TATASTEEL": {
+      "success": false,
+      "error": "Insufficient data for TATASTEEL - only 251 rows",
+      "symbol": "TATASTEEL"
+    },
+    "BANKBARODA": {
+      "success": false,
+      "error": "Insufficient data for BANKBARODA - only 251 rows",
+      "symbol": "BANKBARODA"
+    },
+    "PNB": {
+      "success": false,
+      "error": "Insufficient data for PNB - only 251 rows",
+      "symbol": "PNB"
+    },
+    "IDFCFIRSTB": {
+      "success": false,
+      "error": "Insufficient data for IDFCFIRSTB - only 251 rows",
+      "symbol": "IDFCFIRSTB"
+    },
+    "FEDERALBNK": {
+      "success": false,
+      "error": "Insufficient data for FEDERALBNK - only 251 rows",
+      "symbol": "FEDERALBNK"
+    },
+    "AUBANK": {
+      "symbol": "AUBANK",
+      "training_date": "2025-08-08T18:14:36.991535",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/AUBANK_lstm.keras",
+        "train_loss": 0.0036602201871573925,
+        "val_loss": 0.002383521292358637,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/AUBANK_rf.pkl",
+        "accuracy": 0.4793388429752066,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "BANDHANBNK": {
+      "symbol": "BANDHANBNK",
+      "training_date": "2025-08-08T18:15:06.473858",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/BANDHANBNK_lstm.keras",
+        "train_loss": 0.0026265508495271206,
+        "val_loss": 0.0007321062148548663,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/BANDHANBNK_rf.pkl",
+        "accuracy": 0.5165289256198347,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "M&M": {
+      "success": false,
+      "error": "No data available for M&M",
+      "symbol": "M&M"
+    },
+    "GODREJCP": {
+      "success": false,
+      "error": "Insufficient data for GODREJCP - only 251 rows",
+      "symbol": "GODREJCP"
+    },
+    "DABUR": {
+      "success": false,
+      "error": "Insufficient data for DABUR - only 251 rows",
+      "symbol": "DABUR"
+    },
+    "MARICO": {
+      "success": false,
+      "error": "Insufficient data for MARICO - only 251 rows",
+      "symbol": "MARICO"
+    },
+    "BRITANNIA": {
+      "symbol": "BRITANNIA",
+      "training_date": "2025-08-08T18:15:43.948208",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/BRITANNIA_lstm.keras",
+        "train_loss": 0.0011982751311734319,
+        "val_loss": 0.0019706261809915304,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/BRITANNIA_rf.pkl",
+        "accuracy": 0.5082644628099173,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "DIVISLAB": {
+      "symbol": "DIVISLAB",
+      "training_date": "2025-08-08T18:16:15.617266",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/DIVISLAB_lstm.keras",
+        "train_loss": 0.0010850504040718079,
+        "val_loss": 0.0019273054786026478,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/DIVISLAB_rf.pkl",
+        "accuracy": 0.5041322314049587,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "CIPLA": {
+      "symbol": "CIPLA",
+      "training_date": "2025-08-08T18:16:47.142775",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/CIPLA_lstm.keras",
+        "train_loss": 0.001523698796518147,
+        "val_loss": 0.0014306445373222232,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/CIPLA_rf.pkl",
+        "accuracy": 0.5165289256198347,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "LUPIN": {
+      "symbol": "LUPIN",
+      "training_date": "2025-08-08T18:17:16.959555",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/LUPIN_lstm.keras",
+        "train_loss": 0.0008565331809222698,
+        "val_loss": 0.0020127033349126577,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/LUPIN_rf.pkl",
+        "accuracy": 0.47107438016528924,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "BIOCON": {
+      "symbol": "BIOCON",
+      "training_date": "2025-08-08T18:17:45.264988",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/BIOCON_lstm.keras",
+        "train_loss": 0.0028298343531787395,
+        "val_loss": 0.00254864152520895,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/BIOCON_rf.pkl",
+        "accuracy": 0.4793388429752066,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "DRREDDYS": {
+      "success": false,
+      "error": "No data available for DRREDDYS",
+      "symbol": "DRREDDYS"
+    },
+    "APOLLOHOSP": {
+      "symbol": "APOLLOHOSP",
+      "training_date": "2025-08-08T18:18:21.720763",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/APOLLOHOSP_lstm.keras",
+        "train_loss": 0.0014534727670252323,
+        "val_loss": 0.004438851028680801,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/APOLLOHOSP_rf.pkl",
+        "accuracy": 0.4628099173553719,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "FORTIS": {
+      "symbol": "FORTIS",
+      "training_date": "2025-08-08T18:18:47.516716",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/FORTIS_lstm.keras",
+        "train_loss": 0.0003972122212871909,
+        "val_loss": 0.0011242176406085491,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/FORTIS_rf.pkl",
+        "accuracy": 0.5289256198347108,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "MAXHEALTH": {
+      "symbol": "MAXHEALTH",
+      "training_date": "2025-08-08T18:19:14.582405",
+      "data_rows": 1231,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/MAXHEALTH_lstm.keras",
+        "train_loss": 0.000871740048751235,
+        "val_loss": 0.002685140585526824,
+        "epochs": 20,
+        "samples": 936
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/MAXHEALTH_rf.pkl",
+        "accuracy": 0.5083333333333333,
+        "samples_train": 960,
+        "samples_test": 240
+      }
+    },
+    "SAIL": {
+      "success": false,
+      "error": "Insufficient data for SAIL - only 251 rows",
+      "symbol": "SAIL"
+    },
+    "NMDC": {
+      "symbol": "NMDC",
+      "training_date": "2025-08-08T18:20:01.671865",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/NMDC_lstm.keras",
+        "train_loss": 0.0015580605249851942,
+        "val_loss": 0.0014822568045929074,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/NMDC_rf.pkl",
+        "accuracy": 0.5330578512396694,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "VEDL": {
+      "success": false,
+      "error": "Insufficient data for VEDL - only 251 rows",
+      "symbol": "VEDL"
+    },
+    "HINDZINC": {
+      "symbol": "HINDZINC",
+      "training_date": "2025-08-08T18:20:30.158674",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/HINDZINC_lstm.keras",
+        "train_loss": 0.0012576786102727056,
+        "val_loss": 0.0013672936474904418,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/HINDZINC_rf.pkl",
+        "accuracy": 0.5082644628099173,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "NALCO": {
+      "success": false,
+      "error": "No data available for NALCO",
+      "symbol": "NALCO"
+    },
+    "BEL": {
+      "success": false,
+      "error": "Insufficient data for BEL - only 251 rows",
+      "symbol": "BEL"
+    },
+    "HAL": {
+      "success": false,
+      "error": "Insufficient data for HAL - only 251 rows",
+      "symbol": "HAL"
+    },
+    "BHEL": {
+      "success": false,
+      "error": "Insufficient data for BHEL - only 251 rows",
+      "symbol": "BHEL"
+    },
+    "GAIL": {
+      "success": false,
+      "error": "Insufficient data for GAIL - only 251 rows",
+      "symbol": "GAIL"
+    },
+    "IOC": {
+      "success": false,
+      "error": "Insufficient data for IOC - only 251 rows",
+      "symbol": "IOC"
+    },
+    "BPCL": {
+      "success": false,
+      "error": "Insufficient data for BPCL - only 251 rows",
+      "symbol": "BPCL"
+    },
+    "IRCTC": {
+      "success": false,
+      "error": "Insufficient data for IRCTC - only 251 rows",
+      "symbol": "IRCTC"
+    },
+    "RAILTEL": {
+      "success": false,
+      "error": "Insufficient data for RAILTEL - only 251 rows",
+      "symbol": "RAILTEL"
+    },
+    "CONCOR": {
+      "success": false,
+      "error": "Insufficient data for CONCOR - only 251 rows",
+      "symbol": "CONCOR"
+    },
+    "IRFC": {
+      "success": false,
+      "error": "Insufficient data for IRFC - only 251 rows",
+      "symbol": "IRFC"
+    },
+    "PFC": {
+      "success": false,
+      "error": "Insufficient data for PFC - only 251 rows",
+      "symbol": "PFC"
+    },
+    "RECLTD": {
+      "success": false,
+      "error": "Insufficient data for RECLTD - only 251 rows",
+      "symbol": "RECLTD"
+    },
+    "BAJAJHLDNG": {
+      "success": false,
+      "error": "Insufficient data for BAJAJHLDNG - only 251 rows",
+      "symbol": "BAJAJHLDNG"
+    },
+    "LICHSGFIN": {
+      "success": false,
+      "error": "Insufficient data for LICHSGFIN - only 251 rows",
+      "symbol": "LICHSGFIN"
+    },
+    "MUTHOOTFIN": {
+      "success": false,
+      "error": "Insufficient data for MUTHOOTFIN - only 251 rows",
+      "symbol": "MUTHOOTFIN"
+    },
+    "MANAPPURAM": {
+      "symbol": "MANAPPURAM",
+      "training_date": "2025-08-08T18:21:22.663794",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/MANAPPURAM_lstm.keras",
+        "train_loss": 0.0014570308849215508,
+        "val_loss": 0.002039662329480052,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/MANAPPURAM_rf.pkl",
+        "accuracy": 0.49586776859504134,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "CHOLAFIN": {
+      "symbol": "CHOLAFIN",
+      "training_date": "2025-08-08T18:21:51.219832",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/CHOLAFIN_lstm.keras",
+        "train_loss": 0.001435833633877337,
+        "val_loss": 0.0015890281647443771,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/CHOLAFIN_rf.pkl",
+        "accuracy": 0.4793388429752066,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "M&MFIN": {
+      "symbol": "M&MFIN",
+      "training_date": "2025-08-08T18:22:21.068694",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/M&MFIN_lstm.keras",
+        "train_loss": 0.003075145883485675,
+        "val_loss": 0.0025638078805059195,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/M&MFIN_rf.pkl",
+        "accuracy": 0.4834710743801653,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "MINDTREE": {
+      "success": false,
+      "error": "No data available for MINDTREE",
+      "symbol": "MINDTREE"
+    },
+    "MPHASIS": {
+      "symbol": "MPHASIS",
+      "training_date": "2025-08-08T18:22:54.969644",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/MPHASIS_lstm.keras",
+        "train_loss": 0.0031495082657784224,
+        "val_loss": 0.0023639334831386805,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/MPHASIS_rf.pkl",
+        "accuracy": 0.5206611570247934,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "COFORGE": {
+      "symbol": "COFORGE",
+      "training_date": "2025-08-08T18:23:25.056167",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/COFORGE_lstm.keras",
+        "train_loss": 0.0009631706052459776,
+        "val_loss": 0.003832227550446987,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/COFORGE_rf.pkl",
+        "accuracy": 0.45041322314049587,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "PERSISTENT": {
+      "symbol": "PERSISTENT",
+      "training_date": "2025-08-08T18:23:52.896996",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/PERSISTENT_lstm.keras",
+        "train_loss": 0.0007887434912845492,
+        "val_loss": 0.0012882979353889823,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/PERSISTENT_rf.pkl",
+        "accuracy": 0.45041322314049587,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "LTTS": {
+      "symbol": "LTTS",
+      "training_date": "2025-08-08T18:24:38.618053",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/LTTS_lstm.keras",
+        "train_loss": 0.002652823692187667,
+        "val_loss": 0.0013907765969634056,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/LTTS_rf.pkl",
+        "accuracy": 0.5413223140495868,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "CYIENT": {
+      "symbol": "CYIENT",
+      "training_date": "2025-08-08T18:25:08.121634",
+      "data_rows": 1240,
+      "lstm": {
+        "success": true,
+        "model_path": "models_trained/CYIENT_lstm.keras",
+        "train_loss": 0.0015914314426481724,
+        "val_loss": 0.0018080268055200577,
+        "epochs": 20,
+        "samples": 944
+      },
+      "rf": {
+        "success": true,
+        "model_path": "models_trained/CYIENT_rf.pkl",
+        "accuracy": 0.4834710743801653,
+        "samples_train": 967,
+        "samples_test": 242
+      }
+    },
+    "RAMPGREEN": {
+      "success": false,
+      "error": "No data available for RAMPGREEN",
+      "symbol": "RAMPGREEN"
+    }
+  },
+  "errors": [
+    "BHARTIARTL: Insufficient data for BHARTIARTL - only 251 rows",
+    "ITC: Insufficient data for ITC - only 251 rows",
+    "JSWSTEEL: Insufficient data for JSWSTEEL - only 251 rows",
+    "HINDALCO: Insufficient data for HINDALCO - only 251 rows",
+    "POWERGRID: Insufficient data for POWERGRID - only 251 rows",
+    "NTPC: Insufficient data for NTPC - only 251 rows",
+    "ONGC: Insufficient data for ONGC - only 251 rows",
+    "COALINDIA: Insufficient data for COALINDIA - only 251 rows",
+    "TATAMOTORS: Insufficient data for TATAMOTORS - only 251 rows",
+    "SBIN: Insufficient data for SBIN - only 251 rows",
+    "TATASTEEL: Insufficient data for TATASTEEL - only 251 rows",
+    "BANKBARODA: Insufficient data for BANKBARODA - only 251 rows",
+    "PNB: Insufficient data for PNB - only 251 rows",
+    "IDFCFIRSTB: Insufficient data for IDFCFIRSTB - only 251 rows",
+    "FEDERALBNK: Insufficient data for FEDERALBNK - only 251 rows",
+    "M&M: No data available for M&M",
+    "GODREJCP: Insufficient data for GODREJCP - only 251 rows",
+    "DABUR: Insufficient data for DABUR - only 251 rows",
+    "MARICO: Insufficient data for MARICO - only 251 rows",
+    "DRREDDYS: No data available for DRREDDYS",
+    "SAIL: Insufficient data for SAIL - only 251 rows",
+    "VEDL: Insufficient data for VEDL - only 251 rows",
+    "NALCO: No data available for NALCO",
+    "BEL: Insufficient data for BEL - only 251 rows",
+    "HAL: Insufficient data for HAL - only 251 rows",
+    "BHEL: Insufficient data for BHEL - only 251 rows",
+    "GAIL: Insufficient data for GAIL - only 251 rows",
+    "IOC: Insufficient data for IOC - only 251 rows",
+    "BPCL: Insufficient data for BPCL - only 251 rows",
+    "IRCTC: Insufficient data for IRCTC - only 251 rows",
+    "RAILTEL: Insufficient data for RAILTEL - only 251 rows",
+    "CONCOR: Insufficient data for CONCOR - only 251 rows",
+    "IRFC: Insufficient data for IRFC - only 251 rows",
+    "PFC: Insufficient data for PFC - only 251 rows",
+    "RECLTD: Insufficient data for RECLTD - only 251 rows",
+    "BAJAJHLDNG: Insufficient data for BAJAJHLDNG - only 251 rows",
+    "LICHSGFIN: Insufficient data for LICHSGFIN - only 251 rows",
+    "MUTHOOTFIN: Insufficient data for MUTHOOTFIN - only 251 rows",
+    "MINDTREE: No data available for MINDTREE",
+    "RAMPGREEN: No data available for RAMPGREEN"
+  ],
+  "training_end": "2025-08-08T18:26:02.984679"
+}
