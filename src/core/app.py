@@ -1553,7 +1553,7 @@ def options_prediction_dashboard():
                 'status': 'success',
                 'timestamp': datetime.now(IST).isoformat(),
                 'live_trades': active_trades,
-                'prediction_summary': accuracy_summary
+                'summary_stats': accuracy_summary
             }
             
             logger.info(f"✅ Options prediction dashboard data prepared: {len(active_trades)} active trades")
@@ -1564,7 +1564,7 @@ def options_prediction_dashboard():
                 'status': 'success',
                 'timestamp': datetime.now(IST).isoformat(),
                 'live_trades': [],
-                'prediction_summary': {
+                'summary_stats': {
                     '3D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
                     '5D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
                     '10D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
@@ -1581,7 +1581,7 @@ def options_prediction_dashboard():
             'error': str(e),
             'timestamp': datetime.now(IST).isoformat(),
             'live_trades': [],
-            'prediction_summary': {}
+            'summary_stats': {}
         }), 500
 
 @app.route('/api/prediction-performance-dashboard')

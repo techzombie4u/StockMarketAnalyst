@@ -560,12 +560,13 @@
                                             <th>Predicted Outcome</th>
                                             <th>Current Outcome</th>
                                             <th class="text-end">Predicted ROI</th>
+                                            <th class="text-end">Current ROI</th>
                                             <th class="text-end">Reason (if changed)</th>
                                         </tr>
                                     </thead>
                                     <tbody id="inProgressTableBody">
                                         <tr>
-                                            <td colspan="6" class="text-center">
+                                            <td colspan="7" class="text-center">
                                                 <div class="spinner-border text-primary" role="status">
                                                     <span class="visually-hidden">Loading...</span>
                                                 </div>
@@ -1028,43 +1029,24 @@
                 });
         }
 
-        // Load Prediction Performance Dashboard data
-        function loadPredictionPerformanceDashboard() {
-            fetch('/api/options-prediction-dashboard')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        updateLiveTradeDivergenceMonitor(data.live_trades || []);
-                        updatePredictionAccuracyDashboard(data.prediction_summary || {});
-                    } else {
-                        console.error('Error loading prediction performance data:', data.error);
-                        // Show empty state
-                        updateLiveTradeDivergenceMonitor([]);
-                        updatePredictionAccuracyDashboard({});
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching prediction performance data:', error);
-                    // Show empty state
-                    updateLiveTradeDivergenceMonitor([]);
-                    updatePredictionAccuracyDashboard({});
-                });
+        function showPredictionError(message) {
+            // Placeholder for showing error in prediction dashboard, if needed
+            console.error("Prediction Dashboard Error:", message);
+            // You might want to display this error in a specific part of the dashboard
         }
 
         // Update Live Trade Divergence Monitor to show proper empty state and handle data correctly
         function updateLiveTradeDivergenceMonitor(inProgressTrades) {
-            const tbody = document.querySelector('#liveTradeDivergenceTable tbody');
+            const tbody = document.querySelector('#inProgressTableBody'); // Corrected selector
             tbody.innerHTML = '';
 
             if (!inProgressTrades || inProgressTrades.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center">
-                            <div class="text-gray-500">
-                                <div class="text-lg mb-2">📊</div>
-                                <div class="font-medium">No active trades in progress</div>
-                                <div class="text-sm">Lock predictions in the main dashboard to track them here</div>
-                            </div>
+                        <td colspan="7" class="text-center text-muted">
+                            <div class="text-lg mb-2">📊</div>
+                            <div class="font-medium">No active trades in progress</div>
+                            <div class="text-sm">Lock predictions in the main dashboard to track them here</div>
                         </td>
                     </tr>
                 `;
@@ -1111,8 +1093,8 @@
                     <td class="px-4 py-2 text-sm font-medium">${trade.stock}</td>
                     <td class="px-4 py-2 text-sm">${trade.predicted_outcome}</td>
                     <td class="px-4 py-2 text-sm ${statusColor} font-medium">${trade.current_outcome}</td>
+                    <td class="px-4 py-2 text-sm text-gray-600">${predictedRoi.toFixed(1)}%</td>
                     <td class="px-4 py-2 text-sm">
-                        <span class="text-gray-600">${predictedRoi.toFixed(1)}%</span> →
                         <span class="${roiColor} font-medium">${currentRoi.toFixed(1)}%</span>
                     </td>
                     <td class="px-4 py-2 text-sm">${reasonHtml}</td>
@@ -1123,7 +1105,7 @@
 
         // Update Prediction Accuracy Dashboard to show proper data and empty states
         function updatePredictionAccuracyDashboard(summary) {
-            const tbody = document.querySelector('#predictionAccuracyTable tbody');
+            const tbody = document.querySelector('#accuracyTableBody'); // Corrected selector
             tbody.innerHTML = '';
 
             const timeframes = ['3D', '5D', '10D', '15D', '30D'];

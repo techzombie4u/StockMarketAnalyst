@@ -172,18 +172,40 @@ class SmartGoAgent:
         try:
             active_trades = []
 
-            # Load tracking data
+            # Load tracking data from multiple sources
             tracking_data = self._load_tracking_data()
 
             if not tracking_data:
+                logger.warning("No tracking data found, checking fallback files...")
+                # Try alternative file locations
+                fallback_files = [
+                    'data/tracking/interactive_tracking.json',
+                    'interactive_tracking.json',
+                    'data/tracking/locked_predictions.json'
+                ]
+                
+                for file_path in fallback_files:
+                    if os.path.exists(file_path):
+                        try:
+                            with open(file_path, 'r') as f:
+                                tracking_data = json.load(f)
+                                logger.info(f"Loaded tracking data from {file_path}")
+                                break
+                        except Exception as e:
+                            logger.warning(f"Error loading {file_path}: {e}")
+                            continue
+
+            if not tracking_data:
+                logger.warning("No tracking data available from any source")
                 return []
 
             current_date = datetime.now().date()
+            logger.info(f"Processing tracking data for {len(tracking_data)} symbols")
 
             for symbol, data in tracking_data.items():
                 if isinstance(data, dict):
                     # Check for active predictions
-                    for timeframe in ['5d', '30d']: # Adjusted to lowercase for consistency
+                    for timeframe in ['5d', '30d']:
                         locked_key = f'locked_{timeframe}'
                         expiry_key = f'expiry_date_{timeframe}'
                         predicted_roi_key = f'predicted_roi_{timeframe}'
@@ -192,8 +214,8 @@ class SmartGoAgent:
                             try:
                                 expiry_date = datetime.strptime(data[expiry_key], '%Y-%m-%d').date()
 
-                                # Check if trade is still active
-                                if expiry_date > current_date:
+                                # Check if trade is still active (status == "in_progress")
+                                if expiry_date >= current_date:
                                     # Get current market data for comparison
                                     current_outcome, current_roi, reason = self._analyze_current_vs_predicted(symbol, data, timeframe)
 
@@ -204,15 +226,19 @@ class SmartGoAgent:
                                         'current_outcome': current_outcome,
                                         'predicted_roi': data.get(predicted_roi_key, 0),
                                         'current_roi': current_roi,
-                                        'reason': reason
+                                        'reason': reason,
+                                        'timeframe': timeframe.upper(),
+                                        'status': 'in_progress'
                                     }
                                     active_trades.append(active_trade)
+                                    logger.info(f"Added active trade: {symbol} {timeframe} expires {data[expiry_key]}")
                             except Exception as e:
-                                logger.warning(f"Error processing active trade for {symbol}: {e}")
+                                logger.warning(f"Error processing active trade for {symbol} {timeframe}: {e}")
                                 continue
 
             # Sort by reason (non-empty first), then by due date
             active_trades.sort(key=lambda x: (x['reason'] == '', x['due_date']))
+            logger.info(f"Returning {len(active_trades)} active trades")
             return active_trades
 
         except Exception as e:
@@ -225,7 +251,27 @@ class SmartGoAgent:
             timeframes = ['3D', '5D', '10D', '15D', '30D']
             summary = {}
 
+            # Load tracking data from multiple sources
             tracking_data = self._load_tracking_data()
+
+            if not tracking_data:
+                # Try alternative file locations
+                fallback_files = [
+                    'data/tracking/interactive_tracking.json',
+                    'interactive_tracking.json',
+                    'data/tracking/locked_predictions.json'
+                ]
+                
+                for file_path in fallback_files:
+                    if os.path.exists(file_path):
+                        try:
+                            with open(file_path, 'r') as f:
+                                tracking_data = json.load(f)
+                                logger.info(f"Loaded summary data from {file_path}")
+                                break
+                        except Exception as e:
+                            logger.warning(f"Error loading {file_path}: {e}")
+                            continue
 
             if not tracking_data:
                 # Return empty structure
@@ -245,7 +291,7 @@ class SmartGoAgent:
             current_date = datetime.now().date()
 
             for timeframe in timeframes:
-                timeframe_key = timeframe.lower() # '5D' -> '5d'
+                timeframe_key = timeframe.lower()  # '5D' -> '5d'
 
                 total = 0
                 successful = 0
@@ -264,14 +310,14 @@ class SmartGoAgent:
                             try:
                                 expiry_date = datetime.strptime(data[expiry_key], '%Y-%m-%d').date()
 
-                                if expiry_date > current_date:
+                                if expiry_date >= current_date:
                                     in_progress += 1
                                 else:
                                     # Check if prediction was successful
                                     predicted_roi = data.get(f'predicted_roi_{timeframe_key}', 0)
-                                    actual_roi = data.get(f'actual_roi_{timeframe_key}', 0)
+                                    actual_roi = data.get(f'actual_roi_{timeframe_key}', None)
 
-                                    if actual_roi > 0:
+                                    if actual_roi is not None:
                                         # Consider successful if within 20% of prediction or positive
                                         if actual_roi >= predicted_roi * 0.8:
                                             successful += 1
@@ -279,15 +325,20 @@ class SmartGoAgent:
                                             failed += 1
                                         roi_values.append(actual_roi)
                                     else:
-                                        failed += 1
-                                        roi_values.append(actual_roi if actual_roi else 0)
+                                        # No actual ROI data yet - treat as in progress
+                                        if expiry_date >= current_date:
+                                            in_progress += 1
+                                        else:
+                                            failed += 1
+                                            roi_values.append(0)
 
                             except Exception as e:
                                 logger.warning(f"Error processing {symbol} for {timeframe}: {e}")
                                 failed += 1
 
                 # Calculate metrics
-                accuracy = (successful / (successful + failed) * 100) if (successful + failed) > 0 else 0
+                completed_trades = successful + failed
+                accuracy = (successful / completed_trades * 100) if completed_trades > 0 else 0
                 avg_roi = sum(roi_values) / len(roi_values) if roi_values else 0
                 max_drawdown = min(roi_values) if roi_values else 0
 
@@ -309,6 +360,7 @@ class SmartGoAgent:
                     'sharpe_ratio': round(sharpe_ratio, 2)
                 }
 
+            logger.info(f"Generated prediction summary for {len(timeframes)} timeframes")
             return summary
 
         except Exception as e:
@@ -349,13 +401,35 @@ class SmartGoAgent:
     def _load_tracking_data(self):
         """Load tracking data from interactive tracker"""
         try:
-            # Assuming InteractiveTrackerManager is available in src.managers
+            # Try InteractiveTrackerManager first
             from src.managers.interactive_tracker_manager import InteractiveTrackerManager
             tracker = InteractiveTrackerManager()
-            return tracker.get_all_tracking_data()
+            data = tracker.get_all_tracking_data()
+            if data:
+                return data
         except Exception as e:
-            logger.warning(f"Could not load tracking data: {e}")
-            return {}
+            logger.warning(f"Could not load tracking data from manager: {e}")
+
+        # Fallback to direct file access
+        tracking_files = [
+            'data/tracking/interactive_tracking.json',
+            'interactive_tracking.json',
+            'data/tracking/locked_predictions.json'
+        ]
+        
+        for file_path in tracking_files:
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'r') as f:
+                        data = json.load(f)
+                        logger.info(f"Loaded tracking data from {file_path}")
+                        return data
+                except Exception as e:
+                    logger.warning(f"Error loading {file_path}: {e}")
+                    continue
+        
+        logger.warning("No tracking data available from any source")
+        return {}
 
     def validate_predictions(self, timeframe: str = '5D') -> Dict[str, Any]:
         """Enhanced validation with meta-intelligence and model comparison"""
