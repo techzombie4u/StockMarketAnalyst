@@ -8,10 +8,7 @@
     "predicted_roi_30d": 28.0,
     "actual_roi_5d": null,
     "actual_roi_30d": null,
-    "predicted_outcome": "On Track",
-    "lock_start_date_5d": "2025-08-06",
-    "lock_start_date_30d": "2025-08-03",
-    "status": "in_progress"
+    "predicted_outcome": "On Track"
   },
   "TCS": {
     "locked_5d": true,
@@ -22,10 +19,7 @@
     "predicted_roi_30d": 32.0,
     "actual_roi_5d": 16.2,
     "actual_roi_30d": null,
-    "predicted_outcome": "On Track",
-    "lock_start_date_5d": "2025-08-01",
-    "lock_start_date_30d": "2025-07-29",
-    "status": "partial_complete"
+    "predicted_outcome": "On Track"
   },
   "HDFCBANK": {
     "locked_5d": true,
@@ -36,29 +30,6 @@
     "predicted_roi_30d": 35.0,
     "actual_roi_5d": 12.3,
     "actual_roi_30d": 28.5,
-    "predicted_outcome": "On Track",
-    "lock_start_date_5d": "2025-07-29",
-    "lock_start_date_30d": "2025-07-04",
-    "status": "completed"
-  },
-  "INFY": {
-    "locked_5d": true,
-    "locked_30d": false,
-    "expiry_date_5d": "2025-08-10",
-    "predicted_roi_5d": 22.0,
-    "actual_roi_5d": null,
-    "predicted_outcome": "On Track",
-    "lock_start_date_5d": "2025-08-05",
-    "status": "in_progress"
-  },
-  "ITC": {
-    "locked_5d": false,
-    "locked_30d": true,
-    "expiry_date_30d": "2025-08-23",
-    "predicted_roi_30d": 45.0,
-    "actual_roi_30d": null,
-    "predicted_outcome": "On Track",
-    "lock_start_date_30d": "2025-07-24",
-    "status": "in_progress"
+    "predicted_outcome": "On Track"
   }
 }
