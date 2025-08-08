@@ -355,6 +355,7 @@
         .nav-tabs {
             border-bottom: 2px solid #e67e22;
             margin-bottom: 0;
+            margin-top: 20px;
         }
 
         .nav-tabs .nav-link {
@@ -384,8 +385,16 @@
         .tab-content {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 0 0 15px 15px;
-            padding: 0;
+            padding: 20px;
             min-height: 400px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.show.active {
+            display: block;
         }
 
     </style>
@@ -478,24 +487,24 @@
             <div class="table-container">
                 <ul class="nav nav-tabs" id="optionsTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
+                        <a class="nav-link active" id="summary-tab" href="#summary" role="tab" aria-controls="summary" aria-selected="true">
                             📊 Summary
-                        </button>
+                        </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="performance-tab" data-bs-toggle="tab" data-bs-target="#performance" type="button" role="tab" aria-controls="performance" aria-selected="false">
-                            📈 Prediction Tracker
-                        </button>
+                        <a class="nav-link" id="performance-tab" href="#performance" role="tab" aria-controls="performance" aria-selected="false">
+                            📈 Prediction Performance Dashboard
+                        </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="heatmap-tab" data-bs-toggle="tab" data-bs-target="#heatmap" type="button" role="tab" aria-controls="heatmap" aria-selected="false">
+                        <a class="nav-link" id="heatmap-tab" href="#heatmap" role="tab" aria-controls="heatmap" aria-selected="false">
                             🔥 Heatmap
-                        </button>
+                        </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="false">
+                        <a class="nav-link" id="details-tab" href="#details" role="tab" aria-controls="details" aria-selected="false">
                             📋 Details
-                        </button>
+                        </a>
                     </li>
                 </ul>
 
@@ -1160,66 +1169,54 @@
             `;
         }
 
+        // Manual tab switching function
+        function switchTab(tabId) {
+            console.log(`📋 Switching to tab: ${tabId}`);
+            
+            // Hide all tab panes
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+            
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected tab pane
+            const targetPane = document.querySelector(`#${tabId}`);
+            if (targetPane) {
+                targetPane.classList.add('show', 'active');
+            }
+            
+            // Add active class to selected nav link
+            const targetLink = document.querySelector(`#${tabId}-tab`);
+            if (targetLink) {
+                targetLink.classList.add('active');
+            }
+            
+            // Load performance data when Performance tab is clicked
+            if (tabId === 'performance') {
+                console.log('📈 Loading Performance Dashboard...');
+                loadPerformanceDashboard();
+            }
+        }
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📱 Options Strategy page loaded');
 
-            // Initialize Bootstrap 5 tabs properly
-            setTimeout(() => {
-                // Get all tab trigger elements
-                const triggerTabList = [].slice.call(document.querySelectorAll('#optionsTabs button[data-bs-toggle="tab"]'));
-                console.log(`📋 Found ${triggerTabList.length} tab triggers:`, triggerTabList.map(el => el.id));
-                
-                if (triggerTabList.length > 0) {
-                    // Initialize Bootstrap tabs
-                    const tabList = triggerTabList.map(function (triggerEl) {
-                        const tabTrigger = new bootstrap.Tab(triggerEl);
-                        
-                        triggerEl.addEventListener('click', function (event) {
-                            event.preventDefault();
-                            console.log(`📋 Tab clicked: ${triggerEl.id}`);
-                            
-                            // Load performance data when Performance tab is clicked
-                            if (triggerEl.id === 'performance-tab') {
-                                console.log('📈 Loading Performance Dashboard...');
-                                loadPerformanceDashboard();
-                            }
-                        });
-                        
-                        // Add shown event listener for when tab is fully visible
-                        triggerEl.addEventListener('shown.bs.tab', function (event) {
-                            console.log(`✅ Tab shown: ${event.target.id}`);
-                            if (event.target.id === 'performance-tab') {
-                                loadPerformanceDashboard();
-                            }
-                        });
-                        
-                        return tabTrigger;
-                    });
-                    
-                    console.log(`✅ Initialized ${tabList.length} Bootstrap tabs`);
-                    
-                    // Ensure the first tab is properly activated
-                    if (triggerTabList[0]) {
-                        triggerTabList[0].classList.add('active');
-                        const firstTarget = triggerTabList[0].getAttribute('data-bs-target');
-                        if (firstTarget) {
-                            const firstPane = document.querySelector(firstTarget);
-                            if (firstPane) {
-                                firstPane.classList.add('show', 'active');
-                            }
-                        }
-                    }
-                } else {
-                    console.log('⚠️ No tab triggers found');
-                }
-            }, 200);
-
-            // Initialize tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
+            // Add manual tab click listeners
+            document.querySelectorAll('#optionsTabs .nav-link').forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const tabId = this.getAttribute('href').substring(1); // Remove #
+                    switchTab(tabId);
+                });
             });
+
+            // Ensure summary tab is active by default
+            switchTab('summary');
 
             // Add timeframe change listener
             document.getElementById('timeframeSelect').addEventListener('change', () => {
