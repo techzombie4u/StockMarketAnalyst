@@ -28,16 +28,27 @@ def create_locked_predictions():
         # Future expiry date (3-30 days from now)
         expiry_date = datetime.now() + timedelta(days=random.randint(3, 30))
         
-        # Generate realistic ROI values
-        predicted_roi = round(random.uniform(15.0, 35.0), 1)
-        current_roi = round(predicted_roi + random.uniform(-8.0, 8.0), 1)
+        # Generate realistic ROI values with more variation
+        predicted_roi = round(random.uniform(18.0, 45.0), 1)
         
-        # Determine outcome based on divergence
-        divergence = abs(current_roi - predicted_roi) / predicted_roi if predicted_roi != 0 else 0
-        if divergence > 0.2:
-            predicted_outcome = "Diverging" if current_roi < predicted_roi else "Outperforming"
-        else:
+        # Simulate different scenarios for current ROI
+        scenario = random.choice(['on_track', 'diverging', 'outperforming'])
+        
+        if scenario == 'on_track':
+            # Within 10% of prediction (should be "On Track")
+            variation = random.uniform(-0.08, 0.08)  # ±8%
+            current_roi = round(predicted_roi * (1 + variation), 1)
             predicted_outcome = "On Track"
+        elif scenario == 'diverging':
+            # More than 10% below prediction (should be "Diverging")
+            variation = random.uniform(-0.25, -0.12)  # -12% to -25%
+            current_roi = round(predicted_roi * (1 + variation), 1)
+            predicted_outcome = "Diverging"
+        else:  # outperforming
+            # More than 10% above prediction (should be "Outperforming")
+            variation = random.uniform(0.12, 0.35)  # +12% to +35%
+            current_roi = round(predicted_roi * (1 + variation), 1)
+            predicted_outcome = "Outperforming"
         
         trade_entry = {
             "symbol": stock,
