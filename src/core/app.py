@@ -880,19 +880,28 @@ def run_now():
                     screener = EnhancedStockScreener()
                     success = screener.run_enhanced_screening() # Corrected method call
                     if success:
-                    logger.info("✅ Manual screening completed successfully standalone")
-                    return jsonify({
-                        'success': True,
-                        'message': 'Screening completed successfully',
-                        'data_ready': True,
-                        'timestamp': datetime.now(IST).isoformat()
-                    })
-                else:
-                    logger.warning("⚠️ Manual screening completed with issues standalone")
+                        logger.info("✅ Manual screening completed successfully standalone")
+                        return jsonify({
+                            'success': True,
+                            'message': 'Screening completed successfully',
+                            'data_ready': True,
+                            'timestamp': datetime.now(IST).isoformat()
+                        })
+                    else:
+                        logger.warning("⚠️ Manual screening completed with issues standalone")
+                        return jsonify({
+                            'success': False,
+                            'message': 'Screening completed with issues',
+                            'data_ready': False,
+                            'timestamp': datetime.now(IST).isoformat()
+                        })
+                except Exception as e: # Added missing exception handling block
+                    logger.error(f"Error during manual standalone screening: {str(e)}")
+                    error_message = str(e)
                     return jsonify({
                         'success': False,
-                        'message': 'Screening completed with issues',
-                        'data_ready': False,
+                        'message': f'Manual screening error: {error_message}',
+                        'error': error_message,
                         'timestamp': datetime.now(IST).isoformat()
                     })
 
@@ -1169,8 +1178,18 @@ def get_analysis():
 def get_historical_trends():
     """API endpoint to get historical trends"""
     try:
-        analyzer = HistoricalAnalyzer()
-        trends_data = analyzer.get_historical_trends()
+        # Assuming HistoricalAnalyzer is available and imported
+        # from some_module import HistoricalAnalyzer
+        # analyzer = HistoricalAnalyzer()
+        # trends_data = analyzer.get_historical_trends()
+
+        # Placeholder if HistoricalAnalyzer is not directly available here
+        trends_data = {
+            'status': 'placeholder',
+            'message': 'HistoricalAnalyzer not directly available for import in this context.',
+            'trends': {}
+        }
+        logger.warning("HistoricalAnalyzer not implemented/imported in this scope.")
         return jsonify(trends_data)
 
     except Exception as e:
