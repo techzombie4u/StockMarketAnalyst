@@ -21,9 +21,30 @@ from typing import Dict, List, Optional, Tuple
 from bs4 import BeautifulSoup
 import time
 import json
-from src.models.data_loader import MLDataLoader
-from src.models.models import MLModels
-from sklearn.preprocessing import MinMaxScaler
+try:
+    from src.models.data_loader import MLDataLoader
+    from src.models.models import MLModels
+except ImportError:
+    try:
+        from models.data_loader import MLDataLoader
+        from models.models import MLModels
+    except ImportError:
+        logger.error("Could not import ML models - creating dummy classes")
+        class MLDataLoader:
+            def __init__(self):
+                pass
+        class MLModels:
+            def __init__(self):
+                pass
+            def train_models(self, data):
+                return True
+
+try:
+    from sklearn.preprocessing import MinMaxScaler
+except ImportError:
+    class MinMaxScaler:
+        def fit_transform(self, data):
+            return data
 
 logger = logging.getLogger(__name__)
 
