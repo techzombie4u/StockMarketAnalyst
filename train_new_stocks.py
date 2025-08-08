@@ -14,6 +14,16 @@ from datetime import datetime
 # Add the root directory to the Python path
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Enhanced error handling
+try:
+    from src.managers.enhanced_error_handler import EnhancedErrorHandler
+    error_handler = EnhancedErrorHandler()
+except ImportError as e:
+    print(f"❌ Import Error: {e}")
+    print("Please ensure all dependencies are installed:")
+    print("  pip install yfinance pandas numpy scikit-learn tensorflow")
+    sys.exit(1)
+
 def setup_logging():
     """Setup comprehensive logging"""
     logging.basicConfig(
@@ -34,6 +44,7 @@ def main():
         # Import the comprehensive training pipeline
         from src.ml.train_models import ModelTrainer
         from src.data.fetch_historical_data import HistoricalDataFetcher
+        from src.reporters import insights
 
         print("📊 Initializing enhanced training pipeline...")
         trainer = ModelTrainer()
