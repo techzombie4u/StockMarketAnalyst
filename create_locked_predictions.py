@@ -60,7 +60,7 @@ def create_locked_predictions():
             "predicted_outcome": predicted_outcome,
             "actual_outcome": None,
             "trade_type": "short_strangle",
-            "timeframe": random.choice(["5D", "30D"]),
+            "timeframe": random.choice(["3D", "5D", "10D", "15D", "30D"]),
             "entry_date": (datetime.now() - timedelta(days=random.randint(1, 5))).strftime("%Y-%m-%d"),
             "reason": f"Technical analysis indicates {predicted_outcome.lower()} trend"
         }
@@ -90,7 +90,7 @@ def create_locked_predictions():
             "predicted_outcome": "Completed",
             "actual_outcome": "successful" if was_successful else "failed",
             "trade_type": "short_strangle",
-            "timeframe": random.choice(["5D", "30D"]),
+            "timeframe": random.choice(["3D", "5D", "10D", "15D", "30D"]),
             "entry_date": (expiry_date - timedelta(days=random.randint(3, 30))).strftime("%Y-%m-%d"),
             "reason": "Historical trade for stats"
         }

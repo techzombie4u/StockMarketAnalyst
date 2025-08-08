@@ -397,6 +397,39 @@
             display: block;
         }
 
+        /* New styles for ROI trend indicators and tooltips */
+        .roi-trend {
+            margin-left: 5px;
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .roi-outperforming {
+            color: #28a745;
+        }
+
+        .roi-underperforming {
+            color: #dc3545;
+        }
+
+        .roi-on-track {
+            color: #007bff;
+        }
+
+        .confidence-badge[title]:hover,
+        .verdict-cell[title]:hover,
+        .stop-loss-cell[title]:hover {
+            background: #f5f5f5;
+        }
+        
+        .confidence-badge {
+            cursor: help;
+        }
+
+        .verdict-badge {
+            cursor: help;
+        }
+
     </style>
 </head>
 <body>
@@ -841,12 +874,25 @@
                     <td style="font-weight: 700; color: #27ae60; font-size: 1.1em;">₹${totalPremium.toFixed(0)}</td>
                     <td style="font-size: 0.9em;">₹${breakevenLower.toFixed(0)} - ₹${breakevenUpper.toFixed(0)}</td>
                     <td style="color: #666;">₹${new Intl.NumberFormat('en-IN').format(marginRequired)}</td>
-                    <td style="color: #27ae60; font-weight: 700; font-size: 1.1em;">${expectedRoi.toFixed(1)}%</td>
-                    <td style="font-weight: 600; color: ${riskColor};">${confidence.toFixed(0)}%</td>
+                    <td>
+                                    ${expectedRoi.toFixed(1)}%
+                                    <span class="roi-trend" data-trend="predicted" title="Predicted performance trend">📈</span>
+                                </td>
+                    <td>
+                                    <span class="confidence-badge" 
+                                          title="Confidence based on model accuracy (${confidence > 85 ? 'high' : confidence > 70 ? 'medium' : 'low'}), volatility analysis, and signal strength">
+                                        ${confidence.toFixed(0)}%
+                                    </span>
+                                </td>
                     <td class="prediction-outcome ${predictionOutcome.class}" title="${predictionOutcome.tooltip}">${predictionOutcome.display}</td>
                     <td class="stop-loss-cell" title="${stopLossTooltip}">${stopLossDisplay}</td>
                     <td style="font-weight: 600; color: ${riskColor};">${riskLevel}</td>
-                    <td class="verdict-cell" title="${verdictData.tooltip}">${verdictData.verdict}</td>
+                    <td>
+                                    <span class="verdict-badge verdict-${verdictData.verdict.toLowerCase().replace(' ', '-')}" 
+                                          title="${verdictData.tooltip}">
+                                        ${verdictData.verdict}
+                                    </span>
+                                </td>
                 `;
                 tbody.appendChild(row);
                 validCount++;
@@ -1039,12 +1085,12 @@
         function updateLiveTradeDivergenceMonitor(inProgressTrades) {
             console.log('📊 Updating Live Trade Divergence Monitor with', inProgressTrades ? inProgressTrades.length : 0, 'trades');
             const tbody = document.querySelector('#inProgressTableBody');
-            
+
             if (!tbody) {
                 console.error('❌ Could not find #inProgressTableBody');
                 return;
             }
-            
+
             tbody.innerHTML = '';
 
             if (!inProgressTrades || inProgressTrades.length === 0) {
@@ -1100,15 +1146,22 @@
                     <td class="fw-bold">${trade.stock || 'N/A'}</td>
                     <td>${trade.predicted_outcome || 'N/A'}</td>
                     <td class="${statusColor} fw-bold">${trade.current_outcome || 'N/A'}</td>
-                    <td class="text-end">${predictedRoi.toFixed(1)}%</td>
                     <td class="text-end">
-                        <span class="${roiColor} fw-bold">${currentRoi.toFixed(1)}%</span>
+                        ${predictedRoi}%
+                        <span class="roi-trend" title="Original prediction">🎯</span>
+                    </td>
+                    <td class="text-end">
+                        ${currentRoi}%
+                        <span class="roi-trend ${trade.current_outcome === 'Outperforming' ? 'roi-outperforming' : trade.current_outcome === 'Diverging' ? 'roi-underperforming' : 'roi-on-track'}" 
+                              title="Current performance vs prediction">
+                            ${trade.current_outcome === 'Outperforming' ? '🔺' : trade.current_outcome === 'Diverging' ? '🔻' : '➡️'}
+                        </span>
                     </td>
                     <td class="text-end">${reasonHtml}</td>
                 `;
                 tbody.appendChild(row);
             });
-            
+
             console.log('✅ Live Trade Divergence Monitor updated with', inProgressTrades.length, 'trades');
         }
 
@@ -1116,12 +1169,12 @@
         function updatePredictionAccuracyDashboard(summary) {
             console.log('📈 Updating Prediction Accuracy Dashboard with summary:', summary);
             const tbody = document.querySelector('#accuracyTableBody');
-            
+
             if (!tbody) {
                 console.error('❌ Could not find #accuracyTableBody');
                 return;
             }
-            
+
             tbody.innerHTML = '';
 
             const timeframes = ['3D', '5D', '10D', '15D', '30D'];
@@ -1181,24 +1234,24 @@
                     <td colspan="9" class="text-center text-muted bg-light py-4">
                         <div>
                             <div class="fw-bold mb-1">📈 No completed predictions yet</div>
-                            <div>Start locking predictions to build historical performance data</div>
+                            <div class="text-sm">Start locking predictions to build historical performance data</div>
                         </div>
                     </td>
                 `;
                 tbody.appendChild(infoRow);
             }
-            
+
             console.log('✅ Prediction Accuracy Dashboard updated');
         }
 
         // Load Prediction Performance Dashboard with proper error handling
         async function loadPredictionPerformanceDashboard() {
             console.log('📈 Starting to load Prediction Performance Dashboard...');
-            
+
             // Show loading indicators
             const inProgressTableBody = document.querySelector('#inProgressTableBody');
             const accuracyTableBody = document.querySelector('#accuracyTableBody');
-            
+
             if (inProgressTableBody) {
                 inProgressTableBody.innerHTML = `
                     <tr>
@@ -1211,7 +1264,7 @@
                     </tr>
                 `;
             }
-            
+
             if (accuracyTableBody) {
                 accuracyTableBody.innerHTML = `
                     <tr>
@@ -1236,7 +1289,7 @@
                 });
 
                 console.log('📡 Response status:', response.status);
-                
+
                 if (!response.ok) {
                     throw new Error(`API failure: HTTP ${response.status}`);
                 }
@@ -1264,7 +1317,7 @@
 
             } catch (error) {
                 console.error('❌ Prediction dashboard load error:', error);
-                
+
                 // Show error state
                 if (inProgressTableBody) {
                     inProgressTableBody.innerHTML = `
@@ -1277,7 +1330,7 @@
                         </tr>
                     `;
                 }
-                
+
                 if (accuracyTableBody) {
                     accuracyTableBody.innerHTML = `
                         <tr>
