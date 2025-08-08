@@ -2,95 +2,105 @@
 import json
 import os
 from datetime import datetime, timedelta
+import random
 
-def create_locked_predictions_file():
-    """Create a proper locked predictions file for testing"""
+def create_locked_predictions():
+    """Create locked predictions for testing the dashboard"""
     
-    # Ensure tracking directory exists
-    os.makedirs('data/tracking', exist_ok=True)
-    
-    # Sample locked predictions data
-    locked_predictions = {
-        "RELIANCE": {
-            "locked_5d": True,
-            "locked_30d": True,
-            "expiry_date_5d": (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d'),
-            "expiry_date_30d": (datetime.now() + timedelta(days=25)).strftime('%Y-%m-%d'),
-            "predicted_roi_5d": 12.5,
-            "predicted_roi_30d": 28.0,
-            "actual_roi_5d": None,  # Still in progress
-            "actual_roi_30d": None,  # Still in progress
-            "predicted_outcome": "On Track",
-            "lock_start_date_5d": (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'),
-            "lock_start_date_30d": (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d'),
-            "status": "in_progress"
-        },
-        "TCS": {
-            "locked_5d": True,
-            "locked_30d": True,
-            "expiry_date_5d": (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'),
-            "expiry_date_30d": (datetime.now() + timedelta(days=20)).strftime('%Y-%m-%d'),
-            "predicted_roi_5d": 15.0,
-            "predicted_roi_30d": 32.0,
-            "actual_roi_5d": 16.2,  # Completed - successful
-            "actual_roi_30d": None,  # Still in progress
-            "predicted_outcome": "On Track",
-            "lock_start_date_5d": (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
-            "lock_start_date_30d": (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d'),
-            "status": "partial_complete"
-        },
-        "HDFCBANK": {
-            "locked_5d": True,
-            "locked_30d": True,
-            "expiry_date_5d": (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d'),
-            "expiry_date_30d": (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d'),
-            "predicted_roi_5d": 18.0,
-            "predicted_roi_30d": 35.0,
-            "actual_roi_5d": 12.3,  # Completed - failed
-            "actual_roi_30d": 28.5,  # Completed - failed
-            "predicted_outcome": "On Track",
-            "lock_start_date_5d": (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d'),
-            "lock_start_date_30d": (datetime.now() - timedelta(days=35)).strftime('%Y-%m-%d'),
-            "status": "completed"
-        },
-        "INFY": {
-            "locked_5d": True,
-            "locked_30d": False,
-            "expiry_date_5d": (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d'),
-            "predicted_roi_5d": 22.0,
-            "actual_roi_5d": None,  # Still in progress
-            "predicted_outcome": "On Track",
-            "lock_start_date_5d": (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%d'),
-            "status": "in_progress"
-        },
-        "ITC": {
-            "locked_5d": False,
-            "locked_30d": True,
-            "expiry_date_30d": (datetime.now() + timedelta(days=15)).strftime('%Y-%m-%d'),
-            "predicted_roi_30d": 45.0,
-            "actual_roi_30d": None,  # Still in progress
-            "predicted_outcome": "On Track",
-            "lock_start_date_30d": (datetime.now() - timedelta(days=15)).strftime('%Y-%m-%d'),
-            "status": "in_progress"
-        }
-    }
-    
-    # Save to multiple locations for compatibility
-    files_to_create = [
-        'data/tracking/locked_predictions.json',
-        'data/tracking/interactive_tracking.json'
+    # Sample stocks for testing
+    stocks = [
+        "RELIANCE", "TCS", "INFY", "HDFCBANK", "ITC", "HINDUNILVR", 
+        "SBIN", "BHARTIARTL", "WIPRO", "MARUTI"
     ]
     
-    for file_path in files_to_create:
-        try:
-            with open(file_path, 'w') as f:
-                json.dump(locked_predictions, f, indent=2)
-            print(f"✅ Created locked predictions file: {file_path}")
-        except Exception as e:
-            print(f"❌ Error creating {file_path}: {e}")
+    # Create tracking directory if it doesn't exist
+    tracking_dir = "data/tracking"
+    os.makedirs(tracking_dir, exist_ok=True)
     
-    print(f"📊 Created {len(locked_predictions)} locked prediction entries")
-    return locked_predictions
+    tracking_data = []
+    
+    # Generate 3-5 locked trades with future expiry dates
+    num_trades = random.randint(3, 5)
+    
+    for i in range(num_trades):
+        stock = random.choice(stocks)
+        
+        # Future expiry date (3-30 days from now)
+        expiry_date = datetime.now() + timedelta(days=random.randint(3, 30))
+        
+        # Generate realistic ROI values
+        predicted_roi = round(random.uniform(15.0, 35.0), 1)
+        current_roi = round(predicted_roi + random.uniform(-8.0, 8.0), 1)
+        
+        # Determine outcome based on divergence
+        divergence = abs(current_roi - predicted_roi) / predicted_roi if predicted_roi != 0 else 0
+        if divergence > 0.2:
+            predicted_outcome = "Diverging" if current_roi < predicted_roi else "Outperforming"
+        else:
+            predicted_outcome = "On Track"
+        
+        trade_entry = {
+            "symbol": stock,
+            "locked": True,
+            "status": "in_progress",
+            "expiry_date": expiry_date.strftime("%Y-%m-%d"),
+            "predicted_roi": predicted_roi,
+            "current_roi": current_roi,
+            "predicted_outcome": predicted_outcome,
+            "actual_outcome": None,
+            "trade_type": "short_strangle",
+            "timeframe": random.choice(["5D", "30D"]),
+            "entry_date": (datetime.now() - timedelta(days=random.randint(1, 5))).strftime("%Y-%m-%d"),
+            "reason": f"Technical analysis indicates {predicted_outcome.lower()} trend"
+        }
+        
+        tracking_data.append(trade_entry)
+    
+    # Add some historical completed trades for accuracy stats
+    for i in range(5):
+        stock = random.choice(stocks)
+        
+        # Past expiry date
+        expiry_date = datetime.now() - timedelta(days=random.randint(1, 10))
+        
+        predicted_roi = round(random.uniform(15.0, 35.0), 1)
+        actual_roi = round(predicted_roi + random.uniform(-10.0, 10.0), 1)
+        
+        # Determine if successful (within 20% of prediction)
+        was_successful = abs(actual_roi - predicted_roi) / predicted_roi <= 0.2 if predicted_roi != 0 else False
+        
+        historical_entry = {
+            "symbol": stock,
+            "locked": True,
+            "status": "completed",
+            "expiry_date": expiry_date.strftime("%Y-%m-%d"),
+            "predicted_roi": predicted_roi,
+            "current_roi": actual_roi,
+            "predicted_outcome": "Completed",
+            "actual_outcome": "successful" if was_successful else "failed",
+            "trade_type": "short_strangle",
+            "timeframe": random.choice(["5D", "30D"]),
+            "entry_date": (expiry_date - timedelta(days=random.randint(3, 30))).strftime("%Y-%m-%d"),
+            "reason": "Historical trade for stats"
+        }
+        
+        tracking_data.append(historical_entry)
+    
+    # Write to file
+    tracking_file = os.path.join(tracking_dir, "interactive_tracking.json")
+    with open(tracking_file, 'w') as f:
+        json.dump(tracking_data, f, indent=2)
+    
+    print(f"✅ Created {len(tracking_data)} tracking entries:")
+    print(f"   - {num_trades} active locked trades")
+    print(f"   - 5 historical trades for accuracy stats")
+    print(f"   - Saved to: {tracking_file}")
+    
+    # Display active trades
+    active_trades = [t for t in tracking_data if t['status'] == 'in_progress']
+    print(f"\n📊 Active Trades:")
+    for trade in active_trades:
+        print(f"   {trade['symbol']}: {trade['predicted_roi']}% → {trade['current_roi']}% ({trade['predicted_outcome']})")
 
 if __name__ == "__main__":
-    create_locked_predictions_file()
+    create_locked_predictions()

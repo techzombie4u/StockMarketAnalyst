@@ -1535,69 +1535,49 @@ def goahead_retrain():
 
 @app.route('/api/options-prediction-dashboard')
 def options_prediction_dashboard():
-    """API endpoint for options prediction dashboard data"""
+    """Get data for options prediction dashboard"""
     try:
         logger.info("📈 Loading options prediction dashboard data...")
         print("[API] options-prediction-dashboard called")
 
-        # Initialize Smart Go Agent
-        if SmartGoAgent:
-            smart_agent = SmartGoAgent()
+        # Get SmartGoAgent instance
+        smart_agent = SmartGoAgent()
 
-            # Get active trades
-            active_trades = smart_agent.get_active_options_predictions()
-            print(f"[API] Active trades found: {len(active_trades)}")
+        # Get active trades
+        print("📊 Loading active options predictions...")
+        live_trades = smart_agent.get_active_options_predictions()
+        print(f"📊 Found {len(live_trades)} active trades")
+        print(f"[API] Active trades found: {len(live_trades)}")
 
-            # Get prediction accuracy summary
-            accuracy_summary = smart_agent.get_prediction_accuracy_summary()
-            print(f"[API] Accuracy summary timeframes: {list(accuracy_summary.keys())}")
+        # Log details of each trade for debugging
+        for i, trade in enumerate(live_trades):
+            print(f"[API] Trade {i+1}: {trade.get('symbol')} - Status: {trade.get('status')} - Expiry: {trade.get('expiry_date')} - Locked: {trade.get('locked')}")
 
-            dashboard_data = {
-                'status': 'success',
-                'timestamp': datetime.now(IST).isoformat(),
-                'live_trades': active_trades,
-                'summary_stats': accuracy_summary
-            }
+        # Get accuracy summary
+        summary_stats = smart_agent.get_prediction_accuracy_summary()
+        print(f"[API] Accuracy summary timeframes: {list(summary_stats.keys())}")
 
-            print("[API] options-prediction-dashboard response:", dashboard_data)
-            logger.info(f"✅ Options prediction dashboard data prepared: {len(active_trades)} active trades")
-            return jsonify(dashboard_data)
-        else:
-            print("[API] SmartGoAgent not available, using fallback data")
-            # Fallback if SmartGoAgent is not available
-            dashboard_data = {
-                'status': 'success',
-                'timestamp': datetime.now(IST).isoformat(),
-                'live_trades': [],
-                'summary_stats': {
-                    '3D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
-                    '5D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
-                    '10D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
-                    '15D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
-                    '30D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0}
-                }
-            }
-            print("[API] options-prediction-dashboard response:", dashboard_data)
-            return jsonify(dashboard_data)
+        response_data = {
+            'status': 'success',
+            'timestamp': datetime.now().isoformat(),
+            'live_trades': live_trades,
+            'summary_stats': summary_stats
+        }
+
+        print(f"[API] Returning {len(live_trades)} live trades...")
+        logger.info(f"✅ Options prediction dashboard data prepared: {len(live_trades)} active trades")
+
+        return jsonify(response_data)
 
     except Exception as e:
-        print(f"[API] Error in options prediction dashboard: {str(e)}")
-        logger.error(f"Error in options prediction dashboard: {str(e)}")
-        error_response = {
+        logger.error(f"Error loading options prediction dashboard: {str(e)}")
+        print(f"[API] Error: {str(e)}")
+        return jsonify({
             'status': 'error',
-            'error': str(e),
-            'timestamp': datetime.now(IST).isoformat(),
+            'message': str(e),
             'live_trades': [],
-            'summary_stats': {
-                '3D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
-                '5D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
-                '10D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
-                '15D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0},
-                '30D': {'total': 0, 'successful': 0, 'failed': 0, 'in_progress': 0, 'accuracy': 0, 'avg_roi': 0, 'max_drawdown': 0, 'sharpe_ratio': 0}
-            }
-        }
-        print("[API] options-prediction-dashboard error response:", error_response)
-        return jsonify(error_response), 200  # Return 200 to avoid frontend errors
+            'summary_stats': {}
+        }), 500
 
 @app.route('/api/prediction-performance-dashboard')
 def prediction_performance_dashboard():

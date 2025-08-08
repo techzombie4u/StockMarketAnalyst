@@ -1056,6 +1056,48 @@ class SmartGoAgent:
             'ai_insights': []
         }
 
+    # Helper methods for get_active_options_predictions
+    def _determine_current_outcome(self, entry: Dict, timeframe_key: str = None) -> str:
+        """Determine current outcome status for a trade"""
+        try:
+            predicted_roi = entry.get(f'predicted_roi_{timeframe_key}', entry.get('predicted_roi', 0))
+            current_roi = entry.get(f'current_roi_{timeframe_key}', entry.get('current_roi', 0))
+
+            # Calculate divergence
+            if predicted_roi != 0:
+                divergence = abs(current_roi - predicted_roi) / abs(predicted_roi)
+                if divergence > 0.2:  # 20% divergence threshold
+                    return "Diverging" if current_roi < predicted_roi else "Outperforming"
+                else:
+                    return "On Track"
+            else:
+                # If predicted_roi is 0, check if current_roi is positive
+                return "Outperforming" if current_roi > 0 else "Monitoring"
+
+        except Exception as e:
+            logger.error(f"Error determining current outcome: {str(e)}")
+            return "Unknown"
+
+    def _calculate_current_roi(self, entry: Dict, timeframe_key: str) -> float:
+        """Calculate current ROI for a trade"""
+        # Placeholder: In a real scenario, this would involve fetching actual market data
+        # and calculating the ROI based on the entry and current price.
+        # For this example, we'll use a placeholder value or derive from 'current_roi' if available.
+        return entry.get(f'current_roi_{timeframe_key}', entry.get('current_roi', 0.0))
+
+    def _get_divergence_reason(self, entry: Dict, timeframe_key: str) -> str:
+        """Get the reason for divergence in ROI"""
+        predicted_roi = entry.get(f'predicted_roi_{timeframe_key}', entry.get('predicted_roi', 0))
+        current_roi = entry.get(f'current_roi_{timeframe_key}', entry.get('current_roi', 0))
+
+        if predicted_roi != 0:
+            if current_roi < predicted_roi * 0.8:
+                return "ROI declined significantly"
+            elif current_roi > predicted_roi * 1.2:
+                return "ROI exceeded expectations"
+        return ""
+
+
 def main():
     """Test Enhanced SmartGoAgent functionality"""
     agent = SmartGoAgent()
