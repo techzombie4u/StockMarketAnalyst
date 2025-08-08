@@ -24,7 +24,15 @@ def main():
         logger.info("🚀 Starting Stock Market Analyst Application")
 
         # Import and run the Flask app
-        from src.core.app import app, initialize_app
+        try:
+            from src.core.app import app, initialize_app
+        except ImportError as e:
+            logger.error(f"Failed to import core modules: {e}")
+            logger.info("Attempting fallback imports...")
+            # Try alternative import paths
+            import sys
+            sys.path.insert(0, 'src')
+            from core.app import app, initialize_app
 
         # Initialize the application
         initialize_app()
