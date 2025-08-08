@@ -52,16 +52,16 @@ def _refresh_locked_predictions_data():
     """Refresh locked predictions data from all sources"""
     try:
         print("🔄 Refreshing locked predictions data...")
-        
+
         # Check if interactive tracking file exists and has active trades
         tracking_file = 'data/tracking/interactive_tracking.json'
         if os.path.exists(tracking_file):
             with open(tracking_file, 'r') as f:
                 tracking_data = json.load(f)
-            
+
             current_date = datetime.now().date()
             active_count = 0
-            
+
             # Count active trades
             if isinstance(tracking_data, list):
                 for entry in tracking_data:
@@ -74,10 +74,10 @@ def _refresh_locked_predictions_data():
                                 active_count += 1
                         except:
                             pass
-            
+
             print(f"✅ Refreshed: Found {active_count} active locked predictions")
             return True
-            
+
         else:
             print("⚠️ No tracking file found, running create_locked_predictions.py...")
             # Run the script to create test data if no file exists
@@ -92,9 +92,9 @@ def _refresh_locked_predictions_data():
                     print(f"❌ Failed to create locked predictions: {result.stderr}")
             except Exception as e:
                 print(f"❌ Error running create_locked_predictions.py: {e}")
-        
+
         return False
-        
+
     except Exception as e:
         logger.error(f"Error refreshing locked predictions data: {str(e)}")
         return False
@@ -1445,7 +1445,7 @@ def load_interactive_tracking_data():
         tracker_manager = InteractiveTrackerManager()
         tracking_data = tracker_manager.load_tracking_data()
 
-        # Always ensure tracking data includes current stocks
+        # Always ensure current stocks are tracked before saving lock status
         tracker_manager._ensure_current_stocks_tracked()
 
         return tracker_manager.get_all_tracking_data()
@@ -1587,74 +1587,72 @@ def goahead_retrain():
         }), 500
 
 @app.route('/api/options-prediction-dashboard')
-def options_prediction_dashboard():
-    """Get data for options prediction dashboard with real-time lock refresh"""
+def get_prediction_dashboard():
+    """Get prediction dashboard data"""
     try:
         logger.info("📈 Loading options prediction dashboard data...")
+
+        # Refresh locked predictions data
         print("[API] options-prediction-dashboard called")
+        print("🔄 Refreshing locked predictions data...")
 
-        # Force refresh of locked predictions data on every load
-        _refresh_locked_predictions_data()
+        try:
+            interactive_tracker.refresh_data()
+            locked_predictions = interactive_tracker.get_locked_predictions()
+            active_count = len([p for p in locked_predictions.values() if any(
+                p.get(f'locked_{tf}') for tf in ['5d', '10d', '30d']
+            )]) if locked_predictions else 0
+            print(f"✅ Refreshed: Found {active_count} active locked predictions")
+        except Exception as tracker_error:
+            logger.warning(f"Tracker refresh failed: {tracker_error}")
+            print(f"⚠️ Tracker refresh failed: {tracker_error}")
+            locked_predictions = {}
+            active_count = 0
 
-        # Get SmartGoAgent instance
-        smart_agent = SmartGoAgent()
+        # Get active options predictions using SmartGoAgent
+        try:
+            smart_agent = SmartGoAgent()
+            live_trades = smart_agent.get_active_options_predictions()
+        except Exception as smart_agent_error:
+            logger.error(f"SmartGoAgent get_active_options_predictions failed: {smart_agent_error}")
+            print(f"🔥 SmartGoAgent active predictions error: {smart_agent_error}")
+            live_trades = []
 
-        # Get active trades with real-time updates
-        print("📊 Loading active options predictions with real-time data...")
-        live_trades = smart_agent.get_active_options_predictions()
-        print(f"📊 Found {len(live_trades)} active trades")
-        print(f"[API] Active trades found: {len(live_trades)}")
+        # Get prediction accuracy summary
+        try:
+            if 'smart_agent' in locals():
+                summary_stats = smart_agent.get_prediction_accuracy_summary()
+            else:
+                smart_agent = SmartGoAgent()
+                summary_stats = smart_agent.get_prediction_accuracy_summary()
+        except Exception as summary_error:
+            logger.error(f"SmartGoAgent get_prediction_accuracy_summary failed: {summary_error}")
+            print(f"🔥 SmartGoAgent summary error: {summary_error}")
+            summary_stats = {}
 
-        # Update confidence scores for each trade
-        for trade in live_trades:
-            try:
-                # Create entry dict for confidence calculation
-                entry = {
-                    'symbol': trade.get('stock', ''),
-                    'predicted_roi': trade.get('predicted_roi', 0),
-                    'current_roi': trade.get('current_roi', 0),
-                    'entry_date': trade.get('due_date', ''),  # Approximate
-                }
-                
-                # Update confidence with ML model
-                updated_confidence = smart_agent._update_confidence_scores_with_ml(entry)
-                trade['confidence'] = updated_confidence
-                print(f"📊 Updated confidence for {trade.get('stock')}: {updated_confidence}%")
-                
-            except Exception as e:
-                print(f"⚠️ Failed to update confidence for {trade.get('stock', 'UNKNOWN')}: {e}")
-                trade['confidence'] = 75.0  # Default
-
-        # Log details of each trade for debugging
-        for i, trade in enumerate(live_trades):
-            print(f"[API] Trade {i+1}: {trade.get('stock')} - Outcome: {trade.get('current_outcome')} - Expiry: {trade.get('due_date')} - ROI: {trade.get('predicted_roi')}% → {trade.get('current_roi')}%")
-
-        # Get accuracy summary
-        summary_stats = smart_agent.get_prediction_accuracy_summary()
-        print(f"[API] Accuracy summary timeframes: {list(summary_stats.keys())}")
-
-        response_data = {
-            'status': 'success',
+        dashboard_data = {
+            'live_trades': live_trades or [],
+            'summary_stats': summary_stats or {},
             'timestamp': datetime.now().isoformat(),
-            'live_trades': live_trades,
-            'summary_stats': summary_stats,
-            'data_refreshed': True
+            'status': 'success'
         }
 
-        print(f"[API] Returning {len(live_trades)} live trades with updated confidence scores...")
-        logger.info(f"✅ Options prediction dashboard data prepared: {len(live_trades)} active trades")
-
-        return jsonify(response_data)
+        return jsonify(dashboard_data)
 
     except Exception as e:
-        logger.error(f"Error loading options prediction dashboard: {str(e)}")
-        print(f"[API] Error: {str(e)}")
+        error_message = str(e)
+        logger.error(f"Error loading options prediction dashboard: {error_message}")
+        print(f"[API] Error: {error_message}")
+        import traceback
+        traceback.print_exc()
+
         return jsonify({
-            'status': 'error',
-            'message': str(e),
+            'error': 'Internal server error',
+            'details': error_message,
             'live_trades': [],
             'summary_stats': {},
-            'data_refreshed': False
+            'timestamp': datetime.now().isoformat(),
+            'status': 'error'
         }), 500
 
 @app.route('/api/prediction-performance-dashboard')

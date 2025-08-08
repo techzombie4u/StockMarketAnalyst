@@ -1289,27 +1289,35 @@
                 });
 
                 console.log('📡 Response status:', response.status);
+                console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
                 if (!response.ok) {
-                    throw new Error(`API failure: HTTP ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('❌ API Error Response:', errorText);
+                    throw new Error(`API failure: HTTP ${response.status} - ${errorText}`);
                 }
 
                 const data = await response.json();
                 console.log('📊 Prediction dashboard data received:', data);
 
+                // Check if response indicates an error
+                if (data.status === 'error') {
+                    throw new Error(data.details || 'Unknown server error');
+                }
+
                 // Update Live Trade Divergence Monitor
-                if (data.live_trades) {
+                if (data.live_trades && Array.isArray(data.live_trades)) {
                     updateLiveTradeDivergenceMonitor(data.live_trades);
                 } else {
-                    console.warn('⚠️ No live_trades in response');
+                    console.warn('⚠️ No valid live_trades in response, using empty array');
                     updateLiveTradeDivergenceMonitor([]);
                 }
 
                 // Update Prediction Accuracy Dashboard
-                if (data.summary_stats) {
+                if (data.summary_stats && typeof data.summary_stats === 'object') {
                     updatePredictionAccuracyDashboard(data.summary_stats);
                 } else {
-                    console.warn('⚠️ No summary_stats in response');
+                    console.warn('⚠️ No valid summary_stats in response, using empty object');
                     updatePredictionAccuracyDashboard({});
                 }
 
@@ -1317,15 +1325,24 @@
 
             } catch (error) {
                 console.error('❌ Prediction dashboard load error:', error);
+                console.error('❌ Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
 
-                // Show error state
+                // Show detailed error state
+                const errorDisplay = `
+                    <div class="mb-2">❌ Error loading data</div>
+                    <div class="text-sm text-muted">${error.message}</div>
+                    <button onclick="loadPredictionPerformanceDashboard()" class="btn btn-sm btn-primary mt-2">Retry</button>
+                `;
+
                 if (inProgressTableBody) {
                     inProgressTableBody.innerHTML = `
                         <tr>
                             <td colspan="7" class="text-center text-danger">
-                                <div class="mb-2">❌ Error loading data</div>
-                                <div class="text-sm">${error.message}</div>
-                                <button onclick="loadPredictionPerformanceDashboard()" class="btn btn-sm btn-primary mt-2">Retry</button>
+                                ${errorDisplay}
                             </td>
                         </tr>
                     `;
@@ -1335,13 +1352,14 @@
                     accuracyTableBody.innerHTML = `
                         <tr>
                             <td colspan="9" class="text-center text-danger">
-                                <div class="mb-2">❌ Error loading performance data</div>
-                                <div class="text-sm">${error.message}</div>
-                                <button onclick="loadPredictionPerformanceDashboard()" class="btn btn-sm btn-primary mt-2">Retry</button>
+                                ${errorDisplay}
                             </td>
                         </tr>
                     `;
                 }
+
+                // Also show error in browser console for debugging
+                showPredictionError(`Dashboard load failed: ${error.message}`);
             }
         }
 

@@ -178,8 +178,15 @@ class SmartGoAgent:
                 print(f"📝 No tracking file found at {tracking_file}")
                 return []
 
-            with open(tracking_file, 'r') as f:
-                tracking_data = json.load(f)
+            try:
+                with open(tracking_file, 'r') as f:
+                    tracking_data = json.load(f)
+            except json.JSONDecodeError as e:
+                print(f"🚨 Invalid JSON format in {tracking_file}: {e}")
+                return []
+            except Exception as e:
+                print(f"🚨 Error reading {tracking_file}: {e}")
+                return []
 
             active_trades = []
             current_date = datetime.now().date()
@@ -187,8 +194,11 @@ class SmartGoAgent:
             # Process array or dict format
             if isinstance(tracking_data, list):
                 entries = tracking_data
+            elif isinstance(tracking_data, dict):
+                entries = tracking_data.values()
             else:
-                entries = tracking_data.values() if isinstance(tracking_data, dict) else []
+                print("⚠️ Invalid tracking data format")
+                return []
 
             for entry in entries:
                 if not isinstance(entry, dict):
@@ -204,7 +214,7 @@ class SmartGoAgent:
                         if expiry_date >= current_date:
                             # Calculate real-time ROI and outcome
                             symbol = entry.get('symbol', 'UNKNOWN')
-                            predicted_roi = entry.get('predicted_roi', 0)
+                            predicted_roi = float(entry.get('predicted_roi', 0))
                             current_roi = self._calculate_real_time_roi(entry)
                             current_outcome = self._determine_real_time_outcome(entry, current_roi, predicted_roi)
                             reason = self._get_real_time_divergence_reason(entry, current_roi, predicted_roi)
@@ -220,14 +230,20 @@ class SmartGoAgent:
                             }
                             active_trades.append(trade)
                             print(f"✅ Added active trade for {symbol}: {predicted_roi}% → {current_roi}% ({current_outcome})")
-                    except Exception as e:
+                    except (ValueError, TypeError, KeyError) as e:
                         print(f"⚠️ Error processing trade for {entry.get('symbol', 'UNKNOWN')}: {e}")
+                        continue
+                    except Exception as e:
+                        print(f"⚠️ Unexpected error processing trade for {entry.get('symbol', 'UNKNOWN')}: {e}")
+                        continue
 
             print(f"📊 Found {len(active_trades)} active trades")
             return active_trades
 
         except Exception as e:
-            print(f"❌ Error getting active options predictions: {e}")
+            print(f"🔥 Error in get_active_options_predictions: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def _update_confidence_scores_with_ml(self, entry: Dict) -> float:
@@ -323,7 +339,7 @@ class SmartGoAgent:
                                 tracking_data = json.load(f)
                                 logger.info(f"Loaded summary data from {file_path}")
                                 break
-                        except Exception as e:
+                        except (json.JSONDecodeError, IOError) as e:
                             logger.warning(f"Error loading {file_path}: {e}")
                             continue
 
@@ -335,10 +351,10 @@ class SmartGoAgent:
                         'successful': 0,
                         'failed': 0,
                         'in_progress': 0,
-                        'accuracy': 0,
-                        'avg_roi': 0,
-                        'max_drawdown': 0,
-                        'sharpe_ratio': 0
+                        'accuracy': 0.0,
+                        'avg_roi': 0.0,
+                        'max_drawdown': 0.0,
+                        'sharpe_ratio': 0.0
                     }
                 return summary
 
@@ -353,116 +369,145 @@ class SmartGoAgent:
                 in_progress = 0
                 roi_values = []
 
-                # Process both dict format and list format tracking data
-                if isinstance(tracking_data, list):
-                    # Handle list format from create_locked_predictions.py
-                    for entry in tracking_data:
-                        if isinstance(entry, dict) and entry.get('timeframe') == timeframe:
-                            total += 1
-                            
-                            try:
-                                expiry_date = datetime.strptime(entry['expiry_date'], '%Y-%m-%d').date()
+                try:
+                    # Process both dict format and list format tracking data
+                    if isinstance(tracking_data, list):
+                        # Handle list format from create_locked_predictions.py
+                        for entry in tracking_data:
+                            if isinstance(entry, dict) and entry.get('timeframe') == timeframe:
+                                total += 1
                                 
-                                if expiry_date >= current_date:
-                                    in_progress += 1
-                                else:
-                                    # Determine success based on actual vs predicted outcome
-                                    actual_outcome = entry.get('actual_outcome')
-                                    if actual_outcome == 'successful':
-                                        successful += 1
-                                        roi_values.append(entry.get('current_roi', 0))
-                                    elif actual_outcome == 'failed':
-                                        failed += 1
-                                        roi_values.append(entry.get('current_roi', 0))
-                                    else:
-                                        # Still in progress based on status
+                                try:
+                                    expiry_date = datetime.strptime(entry['expiry_date'], '%Y-%m-%d').date()
+                                    
+                                    if expiry_date >= current_date:
                                         in_progress += 1
-                                        
-                            except Exception as e:
-                                logger.warning(f"Error processing list entry for {timeframe}: {e}")
-                                failed += 1
-                else:
-                    # Handle dict format (original logic)
-                    for symbol, data in tracking_data.items():
-                    if isinstance(data, dict):
-                        locked_key = f'locked_{timeframe_key}'
-                        expiry_key = f'expiry_date_{timeframe_key}'
-
-                        if data.get(locked_key) and data.get(expiry_key):
-                            total += 1
-
-                            try:
-                                expiry_date = datetime.strptime(data[expiry_key], '%Y-%m-%d').date()
-
-                                if expiry_date >= current_date:
-                                    in_progress += 1
-                                else:
-                                    # Check if prediction was successful
-                                    predicted_roi = data.get(f'predicted_roi_{timeframe_key}', 0)
-                                    actual_roi = data.get(f'actual_roi_{timeframe_key}', None)
-
-                                    if actual_roi is not None:
-                                        # Consider successful if within 20% of prediction or positive
-                                        if actual_roi >= predicted_roi * 0.8:
-                                            successful += 1
-                                        else:
-                                            failed += 1
-                                        roi_values.append(actual_roi)
                                     else:
-                                        # No actual ROI data yet - treat as in progress
+                                        # Determine success based on actual vs predicted outcome
+                                        actual_outcome = entry.get('actual_outcome')
+                                        if actual_outcome == 'successful':
+                                            successful += 1
+                                            roi_values.append(float(entry.get('current_roi', 0)))
+                                        elif actual_outcome == 'failed':
+                                            failed += 1
+                                            roi_values.append(float(entry.get('current_roi', 0)))
+                                        else:
+                                            # Still in progress based on status
+                                            in_progress += 1
+                                            
+                                except (ValueError, TypeError, KeyError) as e:
+                                    logger.warning(f"Error processing list entry for {timeframe}: {e}")
+                                    failed += 1
+                    else:
+                        # Handle dict format (original logic)
+                        for symbol, data in tracking_data.items():
+                            if isinstance(data, dict):
+                                locked_key = f'locked_{timeframe_key}'
+                                expiry_key = f'expiry_date_{timeframe_key}'
+
+                                if data.get(locked_key) and data.get(expiry_key):
+                                    total += 1
+
+                                    try:
+                                        expiry_date = datetime.strptime(data[expiry_key], '%Y-%m-%d').date()
+
                                         if expiry_date >= current_date:
                                             in_progress += 1
                                         else:
-                                            failed += 1
-                                            roi_values.append(0)
+                                            # Check if prediction was successful
+                                            predicted_roi = float(data.get(f'predicted_roi_{timeframe_key}', 0))
+                                            actual_roi = data.get(f'actual_roi_{timeframe_key}')
 
-                            except Exception as e:
-                                logger.warning(f"Error processing {symbol} for {timeframe}: {e}")
-                                failed += 1
+                                            if actual_roi is not None:
+                                                actual_roi = float(actual_roi)
+                                                # Consider successful if within 20% of prediction or positive
+                                                if predicted_roi > 0 and actual_roi >= predicted_roi * 0.8:
+                                                    successful += 1
+                                                else:
+                                                    failed += 1
+                                                roi_values.append(actual_roi)
+                                            else:
+                                                # No actual ROI data yet - treat as in progress
+                                                if expiry_date >= current_date:
+                                                    in_progress += 1
+                                                else:
+                                                    failed += 1
+                                                    roi_values.append(0.0)
 
-                # If no data found, generate sample data for demonstration
-                if total == 0 and timeframe in ['3D', '10D', '15D']:
-                    total = self._generate_sample_timeframe_data(timeframe)
-                    if timeframe == '3D':
-                        successful, failed, in_progress = 8, 1, 2
-                        roi_values = [28.5, 31.2, 24.8, 29.1, 26.7, 33.4, 25.9, 30.8, 22.3]
-                    elif timeframe == '10D':
-                        successful, failed, in_progress = 12, 3, 5
-                        roi_values = [25.4, 28.1, 31.7, 23.9, 29.8, 26.3, 32.1, 27.6, 24.2, 30.5, 28.9, 26.8, 22.1]
-                    elif timeframe == '15D':
-                        successful, failed, in_progress = 9, 4, 3
-                        roi_values = [22.8, 26.4, 29.1, 24.7, 27.3, 25.9, 31.2, 23.5, 28.6, 21.9, 19.8, 26.1, 24.3]
+                                    except (ValueError, TypeError, KeyError) as e:
+                                        logger.warning(f"Error processing {symbol} for {timeframe}: {e}")
+                                        failed += 1
 
-                # Calculate metrics
-                completed_trades = successful + failed
-                accuracy = (successful / completed_trades * 100) if completed_trades > 0 else 0
-                avg_roi = sum(roi_values) / len(roi_values) if roi_values else 0
-                max_drawdown = min(roi_values) if roi_values else 0
+                    # If no data found, generate sample data for demonstration
+                    if total == 0 and timeframe in ['3D', '10D', '15D']:
+                        total = self._generate_sample_timeframe_data(timeframe)
+                        if timeframe == '3D':
+                            successful, failed, in_progress = 8, 1, 2
+                            roi_values = [28.5, 31.2, 24.8, 29.1, 26.7, 33.4, 25.9, 30.8, 22.3]
+                        elif timeframe == '10D':
+                            successful, failed, in_progress = 12, 3, 5
+                            roi_values = [25.4, 28.1, 31.7, 23.9, 29.8, 26.3, 32.1, 27.6, 24.2, 30.5, 28.9, 26.8, 22.1]
+                        elif timeframe == '15D':
+                            successful, failed, in_progress = 9, 4, 3
+                            roi_values = [22.8, 26.4, 29.1, 24.7, 27.3, 25.9, 31.2, 23.5, 28.6, 21.9, 19.8, 26.1, 24.3]
 
-                # Simple Sharpe ratio calculation
-                if len(roi_values) > 1:
-                    roi_std = (sum((x - avg_roi) ** 2 for x in roi_values) / (len(roi_values) - 1)) ** 0.5
-                    sharpe_ratio = (avg_roi - 5.0) / roi_std if roi_std > 0 else 0  # 5% risk-free rate
-                else:
-                    sharpe_ratio = 0
+                    # Calculate metrics with safe division
+                    completed_trades = successful + failed
+                    accuracy = (successful / completed_trades * 100) if completed_trades > 0 else 0.0
+                    avg_roi = sum(roi_values) / len(roi_values) if roi_values else 0.0
+                    max_drawdown = min(roi_values) if roi_values else 0.0
 
-                summary[timeframe] = {
-                    'total': total,
-                    'successful': successful,
-                    'failed': failed,
-                    'in_progress': in_progress,
-                    'accuracy': round(accuracy, 1),
-                    'avg_roi': round(avg_roi, 1),
-                    'max_drawdown': round(max_drawdown, 1),
-                    'sharpe_ratio': round(sharpe_ratio, 2)
-                }
+                    # Simple Sharpe ratio calculation
+                    if len(roi_values) > 1:
+                        roi_std = (sum((x - avg_roi) ** 2 for x in roi_values) / (len(roi_values) - 1)) ** 0.5
+                        sharpe_ratio = (avg_roi - 5.0) / roi_std if roi_std > 0 else 0.0  # 5% risk-free rate
+                    else:
+                        sharpe_ratio = 0.0
+
+                    summary[timeframe] = {
+                        'total': int(total),
+                        'successful': int(successful),
+                        'failed': int(failed),
+                        'in_progress': int(in_progress),
+                        'accuracy': round(float(accuracy), 1),
+                        'avg_roi': round(float(avg_roi), 1),
+                        'max_drawdown': round(float(max_drawdown), 1),
+                        'sharpe_ratio': round(float(sharpe_ratio), 2)
+                    }
+
+                except Exception as tf_error:
+                    logger.error(f"Error processing timeframe {timeframe}: {tf_error}")
+                    summary[timeframe] = {
+                        'total': 0,
+                        'successful': 0,
+                        'failed': 0,
+                        'in_progress': 0,
+                        'accuracy': 0.0,
+                        'avg_roi': 0.0,
+                        'max_drawdown': 0.0,
+                        'sharpe_ratio': 0.0
+                    }
 
             logger.info(f"Generated prediction summary for {len(timeframes)} timeframes")
             return summary
 
         except Exception as e:
+            print(f"🔥 Error in get_prediction_accuracy_summary: {str(e)}")
             logger.error(f"Error getting prediction accuracy summary: {e}")
-            return {}
+            import traceback
+            traceback.print_exc()
+            return {
+                timeframe: {
+                    'total': 0,
+                    'successful': 0,
+                    'failed': 0,
+                    'in_progress': 0,
+                    'accuracy': 0.0,
+                    'avg_roi': 0.0,
+                    'max_drawdown': 0.0,
+                    'sharpe_ratio': 0.0
+                } for timeframe in ['3D', '5D', '10D', '15D', '30D']
+            }
 
     def _analyze_current_vs_predicted(self, symbol, data, timeframe):
         """Analyze current outcome vs predicted for a symbol"""
