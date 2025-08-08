@@ -1,10 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>💰 Options - Stock Market Analyst</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -263,6 +264,93 @@
             cursor: help;
             white-space: nowrap;
         }
+
+        /* Performance Dashboard Specific Styles */
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            border-bottom: none;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .card-header h5 {
+            font-weight: 700;
+        }
+
+        .card-header small {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 0, 0, 0.08);
+            transform: none; /* Override general table hover */
+        }
+
+        .table-dark {
+            background-color: #343a40;
+            color: white;
+        }
+
+        .table-dark th {
+            background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%); /* Adjusted for consistency */
+            border-bottom: 1px solid #454d55;
+        }
+
+        .text-end {
+            text-align: right !important;
+        }
+        .text-center {
+            text-align: center !important;
+        }
+        .fw-bold {
+            font-weight: bold;
+        }
+        .text-muted {
+            color: #6c757d !important;
+        }
+        .bg-primary { background-color: #007bff !important; }
+        .bg-success { background-color: #28a745 !important; }
+        .bg-warning { background-color: #ffc107 !important; }
+        .bg-danger { background-color: #dc3545 !important; }
+        .bg-info { background-color: #17a2b8 !important; }
+        .bg-secondary { background-color: #6c757d !important; }
+        .badge {
+            display: inline-block;
+            padding: .35em .65em;
+            font-size: .75em;
+            font-weight: 700;
+            line-height: 1;
+            color: #fff;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: .25rem;
+        }
+        .badge.bg-success { background-color: #28a745 !important; }
+        .badge.bg-danger { background-color: #dc3545 !important; }
+        .badge.bg-warning { background-color: #ffc107 !important; }
+        .badge.bg-info { background-color: #17a2b8 !important; }
+        .badge.bg-secondary { background-color: #6c757d !important; }
+
     </style>
 </head>
 <body>
@@ -345,9 +433,132 @@
                 <tbody id="optionsTableBody">
                 </tbody>
             </table>
+
+            <!-- Tab Content -->
+            <div class="tab-content mt-4" id="optionsTabsContent">
+                <!-- Summary Tab -->
+                <div class="tab-pane fade show active" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">Key Performance Indicators (KPIs)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Total Premium Collected:</strong> <span id="totalPremium"></span></p>
+                                    <p><strong>Average ROI:</strong> <span id="averageROI"></span></p>
+                                    <p><strong>Win Rate:</strong> <span id="winRate"></span></p>
+                                    <p><strong>Total Trades:</strong> <span id="totalTrades"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0">Risk Metrics</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Max Drawdown:</strong> <span id="maxDrawdown"></span></p>
+                                    <p><strong>Sharpe Ratio:</strong> <span id="sharpeRatio"></span></p>
+                                    <p><strong>Volatility:</strong> <span id="volatility"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Add more summary components as needed -->
+                </div>
+
+                <!-- Prediction Performance Dashboard Tab -->
+                <div class="tab-pane fade" id="performance" role="tabpanel" aria-labelledby="performance-tab">
+                    <!-- In-Progress Trades Monitor (Top Section) -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">🚦 Live Trade Divergence Monitor</h5>
+                            <small>Real-time visibility of currently active predictions</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover" id="inProgressTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Due Date</th>
+                                            <th>Stock</th>
+                                            <th>Predicted Outcome</th>
+                                            <th>Current Outcome</th>
+                                            <th class="text-end">Predicted ROI</th>
+                                            <th class="text-end">Current ROI</th>
+                                            <th>Reason (if changed)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="inProgressTableBody">
+                                        <tr>
+                                            <td colspan="7" class="text-center">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                Loading in-progress trades...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prediction Accuracy Dashboard (Bottom Section) -->
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">📋 Prediction Accuracy Dashboard</h5>
+                            <small>Aggregate prediction performance across timeframes</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover" id="accuracyTable">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Timeframe</th>
+                                            <th class="text-center">Total Trades</th>
+                                            <th class="text-center">Successful</th>
+                                            <th class="text-center">Failed</th>
+                                            <th class="text-center">In Progress</th>
+                                            <th class="text-end">Accuracy (%)</th>
+                                            <th class="text-end">Avg ROI (%)</th>
+                                            <th class="text-end" data-bs-toggle="tooltip" title="Maximum portfolio decline">Max Drawdown</th>
+                                            <th class="text-end" data-bs-toggle="tooltip" title="Risk-adjusted return measure">Sharpe Ratio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="accuracyTableBody">
+                                        <tr>
+                                            <td colspan="9" class="text-center">
+                                                <div class="spinner-border text-success" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                Loading performance data...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Heatmap Tab -->
+                <div class="tab-pane fade" id="heatmap" role="tabpanel" aria-labelledby="heatmap-tab">
+                    <p>Heatmap content will be displayed here.</p>
+                    <!-- Placeholder for heatmap visualization -->
+                </div>
+
+                <!-- Details Tab -->
+                <div class="tab-pane fade" id="details" role="tabpanel" aria-labelledby="details-tab">
+                    <p>Detailed analysis for each strategy will be shown here.</p>
+                    <!-- Placeholder for detailed strategy information -->
+                </div>
+            </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let isLoading = false;
         let lastLoadTime = 0;
@@ -426,7 +637,7 @@
         function getPredictionOutcome(symbol, current_price, breakeven_lower, breakeven_upper) {
             // Try to get outcome from tracking data first
             const trackingData = window.optionsTracking || {};
-            
+
             if (trackingData[symbol]) {
                 const data = trackingData[symbol];
                 if (data.prediction_outcome) {
@@ -446,7 +657,7 @@
                     };
                 }
             }
-            
+
             // Fallback: check current price against breakeven
             if (current_price >= breakeven_lower && current_price <= breakeven_upper) {
                 return {
@@ -743,9 +954,171 @@
                 });
         }
 
+        // Load Performance Dashboard data
+        async function loadPerformanceDashboard() {
+            try {
+                console.log('📈 Loading Performance Dashboard data...');
+
+                const response = await fetch('/api/prediction-performance-dashboard');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    updateInProgressTable(data.in_progress || []);
+                    updateAccuracyTable(data.summary || {});
+                    console.log('✅ Performance Dashboard data loaded successfully');
+                } else {
+                    console.error('❌ Error loading performance data:', data.error);
+                    showErrorState();
+                }
+            } catch (error) {
+                console.error('❌ Failed to fetch performance data:', error);
+                showErrorState();
+            }
+        }
+
+        // Update In-Progress Trades table
+        function updateInProgressTable(inProgressData) {
+            const tbody = document.getElementById('inProgressTableBody');
+
+            if (inProgressData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            <i class="fas fa-info-circle"></i> No active trades in progress
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = inProgressData.map(trade => {
+                const hasReason = trade.reason && trade.reason.trim() !== '';
+                const rowClass = hasReason ? 'table-warning' : '';
+                const reasonIcon = hasReason ? '🛑 ' : '';
+
+                return `
+                    <tr class="${rowClass}">
+                        <td>${formatDate(trade.due_date)}</td>
+                        <td><strong>${trade.stock}</strong></td>
+                        <td>
+                            <span class="badge ${getPredictionBadgeClass(trade.predicted_outcome)}">
+                                ${trade.predicted_outcome}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge ${getPredictionBadgeClass(trade.current_outcome)}">
+                                ${trade.current_outcome}
+                            </span>
+                        </td>
+                        <td class="text-end">${formatPercentage(trade.predicted_roi)}%</td>
+                        <td class="text-end">${formatPercentage(trade.current_roi)}%</td>
+                        <td>${reasonIcon}${trade.reason || ''}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update Accuracy Dashboard table
+        function updateAccuracyTable(summaryData) {
+            const tbody = document.getElementById('accuracyTableBody');
+            const timeframes = ['3D', '5D', '10D', '15D', '30D'];
+
+            tbody.innerHTML = timeframes.map(timeframe => {
+                const data = summaryData[timeframe] || {
+                    total: 0, successful: 0, failed: 0, in_progress: 0,
+                    accuracy: 0, avg_roi: 0, max_drawdown: 0, sharpe_ratio: 0
+                };
+
+                const accuracyClass = getAccuracyClass(data.accuracy);
+
+                return `
+                    <tr>
+                        <td><strong>${timeframe}</strong></td>
+                        <td class="text-center">${data.total}</td>
+                        <td class="text-center text-success">${data.successful}</td>
+                        <td class="text-center text-danger">${data.failed}</td>
+                        <td class="text-center text-warning">${data.in_progress}</td>
+                        <td class="text-end ${accuracyClass}">
+                            <strong>${formatPercentage(data.accuracy)}%</strong>
+                        </td>
+                        <td class="text-end">${formatPercentage(data.avg_roi)}%</td>
+                        <td class="text-end">${formatPercentage(data.max_drawdown)}%</td>
+                        <td class="text-end">${data.sharpe_ratio.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Helper functions
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function formatPercentage(value) {
+            return (value || 0).toFixed(1);
+        }
+
+        function getPredictionBadgeClass(outcome) {
+            switch (outcome?.toLowerCase()) {
+                case 'on track': case 'success': return 'bg-success';
+                case 'at risk': case 'warning': return 'bg-warning';
+                case 'breached': case 'failed': return 'bg-danger';
+                case 'exceeded': return 'bg-info';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function getAccuracyClass(accuracy) {
+            if (accuracy >= 75) return 'text-success fw-bold';
+            if (accuracy >= 60) return 'text-warning fw-bold';
+            return 'text-danger fw-bold';
+        }
+
+        function showErrorState() {
+            document.getElementById('inProgressTableBody').innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading data. Please try again.
+                    </td>
+                </tr>
+            `;
+
+            document.getElementById('accuracyTableBody').innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading performance data. Please try again.
+                    </td>
+                </tr>
+            `;
+        }
+
         // Initialize page
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             console.log('📱 Options Strategy page loaded');
+
+            // Tab switching with data loading
+            const triggerTabList = [].slice.call(document.querySelectorAll('#optionsTabs button'));
+            triggerTabList.forEach(function (triggerEl) {
+                const tabTrigger = new bootstrap.Tab(triggerEl);
+
+                triggerEl.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    tabTrigger.show();
+
+                    // Load performance data when Performance tab is clicked
+                    if (triggerEl.id === 'performance-tab') {
+                        loadPerformanceDashboard();
+                    }
+                });
+            });
+
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
 
             // Add timeframe change listener
             document.getElementById('timeframeSelect').addEventListener('change', () => {

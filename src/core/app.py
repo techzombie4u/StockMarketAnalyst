@@ -1539,6 +1539,268 @@ def goahead_retrain():
             'error': str(e)
         }), 500
 
+@app.route('/api/prediction-performance-dashboard')
+def prediction_performance_dashboard():
+    """API endpoint for prediction performance dashboard data"""
+    try:
+        logger.info("📈 Loading prediction performance dashboard data...")
+        
+        # Initialize response structure
+        dashboard_data = {
+            'status': 'success',
+            'timestamp': datetime.now(IST).isoformat(),
+            'in_progress': [],
+            'summary': {}
+        }
+        
+        # Load options tracking data
+        options_tracking_data = load_options_tracking_data()
+        
+        # Load current options strategies for real-time comparison
+        current_strategies = get_current_options_strategies()
+        
+        # Process in-progress trades
+        in_progress_trades = process_in_progress_trades(options_tracking_data, current_strategies)
+        dashboard_data['in_progress'] = in_progress_trades
+        
+        # Process performance summary by timeframe
+        performance_summary = process_performance_summary(options_tracking_data)
+        dashboard_data['summary'] = performance_summary
+        
+        logger.info(f"✅ Performance dashboard data prepared: {len(in_progress_trades)} active trades")
+        return jsonify(dashboard_data)
+        
+    except Exception as e:
+        logger.error(f"Error in prediction performance dashboard: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.now(IST).isoformat(),
+            'in_progress': [],
+            'summary': {}
+        }), 500
+
+def load_options_tracking_data():
+    """Load options tracking data from file"""
+    try:
+        tracking_file = 'options_tracking.json'
+        if os.path.exists(tracking_file):
+            with open(tracking_file, 'r') as f:
+                return json.load(f)
+        return {}
+    except Exception as e:
+        logger.warning(f"Could not load options tracking data: {str(e)}")
+        return {}
+
+def get_current_options_strategies():
+    """Get current options strategies for comparison"""
+    try:
+        # Use existing options strategies endpoint logic
+        from src.analyzers.short_strangle_engine import ShortStrangleEngine
+        engine = ShortStrangleEngine()
+        
+        # Get current strategies for major stocks
+        current_stocks = ['RELIANCE', 'HDFCBANK', 'TCS', 'ITC', 'INFY', 'HINDUNILVR']
+        strategies = []
+        
+        for symbol in current_stocks[:3]:  # Limit to avoid timeouts
+            try:
+                analysis = engine.analyze_short_strangle(symbol, force_realtime=True)
+                if analysis:
+                    strategies.append(analysis)
+            except Exception as e:
+                logger.warning(f"Error getting current strategy for {symbol}: {str(e)}")
+                continue
+        
+        return strategies
+        
+    except Exception as e:
+        logger.error(f"Error getting current options strategies: {str(e)}")
+        return []
+
+def process_in_progress_trades(tracking_data, current_strategies):
+    """Process in-progress trades for the dashboard"""
+    try:
+        in_progress = []
+        
+        # Create lookup for current strategies
+        current_lookup = {s.get('symbol'): s for s in current_strategies}
+        
+        for symbol, trades in tracking_data.items():
+            if not isinstance(trades, dict):
+                continue
+                
+            for trade_id, trade_data in trades.items():
+                if not isinstance(trade_data, dict):
+                    continue
+                    
+                # Check if trade is still active
+                if trade_data.get('status') == 'active':
+                    current_strategy = current_lookup.get(symbol, {})
+                    
+                    # Calculate divergence reasons
+                    reason = calculate_divergence_reason(trade_data, current_strategy)
+                    
+                    # Build in-progress trade entry
+                    in_progress_trade = {
+                        'due_date': trade_data.get('expiry_date', ''),
+                        'stock': symbol,
+                        'predicted_outcome': trade_data.get('predicted_outcome', 'On Track'),
+                        'current_outcome': determine_current_outcome(trade_data, current_strategy),
+                        'predicted_roi': trade_data.get('predicted_roi', 0),
+                        'current_roi': current_strategy.get('expected_roi', 0),
+                        'reason': reason
+                    }
+                    
+                    in_progress.append(in_progress_trade)
+        
+        # Sort by reason (non-empty first), then by due date
+        in_progress.sort(key=lambda x: (x['reason'] == '', x['due_date']))
+        
+        return in_progress
+        
+    except Exception as e:
+        logger.error(f"Error processing in-progress trades: {str(e)}")
+        return []
+
+def process_performance_summary(tracking_data):
+    """Process performance summary by timeframe"""
+    try:
+        timeframes = ['3D', '5D', '10D', '15D', '30D']
+        summary = {}
+        
+        for timeframe in timeframes:
+            timeframe_data = {
+                'total': 0,
+                'successful': 0,
+                'failed': 0,
+                'in_progress': 0,
+                'accuracy': 0,
+                'avg_roi': 0,
+                'max_drawdown': 0,
+                'sharpe_ratio': 0
+            }
+            
+            # Aggregate data for this timeframe
+            roi_values = []
+            
+            for symbol, trades in tracking_data.items():
+                if not isinstance(trades, dict):
+                    continue
+                    
+                for trade_id, trade_data in trades.items():
+                    if not isinstance(trade_data, dict):
+                        continue
+                        
+                    if trade_data.get('timeframe') == timeframe:
+                        timeframe_data['total'] += 1
+                        
+                        status = trade_data.get('final_status', trade_data.get('status', 'in_progress'))
+                        
+                        if status == 'success':
+                            timeframe_data['successful'] += 1
+                        elif status == 'failed':
+                            timeframe_data['failed'] += 1
+                        else:
+                            timeframe_data['in_progress'] += 1
+                        
+                        # Collect ROI for calculations
+                        roi = trade_data.get('actual_roi', trade_data.get('predicted_roi', 0))
+                        if roi:
+                            roi_values.append(roi)
+            
+            # Calculate metrics
+            if timeframe_data['total'] > 0:
+                completed_trades = timeframe_data['successful'] + timeframe_data['failed']
+                if completed_trades > 0:
+                    timeframe_data['accuracy'] = (timeframe_data['successful'] / completed_trades) * 100
+            
+            if roi_values:
+                timeframe_data['avg_roi'] = sum(roi_values) / len(roi_values)
+                timeframe_data['max_drawdown'] = min(roi_values) if roi_values else 0
+                
+                # Simple Sharpe ratio calculation (assuming 5% risk-free rate)
+                risk_free_rate = 5.0
+                roi_std = calculate_std_dev(roi_values) if len(roi_values) > 1 else 1
+                timeframe_data['sharpe_ratio'] = (timeframe_data['avg_roi'] - risk_free_rate) / roi_std if roi_std > 0 else 0
+            
+            summary[timeframe] = timeframe_data
+        
+        return summary
+        
+    except Exception as e:
+        logger.error(f"Error processing performance summary: {str(e)}")
+        return {}
+
+def calculate_divergence_reason(trade_data, current_strategy):
+    """Calculate why a trade might be diverging from predictions"""
+    try:
+        reasons = []
+        
+        # Check ROI deviation
+        predicted_roi = trade_data.get('predicted_roi', 0)
+        current_roi = current_strategy.get('expected_roi', 0)
+        
+        if abs(current_roi - predicted_roi) > predicted_roi * 0.2:  # 20% deviation
+            if current_roi < predicted_roi:
+                reasons.append("ROI declined")
+            else:
+                reasons.append("ROI exceeded")
+        
+        # Check confidence drop
+        predicted_confidence = trade_data.get('predicted_confidence', 0)
+        current_confidence = current_strategy.get('confidence', 0)
+        
+        if current_confidence < predicted_confidence * 0.8:  # 20% confidence drop
+            reasons.append("Confidence dropped")
+        
+        # Check breakeven breach (simplified)
+        current_price = current_strategy.get('current_price', 0)
+        breakeven_upper = trade_data.get('breakeven_upper', 0)
+        breakeven_lower = trade_data.get('breakeven_lower', 0)
+        
+        if current_price > 0 and breakeven_upper > 0 and breakeven_lower > 0:
+            if current_price > breakeven_upper or current_price < breakeven_lower:
+                reasons.append("Breakeven breached")
+        
+        return "; ".join(reasons)
+        
+    except Exception as e:
+        logger.warning(f"Error calculating divergence reason: {str(e)}")
+        return ""
+
+def determine_current_outcome(trade_data, current_strategy):
+    """Determine current outcome status"""
+    try:
+        # Simple logic to determine current status
+        current_roi = current_strategy.get('expected_roi', 0)
+        predicted_roi = trade_data.get('predicted_roi', 0)
+        
+        if abs(current_roi - predicted_roi) <= predicted_roi * 0.1:  # Within 10%
+            return "On Track"
+        elif current_roi > predicted_roi * 1.2:  # 20% better
+            return "Exceeded"
+        elif current_roi < predicted_roi * 0.8:  # 20% worse
+            return "At Risk"
+        else:
+            return "On Track"
+            
+    except Exception:
+        return "Unknown"
+
+def calculate_std_dev(values):
+    """Calculate standard deviation"""
+    try:
+        if len(values) <= 1:
+            return 1
+        
+        mean = sum(values) / len(values)
+        variance = sum((x - mean) ** 2 for x in values) / (len(values) - 1)
+        return variance ** 0.5
+        
+    except Exception:
+        return 1
+
 
 def create_app():
     """Application factory function for WSGI deployment"""

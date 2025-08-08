@@ -55,3 +55,49 @@
     "last_updated": "2025-08-07"
   }
 }
+{
+  "RELIANCE": {
+    "trade_001": {
+      "status": "active",
+      "timeframe": "30D",
+      "expiry_date": "2025-02-08",
+      "predicted_outcome": "On Track",
+      "predicted_roi": 25.5,
+      "predicted_confidence": 85.0,
+      "breakeven_upper": 1450.0,
+      "breakeven_lower": 1320.0,
+      "entry_date": "2025-01-08"
+    }
+  },
+  "HDFCBANK": {
+    "trade_002": {
+      "status": "active",
+      "timeframe": "15D",
+      "expiry_date": "2025-01-23",
+      "predicted_outcome": "On Track",
+      "predicted_roi": 18.2,
+      "predicted_confidence": 78.0,
+      "breakeven_upper": 2050.0,
+      "breakeven_lower": 1920.0,
+      "entry_date": "2025-01-08"
+    }
+  },
+  "TCS": {
+    "trade_003": {
+      "status": "completed",
+      "final_status": "success",
+      "timeframe": "10D",
+      "predicted_roi": 22.0,
+      "actual_roi": 24.5,
+      "completion_date": "2025-01-05"
+    },
+    "trade_004": {
+      "status": "completed",
+      "final_status": "failed",
+      "timeframe": "5D",
+      "predicted_roi": 15.0,
+      "actual_roi": -8.5,
+      "completion_date": "2025-01-03"
+    }
+  }
+}
