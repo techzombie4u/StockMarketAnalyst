@@ -49,7 +49,59 @@ class EnsemblePredictionSystem:
             pattern_pred = self.pattern_prediction(symbol, technical)
             vol_pred = self.volatility_adjusted_prediction(technical)
 
-    
+            # Calculate weighted ensemble prediction
+            ensemble_pred = {
+                '24h': (tech_pred['24h'] * self.prediction_weights['technical'] +
+                       fund_pred['24h'] * self.prediction_weights['fundamental'] +
+                       sent_pred['24h'] * self.prediction_weights['sentiment'] +
+                       pattern_pred['24h'] * self.prediction_weights['pattern'] +
+                       vol_pred['24h'] * self.prediction_weights['volatility']),
+                
+                '5d': (tech_pred['5d'] * self.prediction_weights['technical'] +
+                      fund_pred['5d'] * self.prediction_weights['fundamental'] +
+                      sent_pred['5d'] * self.prediction_weights['sentiment'] +
+                      pattern_pred['5d'] * self.prediction_weights['pattern'] +
+                      vol_pred['5d'] * self.prediction_weights['volatility']),
+                
+                '1mo': (tech_pred['1mo'] * self.prediction_weights['technical'] +
+                       fund_pred['1mo'] * self.prediction_weights['fundamental'] +
+                       sent_pred['1mo'] * self.prediction_weights['sentiment'] +
+                       pattern_pred['1mo'] * self.prediction_weights['pattern'] +
+                       vol_pred['1mo'] * self.prediction_weights['volatility'])
+            }
+            
+            # Calculate prediction confidence
+            confidence = self.calculate_prediction_confidence(
+                tech_pred, fund_pred, sent_pred, pattern_pred, vol_pred
+            )
+            
+            # Apply market regime adjustments
+            ensemble_pred = self.apply_market_regime_adjustment(ensemble_pred, market_data)
+            
+            return {
+                'pred_24h': round(ensemble_pred['24h'], 2),
+                'pred_5d': round(ensemble_pred['5d'], 2), 
+                'pred_1mo': round(ensemble_pred['1mo'], 2),
+                'confidence': round(confidence, 1),
+                'individual_predictions': {
+                    'technical': tech_pred,
+                    'fundamental': fund_pred,
+                    'sentiment': sent_pred,
+                    'pattern': pattern_pred,
+                    'volatility': vol_pred
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in ensemble prediction for {symbol}: {str(e)}")
+            return {
+                'pred_24h': 0,
+                'pred_5d': 0,
+                'pred_1mo': 0,
+                'confidence': 30,
+                'individual_predictions': {}
+            }
+
     def _load_performance_history(self) -> Dict:
         """Load recent performance history of different prediction methods"""
         try:
@@ -141,60 +193,7 @@ class EnsemblePredictionSystem:
             logger.error(f"Error updating method performance: {str(e)}")
 
             
-            # Calculate weighted ensemble prediction
-            ensemble_pred = {
-                '24h': (tech_pred['24h'] * self.prediction_weights['technical'] +
-                       fund_pred['24h'] * self.prediction_weights['fundamental'] +
-                       sent_pred['24h'] * self.prediction_weights['sentiment'] +
-                       pattern_pred['24h'] * self.prediction_weights['pattern'] +
-                       vol_pred['24h'] * self.prediction_weights['volatility']),
-                
-                '5d': (tech_pred['5d'] * self.prediction_weights['technical'] +
-                      fund_pred['5d'] * self.prediction_weights['fundamental'] +
-                      sent_pred['5d'] * self.prediction_weights['sentiment'] +
-                      pattern_pred['5d'] * self.prediction_weights['pattern'] +
-                      vol_pred['5d'] * self.prediction_weights['volatility']),
-                
-                '1mo': (tech_pred['1mo'] * self.prediction_weights['technical'] +
-                       fund_pred['1mo'] * self.prediction_weights['fundamental'] +
-                       sent_pred['1mo'] * self.prediction_weights['sentiment'] +
-                       pattern_pred['1mo'] * self.prediction_weights['pattern'] +
-                       vol_pred['1mo'] * self.prediction_weights['volatility'])
-            }
-            
-            # Calculate prediction confidence
-            confidence = self.calculate_prediction_confidence(
-                tech_pred, fund_pred, sent_pred, pattern_pred, vol_pred
-            )
-            
-            # Apply market regime adjustments
-            ensemble_pred = self.apply_market_regime_adjustment(ensemble_pred, market_data)
-            
-            return {
-                'pred_24h': round(ensemble_pred['24h'], 2),
-                'pred_5d': round(ensemble_pred['5d'], 2), 
-                'pred_1mo': round(ensemble_pred['1mo'], 2),
-                'confidence': round(confidence, 1),
-                'individual_predictions': {
-                    'technical': tech_pred,
-                    'fundamental': fund_pred,
-                    'sentiment': sent_pred,
-                    'pattern': pattern_pred,
-                    'volatility': vol_pred
-                }
-            }
-            
-        except Exception as e:
-            logger.error(f"Error in ensemble prediction for {symbol}: {str(e)}")
-            return {
-                'pred_24h': 0,
-                'pred_5d': 0,
-                'pred_1mo': 0,
-                'confidence': 30,
-                'individual_predictions': {}
-            }
-    
-    def technical_prediction(self, technical: Dict) -> Dict:
+            def technical_prediction(self, technical: Dict) -> Dict:
         """Technical analysis based prediction"""
         try:
             prediction = {'24h': 0, '5d': 0, '1mo': 0}
