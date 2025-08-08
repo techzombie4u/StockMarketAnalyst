@@ -167,9 +167,9 @@
     "lock_date_30d": null,
     "lock_start_date_5d": null,
     "lock_start_date_30d": null,
-    "last_updated": "2025-08-08T14:16:34.105186+05:30",
+    "last_updated": "2025-08-08T14:56:32.133047+05:30",
     "days_tracked": 0,
-    "timestamp": "2025-08-08T14:16:34.105208+05:30"
+    "timestamp": "2025-08-08T14:56:32.133064+05:30"
   },
   "COALINDIA": {
     "symbol": "COALINDIA",
@@ -306,9 +306,9 @@
     "lock_date_30d": null,
     "lock_start_date_5d": null,
     "lock_start_date_30d": null,
-    "last_updated": "2025-08-08T14:16:34.106553+05:30",
+    "last_updated": "2025-08-08T14:56:32.137592+05:30",
     "days_tracked": 0,
-    "timestamp": "2025-08-08T14:16:34.106568+05:30"
+    "timestamp": "2025-08-08T14:56:32.137608+05:30"
   },
   "ONGC": {
     "symbol": "ONGC",
@@ -445,9 +445,9 @@
     "lock_date_30d": null,
     "lock_start_date_5d": null,
     "lock_start_date_30d": null,
-    "last_updated": "2025-08-08T14:16:34.107737+05:30",
+    "last_updated": "2025-08-08T14:56:32.138873+05:30",
     "days_tracked": 0,
-    "timestamp": "2025-08-08T14:16:34.107751+05:30"
+    "timestamp": "2025-08-08T14:56:32.138890+05:30"
   },
   "GAIL": {
     "symbol": "GAIL",
@@ -584,9 +584,9 @@
     "lock_date_30d": null,
     "lock_start_date_5d": null,
     "lock_start_date_30d": null,
-    "last_updated": "2025-08-08T14:16:34.119706+05:30",
+    "last_updated": "2025-08-08T14:56:32.154886+05:30",
     "days_tracked": 0,
-    "timestamp": "2025-08-08T14:16:34.119718+05:30"
+    "timestamp": "2025-08-08T14:56:32.154904+05:30"
   },
   "SBIN": {
     "symbol": "SBIN",
@@ -723,9 +723,9 @@
     "lock_date_30d": null,
     "lock_start_date_5d": null,
     "lock_start_date_30d": null,
-    "last_updated": "2025-08-08T14:16:34.121515+05:30",
+    "last_updated": "2025-08-08T14:56:32.160607+05:30",
     "days_tracked": 0,
-    "timestamp": "2025-08-08T14:16:34.121526+05:30"
+    "timestamp": "2025-08-08T14:56:32.160621+05:30"
   },
   "BPCL": {
     "symbol": "BPCL",
@@ -862,9 +862,9 @@
     "lock_date_30d": null,
     "lock_start_date_5d": null,
     "lock_start_date_30d": null,
-    "last_updated": "2025-08-08T14:16:34.127299+05:30",
+    "last_updated": "2025-08-08T14:56:32.164182+05:30",
     "days_tracked": 0,
-    "timestamp": "2025-08-08T14:16:34.127315+05:30"
+    "timestamp": "2025-08-08T14:56:32.164197+05:30"
   },
   "TATASTEEL": {
     "symbol": "TATASTEEL",
@@ -1001,9 +1001,9 @@
     "lock_date_30d": null,
     "lock_start_date_5d": null,
     "lock_start_date_30d": null,
-    "last_updated": "2025-08-08T14:16:34.129531+05:30",
+    "last_updated": "2025-08-08T14:56:32.201692+05:30",
     "days_tracked": 0,
-    "timestamp": "2025-08-08T14:16:34.129548+05:30"
+    "timestamp": "2025-08-08T14:56:32.201840+05:30"
   },
   "SAIL": {
     "symbol": "SAIL",
@@ -1140,9 +1140,9 @@
     "lock_date_30d": null,
     "lock_start_date_5d": null,
     "lock_start_date_30d": null,
-    "last_updated": "2025-08-08T14:16:34.134672+05:30",
+    "last_updated": "2025-08-08T14:56:32.209759+05:30",
     "days_tracked": 0,
-    "timestamp": "2025-08-08T14:16:34.134686+05:30"
+    "timestamp": "2025-08-08T14:56:32.209773+05:30"
   },
   "BHARTIARTL": {
     "symbol": "BHARTIARTL",
@@ -1279,8 +1279,8 @@
     "lock_date_30d": null,
     "lock_start_date_5d": null,
     "lock_start_date_30d": null,
-    "last_updated": "2025-08-08T14:16:34.137209+05:30",
+    "last_updated": "2025-08-08T14:56:32.211426+05:30",
     "days_tracked": 0,
-    "timestamp": "2025-08-08T14:16:34.137227+05:30"
+    "timestamp": "2025-08-08T14:56:32.211436+05:30"
   }
 }
