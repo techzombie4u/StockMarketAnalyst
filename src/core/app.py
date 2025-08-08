@@ -65,8 +65,8 @@ def _refresh_locked_predictions_data():
             # Count active trades
             if isinstance(tracking_data, list):
                 for entry in tracking_data:
-                    if (isinstance(entry, dict) and 
-                        entry.get('locked') == True and 
+                    if (isinstance(entry, dict) and
+                        entry.get('locked') == True and
                         entry.get('status') == 'in_progress'):
                         try:
                             expiry_date = datetime.strptime(entry['expiry_date'], '%Y-%m-%d').date()
@@ -83,7 +83,7 @@ def _refresh_locked_predictions_data():
             # Run the script to create test data if no file exists
             try:
                 import subprocess
-                result = subprocess.run(['python', 'create_locked_predictions.py'], 
+                result = subprocess.run(['python', 'create_locked_predictions.py'],
                                       capture_output=True, text=True, timeout=30)
                 if result.returncode == 0:
                     print("✅ Created locked predictions data")

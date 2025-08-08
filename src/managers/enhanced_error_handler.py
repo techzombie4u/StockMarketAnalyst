@@ -1,6 +1,6 @@
 import logging
 import traceback
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
 from datetime import datetime
 import json
 import os
@@ -88,7 +88,7 @@ logging.basicConfig(
 
 class ErrorTracker:
     """Track and analyze system errors"""
-    
+
     def __init__(self):
         self.error_log_file = 'logs/error_tracking.json'
         self.error_stats = {
@@ -100,11 +100,11 @@ class ErrorTracker:
         }
         self._ensure_log_directory()
         self._load_error_history()
-    
+
     def _ensure_log_directory(self):
         """Ensure logs directory exists"""
         os.makedirs('logs', exist_ok=True)
-    
+
     def _load_error_history(self):
         """Load error history from file"""
         try:
@@ -113,7 +113,7 @@ class ErrorTracker:
                     self.error_stats = json.load(f)
         except Exception as e:
             logging.error(f"Error loading error history: {str(e)}")
-    
+
     def _save_error_history(self):
         """Save error history to file"""
         try:
@@ -121,34 +121,34 @@ class ErrorTracker:
                 json.dump(self.error_stats, f, indent=2, default=str)
         except Exception as e:
             logging.error(f"Error saving error history: {str(e)}")
-    
+
     def log_error(self, error_type: str, error_message: str, context: Dict = None, recovered: bool = False):
         """Log an error with context"""
         try:
             self.error_stats['total_errors'] += 1
             self.error_stats['last_error_time'] = datetime.now().isoformat()
-            
+
             # Track error types
             if error_type not in self.error_stats['error_types']:
                 self.error_stats['error_types'][error_type] = 0
             self.error_stats['error_types'][error_type] += 1
-            
+
             # Track error frequency by hour
             hour_key = datetime.now().strftime('%Y-%m-%d-%H')
             if hour_key not in self.error_stats['error_frequency']:
                 self.error_stats['error_frequency'][hour_key] = 0
             self.error_stats['error_frequency'][hour_key] += 1
-            
+
             # Track recovery success
             if recovered:
                 self.error_stats.setdefault('recovered_errors', 0)
                 self.error_stats['recovered_errors'] += 1
-                
+
             # Update recovery rate
             if self.error_stats['total_errors'] > 0:
                 recovered_count = self.error_stats.get('recovered_errors', 0)
                 self.error_stats['recovery_success_rate'] = (recovered_count / self.error_stats['total_errors']) * 100
-            
+
             # Create detailed error record
             error_record = {
                 'timestamp': datetime.now().isoformat(),
@@ -158,24 +158,24 @@ class ErrorTracker:
                 'recovered': recovered,
                 'stack_trace': traceback.format_exc() if sys.exc_info()[0] else None
             }
-            
+
             # Log to file and console
             logging.error(f"Error tracked: {error_type} - {error_message}")
             if context:
                 logging.error(f"Context: {context}")
-            
+
             self._save_error_history()
-            
+
         except Exception as e:
             # Fallback logging if error tracking fails
             logging.critical(f"Error in error tracking system: {str(e)}")
-    
+
     def get_error_summary(self) -> Dict:
         """Get summary of error statistics"""
         try:
             recent_errors = 0
             cutoff_time = datetime.now() - timedelta(hours=24)
-            
+
             for hour_key, count in self.error_stats.get('error_frequency', {}).items():
                 try:
                     error_time = datetime.strptime(hour_key, '%Y-%m-%d-%H')
@@ -183,7 +183,7 @@ class ErrorTracker:
                         recent_errors += count
                 except ValueError:
                     continue
-            
+
             return {
                 'total_errors': self.error_stats.get('total_errors', 0),
                 'recent_errors_24h': recent_errors,
@@ -196,17 +196,17 @@ class ErrorTracker:
                 'last_error': self.error_stats.get('last_error_time'),
                 'system_stability': self._calculate_stability_score()
             }
-            
+
         except Exception as e:
             logging.error(f"Error generating error summary: {str(e)}")
             return {'error': 'Unable to generate error summary'}
-    
+
     def _calculate_stability_score(self) -> str:
         """Calculate system stability score"""
         try:
             total_errors = self.error_stats.get('total_errors', 0)
             recovery_rate = self.error_stats.get('recovery_success_rate', 0)
-            
+
             if total_errors == 0:
                 return "Excellent (No errors recorded)"
             elif total_errors < 10 and recovery_rate > 80:
@@ -215,7 +215,7 @@ class ErrorTracker:
                 return "Fair (Moderate errors, decent recovery)"
             else:
                 return "Poor (High error rate or low recovery)"
-                
+
         except Exception:
             return "Unknown"
 
@@ -224,7 +224,7 @@ error_tracker = ErrorTracker()
 
 class RetryStrategy:
     """Implement retry strategies for failed operations"""
-    
+
     @staticmethod
     def exponential_backoff(max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):
         """Exponential backoff retry decorator"""
@@ -232,11 +232,11 @@ class RetryStrategy:
             @wraps(func)
             def wrapper(*args, **kwargs):
                 last_exception = None
-                
+
                 for attempt in range(max_retries + 1):
                     try:
                         result = func(*args, **kwargs)
-                        
+
                         # Log successful retry if not first attempt
                         if attempt > 0:
                             logging.info(f"Function {func.__name__} succeeded on attempt {attempt + 1}")
@@ -246,12 +246,12 @@ class RetryStrategy:
                                 {'function': func.__name__, 'attempts': attempt + 1},
                                 recovered=True
                             )
-                        
+
                         return result
-                        
+
                     except Exception as e:
                         last_exception = e
-                        
+
                         if attempt < max_retries:
                             delay = min(base_delay * (2 ** attempt), max_delay)
                             logging.warning(f"Attempt {attempt + 1} failed for {func.__name__}: {str(e)}. Retrying in {delay}s")
@@ -263,26 +263,26 @@ class RetryStrategy:
                                 f"Function {func.__name__} failed after {max_retries + 1} attempts: {str(e)}",
                                 {'function': func.__name__, 'max_retries': max_retries}
                             )
-                
+
                 # Re-raise the last exception if all retries failed
                 raise last_exception
-            
+
             return wrapper
         return decorator
-    
+
     @staticmethod
     def circuit_breaker(failure_threshold: int = 5, timeout: int = 60):
         """Circuit breaker pattern decorator"""
         failure_count = {}
         last_failure_time = {}
-        
+
         def decorator(func: Callable) -> Callable:
             func_name = func.__name__
-            
+
             @wraps(func)
             def wrapper(*args, **kwargs):
                 current_time = time.time()
-                
+
                 # Check if circuit is open
                 if func_name in failure_count:
                     if failure_count[func_name] >= failure_threshold:
@@ -294,35 +294,35 @@ class RetryStrategy:
                             # Reset circuit breaker after timeout
                             failure_count[func_name] = 0
                             logging.info(f"Circuit breaker reset for {func_name}")
-                
+
                 try:
                     result = func(*args, **kwargs)
                     # Reset failure count on success
                     failure_count[func_name] = 0
                     return result
-                    
+
                 except Exception as e:
                     # Increment failure count
                     failure_count[func_name] = failure_count.get(func_name, 0) + 1
                     last_failure_time[func_name] = current_time
-                    
+
                     logging.error(f"Circuit breaker failure {failure_count[func_name]}/{failure_threshold} for {func_name}: {str(e)}")
-                    
+
                     if failure_count[func_name] >= failure_threshold:
                         error_tracker.log_error(
                             'CircuitBreakerOpen',
                             f"Circuit breaker opened for {func_name} after {failure_threshold} failures",
                             {'function': func_name, 'threshold': failure_threshold}
                         )
-                    
+
                     raise e
-            
+
             return wrapper
         return decorator
 
 class GracefulDegradation:
     """Implement graceful degradation strategies"""
-    
+
     @staticmethod
     def fallback_data(fallback_value: Any = None, log_fallback: bool = True):
         """Provide fallback data when operations fail"""
@@ -343,7 +343,7 @@ class GracefulDegradation:
                     return fallback_value
             return wrapper
         return decorator
-    
+
     @staticmethod
     def partial_success(required_success_rate: float = 0.5):
         """Allow partial success for batch operations"""
@@ -352,7 +352,7 @@ class GracefulDegradation:
             def wrapper(items: List[Any], *args, **kwargs):
                 successful_items = []
                 failed_items = []
-                
+
                 for item in items:
                     try:
                         result = func(item, *args, **kwargs)
@@ -360,9 +360,9 @@ class GracefulDegradation:
                     except Exception as e:
                         failed_items.append({'item': item, 'error': str(e)})
                         logging.error(f"Item failed in {func.__name__}: {str(e)}")
-                
+
                 success_rate = len(successful_items) / len(items) if items else 0
-                
+
                 if success_rate >= required_success_rate:
                     logging.info(f"Partial success in {func.__name__}: {len(successful_items)}/{len(items)} items succeeded")
                     return {
@@ -379,20 +379,20 @@ class GracefulDegradation:
                         {'function': func.__name__, 'success_rate': success_rate, 'threshold': required_success_rate}
                     )
                     raise Exception(error_msg)
-            
+
             return wrapper
         return decorator
 
 class DataValidation:
     """Enhanced data validation with error handling"""
-    
+
     @staticmethod
     def validate_stock_data(data: Dict) -> Dict:
         """Validate and clean stock data"""
         try:
             validated_data = {}
             errors = []
-            
+
             # Required fields
             required_fields = ['symbol', 'current_price']
             for field in required_fields:
@@ -400,7 +400,7 @@ class DataValidation:
                     errors.append(f"Missing required field: {field}")
                 else:
                     validated_data[field] = data[field]
-            
+
             # Validate price data
             if 'current_price' in data:
                 try:
@@ -411,7 +411,7 @@ class DataValidation:
                         validated_data['current_price'] = price
                 except (ValueError, TypeError):
                     errors.append("Invalid price format")
-            
+
             # Validate technical indicators
             if 'technical' in data and isinstance(data['technical'], dict):
                 validated_technical = {}
@@ -423,9 +423,9 @@ class DataValidation:
                             validated_technical[key] = value
                     except (ValueError, TypeError):
                         errors.append(f"Invalid technical indicator: {key}")
-                
+
                 validated_data['technical'] = validated_technical
-            
+
             # Validate fundamentals
             if 'fundamentals' in data and isinstance(data['fundamentals'], dict):
                 validated_fundamentals = {}
@@ -440,22 +440,22 @@ class DataValidation:
                                 validated_fundamentals[key] = str(value)
                     except (ValueError, TypeError):
                         errors.append(f"Invalid fundamental data: {key}")
-                
+
                 validated_data['fundamentals'] = validated_fundamentals
-            
+
             # Add validation results
             validated_data['validation_errors'] = errors
             validated_data['is_valid'] = len(errors) == 0
-            
+
             if errors:
                 error_tracker.log_error(
                     'DataValidationError',
                     f"Data validation errors for {data.get('symbol', 'unknown')}: {errors}",
                     {'symbol': data.get('symbol'), 'errors': errors}
                 )
-            
+
             return validated_data
-            
+
         except Exception as e:
             error_tracker.log_error(
                 'ValidationSystemError',
@@ -484,7 +484,7 @@ def get_system_health_report() -> str:
     """Generate a comprehensive system health report"""
     try:
         error_summary = error_tracker.get_error_summary()
-        
+
         report = []
         report.append("=== SYSTEM HEALTH REPORT ===")
         report.append(f"Total Errors: {error_summary.get('total_errors', 0)}")
@@ -492,14 +492,14 @@ def get_system_health_report() -> str:
         report.append(f"Recovery Rate: {error_summary.get('recovery_rate', 0)}%")
         report.append(f"System Stability: {error_summary.get('system_stability', 'Unknown')}")
         report.append("")
-        
+
         # Most common errors
         report.append("Most Common Errors:")
         for error_type, count in error_summary.get('most_common_errors', []):
             report.append(f"  • {error_type}: {count} occurrences")
-        
+
         report.append("")
-        
+
         # Health recommendations
         if error_summary.get('total_errors', 0) == 0:
             report.append("✅ System is running smoothly with no errors")
@@ -507,9 +507,9 @@ def get_system_health_report() -> str:
             report.append("✅ Good error recovery rate - system is resilient")
         elif error_summary.get('recent_errors_24h', 0) > 10:
             report.append("⚠️  High recent error rate - investigate system issues")
-        
+
         return "\n".join(report)
-        
+
     except Exception as e:
         logging.error(f"Error generating health report: {str(e)}")
         return "Error generating system health report"
