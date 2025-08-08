@@ -13,6 +13,7 @@ Combines multiple prediction methods for improved accuracy:
 import numpy as np
 import pandas as pd
 import logging
+import json
 from typing import Dict, List, Tuple
 from datetime import datetime, timedelta
 import yfinance as yf
@@ -55,6 +56,15 @@ class EnsemblePredictionSystem:
             with open('ensemble_performance_history.json', 'r') as f:
                 return json.load(f)
         except FileNotFoundError:
+            return {
+                'technical': {'accuracy': 0.65, 'recent_predictions': 0},
+                'fundamental': {'accuracy': 0.60, 'recent_predictions': 0},
+                'sentiment': {'accuracy': 0.55, 'recent_predictions': 0},
+                'pattern': {'accuracy': 0.58, 'recent_predictions': 0},
+                'volatility': {'accuracy': 0.52, 'recent_predictions': 0}
+            }
+        except Exception as e:
+            logger.error(f"Error loading performance history: {str(e)}")
             return {
                 'technical': {'accuracy': 0.65, 'recent_predictions': 0},
                 'fundamental': {'accuracy': 0.60, 'recent_predictions': 0},
