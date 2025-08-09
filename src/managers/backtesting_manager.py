@@ -1,4 +1,3 @@
-
 """
 Backtesting Manager for Stock Market Analyst
 
@@ -74,15 +73,21 @@ class BacktestingManager:
                 'confidence': stock_data.get('confidence', 0),
                 'trend_class': stock_data.get('trend_class', 'sideways')
             }
-            
-            self.predictions_history.append(prediction_record)
-            
+
+            # Record prediction (fix dict append error)
+            if not hasattr(self, 'predictions'):
+                self.predictions = []
+            elif isinstance(self.predictions, dict):
+                self.predictions = []  # Convert dict to list if needed
+
+            self.predictions.append(prediction_record)
+
             # Keep only last 100 predictions to manage file size
-            if len(self.predictions_history) > 100:
-                self.predictions_history = self.predictions_history[-100:]
-            
+            if len(self.predictions) > 100:
+                self.predictions = self.predictions[-100:]
+
             self.save_predictions_history()
-            
+
         except Exception as e:
             logger.error(f"Error recording prediction: {str(e)}")
 
@@ -91,23 +96,23 @@ class BacktestingManager:
         try:
             ticker = f"{symbol}.NS"
             stock = yf.Ticker(ticker)
-            
+
             # Get data for the period
             end_date = datetime.now()
             start_date = end_date - timedelta(days=days_ago + 5)  # Extra buffer
-            
+
             hist_data = stock.history(start=start_date, end=end_date)
-            
+
             if hist_data.empty or len(hist_data) < days_ago:
                 return None
-            
+
             # Calculate actual price change
             current_price = hist_data['Close'].iloc[-1]
             past_price = hist_data['Close'].iloc[-(days_ago + 1)] if len(hist_data) > days_ago else hist_data['Close'].iloc[0]
-            
+
             actual_change_pct = ((current_price - past_price) / past_price) * 100
             return actual_change_pct
-            
+
         except Exception as e:
             logger.error(f"Error getting actual price change for {symbol}: {str(e)}")
             return None
@@ -126,40 +131,40 @@ class BacktestingManager:
                 'performance_by_score': {},
                 'performance_by_trend': {}
             }
-            
+
             # Filter predictions from ~30 days ago (±3 days window)
             target_predictions = []
             for prediction in self.predictions_history:
                 pred_date = datetime.fromisoformat(prediction['timestamp'])
                 days_diff = (datetime.now() - pred_date).days
-                
+
                 if 27 <= days_diff <= 33:  # 30 ± 3 days window
                     target_predictions.append(prediction)
-            
+
             logger.info(f"Found {len(target_predictions)} predictions from ~30 days ago for backtesting")
-            
+
             accurate_count = 0
             total_count = len(target_predictions)
-            
+
             for prediction in target_predictions:
                 symbol = prediction['symbol']
                 predicted_change = prediction['predicted_1mo']
                 pred_date = datetime.fromisoformat(prediction['timestamp'])
                 days_ago = (datetime.now() - pred_date).days
-                
+
                 # Get actual price change
                 actual_change = self.get_actual_price_change(symbol, days_ago)
-                
+
                 if actual_change is not None:
                     # Consider prediction accurate if direction matches and magnitude is reasonable
                     direction_match = (predicted_change > 0 and actual_change > 0) or (predicted_change < 0 and actual_change < 0)
                     magnitude_reasonable = abs(actual_change - predicted_change) < 20  # Within 20% tolerance
-                    
+
                     is_accurate = direction_match and magnitude_reasonable
-                    
+
                     if is_accurate:
                         accurate_count += 1
-                    
+
                     # Record individual analysis
                     analysis_record = {
                         'symbol': symbol,
@@ -172,15 +177,15 @@ class BacktestingManager:
                         'confidence': prediction.get('confidence', 0),
                         'trend_class': prediction.get('trend_class', 'sideways')
                     }
-                    
+
                     backtest_results['predictions_analyzed'].append(analysis_record)
-            
+
             # Calculate overall accuracy
             if total_count > 0:
                 backtest_results['total_predictions'] = total_count
                 backtest_results['accurate_predictions'] = accurate_count
                 backtest_results['accuracy_rate'] = round((accurate_count / total_count) * 100, 2)
-            
+
             # Performance by score ranges
             score_ranges = {'70-79': [], '80-89': [], '90-100': []}
             for analysis in backtest_results['predictions_analyzed']:
@@ -191,36 +196,36 @@ class BacktestingManager:
                     score_ranges['80-89'].append(analysis['accuracy'])
                 elif score >= 90:
                     score_ranges['90-100'].append(analysis['accuracy'])
-            
+
             for range_name, accuracies in score_ranges.items():
                 if accuracies:
                     backtest_results['performance_by_score'][range_name] = {
                         'count': len(accuracies),
                         'accuracy_rate': round((sum(accuracies) / len(accuracies)) * 100, 2)
                     }
-            
+
             # Performance by trend
             trend_performance = {'uptrend': [], 'sideways': [], 'downtrend': []}
             for analysis in backtest_results['predictions_analyzed']:
                 trend = analysis['trend_class']
                 if trend in trend_performance:
                     trend_performance[trend].append(analysis['accuracy'])
-            
+
             for trend, accuracies in trend_performance.items():
                 if accuracies:
                     backtest_results['performance_by_trend'][trend] = {
                         'count': len(accuracies),
                         'accuracy_rate': round((sum(accuracies) / len(accuracies)) * 100, 2)
                     }
-            
+
             # Save results
             self.backtest_results = backtest_results
             self.save_backtest_results()
-            
+
             logger.info(f"Backtesting completed: {accurate_count}/{total_count} accurate predictions ({backtest_results['accuracy_rate']}%)")
-            
+
             return backtest_results
-            
+
         except Exception as e:
             logger.error(f"Error in backtesting analysis: {str(e)}")
             return {}
@@ -230,7 +235,7 @@ class BacktestingManager:
         try:
             if not self.backtest_results:
                 return {'status': 'no_data', 'message': 'No backtesting data available'}
-            
+
             summary = {
                 'status': 'available',
                 'last_analysis': self.backtest_results.get('analysis_date', 'Unknown'),
@@ -240,9 +245,9 @@ class BacktestingManager:
                 'performance_by_score': self.backtest_results.get('performance_by_score', {}),
                 'performance_by_trend': self.backtest_results.get('performance_by_trend', {})
             }
-            
+
             return summary
-            
+
         except Exception as e:
             logger.error(f"Error getting backtest summary: {str(e)}")
             return {'status': 'error', 'message': str(e)}

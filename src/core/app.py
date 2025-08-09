@@ -59,11 +59,11 @@ def cleanup_resources():
         # Force garbage collection
         import gc
         collected = gc.collect()
-        
+
         # Clear Flask app cache
         if hasattr(cache, 'clear'):
             cache.clear()
-        
+
         logger.info(f"Resources cleaned: {collected} objects collected")
         return True
     except Exception as e:
@@ -1195,30 +1195,39 @@ def health_check():
         data_status = f'error: {str(e)}'
 
     # Memory usage
-    memory_info = {}
+    memory_info = None
+    psutil = None
+    process = None
+
     try:
         import psutil
-        import os
         process = psutil.Process(os.getpid())
-        memory_info = {
-            'rss_mb': round(process.memory_info().rss / 1024 / 1024, 2),
-            'vms_mb': round(process.memory_info().vms / 1024 / 1024, 2),
-            'percent': round(process.memory_percent(), 2),
-            'available_mb': round(psutil.virtual_memory().available / 1024 / 1024, 2)
-        }
+        memory_info = process.memory_info()
+    except ImportError:
+        logger.warning("psutil not found. Memory usage will not be reported.")
     except Exception as e:
-        memory_info = {'error': str(e)}
+        logger.error(f"Error getting memory info: {str(e)}")
+
+    # Cache stats helper
+    def get_cache_stats():
+        try:
+            if cache:
+                return cache.get_stats()
+            return {}
+        except Exception:
+            return {}
 
     return jsonify({
         'status': 'healthy',
-        'service': 'Stock Market Analyst',
-        'port': 5000,
-        'scheduler_running': scheduler is not None and hasattr(scheduler, 'scheduler') and scheduler.scheduler.running if scheduler and hasattr(scheduler, 'scheduler') else False,
-        'data_status': data_status,
-        'stock_count': stock_count,
-        'last_updated': last_updated,
-        'memory': memory_info,
-        'active_requests': len(current_requests)
+        'timestamp': datetime.now().isoformat(),
+        'uptime': time.time() - app.start_time if hasattr(app, 'start_time') else 0,
+        'memory': {
+            'rss_mb': round(memory_info.rss / 1024 / 1024, 2) if memory_info else 0,
+            'vms_mb': round(memory_info.vms / 1024 / 1024, 2) if memory_info else 0,
+            'percent': process.memory_percent() if psutil and memory_info else 0
+        },
+        'pinned_stocks_count': len(PINNED_SYMBOLS),
+        'cache_stats': get_cache_stats()
     })
 
 @app.route('/api/force-demo', methods=['POST'])
@@ -2204,7 +2213,7 @@ if __name__ == '__main__':
 
     # Print startup information
     print("\n" + "="*60)
-    print("📈 STOCK MARKET ANALYST - DASHBOARD")
+    print("STOCK MARKET ANALYST - DASHBOARD")
     print("="*60)
     print(f"🌐 Web Dashboard: http://localhost:5000")
     print(f"📊 API Endpoint: http://localhost:5000/api/stocks")
