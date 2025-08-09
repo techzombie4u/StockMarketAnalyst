@@ -17,6 +17,7 @@ from flask_cors import CORS
 import traceback
 import atexit
 import gc
+import time
 
 # Time zone setup
 IST = pytz.timezone('Asia/Kolkata')
@@ -63,7 +64,7 @@ def get_or_create_single_timer(func, interval):
         if _global_timer:
             _global_timer.cancel()
             _global_timer = None
-        
+
         # Create new timer
         _global_timer = threading.Timer(interval, func)
         _global_timer.daemon = True
@@ -103,7 +104,7 @@ def load_pinned_stocks():
                 # Clean out empty strings
                 PINNED_SYMBOLS = {s for s in PINNED_SYMBOLS if s and isinstance(s, str)}
                 logger.info(f"Loaded {len(PINNED_SYMBOLS)} pinned symbols: {list(PINNED_SYMBOLS)}")
-                
+
                 # Verify file size is under 2KB as required
                 file_size = os.path.getsize(PIN_FILE)
                 if file_size > 2048:  # 2KB limit
@@ -129,14 +130,14 @@ def save_pinned_stocks():
         symbols_list = list(PINNED_SYMBOLS)[:100]  # Limit to 100 to ensure <2KB
         with open(PIN_FILE, 'w') as f:
             json.dump(symbols_list, f, separators=(',', ':'))  # Compact JSON
-        
+
         # Verify file size
         file_size = os.path.getsize(PIN_FILE)
         logger.info(f"Saved {len(symbols_list)} pinned symbols ({file_size} bytes)")
-        
+
         if file_size > 2048:
             logger.error(f"WARNING: Pin file exceeds 2KB limit at {file_size} bytes")
-            
+
     except Exception as e:
         logger.error(f"Error saving pinned symbols: {e}")
 
@@ -535,7 +536,7 @@ def get_stocks():
             """Normalize stock data to strict schema"""
             if not isinstance(stock, dict) or not stock.get('symbol'):
                 return None
-            
+
             # Strict field mapping schema
             field_mapping = {
                 'symbol': ['symbol'],
@@ -556,9 +557,9 @@ def get_stocks():
                 'score': ['score', 'rating'],
                 'pe_ratio': ['pe_ratio', 'pe', 'price_earnings']
             }
-            
+
             normalized = {}
-            
+
             # Apply field mapping with fallbacks
             for target_field, source_fields in field_mapping.items():
                 value = None
@@ -569,7 +570,7 @@ def get_stocks():
                         if str(raw_value).strip().lower() not in ['null', 'undefined', '', 'none']:
                             value = raw_value
                             break
-                
+
                 # Set default if no valid value found
                 if value is None:
                     if target_field in ['symbol']:
@@ -600,16 +601,16 @@ def get_stocks():
                             normalized[target_field] = 0.0
                     else:
                         normalized[target_field] = str(value).strip()
-            
+
             # Add pinning status
             normalized['pinned'] = normalized['symbol'] in PINNED_SYMBOLS
-            
+
             # Add computed fields with safe defaults
             normalized.setdefault('trend_class', 'sideways')
             normalized.setdefault('trend_visual', '➡️ Sideways')
             normalized.setdefault('pe_description', 'At Par')
             normalized.setdefault('technical_summary', f"Score: {normalized.get('score', 0):.1f}")
-            
+
             return normalized
 
         # Validate and normalize stocks data
@@ -1103,13 +1104,13 @@ def run_now():
     """Manually trigger screening with request cancellation"""
     global scheduler
     request_id = id(request)
-    
+
     try:
         # Cancel any in-flight requests
         with request_lock:
             # Mark this request as active
             active_requests.add(request)
-            
+
         logger.info(f"🔄 Manual refresh requested (ID: {request_id})")
 
         # Cancel any existing timers to prevent overlap
@@ -1119,7 +1120,7 @@ def run_now():
         try:
             if scheduler and hasattr(scheduler, 'run_screening_job_manual'):
                 logger.info("Using scheduler for manual screening")
-                
+
                 # Check if request was cancelled
                 if request not in active_requests:
                     return jsonify({
@@ -1128,7 +1129,7 @@ def run_now():
                         'cancelled': True,
                         'timestamp': datetime.now(IST).isoformat()
                     })
-                
+
                 success = scheduler.run_screening_job_manual()
                 if success:
                     logger.info("✅ Manual screening completed successfully via scheduler")
@@ -1187,7 +1188,7 @@ def run_now():
                 'message': f'Manual screening error: {error_message}',
                 'error': error_message,
                 'timestamp': datetime.now(IST).isoformat()
-            })
+            }), 500
 
     except Exception as e:
         logger.error(f"Manual refresh error: {str(e)}")
@@ -2206,6 +2207,9 @@ def create_app():
 
 if __name__ == '__main__':
     initialize_app()
+
+    # Set app start time for uptime calculation
+    app.start_time = time.time()
 
     # Print startup information
     print("\n" + "="*60)
