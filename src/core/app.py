@@ -32,6 +32,12 @@ logger = logging.getLogger(__name__)
 logger.info("🚀 Starting Stock Market Analyst - Version 1.7.4 (Consolidated)")
 logger.info("📁 Using consolidated /src/ structure")
 
+# Global request management for cancellation
+import threading
+import weakref
+active_requests = weakref.WeakSet()
+request_lock = threading.Lock()
+
 # Initialize Flask application
 app = Flask(__name__,
            template_folder='../../web/templates',
@@ -45,49 +51,101 @@ app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 # Initialize cache
 cache = Cache(app)
 
+# Single timer management
+_global_timer = None
+_timer_lock = threading.Lock()
+
+def get_or_create_single_timer(func, interval):
+    """Ensure only one timer exists at a time"""
+    global _global_timer
+    with _timer_lock:
+        # Cancel existing timer
+        if _global_timer:
+            _global_timer.cancel()
+            _global_timer = None
+        
+        # Create new timer
+        _global_timer = threading.Timer(interval, func)
+        _global_timer.daemon = True
+        _global_timer.start()
+        logger.info(f"Single timer created with {interval}s interval")
+        return _global_timer
+
+def cancel_all_timers():
+    """Cancel all active timers"""
+    global _global_timer
+    with _timer_lock:
+        if _global_timer:
+            _global_timer.cancel()
+            _global_timer = None
+            logger.info("All timers cancelled")
+
 # Import consolidated modules with error handling
 SmartGoAgent = None
 ShortStrangleEngine = None
 
-# Pinned stocks management
+# Lightweight pinned stocks management - symbols only
 PIN_FILE = "data/pinned_stocks.json"
-PINNED_TICKERS = set()
+PINNED_SYMBOLS = set()
 
 def load_pinned_stocks():
-    """Load pinned stocks from persistent file"""
-    global PINNED_TICKERS
+    """Load pinned symbols from persistent file - lightweight storage"""
+    global PINNED_SYMBOLS
     try:
         if os.path.exists(PIN_FILE):
             with open(PIN_FILE, 'r') as f:
-                PINNED_TICKERS = set(json.load(f))
-                logger.info(f"Loaded {len(PINNED_TICKERS)} pinned stocks: {list(PINNED_TICKERS)}")
+                data = json.load(f)
+                # Ensure we only store symbols, not full objects
+                if isinstance(data, list):
+                    PINNED_SYMBOLS = set([str(item) if isinstance(item, str) else item.get('symbol', '') for item in data if item])
+                else:
+                    PINNED_SYMBOLS = set()
+                # Clean out empty strings
+                PINNED_SYMBOLS = {s for s in PINNED_SYMBOLS if s and isinstance(s, str)}
+                logger.info(f"Loaded {len(PINNED_SYMBOLS)} pinned symbols: {list(PINNED_SYMBOLS)}")
+                
+                # Verify file size is under 2KB as required
+                file_size = os.path.getsize(PIN_FILE)
+                if file_size > 2048:  # 2KB limit
+                    logger.warning(f"Pin file size {file_size} bytes exceeds 2KB limit, trimming...")
+                    # Keep only first 100 symbols to stay under limit
+                    PINNED_SYMBOLS = set(list(PINNED_SYMBOLS)[:100])
+                    save_pinned_stocks()
         else:
-            # Create empty file if it doesn't exist
             os.makedirs(os.path.dirname(PIN_FILE), exist_ok=True)
             with open(PIN_FILE, 'w') as f:
                 json.dump([], f)
-            PINNED_TICKERS = set()
-            logger.info("Created new pinned stocks file")
+            PINNED_SYMBOLS = set()
+            logger.info("Created new pinned symbols file")
     except Exception as e:
-        logger.error(f"Error loading pinned stocks: {e}")
-        PINNED_TICKERS = set()
+        logger.error(f"Error loading pinned symbols: {e}")
+        PINNED_SYMBOLS = set()
 
 def save_pinned_stocks():
-    """Save pinned stocks to persistent file"""
+    """Save pinned symbols to persistent file - lightweight storage only"""
     try:
         os.makedirs(os.path.dirname(PIN_FILE), exist_ok=True)
+        # Store only symbol strings, no full row objects
+        symbols_list = list(PINNED_SYMBOLS)[:100]  # Limit to 100 to ensure <2KB
         with open(PIN_FILE, 'w') as f:
-            json.dump(list(PINNED_TICKERS), f, indent=2)
-        logger.info(f"Saved {len(PINNED_TICKERS)} pinned stocks to file")
+            json.dump(symbols_list, f, separators=(',', ':'))  # Compact JSON
+        
+        # Verify file size
+        file_size = os.path.getsize(PIN_FILE)
+        logger.info(f"Saved {len(symbols_list)} pinned symbols ({file_size} bytes)")
+        
+        if file_size > 2048:
+            logger.error(f"WARNING: Pin file exceeds 2KB limit at {file_size} bytes")
+            
     except Exception as e:
-        logger.error(f"Error saving pinned stocks: {e}")
+        logger.error(f"Error saving pinned symbols: {e}")
 
-# Load pinned stocks on startup
+# Load pinned symbols on startup
 load_pinned_stocks()
 
 @app.route('/api/pin-stock', methods=['POST'])
 def pin_stock():
-    """API endpoint to pin/unpin a stock"""
+    """API endpoint to pin/unpin a stock - lightweight symbol-only storage"""
     try:
         data = request.get_json()
         symbol = data.get('symbol', '').upper().strip()
@@ -96,21 +154,30 @@ def pin_stock():
         if not symbol:
             return jsonify({'error': 'Symbol required'}), 400
 
-        global PINNED_TICKERS
+        # Validate symbol format
+        if not isinstance(symbol, str) or len(symbol) > 20:
+            return jsonify({'error': 'Invalid symbol format'}), 400
 
+        global PINNED_SYMBOLS
+
+        # Idempotent operations to prevent duplicates
         if action == 'pin':
-            PINNED_TICKERS.add(symbol)
+            PINNED_SYMBOLS.add(symbol)
             pinned = True
         elif action == 'unpin':
-            PINNED_TICKERS.discard(symbol)
+            PINNED_SYMBOLS.discard(symbol)  # discard won't raise error if not present
             pinned = False
         else:  # toggle
-            if symbol in PINNED_TICKERS:
-                PINNED_TICKERS.discard(symbol)
+            if symbol in PINNED_SYMBOLS:
+                PINNED_SYMBOLS.discard(symbol)
                 pinned = False
             else:
-                PINNED_TICKERS.add(symbol)
+                PINNED_SYMBOLS.add(symbol)
                 pinned = True
+
+        # Enforce 100 symbol limit to keep under 2KB
+        if len(PINNED_SYMBOLS) > 100:
+            PINNED_SYMBOLS = set(list(PINNED_SYMBOLS)[:100])
 
         save_pinned_stocks()
 
@@ -118,8 +185,8 @@ def pin_stock():
             'success': True,
             'symbol': symbol,
             'pinned': pinned,
-            'total_pinned': len(PINNED_TICKERS),
-            'pinned_stocks': list(PINNED_TICKERS)
+            'total_pinned': len(PINNED_SYMBOLS),
+            'pinned_stocks': list(PINNED_SYMBOLS)
         })
 
     except Exception as e:
@@ -128,11 +195,11 @@ def pin_stock():
 
 @app.route('/api/pinned-stocks', methods=['GET'])
 def get_pinned_stocks():
-    """API endpoint to get all pinned stocks"""
+    """API endpoint to get all pinned symbols - lightweight response"""
     try:
         return jsonify({
-            'pinned_stocks': list(PINNED_TICKERS),
-            'total_count': len(PINNED_TICKERS)
+            'pinned_stocks': list(PINNED_SYMBOLS),
+            'total_count': len(PINNED_SYMBOLS)
         })
     except Exception as e:
         logger.error(f"Error in get_pinned_stocks API: {str(e)}")
@@ -463,86 +530,94 @@ def get_stocks():
             timestamp = datetime.now(IST).strftime('%Y-%m-%dT%H:%M:%S')
 
 
-        # Validate stocks data and ensure all required fields
+        # Normalize API fields to fix blank columns - comprehensive mapping
+        def normalize_stock_data(stock):
+            """Normalize stock data to strict schema"""
+            if not isinstance(stock, dict) or not stock.get('symbol'):
+                return None
+            
+            # Strict field mapping schema
+            field_mapping = {
+                'symbol': ['symbol'],
+                'call_strike': ['call_strike', 'callStrike', 'call_price'],
+                'put_strike': ['put_strike', 'putStrike', 'put_price'],
+                'total_premium': ['total_premium', 'totalPremium', 'premium'],
+                'breakeven_low': ['breakeven_low', 'breakevenLow', 'lower_breakeven'],
+                'breakeven_high': ['breakeven_high', 'breakevenHigh', 'upper_breakeven'],
+                'margin_req': ['margin_req', 'marginReq', 'margin', 'margin_required'],
+                'roi_pct': ['roi_pct', 'expected_roi', 'roi', 'return_pct'],
+                'confidence': ['confidence'],
+                'stop_loss_call': ['stop_loss_call', 'stopLossCall'],
+                'stop_loss_put': ['stop_loss_put', 'stopLossPut'],
+                'risk': ['risk', 'risk_level'],
+                'result': ['result', 'status'],
+                'current_price': ['current_price', 'price'],
+                'predicted_gain': ['predicted_gain', 'gain', 'expected_gain'],
+                'score': ['score', 'rating'],
+                'pe_ratio': ['pe_ratio', 'pe', 'price_earnings']
+            }
+            
+            normalized = {}
+            
+            # Apply field mapping with fallbacks
+            for target_field, source_fields in field_mapping.items():
+                value = None
+                for source_field in source_fields:
+                    if source_field in stock and stock[source_field] is not None:
+                        raw_value = stock[source_field]
+                        # Clean problematic values
+                        if str(raw_value).strip().lower() not in ['null', 'undefined', '', 'none']:
+                            value = raw_value
+                            break
+                
+                # Set default if no valid value found
+                if value is None:
+                    if target_field in ['symbol']:
+                        normalized[target_field] = stock.get('symbol', 'UNKNOWN')
+                    elif target_field in ['roi_pct', 'confidence', 'score', 'current_price', 'predicted_gain']:
+                        normalized[target_field] = 0.0
+                    elif target_field in ['call_strike', 'put_strike', 'total_premium', 'margin_req']:
+                        normalized[target_field] = 0.0
+                    elif target_field in ['breakeven_low', 'breakeven_high']:
+                        normalized[target_field] = 0.0
+                    elif target_field in ['pe_ratio']:
+                        normalized[target_field] = 20.0
+                    elif target_field in ['risk']:
+                        normalized[target_field] = 'Medium'
+                    elif target_field in ['result']:
+                        normalized[target_field] = 'unknown'
+                    else:
+                        normalized[target_field] = "—"  # Placeholder for missing data
+                else:
+                    # Type conversion for numeric fields
+                    numeric_fields = ['roi_pct', 'confidence', 'score', 'current_price', 'predicted_gain',
+                                    'call_strike', 'put_strike', 'total_premium', 'margin_req',
+                                    'breakeven_low', 'breakeven_high', 'pe_ratio']
+                    if target_field in numeric_fields:
+                        try:
+                            normalized[target_field] = float(value)
+                        except (ValueError, TypeError):
+                            normalized[target_field] = 0.0
+                    else:
+                        normalized[target_field] = str(value).strip()
+            
+            # Add pinning status
+            normalized['pinned'] = normalized['symbol'] in PINNED_SYMBOLS
+            
+            # Add computed fields with safe defaults
+            normalized.setdefault('trend_class', 'sideways')
+            normalized.setdefault('trend_visual', '➡️ Sideways')
+            normalized.setdefault('pe_description', 'At Par')
+            normalized.setdefault('technical_summary', f"Score: {normalized.get('score', 0):.1f}")
+            
+            return normalized
+
+        # Validate and normalize stocks data
         valid_stocks = []
         for stock in stocks:
-            if isinstance(stock, dict) and 'symbol' in stock:
-                # Ensure required fields exist with proper defaults - handle None values
-                score_value = stock.get('score', 50.0)
-                if score_value is None or str(score_value).strip().lower() in ['null', 'undefined', '']:
-                    score_value = 50.0
-                try:
-                    score = float(score_value)
-                except (ValueError, TypeError):
-                    score = 50.0
-
-                price_value = stock.get('current_price', 0.0)
-                if price_value is None or str(price_value).strip().lower() in ['null', 'undefined', '']:
-                    price_value = 0.0
-                try:
-                    current_price = float(price_value)
-                except (ValueError, TypeError):
-                    current_price = 0.0
-
-                stock.setdefault('score', score)
-                stock.setdefault('current_price', current_price)
-                stock.setdefault('predicted_gain', score * 0.2)
-                stock.setdefault('confidence', max(50.0, min(95.0, score * 0.9)))
-                stock.setdefault('pred_5d', stock.get('predicted_gain', 0) * 0.25)
-                stock.setdefault('pred_1mo', stock.get('predicted_gain', 0))
-                stock.setdefault('trend_class', 'sideways')
-                stock.setdefault('trend_visual', '➡️ Sideways')
-                stock.setdefault('risk_level', 'Medium')
-                stock.setdefault('pe_ratio', stock.get('pe_ratio', 20.0))
-                stock.setdefault('pe_description', 'At Par')
-                stock.setdefault('technical_summary', f"Score: {score:.1f} | Analysis Complete")
-
-                # Ensure numeric fields are actually numeric with comprehensive None/null handling
-                numeric_fields = ['score', 'current_price', 'predicted_gain', 'confidence', 'pred_5d', 'pred_1mo', 'pe_ratio']
-                for field in numeric_fields:
-                    value = stock.get(field)
-                    if (value is None or
-                        str(value).strip().lower() in ['null', 'undefined', ''] or
-                        str(value).strip() == ''):
-                        stock[field] = 0.0
-                    else:
-                        try:
-                            stock[field] = float(value)
-                        except (ValueError, TypeError, AttributeError):
-                            logger.warning(f"Could not convert {field} to float for symbol {stock.get('symbol')}, value: {value}")
-                            stock[field] = 0.0
-
-                # Ensure string fields are properly sanitized
-                string_defaults = {
-                    'symbol': 'UNKNOWN',
-                    'trend_class': 'sideways',
-                    'trend_visual': '➡️ Sideways',
-                    'pe_description': 'At Par',
-                    'technical_summary': 'Analysis Complete',
-                    'risk_level': 'Medium'
-                }
-
-                for field, default_value in string_defaults.items():
-                    value = stock.get(field)
-                    # Handle all possible problematic values
-                    if (value is None or
-                        str(value).strip().lower() in ['null', 'undefined', ''] or
-                        str(value).strip() == ''):
-                        stock[field] = default_value
-                    else:
-                        try:
-                            # Convert to string and clean
-                            str_value = str(value).strip()
-                            stock[field] = str_value if str_value else default_value
-                        except (ValueError, TypeError, AttributeError):
-                            logger.warning(f"Could not process string field {field} for symbol {stock.get('symbol')}, value: {value}")
-                            stock[field] = default_value
-
-                # Ensure critical fields exist
-                if not stock.get('symbol') or stock.get('symbol') == 'UNKNOWN':
-                    continue  # Skip stocks without symbol
-
-                valid_stocks.append(stock)
+            normalized_stock = normalize_stock_data(stock)
+            if normalized_stock and normalized_stock.get('symbol') != 'UNKNOWN':
+                valid_stocks.append(normalized_stock)
 
         logger.info(f"API response: {len(valid_stocks)} valid stocks, status: {status}")
 
@@ -1025,15 +1100,35 @@ def api_predictions_tracker():
 
 @app.route('/api/run-now', methods=['POST'])
 def run_now():
-    """Manually trigger screening"""
+    """Manually trigger screening with request cancellation"""
     global scheduler
+    request_id = id(request)
+    
     try:
-        logger.info("🔄 Manual refresh requested")
+        # Cancel any in-flight requests
+        with request_lock:
+            # Mark this request as active
+            active_requests.add(request)
+            
+        logger.info(f"🔄 Manual refresh requested (ID: {request_id})")
+
+        # Cancel any existing timers to prevent overlap
+        cancel_all_timers()
 
         # Run screening synchronously to ensure completion before returning
         try:
             if scheduler and hasattr(scheduler, 'run_screening_job_manual'):
                 logger.info("Using scheduler for manual screening")
+                
+                # Check if request was cancelled
+                if request not in active_requests:
+                    return jsonify({
+                        'success': False,
+                        'message': 'Request cancelled due to newer request',
+                        'cancelled': True,
+                        'timestamp': datetime.now(IST).isoformat()
+                    })
+                
                 success = scheduler.run_screening_job_manual()
                 if success:
                     logger.info("✅ Manual screening completed successfully via scheduler")

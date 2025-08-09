@@ -184,56 +184,56 @@
             color: #8a5a00;
         }
 
-        .roi-high { 
-            color: #065f46; 
-            font-weight: 600; 
-            background: #d1fae5; 
-            padding: 4px 8px; 
-            border-radius: 6px; 
+        .roi-high {
+            color: #065f46;
+            font-weight: 600;
+            background: #d1fae5;
+            padding: 4px 8px;
+            border-radius: 6px;
         }
 
-        .roi-medium { 
-            color: #92400e; 
-            font-weight: 600; 
-            background: #fef3c7; 
-            padding: 4px 8px; 
-            border-radius: 6px; 
+        .roi-medium {
+            color: #92400e;
+            font-weight: 600;
+            background: #fef3c7;
+            padding: 4px 8px;
+            border-radius: 6px;
         }
 
-        .roi-low { 
-            color: #991b1b; 
-            font-weight: 600; 
-            background: #fee2e2; 
-            padding: 4px 8px; 
-            border-radius: 6px; 
+        .roi-low {
+            color: #991b1b;
+            font-weight: 600;
+            background: #fee2e2;
+            padding: 4px 8px;
+            border-radius: 6px;
         }
 
         .confidence-high { color: #065f46; font-weight: 600; }
         .confidence-medium { color: #92400e; font-weight: 600; }
         .confidence-low { color: #991b1b; font-weight: 600; }
 
-        .risk-low { 
-            color: #065f46; 
-            background: #d1fae5; 
-            padding: 3px 8px; 
-            border-radius: 4px; 
-            font-size: 0.85em; 
+        .risk-low {
+            color: #065f46;
+            background: #d1fae5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
         }
 
-        .risk-medium { 
-            color: #92400e; 
-            background: #fef3c7; 
-            padding: 3px 8px; 
-            border-radius: 4px; 
-            font-size: 0.85em; 
+        .risk-medium {
+            color: #92400e;
+            background: #fef3c7;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
         }
 
-        .risk-high { 
-            color: #991b1b; 
-            background: #fee2e2; 
-            padding: 3px 8px; 
-            border-radius: 4px; 
-            font-size: 0.85em; 
+        .risk-high {
+            color: #991b1b;
+            background: #fee2e2;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
         }
 
         .loading-spinner {
@@ -705,6 +705,73 @@
         let currentFetch = null; // Track in-flight requests
         let isLoading = false;
         let showOnlyPinned = false;
+        let currentTimeframe = '30D'; // Default timeframe
+
+        // Single timer management - no leaks
+        let singleTimer = null;
+        let isRefreshing = false;
+        let abortController = null;
+
+        function ensureSingleTimer() {
+            // Cancel existing timer
+            if (singleTimer) {
+                clearInterval(singleTimer);
+                singleTimer = null;
+            }
+
+            // Create new timer
+            singleTimer = setInterval(() => {
+                if (!document.hidden && !isRefreshing) {
+                    fetchStrategies(currentTimeframe); // Use fetchStrategies directly
+                }
+            }, 30000); // 30 seconds
+
+            console.log('Single timer created - no duplicates');
+        }
+
+        // Cancel in-flight fetches on refresh
+        function cancelInFlightRequests() {
+            if (abortController) {
+                abortController.abort();
+                console.log('Previous request cancelled');
+            }
+            abortController = new AbortController();
+            return abortController.signal;
+        }
+
+        // One delegated click handler for all pin/unpin actions
+        document.addEventListener('DOMContentLoaded', function() {
+            const strategiesTable = document.getElementById('optionsTableBody'); // Corrected ID
+            if (strategiesTable) {
+                // Single delegated event handler
+                strategiesTable.addEventListener('click', function(event) {
+                    const pinBtn = event.target.closest('.pin-btn');
+                    if (pinBtn) {
+                        event.preventDefault();
+                        const symbol = pinBtn.getAttribute('data-symbol'); // Corrected to getAttribute
+                        const isPinned = pinBtn.classList.contains('pinned');
+                        togglePin(symbol, !isPinned, pinBtn);
+                    }
+                });
+                console.log('Delegated click handler attached - no duplicates');
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (singleTimer) {
+                clearInterval(singleTimer);
+                singleTimer = null;
+            }
+            if (abortController) {
+                abortController.abort();
+            }
+            console.log('Cleanup completed - timers and requests cancelled');
+        });
+
+        // Start single timer
+        ensureSingleTimer();
+
 
         // Data normalization to fix blank columns
         function normalizeStrategyData(raw) {
@@ -723,7 +790,7 @@
                 'stop_loss_put': raw.stop_loss_put || raw.putStopLoss || 0,
                 'risk': raw.risk || raw.risk_level || 'Medium',
                 'result': raw.result || raw.final_result || 'in_progress',
-                'pinned': pinnedSymbols.has(raw.symbol || raw.ticker)
+                'pinned': pinnedSymbols.has(raw.symbol || raw.ticker) // Use normalized symbol
             };
 
             return fieldMappings;
@@ -737,18 +804,22 @@
         }
 
         // Event handlers
-        function togglePin(symbol) {
+        function togglePin(symbol, isPinning, pinBtnElement) { // Added pinBtnElement parameter
             if (!symbol) return;
 
-            if (pinnedSymbols.has(symbol)) {
-                pinnedSymbols.delete(symbol);
-            } else {
+            if (isPinning) {
                 pinnedSymbols.add(symbol);
+                pinBtnElement.classList.add('pinned'); // Add 'pinned' class
+                pinBtnElement.innerHTML = '📌'; // Change icon
+            } else {
+                pinnedSymbols.delete(symbol);
+                pinBtnElement.classList.remove('pinned'); // Remove 'pinned' class
+                pinBtnElement.innerHTML = '📍'; // Change icon back
             }
 
             // Save only symbols, not full objects
             savePinnedStocks();
-            updateDisplay();
+            updateDisplay(); // Re-render table to show pinned status
         }
 
         function savePinnedStocks() {
@@ -778,51 +849,7 @@
             }
         }
 
-        function startAutoRefresh() {
-            const interval = document.getElementById('refreshInterval').value;
-            stopAutoRefresh(); // Always clear existing first
-
-            if (interval > 0) {
-                refreshInterval = setInterval(() => {
-                    if (!isLoading) {
-                        refreshData();
-                    }
-                }, interval * 1000);
-                console.log(`Auto-refresh started: ${interval}s (single timer)`);
-            }
-        }
-
-        function stopAutoRefresh() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-                refreshInterval = null;
-                console.log('Auto-refresh stopped');
-            }
-        }
-
-        function setupDelegatedEventHandling() {
-            // Single delegated click handler for all pin/unpin buttons
-            const strategiesTable = document.getElementById('strategiesTable');
-            if (strategiesTable) {
-                strategiesTable.addEventListener('click', function(event) {
-                    if (event.target.matches('.pin-btn') || event.target.closest('.pin-btn')) {
-                        const button = event.target.matches('.pin-btn') ? event.target : event.target.closest('.pin-btn');
-                        const symbol = button.getAttribute('data-symbol');
-                        if (symbol) {
-                            togglePin(symbol);
-                        }
-                    }
-                });
-            }
-        }
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            stopAutoRefresh();
-            if (currentFetch) {
-                currentFetch.abort();
-            }
-        });
+        // Removed startAutoRefresh and stopAutoRefresh as they are replaced by ensureSingleTimer and cleanup logic.
 
         function updateDisplay() {
             updateSummaryCards();
@@ -830,11 +857,11 @@
         }
 
         function renderStrategiesTable() {
-            const tableBody = document.getElementById('strategiesTableBody');
+            const tableBody = document.getElementById('optionsTableBody'); // Corrected ID
             if (!tableBody) return;
 
             if (strategiesData.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="12" class="text-center">No data available</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="15" class="text-center">No data available</td></tr>'; // Adjusted colspan
                 return;
             }
 
@@ -865,27 +892,28 @@
 
             // Use normalized field names with safe fallbacks
             const symbol = strategy.symbol || 'N/A';
-            const callStrike = strategy.call_strike || 0;
-            const putStrike = strategy.put_strike || 0;
-            const totalPremium = strategy.total_premium || 0;
-            const breakevenLow = strategy.breakeven_low || 0;
-            const breakevenHigh = strategy.breakeven_high || 0;
-            const marginReq = strategy.margin_req || 0;
-            const roiPct = strategy.roi_pct || 0;
-            const confidence = strategy.confidence || 0;
+            const callStrike = strategy.call_strike.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00';
+            const putStrike = strategy.put_strike.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00';
+            const totalPremium = strategy.total_premium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00';
+            const breakevenLow = strategy.breakeven_low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00';
+            const breakevenHigh = strategy.breakeven_high.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00';
+            const marginReq = strategy.margin_req.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00';
+            const roiPct = strategy.roi_pct.toFixed(2) || '0.00';
+            const confidence = strategy.confidence.toFixed(2) || '0.00';
             const outcome = strategy.prediction_outcome || 'Unknown';
-            const stopLossCall = strategy.stop_loss_call || 0;
-            const stopLossPut = strategy.stop_loss_put || 0;
+            const stopLossCall = strategy.stop_loss_call.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00';
+            const stopLossPut = strategy.stop_loss_put.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00';
             const result = strategy.result || 'in_progress';
 
             return `
                 <tr class="${rowClass}">
-                    <td>
-                        <button class="pin-btn" data-symbol="${symbol}" title="${isPinned ? 'Unpin' : 'Pin'} ${symbol}">
+                    <td class="sticky-col pin-col">
+                        <button class="pin-btn ${isPinned ? 'pinned' : ''}" data-symbol="${symbol}" title="${isPinned ? 'Unpin' : 'Pin'} ${symbol}">
                             ${pinIcon}
                         </button>
                         <strong>${symbol}</strong>
                     </td>
+                    <td class="sticky-col stock-col">${symbol}</td>
                     <td>₹${callStrike}</td>
                     <td>₹${putStrike}</td>
                     <td class="premium-cell">₹${totalPremium}</td>
@@ -897,6 +925,67 @@
                     <td class="outcome-cell">${outcome}</td>
                     <td>Call: ₹${stopLossCall}<br>Put: ₹${stopLossPut}</td>
                     <td class="result-cell">${result}</td>
+                    <td style="width: 40px;">
+                        <button class="row-expander" aria-label="Expand row">⋯</button>
+                    </td>
+                </tr>
+                <tr class="expanded-details ${rowClass}" style="display: none;">
+                    <td colspan="15">
+                        <div class="detail-grid">
+                            <div class="detail-item">
+                                <span class="label">Stock:</span>
+                                <span>${symbol}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Call Strike:</span>
+                                <span>₹${callStrike}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Put Strike:</span>
+                                <span>₹${putStrike}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Total Premium:</span>
+                                <span>₹${totalPremium}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Breakeven Low:</span>
+                                <span>₹${breakevenLow}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Breakeven High:</span>
+                                <span>₹${breakevenHigh}</span>
+                            </div>
+                             <div class="detail-item">
+                                <span class="label">Margin Req:</span>
+                                <span>₹${marginReq}</span>
+                            </div>
+                             <div class="detail-item">
+                                <span class="label">ROI %:</span>
+                                <span>${roiPct}%</span>
+                            </div>
+                             <div class="detail-item">
+                                <span class="label">Confidence:</span>
+                                <span>${confidence}%</span>
+                            </div>
+                             <div class="detail-item">
+                                <span class="label">Prediction Outcome:</span>
+                                <span>${outcome}</span>
+                            </div>
+                             <div class="detail-item">
+                                <span class="label">Stop Loss (C/P):</span>
+                                <span>Call: ₹${stopLossCall} / Put: ₹${stopLossPut}</span>
+                            </div>
+                             <div class="detail-item">
+                                <span class="label">Risk:</span>
+                                <span>${strategy.risk}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Result:</span>
+                                <span>${result}</span>
+                            </div>
+                        </div>
+                    </td>
                 </tr>
             `;
         }
@@ -904,26 +993,38 @@
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             loadPinnedStocks();
-            setupDelegatedEventHandling();
+            // setupDelegatedEventHandling(); // This is now handled at the top
             fetchStrategies(document.getElementById('timeframeSelect').value);
-
-            // Set up refresh interval
-            startAutoRefresh();
 
             // Event listener for manual refresh button
             const manualRefreshBtn = document.getElementById('manualRefreshBtn');
             if (manualRefreshBtn) {
                 manualRefreshBtn.onclick = async () => {
                     await clearDataCache(); // Clear cache before manual refresh
-                    await fetchStrategies(document.getElementById('timeframeSelect').value);
+                    fetchStrategies(document.getElementById('timeframeSelect').value);
                 };
             }
 
             // Event listener for timeframe select
             const timeframeSelect = document.getElementById('timeframeSelect');
             if (timeframeSelect) {
-                timeframeSelect.addEventListener('change', () => {
-                    fetchStrategies(timeframeSelect.value);
+                timeframeSelect.addEventListener('change', (event) => {
+                    currentTimeframe = event.target.value; // Update global timeframe
+                    fetchStrategies(currentTimeframe);
+                });
+            }
+
+            // Event listener for row expanders
+            const tableBody = document.getElementById('optionsTableBody');
+            if (tableBody) {
+                tableBody.addEventListener('click', function(event) {
+                    if (event.target.classList.contains('row-expander')) {
+                        const row = event.target.closest('tr');
+                        const detailsRow = row.nextElementSibling;
+                        if (detailsRow && detailsRow.classList.contains('expanded-details')) {
+                            detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
+                        }
+                    }
                 });
             }
         });
@@ -932,19 +1033,23 @@
             try {
                 const filteredData = getFilteredData();
                 const totalPremium = filteredData.reduce((sum, s) => sum + (s.total_premium || 0), 0);
-                const avgROI = filteredData.length > 0 ? 
+                const avgROI = filteredData.length > 0 ?
                     filteredData.reduce((sum, s) => sum + (s.roi_pct || 0), 0) / filteredData.length : 0;
 
-                document.getElementById('totalStrategies').textContent = filteredData.length;
-                document.getElementById('totalPremium').textContent = `₹${totalPremium.toLocaleString()}`;
-                document.getElementById('avgROI').textContent = `${avgROI.toFixed(1)}%`;
+                document.getElementById('totalTrades').textContent = filteredData.length;
+                document.getElementById('totalPremium').textContent = `₹${totalPremium.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                document.getElementById('averageROI').textContent = `${avgROI.toFixed(1)}%`;
 
                 // Update Pinned Summary
                 updatePinnedSummary(filteredData);
 
                 // Update last refresh time
                 const now = new Date();
-                document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+                // Assuming you have an element with id="lastUpdate"
+                const lastUpdateElement = document.getElementById('lastUpdate');
+                if (lastUpdateElement) {
+                    lastUpdateElement.textContent = now.toLocaleTimeString();
+                }
             } catch (error) {
                 console.error('Error updating summary cards:', error);
             }
@@ -957,9 +1062,15 @@
             const failCount = pinnedData.filter(s => s.result === 'failed').length;
             const inProgressCount = pinnedData.filter(s => s.result === 'in_progress').length;
 
-            const pinnedSummaryEl = document.getElementById('pinnedSummary');
+            const pinnedSummaryEl = document.getElementById('pinnedSummaryBody');
             if (pinnedSummaryEl) {
-                pinnedSummaryEl.textContent = `Pinned: ${pinnedCount} | Success: ${successCount} | Fail: ${failCount} | In-Progress: ${inProgressCount}`;
+                pinnedSummaryEl.innerHTML = `
+                    <tr><td>Pinned Trades</td><td>${pinnedCount}</td></tr>
+                    <tr><td>Success</td><td>${successCount}</td></tr>
+                    <tr><td>Failed</td><td>${failCount}</td></tr>
+                    <tr><td>In Progress</td><td>${inProgressCount}</td></tr>
+                `;
+                pinnedSummaryEl.parentElement.style.display = pinnedCount > 0 ? 'block' : 'none';
             }
         }
 
@@ -967,7 +1078,7 @@
             showOnlyPinned = !showOnlyPinned;
             updateDisplay();
 
-            const pinnedCard = document.querySelector('.clickable-kpi');
+            const pinnedCard = document.querySelector('.clickable-kpi'); // This element might not exist in your HTML, adjust if necessary
             if (pinnedCard) {
                 pinnedCard.style.backgroundColor = showOnlyPinned ? '#e3f2fd' : '';
             }
@@ -981,11 +1092,8 @@
                 filtered = filtered.filter(strategy => pinnedSymbols.has(strategy.symbol));
             }
 
-            // Apply timeframe filter if needed
-            const timeframeFilter = document.getElementById('timeframeSelect').value;
-            if (timeframeFilter !== 'ALL') {
-                // Implement timeframe filtering logic
-            }
+            // Apply timeframe filter if needed (currentTimeframe is already set)
+            // No additional filtering needed here as fetchStrategies uses currentTimeframe
 
             return filtered;
         }
@@ -998,26 +1106,24 @@
             }
             isLoading = true;
             updateLoadingState(true);
+            currentTimeframe = timeframe; // Ensure global timeframe is updated
+
+            const signal = cancelInFlightRequests(); // Get signal from the new controller
 
             try {
-                // Cancel any in-flight request
-                if (currentFetch) {
-                    currentFetch.abort();
-                }
-
-                // Clear old data cache
-                clearDataCache();
-
-                const controller = new AbortController();
-                currentFetch = controller;
-
+                console.log('Loading strategies with cancellation support...');
                 const response = await fetch(`/api/options-strategies?timeframe=${timeframe}`, {
-                    signal: controller.signal
+                    signal: signal
                 });
 
-                if (controller.signal.aborted) {
-                    return; // Request was cancelled
+                // Check if request was cancelled
+                if (signal.aborted) {
+                    console.log('Request was cancelled');
+                    return;
                 }
+
+                // Clear old data cache before processing new data
+                clearDataCache();
 
                 const data = await response.json();
 
@@ -1032,13 +1138,14 @@
             } catch (error) {
                 if (error.name === 'AbortError') {
                     console.log('Fetch was cancelled');
-                    return;
+                    // Do not show error message for aborted requests
+                } else {
+                    console.error('Refresh error:', error);
+                    showStatus(`❌ Failed to refresh data: ${error.message}`, 'error', true);
                 }
-                console.error('Refresh error:', error);
-                showStatus(`❌ Failed to refresh data: ${error.message}`, 'error', true);
             } finally {
                 isLoading = false;
-                currentFetch = null;
+                abortController = null; // Reset abortController after use
                 updateLoadingState(false);
             }
         }
@@ -1063,25 +1170,26 @@
         }
 
         function showStatus(message, type = 'info', showRetry = false) {
-            const statusDiv = document.getElementById('statusMessage');
+            const statusDiv = document.getElementById('optionsStatus'); // Changed ID to match the actual status div
             if (statusDiv) {
                 let content = message;
-                if (showRetry && type === 'error') {
-                    content += ' <button onclick="refreshData()" style="margin-left: 10px; padding: 4px 8px; font-size: 12px;">Retry</button>';
-                }
+                // Removed retry button logic here as it's handled by manual refresh button directly.
                 statusDiv.innerHTML = content;
-                statusDiv.className = `status-message ${type}`;
+                statusDiv.className = `status-indicator status-${type}`; // Use existing class structure
                 statusDiv.style.display = 'block';
 
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, showRetry ? 10000 : 5000); // Longer timeout for error messages with retry
+                // Automatically hide status message after a delay, except for errors with retry intent
+                if (type !== 'error' || !showRetry) {
+                    setTimeout(() => {
+                        statusDiv.style.display = 'none';
+                    }, showRetry ? 10000 : 5000);
+                }
             }
         }
 
         // Mock function for refreshData if needed, otherwise fetchStrategies is used directly
         async function refreshData() {
-            await fetchStrategies(document.getElementById('timeframeSelect').value);
+            await fetchStrategies(currentTimeframe);
         }
 
     </script>

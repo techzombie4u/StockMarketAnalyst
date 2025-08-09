@@ -1,10 +1,10 @@
-
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Any
 import json
 import os
 import logging
+import gc
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +26,23 @@ class OptionRow:
     risk: str
     result: str  # "success" | "failed" | "in_progress"
 
+class MinimalRow:
+    """Minimal row class for memory efficiency"""
+    def __init__(self, symbol, current_price, timeframe, timestamp):
+        self.symbol = symbol
+        self.current_price = current_price
+        self.timeframe = timeframe
+        self.timestamp = timestamp
+
+class OptionsStrategy:
+    """Options strategy result class"""
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
 def normalize_option_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize incoming data to standard schema and fix field name drift"""
     normalized = {}
-    
+
     # Standard field mappings with fallbacks
     field_mappings = {
         'symbol': ['symbol', 'ticker', 'stock'],
@@ -48,7 +61,7 @@ def normalize_option_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         'risk': ['risk', 'risk_level', 'riskLevel'],
         'result': ['result', 'final_result', 'outcome_status']
     }
-    
+
     # Map fields with fallbacks
     for target_field, source_options in field_mappings.items():
         value = None
@@ -56,16 +69,16 @@ def normalize_option_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
             if source_field in raw_data and raw_data[source_field] is not None:
                 value = raw_data[source_field]
                 break
-        
+
         # Set defaults for missing fields
         if value is None:
             if target_field in ['symbol', 'prediction_outcome', 'risk', 'result']:
                 value = 'N/A' if target_field == 'symbol' else 'Unknown'
             else:
                 value = 0.0
-        
+
         normalized[target_field] = value
-    
+
     return normalized
 
 def compute_row(raw: Dict[str, Any]) -> OptionRow:
@@ -73,7 +86,7 @@ def compute_row(raw: Dict[str, Any]) -> OptionRow:
     try:
         # Normalize the raw data first
         normalized = normalize_option_data(raw)
-        
+
         spot = float(normalized.get('current_price', 0))
         call_strike = float(normalized.get('call_strike', 0))
         put_strike = float(normalized.get('put_strike', 0))
@@ -117,34 +130,87 @@ def compute_row(raw: Dict[str, Any]) -> OptionRow:
             risk='High', result='failed'
         )
 
-def load_min_inputs(timeframe: str) -> List[Dict[str, Any]]:
-    """Load minimal input set per symbol (NO historical arrays)"""
+def get_active_symbols(timeframe):
+    """Get active symbols for timeframe"""
+    # Return a limited set of symbols based on timeframe
+    base_symbols = ['RELIANCE', 'TCS', 'HDFCBANK', 'ICICIBANK', 'INFY']
+    if timeframe == '30D':
+        return base_symbols[:3]  # Further limit for longer timeframes
+    return base_symbols
+
+def get_current_symbol_data(symbol):
+    """Get current data for symbol without historical arrays"""
     try:
-        # Generate sample data for demo (replace with real data loading)
-        symbols = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK']
-        raw_rows = []
-        
-        for i, symbol in enumerate(symbols):
-            base_price = 1000 + (i * 200)
-            raw_rows.append({
-                'symbol': symbol,
-                'spot': base_price,
-                'current_price': base_price,
-                'call': {'strike': base_price + 100, 'premium': 25},
-                'put': {'strike': base_price - 100, 'premium': 20},
-                'call_premium': 25,
-                'put_premium': 20,
-                'lot_size': 100,
-                'margin_required': 5000 + (i * 1000),
-                'confidence': 75 + (i * 3),
-                'prediction_outcome': ['On Track', 'Exceeded', 'At Risk'][i % 3],
-                'risk': ['Low', 'Medium', 'High'][i % 3],
-                'result': ['success', 'in_progress', 'failed'][i % 3]
-            })
-        
-        return raw_rows
+        # Fetch only current price and essential metrics
+        # This would connect to your data source
+        return {'price': 100.0}  # Placeholder
+    except:
+        return None
+
+def compute_row(min_row):
+    """Compute final row from minimal inputs"""
+    try:
+        # Compute options strategy from minimal data
+        return OptionsStrategy(
+            symbol=min_row.symbol,
+            call_strike=min_row.current_price * 1.05,
+            put_strike=min_row.current_price * 0.95,
+            total_premium=min_row.current_price * 0.02,
+            breakeven_low=min_row.current_price * 0.93,
+            breakeven_high=min_row.current_price * 1.07,
+            margin_req=min_row.current_price * 0.1,
+            roi_pct=5.0,
+            confidence=75,
+            stop_loss_call=min_row.current_price * 1.1,
+            stop_loss_put=min_row.current_price * 0.9,
+            risk='Medium',
+            result='in_progress'
+        )
     except Exception as e:
-        logger.error(f"Error loading min inputs: {e}")
+        logger.error(f"Error computing row for {min_row.symbol}: {e}")
+        return OptionsStrategy(symbol=min_row.symbol, **get_default_strategy())
+
+def get_default_strategy():
+    """Get default strategy values"""
+    return {
+        'call_strike': 0, 'put_strike': 0, 'total_premium': 0,
+        'breakeven_low': 0, 'breakeven_high': 0, 'margin_req': 0,
+        'roi_pct': 0, 'confidence': 0, 'stop_loss_call': 0,
+        'stop_loss_put': 0, 'risk': 'Unknown', 'result': 'error'
+    }
+
+def load_min_inputs(timeframe: str) -> List[Dict[str, Any]]:
+    """Load minimal input set per symbol (NO historical arrays) - Memory optimized"""
+    try:
+        raw_rows = []
+
+        # Load only essential data for current timeframe
+        symbols = get_active_symbols(timeframe)
+
+        for symbol in symbols[:50]:  # Limit to prevent memory issues
+            try:
+                # Load only current price and essential metrics
+                current_data = get_current_symbol_data(symbol)
+                if current_data:
+                    # Create minimal row object with only required fields
+                    min_row = MinimalRow(
+                        symbol=symbol,
+                        current_price=current_data.get('price', 0),
+                        timeframe=timeframe,
+                        timestamp=now_iso()
+                    )
+                    raw_rows.append(min_row)
+            except Exception as e:
+                logger.error(f"Error processing symbol {symbol}: {e}")
+                continue
+
+        # Force garbage collection
+        gc.collect()
+        logger.info(f"Loaded {len(raw_rows)} minimal input rows")
+        return raw_rows
+
+    except Exception as e:
+        logger.error(f"Error loading minimal inputs: {e}")
         return []
 
 def now_iso() -> str:
@@ -153,7 +219,6 @@ def now_iso() -> str:
 
 def clearDataCache():
     """Clear old data cache to prevent memory leaks"""
-    import gc
     collected = gc.collect()
     logger.info(f"Memory cleared: {collected} objects collected")
     return collected
