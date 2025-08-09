@@ -11,6 +11,10 @@ import math
 
 logger = logging.getLogger(__name__)
 
+def enhanced_error_handler():
+    """Factory function to create enhanced error handler instance"""
+    return EnhancedErrorHandler()
+
 class ErrorTracker:
     """Simple error tracking system"""
 

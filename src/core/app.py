@@ -249,55 +249,15 @@ def _refresh_locked_predictions_data():
 
 
 def clearDataCache():
-    """Aggressive memory cleanup to prevent disconnections"""
+    """Clear old data cache to prevent memory leaks"""
     try:
         import gc
-        import psutil
-        import os
-        
-        # Get memory usage before cleanup
-        process = psutil.Process(os.getpid())
-        memory_before = process.memory_info().rss / 1024 / 1024
-        
-        # Force multiple garbage collection passes
-        collected = 0
-        for i in range(3):
-            collected += gc.collect()
-        
-        # Clear Flask cache
-        if hasattr(cache, 'clear'):
-            cache.clear()
-        
-        # Clear module-level caches if they exist
-        for module_name in list(sys.modules.keys()):
-            if 'cache' in module_name.lower():
-                try:
-                    module = sys.modules[module_name]
-                    if hasattr(module, 'clear'):
-                        module.clear()
-                except:
-                    pass
-        
-        # Final garbage collection
-        gc.collect()
-        
-        # Get memory usage after cleanup
-        memory_after = process.memory_info().rss / 1024 / 1024
-        memory_freed = memory_before - memory_after
-        
-        logger.info(f"🧹 Aggressive cleanup: {collected} objects, {memory_freed:.1f}MB freed")
+        collected = gc.collect()
+        logger.info(f"Memory cleared: {collected} objects collected")
         return collected
-        
     except Exception as e:
-        logger.error(f"Error in aggressive cleanup: {e}")
-        # Fallback simple cleanup
-        try:
-            import gc
-            collected = gc.collect()
-            logger.info(f"🧹 Fallback cleanup: {collected} objects collected")
-            return collected
-        except:
-            return 0
+        logger.error(f"Error clearing memory: {e}")
+        return 0
 
 
 enhanced_error_handler = None
@@ -322,15 +282,7 @@ try:
     logger.info("✅ enhanced_error_handler imported")
 except Exception as e:
     logger.warning(f"⚠️ enhanced_error_handler import failed: {e}")
-    # Create a dummy error handler that returns a proper class instance
-    class DummyErrorHandler:
-        def handle_error(self, error_type, error_message, context=None):
-            logger.error(f"[{error_type}] {error_message}")
-        def get_error_summary(self):
-            return {'errors': 0}
-    
-    def enhanced_error_handler():
-        return DummyErrorHandler()
+    enhanced_error_handler = None
 
 try:
     from src.utils.external_data_importer import ExternalDataImporter
@@ -364,7 +316,14 @@ CORS(app)
 scheduler = None
 
 # Initialize managers with error handling
-error_handler = enhanced_error_handler() if enhanced_error_handler else None
+error_handler = None
+if enhanced_error_handler:
+    try:
+        error_handler = enhanced_error_handler()
+        logger.info("✅ Error handler initialized")
+    except Exception as e:
+        logger.warning(f"Error handler initialization failed: {e}")
+
 interactive_tracker = InteractiveTrackerManager() if InteractiveTrackerManager else None
 scheduler_manager = SchedulerManager() if SchedulerManager else None
 strangle_engine = ShortStrangleEngine() if ShortStrangleEngine else None
