@@ -489,11 +489,11 @@
                         <option value="30D" selected>30 Days (Monthly)</option>
                     </select>
                 </div>
-                <button class="refresh-btn" id="refreshBtn" onclick="loadOptionsData()">
+                <button class="refresh-btn" id="refreshBtn" onclick="fetchStrategies(document.getElementById('timeframeSelect').value)">
                     <span id="refreshIcon">🔄</span>
                     <span id="refreshText">Generate Strategies</span>
                 </button>
-                <button class="refresh-btn" id="manualRefreshBtn" onclick="manualRefreshData()" style="margin-left: 15px; background: linear-gradient(45deg, #27ae60, #2ecc71);">
+                <button class="refresh-btn" id="manualRefreshBtn" style="margin-left: 15px; background: linear-gradient(45deg, #27ae60, #2ecc71);">
                     <span id="manualRefreshIcon">⚡</span>
                     <span id="manualRefreshText">Force Refresh</span>
                 </button>
@@ -698,422 +698,392 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Memory-optimized global state - single table only
-        let currentTable = [];          // array of skinny rows from backend
-        let pinned = loadPinned();      // Set<string> of symbols
-        let refreshTimer = null;
+        // Global state - minimal memory footprint
+        let strategiesData = [];
+        let pinnedSymbols = new Set(); // Only store symbols, not full objects
+        let refreshInterval = null;
+        let currentFetch = null; // Track in-flight requests
+        let isLoading = false;
+        let showOnlyPinned = false;
 
-        // Memory-safe pinned stock management
-        function loadPinned() {
-            try {
-                const raw = localStorage.getItem('pinned_symbols_v2');
-                const arr = raw ? JSON.parse(raw) : [];
-                return new Set(arr); // store only ["ITC","TCS"]
-            } catch { 
-                return new Set(); 
+        // Data normalization to fix blank columns
+        function normalizeStrategyData(raw) {
+            const fieldMappings = {
+                'symbol': raw.symbol || raw.ticker || 'N/A',
+                'call_strike': raw.call_strike || raw.callStrike || 0,
+                'put_strike': raw.put_strike || raw.putStrike || 0,
+                'total_premium': raw.total_premium || raw.premium || 0,
+                'breakeven_low': raw.breakeven_low || raw.breakevenLow || 0,
+                'breakeven_high': raw.breakeven_high || raw.breakevenHigh || 0,
+                'margin_req': raw.margin_req || raw.margin_required || raw.margin || 0,
+                'roi_pct': raw.roi_pct || raw.roi || raw.expected_roi || 0,
+                'confidence': raw.confidence || 0,
+                'prediction_outcome': raw.prediction_outcome || raw.outcome || 'Unknown',
+                'stop_loss_call': raw.stop_loss_call || raw.callStopLoss || 0,
+                'stop_loss_put': raw.stop_loss_put || raw.putStopLoss || 0,
+                'risk': raw.risk || raw.risk_level || 'Medium',
+                'result': raw.result || raw.final_result || 'in_progress',
+                'pinned': pinnedSymbols.has(raw.symbol || raw.ticker)
+            };
+
+            return fieldMappings;
+        }
+
+        function clearDataCache() {
+            // Clear old data arrays to prevent memory leaks
+            if (strategiesData.length > 0) {
+                strategiesData.length = 0; // Clear array efficiently
             }
         }
 
-        function savePinned() {
+        // Event handlers
+        function togglePin(symbol) {
+            if (!symbol) return;
+
+            if (pinnedSymbols.has(symbol)) {
+                pinnedSymbols.delete(symbol);
+            } else {
+                pinnedSymbols.add(symbol);
+            }
+
+            // Save only symbols, not full objects
+            savePinnedStocks();
+            updateDisplay();
+        }
+
+        function savePinnedStocks() {
             try {
-                localStorage.setItem('pinned_symbols_v2', JSON.stringify([...pinned]));
+                // Store only symbols array - lightweight approach
+                const symbolsArray = Array.from(pinnedSymbols);
+                localStorage.setItem('pinnedOptionsStocks', JSON.stringify(symbolsArray));
+                console.log('Pinned stocks saved:', symbolsArray.length, 'symbols');
             } catch (error) {
                 console.error('Error saving pinned stocks:', error);
             }
         }
 
-        function togglePin(symbol) {
-            if (pinned.has(symbol)) {
-                pinned.delete(symbol);
-            } else {
-                pinned.add(symbol);
-            }
-            savePinned();
-            renderTable();
-        }
-
-        // Memory management functions
-        async function clearDataCache() {
-            // Stop timers
-            if (refreshTimer) {
-                clearInterval(refreshTimer);
-                refreshTimer = null;
-            }
-
-            // Drop references to previous data
-            currentTable = [];
-
-            // Nuke table DOM to release listeners
-            const tbody = document.querySelector('#optionsTableBody');
-            if (tbody) {
-                const newTbody = tbody.cloneNode(false);
-                tbody.parentNode.replaceChild(newTbody, tbody);
-            }
-
-            // Revoke object URLs if any
-            if (window._objectUrls) {
-                window._objectUrls.forEach(url => URL.revokeObjectURL(url));
-                window._objectUrls.length = 0;
-            }
-
-            // Hint GC (works only with chromium --js-flags)
-            if (window.gc) window.gc();
-        }
-
-        function logMem(tag) {
-            if (performance && performance.memory) {
-                const m = performance.memory;
-                console.log(`[mem] ${tag}: used=${(m.usedJSHeapSize/1e6).toFixed(1)}MB / total=${(m.totalJSHeapSize/1e6).toFixed(1)}MB`);
-            }
-        }
-
-        // Row expander functionality for mobile
-        function toggleRowDetails(rowIndex) {
-            const detailsRow = document.getElementById(`details-${rowIndex}`);
-            if (detailsRow) {
-                const isVisible = detailsRow.style.display !== 'none';
-                detailsRow.style.display = isVisible ? 'none' : 'table-row';
-                
-                const expanderBtn = document.querySelector(`[onclick="toggleRowDetails(${rowIndex})"]`);
-                if (expanderBtn) {
-                    expanderBtn.textContent = isVisible ? '⋯' : '✕';
+        function loadPinnedStocks() {
+            try {
+                const saved = localStorage.getItem('pinnedOptionsStocks');
+                if (saved) {
+                    const symbolsArray = JSON.parse(saved);
+                    pinnedSymbols = new Set(symbolsArray);
+                    console.log('Pinned stocks loaded:', pinnedSymbols.size, 'symbols');
+                } else {
+                    pinnedSymbols = new Set();
                 }
+            } catch (error) {
+                console.error('Error loading pinned stocks:', error);
+                pinnedSymbols = new Set();
             }
         }
 
-        // Enhanced sorting with pinned first
-        function sortTradesForDisplay(rows) {
-            const pins = getPinnedSet();
-            return [...rows].sort((a, b) => {
-                const ap = pins.has(a.symbol) ? 0 : 1;
-                const bp = pins.has(b.symbol) ? 0 : 1;
-                if (ap !== bp) return ap - bp;
-                // Secondary sort by ROI descending
-                return (parseFloat(b.expected_roi) || 0) - (parseFloat(a.expected_roi) || 0);
-            });
-        }
+        function startAutoRefresh() {
+            const interval = document.getElementById('refreshInterval').value;
+            stopAutoRefresh(); // Always clear existing first
 
-        // Result badge rendering
-        function renderResultBadge(result) {
-            if (result === 'success') return '<span class="badge success">Success</span>';
-            if (result === 'failed') return '<span class="badge fail">Failed</span>';
-            return '<span class="badge progress">In Progress</span>';
-        }
-
-        function formatCurrency(value) {
-            if (typeof value === 'string') {
-                value = parseFloat(value) || 0;
+            if (interval > 0) {
+                refreshInterval = setInterval(() => {
+                    if (!isLoading) {
+                        refreshData();
+                    }
+                }, interval * 1000);
+                console.log(`Auto-refresh started: ${interval}s (single timer)`);
             }
-            return '₹' + value.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
 
-        function formatROI(roi) {
-            const roiValue = parseFloat(roi) || 0;
-            let className = 'roi-low';
-            if (roiValue >= 20) className = 'roi-high';
-            else if (roiValue >= 10) className = 'roi-medium';
-            return `<span class="${className}">${roiValue.toFixed(1)}%</span>`;
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+                console.log('Auto-refresh stopped');
+            }
         }
 
-        function formatConfidence(confidence) {
-            const confValue = parseFloat(confidence) || 0;
-            let className = 'confidence-low';
-            if (confValue >= 80) className = 'confidence-high';
-            else if (confValue >= 60) className = 'confidence-medium';
-            return `<span class="${className}">${confValue.toFixed(0)}%</span>`;
+        function setupDelegatedEventHandling() {
+            // Single delegated click handler for all pin/unpin buttons
+            const strategiesTable = document.getElementById('strategiesTable');
+            if (strategiesTable) {
+                strategiesTable.addEventListener('click', function(event) {
+                    if (event.target.matches('.pin-btn') || event.target.closest('.pin-btn')) {
+                        const button = event.target.matches('.pin-btn') ? event.target : event.target.closest('.pin-btn');
+                        const symbol = button.getAttribute('data-symbol');
+                        if (symbol) {
+                            togglePin(symbol);
+                        }
+                    }
+                });
+            }
         }
 
-        function formatRiskLevel(risk) {
-            const riskLower = (risk || 'medium').toLowerCase();
-            return `<span class="risk-${riskLower}">${risk || 'Medium'}</span>`;
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            stopAutoRefresh();
+            if (currentFetch) {
+                currentFetch.abort();
+            }
+        });
+
+        function updateDisplay() {
+            updateSummaryCards();
+            renderStrategiesTable();
         }
 
-        // Memory-optimized render function
-        function renderTable() {
-            const pinnedRows = currentTable.filter(r => pinned.has(r.symbol));
-            const otherRows = currentTable.filter(r => !pinned.has(r.symbol));
-            const rows = [...pinnedRows, ...otherRows];
+        function renderStrategiesTable() {
+            const tableBody = document.getElementById('strategiesTableBody');
+            if (!tableBody) return;
 
-            const tbody = document.querySelector('#optionsTableBody');
-            if (!tbody) return;
-            
-            tbody.innerHTML = '';
-
-            if (rows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="15" style="text-align: center; padding: 40px; color: #64748b;">No strategies available. Click "Generate Strategies" to load current options.</td></tr>';
-                updatePinnedSummary([]);
+            if (strategiesData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="12" class="text-center">No data available</td></tr>';
                 return;
             }
 
-            for (let i = 0; i < rows.length; i++) {
-                const r = rows[i];
-                const isPinned = pinned.has(r.symbol);
-                const pinIcon = isPinned ? '📍' : '📌';
-                const rowClass = isPinned ? 'pinned-row' : '';
+            const filteredData = getFilteredData();
 
-                const tr = document.createElement('tr');
-                tr.className = rowClass;
-                tr.innerHTML = `
-                    <td class="sticky-col pin-col">
-                        <button class="pin-btn ${isPinned ? 'active' : ''}" data-sym="${r.symbol}" title="Click to ${isPinned ? 'unpin' : 'pin'} this strategy">
+            // Build all rows in memory first, then batch update DOM
+            const rowsHtml = [];
+
+            // Render pinned rows first
+            const pinnedRows = filteredData.filter(strategy => pinnedSymbols.has(strategy.symbol));
+            const unpinnedRows = filteredData.filter(strategy => !pinnedSymbols.has(strategy.symbol));
+
+            pinnedRows.forEach(strategy => {
+                rowsHtml.push(createStrategyRow(strategy, true));
+            });
+
+            unpinnedRows.forEach(strategy => {
+                rowsHtml.push(createStrategyRow(strategy, false));
+            });
+
+            // Single DOM update
+            tableBody.innerHTML = rowsHtml.join('');
+        }
+
+        function createStrategyRow(strategy, isPinned = false) {
+            const pinIcon = isPinned ? '📌' : '📍';
+            const rowClass = isPinned ? 'pinned-row' : '';
+
+            // Use normalized field names with safe fallbacks
+            const symbol = strategy.symbol || 'N/A';
+            const callStrike = strategy.call_strike || 0;
+            const putStrike = strategy.put_strike || 0;
+            const totalPremium = strategy.total_premium || 0;
+            const breakevenLow = strategy.breakeven_low || 0;
+            const breakevenHigh = strategy.breakeven_high || 0;
+            const marginReq = strategy.margin_req || 0;
+            const roiPct = strategy.roi_pct || 0;
+            const confidence = strategy.confidence || 0;
+            const outcome = strategy.prediction_outcome || 'Unknown';
+            const stopLossCall = strategy.stop_loss_call || 0;
+            const stopLossPut = strategy.stop_loss_put || 0;
+            const result = strategy.result || 'in_progress';
+
+            return `
+                <tr class="${rowClass}">
+                    <td>
+                        <button class="pin-btn" data-symbol="${symbol}" title="${isPinned ? 'Unpin' : 'Pin'} ${symbol}">
                             ${pinIcon}
                         </button>
+                        <strong>${symbol}</strong>
                     </td>
-                    <td class="sticky-col stock-col"><strong>${r.symbol}</strong></td>
-                    <td>₹${fmt(r.current_price)}</td>
-                    <td>₹${fmt(r.call_strike)}</td>
-                    <td>₹${fmt(r.put_strike)}</td>
-                    <td>₹${fmt(r.total_premium)}</td>
-                    <td>₹${fmt(r.breakeven_low)} – ₹${fmt(r.breakeven_high)}</td>
-                    <td>₹${fmt(r.margin_required)}</td>
-                    <td>${formatROI(r.roi_pct)}%</td>
-                    <td>${formatConfidence(r.confidence)}%</td>
-                    <td>${r.prediction_outcome}</td>
-                    <td>₹${fmt(r.stop_loss_call)} / ₹${fmt(r.stop_loss_put)}</td>
-                    <td>${formatRiskLevel(r.risk)}</td>
-                    <td class="result ${r.result}">${label(r.result)}</td>
-                    <td>
-                        <button class="row-expander" data-index="${i}" title="Show details">⋯</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-
-                // Add details row
-                const detailsRow = document.createElement('tr');
-                detailsRow.id = `details-${i}`;
-                detailsRow.className = 'expanded-details';
-                detailsRow.style.display = 'none';
-                detailsRow.innerHTML = `
-                    <td colspan="15">
-                        <div class="detail-grid">
-                            <div class="detail-item">
-                                <span class="label">Breakeven Range:</span>
-                                <span>₹${fmt(r.breakeven_low)} - ₹${fmt(r.breakeven_high)}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Margin Required:</span>
-                                <span>₹${fmt(r.margin_required)}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Stop Loss (C/P):</span>
-                                <span>₹${fmt(r.stop_loss_call)} / ₹${fmt(r.stop_loss_put)}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Risk Level:</span>
-                                <span>${r.risk}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Confidence:</span>
-                                <span>${Math.round(r.confidence)}%</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Prediction:</span>
-                                <span>${r.prediction_outcome}</span>
-                            </div>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(detailsRow);
-            }
-
-            // Delegate pin clicks
-            tbody.querySelectorAll('.pin-btn').forEach(btn => {
-                btn.onclick = (e) => togglePin(e.currentTarget.dataset.sym);
-            });
-
-            // Delegate expander clicks
-            tbody.querySelectorAll('.row-expander').forEach(btn => {
-                btn.onclick = (e) => toggleRowDetails(parseInt(e.currentTarget.dataset.index));
-            });
-
-            // Update stats and pinned summary
-            updateStatsDisplay(rows);
-            updatePinnedSummary(rows);
-        }
-
-        // Helper functions
-        const fmt = (n) => Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
-        const label = (s) => s === 'success' ? 'Success' : s === 'failed' ? 'Failed' : 'In Progress';
-
-        // NEW: Pinned Trades Summary
-        function updatePinnedSummary(trades) {
-            const pins = getPinnedSet();
-            const pinned = trades.filter(t => pins.has(t.symbol));
-            const el = document.getElementById('pinnedSummary');
-            const body = document.getElementById('pinnedSummaryBody');
-
-            if (!pinned.length) {
-                el.style.display = 'none';
-                return;
-            }
-
-            el.style.display = 'block';
-
-            const total = pinned.length;
-            const successful = pinned.filter(t => t.result === 'success').length;
-            const failed = pinned.filter(t => t.result === 'failed').length;
-            const inProg = pinned.filter(t => t.result !== 'success' && t.result !== 'failed').length;
-
-            const avgROI = total ? (pinned.reduce((s, t) => s + (Number(t.expected_roi) || 0), 0) / total).toFixed(2) : '-';
-            const maxDD = total ? Math.max(...pinned.map(t => Number(t.max_drawdown) || 0)).toFixed(2) : '-';
-            const sharpe = total ? (pinned.reduce((s, t) => s + (Number(t.sharpe) || 0), 0) / total).toFixed(2) : '-';
-
-            const successRate = total > 0 ? ((successful / total) * 100).toFixed(1) : '0.0';
-            const failRate = total > 0 ? ((failed / total) * 100).toFixed(1) : '0.0';
-            const progRate = total > 0 ? ((inProg / total) * 100).toFixed(1) : '0.0';
-
-            body.innerHTML = `
-                <tr><td>Total Pinned Trades</td><td>${total}</td></tr>
-                <tr><td>Successful</td><td>${successful} (${successRate}%)</td></tr>
-                <tr><td>Failed</td><td>${failed} (${failRate}%)</td></tr>
-                <tr><td>In Progress</td><td>${inProg} (${progRate}%)</td></tr>
-                <tr><td>Avg ROI (%)</td><td>${avgROI}</td></tr>
-                <tr><td>Max Drawdown</td><td>${maxDD}</td></tr>
-                <tr><td>Sharpe Ratio</td><td>${sharpe}</td></tr>
+                    <td>₹${callStrike}</td>
+                    <td>₹${putStrike}</td>
+                    <td class="premium-cell">₹${totalPremium}</td>
+                    <td>₹${breakevenLow}</td>
+                    <td>₹${breakevenHigh}</td>
+                    <td>₹${marginReq}</td>
+                    <td class="roi-cell">${roiPct}%</td>
+                    <td class="confidence-cell">${confidence}%</td>
+                    <td class="outcome-cell">${outcome}</td>
+                    <td>Call: ₹${stopLossCall}<br>Put: ₹${stopLossPut}</td>
+                    <td class="result-cell">${result}</td>
+                </tr>
             `;
         }
 
-        function updateStatsDisplay(strategies) {
-            if (!strategies || strategies.length === 0) return;
-
-            const totalStrategies = strategies.length;
-            const avgROI = strategies.reduce((sum, s) => sum + (parseFloat(s.expected_roi) || 0), 0) / totalStrategies;
-            const highROICount = strategies.filter(s => (parseFloat(s.expected_roi) || 0) >= 20).length;
-            const totalMarginReq = strategies.reduce((sum, s) => sum + (parseFloat(s.margin_required) || 0), 0);
-
-            const statsGrid = document.querySelector('.stats-grid');
-            if (statsGrid) {
-                statsGrid.innerHTML = `
-                    <div class="stat-card">
-                        <div class="stat-value">${totalStrategies}</div>
-                        <div class="stat-label">Total Strategies</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${avgROI.toFixed(1)}%</div>
-                        <div class="stat-label">Average ROI</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${highROICount}</div>
-                        <div class="stat-label">High ROI (≥20%)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${formatCurrency(totalMarginReq)}</div>
-                        <div class="stat-label">Total Margin Req.</div>
-                    </div>
-                `;
-            }
-        }
-
-        // Memory-optimized fetch function
-        async function fetchStrategies(timeframe) {
-            logMem('before fetch');
-            await clearDataCache(); // drop old refs before fetching new
-            
-            const statusDiv = document.getElementById('optionsStatus');
-            const refreshBtn = document.getElementById('refreshBtn');
-
-            try {
-                statusDiv.innerHTML = '<span class="loading-spinner"></span> Loading strategies...';
-                statusDiv.className = 'status-indicator status-loading';
-                if (refreshBtn) refreshBtn.disabled = true;
-
-                const res = await fetch(`/api/options-strategies?timeframe=${encodeURIComponent(timeframe)}`);
-                
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-                }
-
-                const data = await res.json();
-                
-                // Replace (don't append) current table state
-                currentTable = Array.isArray(data.rows) ? data.rows : [];
-                
-                // Sync pinned stocks from backend
-                if (data.pinned_stocks && Array.isArray(data.pinned_stocks)) {
-                    data.pinned_stocks.forEach(stock => pinned.add(stock));
-                    savePinned();
-                }
-                
-                renderTable();
-                renderSummary(data.summary);
-
-                statusDiv.innerHTML = `✅ Loaded ${currentTable.length} strategies successfully`;
-                statusDiv.className = 'status-indicator status-success';
-
-            } catch (error) {
-                console.error('Error loading options strategies:', error);
-                currentTable = [];
-                renderTable();
-
-                statusDiv.innerHTML = `❌ Error: ${error.message}`;
-                statusDiv.className = 'status-indicator status-error';
-            } finally {
-                if (refreshBtn) refreshBtn.disabled = false;
-                logMem('after fetch');
-            }
-        }
-
-        // Legacy wrapper for backward compatibility
-        async function loadOptionsStrategies() {
-            await fetchStrategies('30D');
-        }
-
-        // Update summary render function
-        function renderSummary(summary) {
-            if (!summary) return;
-            
-            // Update any summary displays
-            const statsGrid = document.querySelector('.stats-grid');
-            if (statsGrid) {
-                statsGrid.innerHTML = `
-                    <div class="stat-card">
-                        <div class="stat-value">${summary.total_count || 0}</div>
-                        <div class="stat-label">Total Strategies</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${summary.avg_roi_pct || 0}%</div>
-                        <div class="stat-label">Average ROI</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${summary.success_count || 0}</div>
-                        <div class="stat-label">High ROI (Success)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">₹${fmt(summary.total_premium_collected || 0)}</div>
-                        <div class="stat-label">Total Premium</div>
-                    </div>
-                `;
-            }
-        }
-
-        // Auto-refresh with memory management
-        function startAutoRefresh(timeframe) {
-            if (refreshTimer) clearInterval(refreshTimer);
-            refreshTimer = setInterval(() => fetchStrategies(timeframe), 60_000);
-        }
-
-        // Manual refresh function
-        async function manualRefreshData() {
-            await clearDataCache();
-            await fetchStrategies('30D');
-        }
-
-        // Initialize page with memory management
+        // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            fetchStrategies('30D');
-            startAutoRefresh('30D');
+            loadPinnedStocks();
+            setupDelegatedEventHandling();
+            fetchStrategies(document.getElementById('timeframeSelect').value);
 
-            // Override the existing button handlers
-            const refreshBtn = document.getElementById('refreshBtn');
-            if (refreshBtn) {
-                refreshBtn.onclick = () => fetchStrategies('30D');
-            }
+            // Set up refresh interval
+            startAutoRefresh();
 
+            // Event listener for manual refresh button
             const manualRefreshBtn = document.getElementById('manualRefreshBtn');
             if (manualRefreshBtn) {
-                manualRefreshBtn.onclick = manualRefreshData;
+                manualRefreshBtn.onclick = async () => {
+                    await clearDataCache(); // Clear cache before manual refresh
+                    await fetchStrategies(document.getElementById('timeframeSelect').value);
+                };
+            }
+
+            // Event listener for timeframe select
+            const timeframeSelect = document.getElementById('timeframeSelect');
+            if (timeframeSelect) {
+                timeframeSelect.addEventListener('change', () => {
+                    fetchStrategies(timeframeSelect.value);
+                });
             }
         });
+
+        function updateSummaryCards() {
+            try {
+                const filteredData = getFilteredData();
+                const totalPremium = filteredData.reduce((sum, s) => sum + (s.total_premium || 0), 0);
+                const avgROI = filteredData.length > 0 ? 
+                    filteredData.reduce((sum, s) => sum + (s.roi_pct || 0), 0) / filteredData.length : 0;
+
+                document.getElementById('totalStrategies').textContent = filteredData.length;
+                document.getElementById('totalPremium').textContent = `₹${totalPremium.toLocaleString()}`;
+                document.getElementById('avgROI').textContent = `${avgROI.toFixed(1)}%`;
+
+                // Update Pinned Summary
+                updatePinnedSummary(filteredData);
+
+                // Update last refresh time
+                const now = new Date();
+                document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+            } catch (error) {
+                console.error('Error updating summary cards:', error);
+            }
+        }
+
+        function updatePinnedSummary(allData) {
+            const pinnedData = allData.filter(s => pinnedSymbols.has(s.symbol));
+            const pinnedCount = pinnedData.length;
+            const successCount = pinnedData.filter(s => s.result === 'success').length;
+            const failCount = pinnedData.filter(s => s.result === 'failed').length;
+            const inProgressCount = pinnedData.filter(s => s.result === 'in_progress').length;
+
+            const pinnedSummaryEl = document.getElementById('pinnedSummary');
+            if (pinnedSummaryEl) {
+                pinnedSummaryEl.textContent = `Pinned: ${pinnedCount} | Success: ${successCount} | Fail: ${failCount} | In-Progress: ${inProgressCount}`;
+            }
+        }
+
+        function togglePinnedFilter() {
+            showOnlyPinned = !showOnlyPinned;
+            updateDisplay();
+
+            const pinnedCard = document.querySelector('.clickable-kpi');
+            if (pinnedCard) {
+                pinnedCard.style.backgroundColor = showOnlyPinned ? '#e3f2fd' : '';
+            }
+        }
+
+        function getFilteredData() {
+            let filtered = strategiesData;
+
+            // Apply pinned filter
+            if (showOnlyPinned) {
+                filtered = filtered.filter(strategy => pinnedSymbols.has(strategy.symbol));
+            }
+
+            // Apply timeframe filter if needed
+            const timeframeFilter = document.getElementById('timeframeSelect').value;
+            if (timeframeFilter !== 'ALL') {
+                // Implement timeframe filtering logic
+            }
+
+            return filtered;
+        }
+
+        // Robust fetch function with AbortController
+        async function fetchStrategies(timeframe) {
+            if (isLoading) {
+                console.log('Fetch already in progress, skipping new request.');
+                return;
+            }
+            isLoading = true;
+            updateLoadingState(true);
+
+            try {
+                // Cancel any in-flight request
+                if (currentFetch) {
+                    currentFetch.abort();
+                }
+
+                // Clear old data cache
+                clearDataCache();
+
+                const controller = new AbortController();
+                currentFetch = controller;
+
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}`, {
+                    signal: controller.signal
+                });
+
+                if (controller.signal.aborted) {
+                    return; // Request was cancelled
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // Normalize all incoming data to fix field name drift
+                    strategiesData = (data.rows || []).map(normalizeStrategyData);
+                    updateDisplay();
+                    showStatus('✅ Data refreshed successfully', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to fetch data');
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.log('Fetch was cancelled');
+                    return;
+                }
+                console.error('Refresh error:', error);
+                showStatus(`❌ Failed to refresh data: ${error.message}`, 'error', true);
+            } finally {
+                isLoading = false;
+                currentFetch = null;
+                updateLoadingState(false);
+            }
+        }
+
+        function updateLoadingState(isLoading) {
+            const refreshBtn = document.getElementById('refreshBtn');
+            const refreshIcon = document.getElementById('refreshIcon');
+            const refreshText = document.getElementById('refreshText');
+
+            if (refreshBtn) {
+                refreshBtn.disabled = isLoading;
+            }
+            if (refreshIcon && refreshText) {
+                if (isLoading) {
+                    refreshIcon.innerHTML = '<span class="loading-spinner"></span>';
+                    refreshText.textContent = ' Loading...';
+                } else {
+                    refreshIcon.innerHTML = '🔄';
+                    refreshText.textContent = 'Generate Strategies';
+                }
+            }
+        }
+
+        function showStatus(message, type = 'info', showRetry = false) {
+            const statusDiv = document.getElementById('statusMessage');
+            if (statusDiv) {
+                let content = message;
+                if (showRetry && type === 'error') {
+                    content += ' <button onclick="refreshData()" style="margin-left: 10px; padding: 4px 8px; font-size: 12px;">Retry</button>';
+                }
+                statusDiv.innerHTML = content;
+                statusDiv.className = `status-message ${type}`;
+                statusDiv.style.display = 'block';
+
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, showRetry ? 10000 : 5000); // Longer timeout for error messages with retry
+            }
+        }
+
+        // Mock function for refreshData if needed, otherwise fetchStrategies is used directly
+        async function refreshData() {
+            await fetchStrategies(document.getElementById('timeframeSelect').value);
+        }
+
     </script>
 </body>
 </html>
