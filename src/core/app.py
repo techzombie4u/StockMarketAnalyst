@@ -33,53 +33,42 @@ logger = logging.getLogger(__name__)
 logger.info("🚀 Starting Stock Market Analyst - Version 1.7.4 (Consolidated)")
 logger.info("📁 Using consolidated /src/ structure")
 
-# Global request management for cancellation
-import threading
-import weakref
-active_requests = weakref.WeakSet()
-request_lock = threading.Lock()
-
-# Initialize Flask application
+# Initialize Flask application with optimized settings
 app = Flask(__name__,
            template_folder='../../web/templates',
            static_folder='../../web/static')
 
-# Configure Flask app
+# Configure Flask app for stability
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['CACHE_TYPE'] = 'simple'
-app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+app.config['CACHE_DEFAULT_TIMEOUT'] = 60  # Reduced cache timeout
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config['TEMPLATES_AUTO_RELOAD'] = False
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
-# Initialize cache
+# Initialize cache with limits
 cache = Cache(app)
 
-# Single timer management
-_global_timer = None
-_timer_lock = threading.Lock()
+# Simplified request tracking without threading complexity
+current_requests = set()
+import weakref
 
-def get_or_create_single_timer(func, interval):
-    """Ensure only one timer exists at a time"""
-    global _global_timer
-    with _timer_lock:
-        # Cancel existing timer
-        if _global_timer:
-            _global_timer.cancel()
-            _global_timer = None
-
-        # Create new timer
-        _global_timer = threading.Timer(interval, func)
-        _global_timer.daemon = True
-        _global_timer.start()
-        logger.info(f"Single timer created with {interval}s interval")
-        return _global_timer
-
-def cancel_all_timers():
-    """Cancel all active timers"""
-    global _global_timer
-    with _timer_lock:
-        if _global_timer:
-            _global_timer.cancel()
-            _global_timer = None
-            logger.info("All timers cancelled")
+def cleanup_resources():
+    """Clean up resources to prevent memory leaks"""
+    try:
+        # Force garbage collection
+        import gc
+        collected = gc.collect()
+        
+        # Clear Flask app cache
+        if hasattr(cache, 'clear'):
+            cache.clear()
+        
+        logger.info(f"Resources cleaned: {collected} objects collected")
+        return True
+    except Exception as e:
+        logger.error(f"Error cleaning resources: {e}")
+        return False
 
 # Import consolidated modules with error handling
 SmartGoAgent = None
@@ -260,35 +249,55 @@ def _refresh_locked_predictions_data():
 
 
 def clearDataCache():
-    """Clear data cache and force garbage collection for memory optimization"""
+    """Aggressive memory cleanup to prevent disconnections"""
     try:
-        # Force garbage collection
-        collected = gc.collect()
-
-        # Clear any cached predictions older than 1 hour
-        cache_files = ['predictions_history.json', 'signal_history.json']
-        for cache_file in cache_files:
-            if os.path.exists(cache_file):
+        import gc
+        import psutil
+        import os
+        
+        # Get memory usage before cleanup
+        process = psutil.Process(os.getpid())
+        memory_before = process.memory_info().rss / 1024 / 1024
+        
+        # Force multiple garbage collection passes
+        collected = 0
+        for i in range(3):
+            collected += gc.collect()
+        
+        # Clear Flask cache
+        if hasattr(cache, 'clear'):
+            cache.clear()
+        
+        # Clear module-level caches if they exist
+        for module_name in list(sys.modules.keys()):
+            if 'cache' in module_name.lower():
                 try:
-                    with open(cache_file, 'r') as f:
-                        data = json.load(f)
-
-                    # Keep only recent data (last hour)
-                    cutoff_time = datetime.now() - timedelta(hours=1)
-                    if 'predictions' in data:
-                        data['predictions'] = [p for p in data['predictions']
-                                             if datetime.fromisoformat(p.get('timestamp', '1900-01-01')) > cutoff_time]
-
-                    with open(cache_file, 'w') as f:
-                        json.dump(data, f)
+                    module = sys.modules[module_name]
+                    if hasattr(module, 'clear'):
+                        module.clear()
                 except:
                     pass
-
-        logger.info(f"🧹 Memory cleaned: {collected} objects collected")
+        
+        # Final garbage collection
+        gc.collect()
+        
+        # Get memory usage after cleanup
+        memory_after = process.memory_info().rss / 1024 / 1024
+        memory_freed = memory_before - memory_after
+        
+        logger.info(f"🧹 Aggressive cleanup: {collected} objects, {memory_freed:.1f}MB freed")
         return collected
+        
     except Exception as e:
-        logger.error(f"Error clearing cache: {e}")
-        return 0
+        logger.error(f"Error in aggressive cleanup: {e}")
+        # Fallback simple cleanup
+        try:
+            import gc
+            collected = gc.collect()
+            logger.info(f"🧹 Fallback cleanup: {collected} objects collected")
+            return collected
+        except:
+            return 0
 
 
 enhanced_error_handler = None
@@ -1202,7 +1211,7 @@ def run_now():
 
 @app.route('/api/health')
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint with memory monitoring"""
     global scheduler
 
     # Check if data file exists and has content
@@ -1220,6 +1229,21 @@ def health_check():
     except Exception as e:
         data_status = f'error: {str(e)}'
 
+    # Memory usage
+    memory_info = {}
+    try:
+        import psutil
+        import os
+        process = psutil.Process(os.getpid())
+        memory_info = {
+            'rss_mb': round(process.memory_info().rss / 1024 / 1024, 2),
+            'vms_mb': round(process.memory_info().vms / 1024 / 1024, 2),
+            'percent': round(process.memory_percent(), 2),
+            'available_mb': round(psutil.virtual_memory().available / 1024 / 1024, 2)
+        }
+    except Exception as e:
+        memory_info = {'error': str(e)}
+
     return jsonify({
         'status': 'healthy',
         'service': 'Stock Market Analyst',
@@ -1227,7 +1251,9 @@ def health_check():
         'scheduler_running': scheduler is not None and hasattr(scheduler, 'scheduler') and scheduler.scheduler.running if scheduler and hasattr(scheduler, 'scheduler') else False,
         'data_status': data_status,
         'stock_count': stock_count,
-        'last_updated': last_updated
+        'last_updated': last_updated,
+        'memory': memory_info,
+        'active_requests': len(current_requests)
     })
 
 @app.route('/api/force-demo', methods=['POST'])

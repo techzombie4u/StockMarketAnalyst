@@ -79,11 +79,15 @@ def record_successful_session(num_stocks, status):
     logger.info(f"Session recorded: Total runs={total_sessions_run}, Successful runs={successful_sessions}")
 
 def run_screening_job():
-    """Execute stock screening and save results (standalone function)"""
+    """Execute stock screening with memory management"""
     global alerted_stocks, total_sessions_run, successful_sessions
 
     try:
         logger.info("Starting scheduled stock screening...")
+        
+        # Memory cleanup before heavy operations
+        import gc
+        gc.collect()
 
         # Import here to avoid circular imports
         from src.analyzers.stock_screener import EnhancedStockScreener
@@ -91,11 +95,18 @@ def run_screening_job():
         # Create screener instance
         screener = EnhancedStockScreener()
 
-        # Run screening with better error handling
+        # Run screening with memory monitoring
         start_time = time.time()
         results = []
-        session_status = 'error' # Default status
+        session_status = 'error'
+        
         try:
+            # Memory check before screening
+            import psutil
+            import os
+            process = psutil.Process(os.getpid())
+            memory_before = process.memory_info().rss / 1024 / 1024
+            
             # Check if screener is properly initialized
             if not hasattr(screener, 'under500_symbols'):
                 logger.error("Screener not properly initialized")
@@ -103,7 +114,17 @@ def run_screening_job():
                 session_status = 'fallback_error'
             else:
                 results = screener.run_enhanced_screener()
-                session_status = 'success' # Assuming success if no exception
+                session_status = 'success'
+                
+            # Memory check after screening
+            memory_after = process.memory_info().rss / 1024 / 1024
+            memory_used = memory_after - memory_before
+            
+            if memory_used > 100:  # More than 100MB used
+                logger.warning(f"High memory usage detected: {memory_used:.1f}MB")
+                # Force cleanup
+                del screener
+                gc.collect()
 
         except SyntaxError as se:
             logger.error(f"Syntax error in screener: {se}")
@@ -111,13 +132,19 @@ def run_screening_job():
             session_status = 'syntax_error'
         except Exception as e:
             logger.error(f"Screening failed: {e}")
-            # Try fallback data generation
             try:
                 results = screener._generate_fallback_data() if screener else []
                 session_status = 'fallback_generated'
             except:
                 results = []
                 session_status = 'failed'
+        finally:
+            # Always cleanup screener
+            try:
+                del screener
+                gc.collect()
+            except:
+                pass
 
         # Add timestamp in IST
         ist = pytz.timezone('Asia/Kolkata')

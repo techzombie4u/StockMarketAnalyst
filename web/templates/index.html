@@ -433,7 +433,7 @@
             <a href="/analysis" class="nav-btn analysis">📊 Analysis</a>
             <a href="/options-strategy" class="nav-btn options">💰 Options</a>
             <a href="/lookup" class="nav-btn lookup" target="_blank">🔍 Stock Lookup</a>
-            
+
         </div>
 
         <div class="header-info">
@@ -534,6 +534,12 @@
         let retryCount = 0;
         const maxRetries = 3;
         let successfulRefreshes = 0; // Counter for successful refreshes
+
+        // Request cancellation management
+        let currentRequest = null;
+        // Single timer management to prevent memory leaks
+        let globalTimer = null;
+        let isPageActive = true;
 
         // Utility functions
         function log(message, type = 'info') {
@@ -657,9 +663,10 @@
         }
 
         // Data processing functions
-        function updateStats(stocks) {
-            if (!stocks || stocks.length === 0) return;
+        function updateStats(data) {
+            if (!data || !data.stocks || data.stocks.length === 0) return;
 
+            const stocks = data.stocks;
             const totalStocks = stocks.length;
             const highScoreStocks = stocks.filter(s => s.score >= 70).length;
             const avgScore = (stocks.reduce((sum, s) => sum + (s.score || 0), 0) / totalStocks).toFixed(1);
@@ -792,28 +799,40 @@
         }
 
         // API functions
-        function loadStocks() {
-            log('🔄 Starting stock data load');
+        async function loadStockData() {
+            log('[INFO] ' + new Date().toLocaleTimeString() + ': 🔄 Starting stock data load');
 
-            return fetch('/api/stocks', {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Cache-Control': 'no-cache'
-                }
-            })
-            .then(response => {
-                log(`SDSAPI response status: ${response.status}`);
+            // Cancel previous request if still running
+            if (currentRequest) {
+                currentRequest.abort();
+                console.log('[INFO] Previous request cancelled');
+            }
+
+            // Create new AbortController
+            const controller = new AbortController();
+            currentRequest = controller;
+
+            try {
+                const response = await fetch('/api/stocks', {
+                    signal: controller.signal,
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+
+                log('[INFO] ' + new Date().toLocaleTimeString() + ': SDSAPI response status: ' + response.status);
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                return response.json();
-            })
-            .then(data => {
-                log(`SDSAPI data received`, 'info');
-                consecutiveErrors = 0;
 
-                // Ensure data is an object
+                const data = await response.json();
+                log('[INFO] ' + new Date().toLocaleTimeString() + ': SDSAPI data received');
+
+                // Clear current request reference
+                currentRequest = null;
+
+                // Validate response structure
                 if (!data || typeof data !== 'object') {
                     throw new Error('Invalid API response format');
                 }
@@ -821,9 +840,9 @@
                 // Update timestamp
                 updateLastUpdated(data.last_updated || data.timestamp);
 
-                // Handle error status
-                if (data.status === 'error' || data.error) {
-                    const errorMsg = data.error || data.message || 'Unknown error occurred';
+                // Handle error status from API
+                if (data.status === 'error' || data.error || data.message) {
+                    const errorMsg = data.error || data.message || 'Unknown API error';
                     log(`❌ SDSAPI returned error: ${errorMsg}`, 'error');
                     showError(errorMsg);
                     updateStatus('Error loading data', 'error');
@@ -843,15 +862,12 @@
                     return;
                 }
 
-                // Successfully got data
-                log(`✅ Processing ${data.stocks.length} stocks`);
-
-                // Validate and clean stock data
+                // Filter out invalid stock entries
                 const validStocks = data.stocks.filter(stock => {
                     if (!stock || typeof stock !== 'object') return false;
                     if (!stock.symbol || typeof stock.symbol !== 'string') return false;
 
-                    // Ensure all numeric fields are numbers
+                    // Ensure numeric fields are valid numbers
                     const numericFields = ['score', 'current_price', 'predicted_gain', 'confidence', 'pred_5d', 'pred_1mo', 'pe_ratio'];
                     for (const field of numericFields) {
                         if (stock[field] !== undefined && stock[field] !== null) {
@@ -862,19 +878,18 @@
                         }
                     }
 
-                    // Ensure string fields are strings
+                    // Ensure string fields are valid strings
                     const stringFields = ['trend_class', 'trend_visual', 'pe_description', 'technical_summary'];
                     for (const field of stringFields) {
                         if (typeof stock[field] !== 'string') {
                             stock[field] = stock[field] ? String(stock[field]) : '';
                         }
                     }
-
                     return true;
                 });
 
                 if (validStocks.length === 0) {
-                    log('⚠️ No valid stocks found');
+                    log('⚠️ No valid stocks found after filtering');
                     showEmpty();
                     updateStatus('No valid stock data', 'error');
                     return;
@@ -882,7 +897,7 @@
 
                 // Display the data
                 updateStockTable(validStocks);
-                updateStats(validStocks);
+                updateStats(data); // Pass the whole data object to updateStats
                 showData();
                 updateStatus(`Successfully loaded ${validStocks.length} stocks`, 'success');
                 retryCount = 0;
@@ -890,22 +905,25 @@
                 document.getElementById('successfulRefreshes').textContent = successfulRefreshes; // Update the display
 
                 log(`🎉 Successfully displayed ${validStocks.length} stocks`);
-            })
-            .catch(error => {
-                log(`💥 SDSAPI Error: ${error.message}`, 'error');
-                consecutiveErrors++;
-                retryCount++;
+            } catch (error) {
+                // Don't log abort errors
+                if (error.name !== 'AbortError') {
+                    log(`💥 SDSAPI Error: ${error.message}`, 'error');
+                    consecutiveErrors++;
+                    retryCount++;
 
-                if (retryCount <= maxRetries) {
-                    const retryDelay = Math.min(2000 * retryCount, 10000);
-                    updateStatus(`Connection error - retrying in ${retryDelay/1000}s (${retryCount}/${maxRetries})`, 'loading');
-                    setTimeout(() => loadStocks(), retryDelay);
-                } else {
-                    showError(`Failed to load data after ${maxRetries} attempts: ${error.message}`);
-                    updateStatus('Failed to load data', 'error');
-                    retryCount = 0;
+                    if (retryCount <= maxRetries) {
+                        const retryDelay = Math.min(2000 * retryCount, 10000);
+                        updateStatus(`Connection error - retrying in ${retryDelay/1000}s (${retryCount}/${maxRetries})`, 'loading');
+                        setTimeout(() => loadStockData(), retryDelay);
+                    } else {
+                        showError(`Failed to load data after ${maxRetries} attempts: ${error.message}`);
+                        updateStatus('Failed to load data', 'error');
+                        retryCount = 0; // Reset retry count after max retries
+                    }
                 }
-            });
+                currentRequest = null; // Clear current request reference on error or abort
+            }
         }
 
         // Manual refresh function
@@ -952,7 +970,7 @@
                     updateStatus('Screening completed - loading fresh data...', 'loading');
                     // Wait a bit for data to be processed, then load
                     setTimeout(() => {
-                        loadStocks().finally(() => {
+                        loadStockData().finally(() => {
                             isRefreshing = false;
                             setRefreshButtonState(false);
                         });
@@ -974,7 +992,65 @@
             });
         }
 
-        // Initialize application
+        // Auto-refresh timer management
+        function startAutoRefresh() {
+            // Cancel any existing timer
+            if (globalTimer) {
+                clearInterval(globalTimer);
+                globalTimer = null;
+            }
+
+            // Only start if page is active
+            if (!isPageActive) return;
+
+            // Start single refresh timer (every 5 minutes)
+            globalTimer = setInterval(() => {
+                if (isPageActive && document.visibilityState === 'visible') {
+                    console.log('[AUTO-REFRESH] Triggering automatic refresh');
+                    loadStockData();
+                } else {
+                    console.log('[AUTO-REFRESH] Skipping refresh - page not visible');
+                }
+            }, 300000); // 5 minutes
+
+            console.log('[AUTO-REFRESH] Single auto-refresh timer started');
+        }
+
+        // Page visibility management
+        document.addEventListener('visibilitychange', function() {
+            isPageActive = !document.hidden;
+            if (document.hidden) {
+                // Page hidden - stop timer to save resources
+                if (globalTimer) {
+                    clearInterval(globalTimer);
+                    globalTimer = null;
+                    console.log('[MEMORY] Timer stopped - page hidden');
+                }
+            } else {
+                // Page visible - restart timer
+                console.log('[MEMORY] Page visible - restarting timer');
+                startAutoRefresh();
+            }
+        });
+
+        // Cleanup function
+        function cleanup() {
+            // Clear timer
+            if (globalTimer) {
+                clearInterval(globalTimer);
+                globalTimer = null;
+            }
+
+            // Cancel any pending requests
+            if (currentRequest) {
+                currentRequest.abort();
+                currentRequest = null;
+            }
+
+            console.log('[MEMORY] Cleanup completed');
+        }
+
+        // Initialize the dashboard
         function initializeApp() {
             log('🚀 Initializing Stock Market Analyst Dashboard');
             updateStatus('Loading stock data...', 'loading');
@@ -992,7 +1068,7 @@
 
             // Load initial data immediately
             log('📊 Starting immediate data load');
-            loadStocks().finally(() => {
+            loadStockData().finally(() => {
                 log('📋 Initial data load completed');
             });
         }
@@ -1000,16 +1076,14 @@
         // Start application when DOM is ready
         document.addEventListener('DOMContentLoaded', initializeApp);
 
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', cleanup);
+        window.addEventListener('unload', cleanup);
+
         // Expose refresh function globally for backward compatibility
         window.refreshData = handleRefreshClick;
 
-        // Auto-refresh every 3 hours if user is on page
-        setInterval(() => {
-            if (document.visibilityState === 'visible' && !isRefreshing) {
-                log('Auto-refresh triggered');
-                loadStocks();
-            }
-        }, 3 * 60 * 60 * 1000); // 3 hours
+        // Auto-refresh functionality is now handled by startAutoRefresh and the interval timer
     </script>
 </body>
 </html>
