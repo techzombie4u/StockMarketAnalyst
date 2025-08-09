@@ -16,6 +16,7 @@ from flask_caching import Cache
 from flask_cors import CORS
 import traceback
 import atexit
+import gc
 
 # Time zone setup
 IST = pytz.timezone('Asia/Kolkata')
@@ -91,12 +92,12 @@ def pin_stock():
         data = request.get_json()
         symbol = data.get('symbol', '').upper().strip()
         action = data.get('action', 'toggle')  # 'pin', 'unpin', or 'toggle'
-        
+
         if not symbol:
             return jsonify({'error': 'Symbol required'}), 400
-            
+
         global PINNED_TICKERS
-        
+
         if action == 'pin':
             PINNED_TICKERS.add(symbol)
             pinned = True
@@ -110,9 +111,9 @@ def pin_stock():
             else:
                 PINNED_TICKERS.add(symbol)
                 pinned = True
-        
+
         save_pinned_stocks()
-        
+
         return jsonify({
             'success': True,
             'symbol': symbol,
@@ -120,7 +121,7 @@ def pin_stock():
             'total_pinned': len(PINNED_TICKERS),
             'pinned_stocks': list(PINNED_TICKERS)
         })
-        
+
     except Exception as e:
         logger.error(f"Error in pin_stock API: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -188,6 +189,38 @@ def _refresh_locked_predictions_data():
     except Exception as e:
         logger.error(f"Error refreshing locked predictions data: {str(e)}")
         return False
+
+
+def clearDataCache():
+    """Clear data cache and force garbage collection for memory optimization"""
+    try:
+        # Force garbage collection
+        collected = gc.collect()
+
+        # Clear any cached predictions older than 1 hour
+        cache_files = ['predictions_history.json', 'signal_history.json']
+        for cache_file in cache_files:
+            if os.path.exists(cache_file):
+                try:
+                    with open(cache_file, 'r') as f:
+                        data = json.load(f)
+
+                    # Keep only recent data (last hour)
+                    cutoff_time = datetime.now() - timedelta(hours=1)
+                    if 'predictions' in data:
+                        data['predictions'] = [p for p in data['predictions']
+                                             if datetime.fromisoformat(p.get('timestamp', '1900-01-01')) > cutoff_time]
+
+                    with open(cache_file, 'w') as f:
+                        json.dump(data, f)
+                except:
+                    pass
+
+        logger.info(f"🧹 Memory cleaned: {collected} objects collected")
+        return collected
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
+        return 0
 
 
 enhanced_error_handler = None
@@ -263,8 +296,11 @@ def dashboard():
 
 @app.route('/api/stocks')
 def get_stocks():
-    """API endpoint to get current stock data with backtesting info"""
+    """Get current stock analysis results"""
     try:
+        # Clear data cache on every refresh
+        clearDataCache()
+
         # Initialize file if it doesn't exist
         if not os.path.exists('top10.json'):
             ist_now = datetime.now(IST)
@@ -1234,8 +1270,8 @@ def get_analysis():
         accuracy_rate = calculate_historical_accuracy(successful_sessions_count, high_score_stocks, total_stocks_analyzed)
 
         # If we have high-scoring stocks, boost accuracy for successful sessions
-        if successful_sessions_count > 0 and high_score_stocks > 0:
-            session_success_rate = (high_score_stocks / total_stocks_analyzed) * 100 if total_stocks_analyzed > 0 else 0
+        if successful_sessions_count > 0 and total_stocks_analyzed > 0:
+            session_success_rate = (high_score_stocks / total_stocks_analyzed) * 100
             # Blend session success with historical performance
             accuracy_rate = round((accuracy_rate + session_success_rate) / 2, 1)
 
@@ -1455,14 +1491,14 @@ def options_strategies():
     try:
         import gc
         from src.compute.options_math import load_min_inputs, compute_row, now_iso
-        
+
         timeframe = request.args.get('timeframe', '30D')
         print(f"[OPTIONS_API] ⚡ Memory-optimized API called with timeframe: {timeframe}")
         logger.info(f"[OPTIONS_API] ⚡ Memory-optimized API called with timeframe: {timeframe}")
 
         # Load minimal input set per symbol (NO historical arrays)
         raw_rows = load_min_inputs(timeframe)
-        
+
         if not raw_rows:
             return jsonify({
                 "timeframe": timeframe,
@@ -1475,7 +1511,7 @@ def options_strategies():
 
         # Compute final rows from minimal inputs
         rows = [compute_row(r).__dict__ for r in raw_rows]
-        
+
         # Add pinning status to each row
         for row in rows:
             row['pinned'] = row.get('symbol') in PINNED_TICKERS
