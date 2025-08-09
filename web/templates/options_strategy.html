@@ -437,6 +437,57 @@
             cursor: help;
         }
 
+        /* Pin button styling */
+        .pin-btn {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            opacity: 0.6;
+        }
+
+        .pin-btn:hover {
+            opacity: 1;
+            background: rgba(243, 156, 18, 0.1);
+            transform: scale(1.1);
+        }
+
+        .pin-btn.pinned {
+            opacity: 1;
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+
+        .pin-btn.pinned:hover {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+
+        /* Pinned stock row styling */
+        .pinned-stock {
+            background: linear-gradient(90deg, rgba(243, 156, 18, 0.05) 0%, rgba(255, 255, 255, 0.95) 10%);
+        }
+
+        .pinned-stock:hover {
+            background: linear-gradient(90deg, rgba(243, 156, 18, 0.1) 0%, rgba(248, 249, 250, 1) 10%);
+        }
+
+        /* Badge styling */
+        .badge {
+            font-size: 0.7em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 5px;
+        }
+
+        .badge.bg-warning {
+            background-color: #f39c12 !important;
+            color: white;
+        }
+
         /* Styles for the new trade details section */
         .accuracy-dashboard {
             background: white;
@@ -578,6 +629,7 @@
             <table id="optionsTable" style="display: none;">
                 <thead>
                     <tr>
+                        <th>📌 Pin</th>
                         <th>🏢 Stock</th>
                         <th>💰 Current Price</th>
                         <th>📞 Call Strike</th>
@@ -594,7 +646,7 @@
                     </tr>
                 </thead>
                 <tbody id="optionsTableBody">
-                    <tr><td colspan="9" class="text-center text-muted">Loading strategies...</td></tr>
+                    <tr><td colspan="14" class="text-center text-muted">Loading strategies...</td></tr>
                 </tbody>
             </table>
 
@@ -758,6 +810,7 @@
         let totalPremium = 0; // Initialize for summary calculation
         let totalMargin = 0;  // Initialize for summary calculation
         let validStrategies = 0; // Initialize counter for valid strategies
+        let pinnedTickers = new Set(); // Track pinned stocks
 
         function showLoadingState() {
             document.getElementById('loading').style.display = 'block';
@@ -799,6 +852,84 @@
             indicator.textContent = text;
             indicator.style.background = color;
             indicator.style.display = 'inline-block';
+        }
+
+        // Pin management functions
+        async function loadPinnedStocks() {
+            try {
+                const response = await fetch('/api/pins');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    pinnedTickers = new Set(data.tickers || []);
+                    
+                    // Merge with localStorage for redundancy
+                    const localPins = JSON.parse(localStorage.getItem('pinned_stocks') || '[]');
+                    localPins.forEach(ticker => pinnedTickers.add(ticker));
+                    
+                    // Save merged list back to localStorage
+                    localStorage.setItem('pinned_stocks', JSON.stringify([...pinnedTickers]));
+                    
+                    console.log('📌 Loaded pinned stocks:', [...pinnedTickers]);
+                }
+            } catch (error) {
+                console.error('Error loading pinned stocks:', error);
+                // Fallback to localStorage only
+                const localPins = JSON.parse(localStorage.getItem('pinned_stocks') || '[]');
+                pinnedTickers = new Set(localPins);
+            }
+        }
+
+        async function togglePin(ticker) {
+            try {
+                const wasPinned = pinnedTickers.has(ticker);
+                
+                if (wasPinned) {
+                    // Unpin
+                    pinnedTickers.delete(ticker);
+                    await fetch(`/api/pins/${ticker}`, { method: 'DELETE' });
+                } else {
+                    // Pin (limit to 20 stocks)
+                    if (pinnedTickers.size >= 20) {
+                        alert('Maximum 20 stocks can be pinned. Please unpin some stocks first.');
+                        return;
+                    }
+                    pinnedTickers.add(ticker);
+                    await fetch(`/api/pins/${ticker}`, { method: 'POST' });
+                }
+                
+                // Update localStorage for redundancy
+                localStorage.setItem('pinned_stocks', JSON.stringify([...pinnedTickers]));
+                
+                // Update UI immediately
+                updatePinButtons();
+                
+                console.log(`📌 ${wasPinned ? 'Unpinned' : 'Pinned'} ${ticker}`);
+                
+            } catch (error) {
+                console.error('Error toggling pin:', error);
+                // Revert change on error
+                if (pinnedTickers.has(ticker)) {
+                    pinnedTickers.delete(ticker);
+                } else {
+                    pinnedTickers.add(ticker);
+                }
+            }
+        }
+
+        function updatePinButtons() {
+            document.querySelectorAll('.pin-btn').forEach(btn => {
+                const ticker = btn.dataset.ticker;
+                const isPinned = pinnedTickers.has(ticker);
+                
+                btn.innerHTML = isPinned ? '📌' : '📍';
+                btn.title = isPinned ? 'Unpin stock (remove from watchlist)' : 'Pin stock (add to watchlist - persists across refreshes & deployments)';
+                btn.classList.toggle('pinned', isPinned);
+            });
+        }
+
+        function isPinned(ticker) {
+            return pinnedTickers.has(ticker);
         }
 
         function setButtonState(loading) {
@@ -907,7 +1038,7 @@
 
             if (!Array.isArray(strategies) || strategies.length === 0) {
                 console.warn('⚠️ No strategies provided to displayStrategies');
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No strategies available. Click "Generate Strategies" to load data.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted">No strategies available. Click "Generate Strategies" to load data.</td></tr>';
                 updateDataIndicator(`🟢 Live Data (0)`, '#27ae60');
                 return false;
             }
@@ -917,8 +1048,37 @@
             totalMargin = 0;
             validStrategies = 0;
 
+            // Sort strategies: pinned first, then by ROI
+            strategies.sort((a, b) => {
+                const aPinned = isPinned(a.symbol);
+                const bPinned = isPinned(b.symbol);
+                
+                if (aPinned && !bPinned) return -1;
+                if (!aPinned && bPinned) return 1;
+                
+                // If both pinned or both not pinned, sort by ROI
+                const aRoi = parseFloat(a.expected_roi || a.predicted_roi || 0);
+                const bRoi = parseFloat(b.expected_roi || b.predicted_roi || 0);
+                return bRoi - aRoi;
+            });
+
             strategies.forEach((strategy, index) => {
                 console.log(`📈 Processing strategy ${index + 1}:`, strategy);
+
+                // Handle data unavailable case for pinned stocks
+                if (strategy.data_unavailable && strategy.pinned) {
+                    const row = document.createElement('tr');
+                    row.classList.add('pinned-stock');
+                    row.innerHTML = `
+                        <td><button class="pin-btn pinned" data-ticker="${strategy.symbol}" onclick="togglePin('${strategy.symbol}')">📌</button></td>
+                        <td class="symbol" style="border-left: 4px solid #f39c12;">${strategy.symbol} <span class="badge bg-warning">📌 Pinned</span></td>
+                        <td colspan="12" style="text-align: center; color: #e74c3c; font-style: italic;">
+                            ⚠️ Data temporarily unavailable - will update when market data becomes available
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                    return;
+                }
 
                 // Validate required fields
                 if (!strategy.symbol || !strategy.current_price || strategy.current_price <= 0) {
@@ -976,8 +1136,21 @@
                 totalMargin += marginRequired;
                 validStrategies++;
 
+                // Check if stock is pinned
+                const isStockPinned = isPinned(symbol);
+                const pinnedBadge = isStockPinned ? ' <span class="badge bg-warning">📌 Pinned</span>' : '';
+                const pinnedBorder = isStockPinned ? 'border-left: 4px solid #f39c12;' : '';
+
                 row.innerHTML = `
-                    <td class="symbol">${symbol}</td>
+                    <td>
+                        <button class="pin-btn ${isStockPinned ? 'pinned' : ''}" 
+                                data-ticker="${symbol}" 
+                                onclick="togglePin('${symbol}')"
+                                title="${isStockPinned ? 'Unpin stock (remove from watchlist)' : 'Pin stock (add to watchlist - persists across refreshes & deployments)'}">
+                            ${isStockPinned ? '📌' : '📍'}
+                        </button>
+                    </td>
+                    <td class="symbol" style="${pinnedBorder}">${symbol}${pinnedBadge}</td>
                     <td style="font-weight: 600;">₹${currentPrice.toFixed(2)}</td>
                     <td>₹${callStrike.toFixed(2)}</td>
                     <td>₹${putStrike.toFixed(2)}</td>
@@ -1007,6 +1180,11 @@
                         </span>
                     </td>
                 `;
+                
+                // Add special styling for pinned stocks
+                if (isStockPinned) {
+                    row.classList.add('pinned-stock');
+                }
                 tbody.appendChild(row);
                 console.log(`✅ Added ${symbol} to table with ROI: ${expectedRoi.toFixed(1)}%`);
             });
@@ -1562,29 +1740,34 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📱 Options Strategy page loaded');
 
-            // Add manual tab click listeners
-            document.querySelectorAll('#optionsTabs .nav-link').forEach(tab => {
-                tab.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const tabId = this.getAttribute('href').substring(1); // Remove #
-                    switchTab(tabId);
+            // Load pinned stocks first
+            loadPinnedStocks().then(() => {
+                console.log('📌 Pinned stocks loaded, proceeding with data load');
+                
+                // Add manual tab click listeners
+                document.querySelectorAll('#optionsTabs .nav-link').forEach(tab => {
+                    tab.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const tabId = this.getAttribute('href').substring(1); // Remove #
+                        switchTab(tabId);
+                    });
                 });
+
+                // Ensure summary tab is active by default
+                switchTab('summary');
+
+                // Add timeframe change listener
+                document.getElementById('timeframeSelect').addEventListener('change', () => {
+                    console.log('🔄 Timeframe changed, reloading data');
+                    loadOptionsData();
+                });
+
+                // Load data immediately
+                setTimeout(() => {
+                    console.log('🚀 Starting initial data load');
+                    loadOptionsData();
+                }, 500);
             });
-
-            // Ensure summary tab is active by default
-            switchTab('summary');
-
-            // Add timeframe change listener
-            document.getElementById('timeframeSelect').addEventListener('change', () => {
-                console.log('🔄 Timeframe changed, reloading data');
-                loadOptionsData();
-            });
-
-            // Load data immediately
-            setTimeout(() => {
-                console.log('🚀 Starting initial data load');
-                loadOptionsData();
-            }, 500);
         });
 
         // Auto-refresh every 5 minutes

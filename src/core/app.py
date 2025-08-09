@@ -48,6 +48,43 @@ cache = Cache(app)
 SmartGoAgent = None
 ShortStrangleEngine = None
 
+# Pinned stocks management
+PIN_FILE = "data/pinned_stocks.json"
+PINNED_TICKERS = set()
+
+def load_pinned_stocks():
+    """Load pinned stocks from persistent file"""
+    global PINNED_TICKERS
+    try:
+        if os.path.exists(PIN_FILE):
+            with open(PIN_FILE, 'r') as f:
+                PINNED_TICKERS = set(json.load(f))
+                logger.info(f"Loaded {len(PINNED_TICKERS)} pinned stocks: {list(PINNED_TICKERS)}")
+        else:
+            # Create empty file if it doesn't exist
+            os.makedirs(os.path.dirname(PIN_FILE), exist_ok=True)
+            with open(PIN_FILE, 'w') as f:
+                json.dump([], f)
+            PINNED_TICKERS = set()
+            logger.info("Created new pinned stocks file")
+    except Exception as e:
+        logger.error(f"Error loading pinned stocks: {e}")
+        PINNED_TICKERS = set()
+
+def save_pinned_stocks():
+    """Save pinned stocks to persistent file"""
+    try:
+        os.makedirs(os.path.dirname(PIN_FILE), exist_ok=True)
+        with open(PIN_FILE, 'w') as f:
+            json.dump(list(PINNED_TICKERS), f, indent=2)
+        logger.info(f"Saved {len(PINNED_TICKERS)} pinned stocks to file")
+    except Exception as e:
+        logger.error(f"Error saving pinned stocks: {e}")
+
+# Load pinned stocks on startup
+load_pinned_stocks()
+
+
 def _refresh_locked_predictions_data():
     """Refresh locked predictions data from all sources"""
     try:
@@ -1413,10 +1450,52 @@ def options_strategies():
                 logger.error(f"[OPTIONS_API] ❌ Error analyzing {symbol}: {str(e)}")
                 continue
 
+        # Add pinned stocks that might not be in current results
+        if strategies:
+            existing_symbols = {s.get('symbol', '') for s in strategies if isinstance(s, dict)}
+
+            # Get pinned stocks that aren't in current results
+            missing_pinned = PINNED_TICKERS - existing_symbols
+
+            if missing_pinned:
+                logger.info(f"Adding {len(missing_pinned)} pinned stocks not in current results: {list(missing_pinned)}")
+
+                # Generate strategies for missing pinned stocks
+                for symbol in missing_pinned:
+                    try:
+                        pinned_strategy = engine.analyze_short_strangle(symbol, manual_refresh=True, force_realtime=True)
+                        if pinned_strategy:
+                            pinned_strategy['pinned'] = True  # Mark as pinned
+                            strategies.append(pinned_strategy)
+                    except Exception as e:
+                        logger.warning(f"Could not generate strategy for pinned stock {symbol}: {e}")
+                        # Add placeholder for unavailable pinned stock
+                        strategies.append({
+                            'symbol': symbol,
+                            'current_price': 0,
+                            'call_strike': 0,
+                            'put_strike': 0,
+                            'total_premium': 0,
+                            'breakeven_upper': 0,
+                            'breakeven_lower': 0,
+                            'margin_required': 0,
+                            'expected_roi': 0,
+                            'confidence': 0,
+                            'risk_level': 'Unknown',
+                            'pinned': True,
+                            'data_unavailable': True,
+                            'error': 'Data temporarily unavailable'
+                        })
+
+            # Mark existing strategies as pinned if they are in the pinned list
+            for strategy in strategies:
+                if isinstance(strategy, dict) and strategy.get('symbol') in PINNED_TICKERS:
+                    strategy['pinned'] = True
+
         # Always return proper JSON structure with fallback
         if not strategies:
             strategies = []
-        
+
         result = {
             "status": "success" if strategies else "no_data",
             "strategies": strategies,
