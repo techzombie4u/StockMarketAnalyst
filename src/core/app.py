@@ -1601,7 +1601,7 @@ def options_strategies():
                 "rows": [],
                 "summary": {"total_premium_collected": 0.0, "avg_roi_pct": 0.0},
                 "generated_at": now_iso(),
-                "pinned_stocks": list(PINNED_TICKERS),
+                "pinned_stocks": list(PINNED_SYMBOLS),
                 "status": "no_data"
             })
 
@@ -1610,7 +1610,7 @@ def options_strategies():
 
         # Add pinning status to each row
         for row in rows:
-            row['pinned'] = row.get('symbol') in PINNED_TICKERS
+            row['pinned'] = row.get('symbol') in PINNED_SYMBOLS
 
         # Lightweight summary computation
         summary = {
@@ -1631,7 +1631,7 @@ def options_strategies():
             "rows": rows,  # skinny rows only
             "summary": summary,
             "generated_at": now_iso(),
-            "pinned_stocks": list(PINNED_TICKERS),
+            "pinned_stocks": list(PINNED_SYMBOLS),
             "status": "success"
         }
 

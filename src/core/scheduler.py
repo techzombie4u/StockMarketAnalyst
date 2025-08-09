@@ -242,12 +242,13 @@ def run_screening_job_manual():
 
 class StockAnalystScheduler:
     def __init__(self):
-        self.scheduler = None
+        self.scheduler = BackgroundScheduler(timezone=pytz.timezone('Asia/Kolkata'))
         self.running = False
 
     def configure_scheduler(self):
         """Configure the scheduler timezone"""
-        self.scheduler.configure(timezone=pytz.timezone('Asia/Kolkata'))
+        if self.scheduler:
+            self.scheduler.configure(timezone=pytz.timezone('Asia/Kolkata'))
 
     def run_initial_screening(self):
         """Run an initial screening job when the scheduler starts"""

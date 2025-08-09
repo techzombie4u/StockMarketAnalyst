@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class PerformanceCache:
     def __init__(self):
-        # In-memory cache storage
+        # Minimal in-memory cache storage
         self.cache = {}
         self.cache_stats = {
             'hits': 0,
@@ -26,14 +26,14 @@ class PerformanceCache:
             'total_requests': 0
         }
         
-        # Cache configuration
+        # Reduced cache configuration for stability
         self.config = {
-            'max_cache_size': 1000,  # Maximum number of cached items
+            'max_cache_size': 100,   # Reduced cache size
             'default_ttl': 300,      # 5 minutes default TTL
             'price_data_ttl': 60,    # 1 minute for price data
             'technical_ttl': 300,    # 5 minutes for technical indicators
-            'fundamental_ttl': 3600, # 1 hour for fundamental data
-            'cleanup_interval': 600  # 10 minutes cleanup interval
+            'fundamental_ttl': 1800, # 30 minutes for fundamental data
+            'cleanup_interval': 300  # 5 minutes cleanup interval
         }
         
         self.last_cleanup = time.time()
