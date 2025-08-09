@@ -354,10 +354,59 @@
             background-color: #fef3c7 !important;
         }
 
+        /* Mobile row expander */
+        .row-expander {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 4px;
+            display: none;
+        }
+
+        .expanded-details {
+            display: none;
+            background: #f8fafc;
+            padding: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .expanded-details.show {
+            display: block;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .detail-item .label {
+            font-weight: 600;
+            color: #4b5563;
+        }
+
         /* Responsive design */
         @media (max-width: 1024px) {
             .options-table {
                 min-width: 1000px;
+            }
+
+            /* Show some columns on medium screens */
+            .options-table th:nth-child(n+10),
+            .options-table td:nth-child(n+10) {
+                display: none;
+            }
+
+            .row-expander {
+                display: inline-block;
             }
         }
 
@@ -373,6 +422,7 @@
 
             .options-table {
                 font-size: 0.85em;
+                min-width: 800px;
             }
 
             .options-table th,
@@ -381,7 +431,29 @@
             }
 
             .sticky-col.stock-col {
-                width: 100px;
+                width: 80px;
+            }
+
+            /* Hide more columns on mobile */
+            .options-table th:nth-child(n+7),
+            .options-table td:nth-child(n+7) {
+                display: none;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .options-table {
+                min-width: 600px;
+            }
+
+            /* Show only essential columns on very small screens */
+            .options-table th:nth-child(n+5),
+            .options-table td:nth-child(n+5) {
+                display: none;
             }
         }
     </style>
@@ -460,6 +532,9 @@
                                 <th>Stop Loss (C/P)</th>
                                 <th>Risk</th>
                                 <th>Result</th>
+                                <th style="width: 40px;">
+                                    <span class="row-expander">⋯</span>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="optionsTableBody">
@@ -626,11 +701,18 @@
         const PIN_KEY = 'OPTIONS_PINNED_V1';
         let strategiesData = [];
 
-        // Enhanced pinned stock management
+        // Enhanced pinned stock management with backend sync
         function getPinnedSet() {
             try {
                 const stored = localStorage.getItem(PIN_KEY);
-                return new Set(JSON.parse(stored || '[]'));
+                const local = new Set(JSON.parse(stored || '[]'));
+                
+                // Merge with server pinned stocks if available
+                if (window.__serverPinned) {
+                    window.__serverPinned.forEach(stock => local.add(stock));
+                }
+                
+                return local;
             } catch {
                 return new Set();
             }
@@ -639,6 +721,7 @@
         function savePinnedSet(set) {
             try {
                 localStorage.setItem(PIN_KEY, JSON.stringify([...set]));
+                // TODO: Sync with backend API when available
             } catch (error) {
                 console.error('Error saving pinned stocks:', error);
             }
@@ -649,6 +732,20 @@
             set.has(symbol) ? set.delete(symbol) : set.add(symbol);
             savePinnedSet(set);
             renderOptionsTable(window.__trades || strategiesData);
+        }
+
+        // Row expander functionality for mobile
+        function toggleRowDetails(rowIndex) {
+            const detailsRow = document.getElementById(`details-${rowIndex}`);
+            if (detailsRow) {
+                const isVisible = detailsRow.style.display !== 'none';
+                detailsRow.style.display = isVisible ? 'none' : 'table-row';
+                
+                const expanderBtn = document.querySelector(`[onclick="toggleRowDetails(${rowIndex})"]`);
+                if (expanderBtn) {
+                    expanderBtn.textContent = isVisible ? '⋯' : '✕';
+                }
+            }
         }
 
         // Enhanced sorting with pinned first
@@ -711,7 +808,7 @@
             const sortedStrategies = sortTradesForDisplay(strategies);
             const pinnedSet = getPinnedSet();
 
-            const rows = sortedStrategies.map(strategy => {
+            const rows = sortedStrategies.map((strategy, index) => {
                 const isPinned = pinnedSet.has(strategy.symbol);
                 const pinIcon = isPinned ? '📍' : '📌';
                 const rowClass = isPinned ? 'pinned-row' : '';
@@ -719,7 +816,7 @@
                 // Default result to 'in_progress' if not provided
                 const result = strategy.result || 'in_progress';
 
-                return `
+                const mainRow = `
                     <tr class="${rowClass}">
                         <td class="sticky-col pin-col">
                             <button class="pin-btn" onclick="togglePin('${strategy.symbol}')" title="Click to ${isPinned ? 'unpin' : 'pin'} this strategy">
@@ -739,8 +836,44 @@
                         <td>${formatCurrency(strategy.call_sl || 0)} / ${formatCurrency(strategy.put_sl || 0)}</td>
                         <td>${formatRiskLevel(strategy.risk_level)}</td>
                         <td>${renderResultBadge(result)}</td>
-                    </tr>
-                `;
+                        <td>
+                            <button class="row-expander" onclick="toggleRowDetails(${index})" title="Show details">⋯</button>
+                        </td>
+                    </tr>`;
+
+                const detailsRow = `
+                    <tr id="details-${index}" class="expanded-details" style="display: none;">
+                        <td colspan="15">
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <span class="label">Breakeven Range:</span>
+                                    <span>${formatCurrency(strategy.breakeven_lower || 0)} - ${formatCurrency(strategy.breakeven_upper || 0)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Margin Required:</span>
+                                    <span>${formatCurrency(strategy.margin_required || 0)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Stop Loss (C/P):</span>
+                                    <span>${formatCurrency(strategy.call_sl || 0)} / ${formatCurrency(strategy.put_sl || 0)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Risk Level:</span>
+                                    <span>${strategy.risk_level || 'Medium'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Confidence:</span>
+                                    <span>${(strategy.confidence || 0).toFixed(0)}%</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Prediction:</span>
+                                    <span>${strategy.prediction_outcome || 'On Track'}</span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>`;
+
+                return mainRow + detailsRow;
             }).join('');
 
             tableBody.innerHTML = rows;
@@ -844,6 +977,17 @@
 
                 if (data.strategies && Array.isArray(data.strategies)) {
                     strategiesData = data.strategies;
+                    
+                    // Sync server pinned stocks with local storage
+                    if (data.pinned_stocks && Array.isArray(data.pinned_stocks)) {
+                        window.__serverPinned = data.pinned_stocks;
+                        
+                        // Merge with local pinned stocks
+                        const localPinned = getPinnedSet();
+                        data.pinned_stocks.forEach(stock => localPinned.add(stock));
+                        savePinnedSet(localPinned);
+                    }
+                    
                     renderAll(strategiesData);
 
                     statusDiv.innerHTML = `✅ Loaded ${data.strategies.length} strategies successfully`;

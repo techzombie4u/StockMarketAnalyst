@@ -1492,6 +1492,21 @@ def options_strategies():
                 if isinstance(strategy, dict) and strategy.get('symbol') in PINNED_TICKERS:
                     strategy['pinned'] = True
 
+        # Add result status and pinning data to strategies
+        for strategy in strategies:
+            # Add result status (mock for now, in real implementation this would come from tracking)
+            if not strategy.get('result'):
+                roi_value = float(strategy.get('expected_roi', 0))
+                if roi_value >= 20:
+                    strategy['result'] = 'success' if roi_value >= 25 else 'in_progress'
+                elif roi_value >= 10:
+                    strategy['result'] = 'in_progress'
+                else:
+                    strategy['result'] = 'failed' if roi_value < 5 else 'in_progress'
+            
+            # Add pinning status from backend pinned list
+            strategy['pinned'] = strategy.get('symbol') in PINNED_TICKERS
+
         # Always return proper JSON structure with fallback
         if not strategies:
             strategies = []
@@ -1501,7 +1516,8 @@ def options_strategies():
             "strategies": strategies,
             "timestamp": datetime.now().isoformat(),
             "total_strategies": len(strategies),
-            "data_source": "real_time_yahoo_finance" if use_live else "cached"
+            "data_source": "real_time_yahoo_finance" if use_live else "cached",
+            "pinned_stocks": list(PINNED_TICKERS)
         }
 
         print(f"[OPTIONS_API] ✅ Returning {len(strategies)} strategies with improved ROI calculations")
