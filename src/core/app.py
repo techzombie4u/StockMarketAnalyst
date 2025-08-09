@@ -84,6 +84,59 @@ def save_pinned_stocks():
 # Load pinned stocks on startup
 load_pinned_stocks()
 
+@app.route('/api/pin-stock', methods=['POST'])
+def pin_stock():
+    """API endpoint to pin/unpin a stock"""
+    try:
+        data = request.get_json()
+        symbol = data.get('symbol', '').upper().strip()
+        action = data.get('action', 'toggle')  # 'pin', 'unpin', or 'toggle'
+        
+        if not symbol:
+            return jsonify({'error': 'Symbol required'}), 400
+            
+        global PINNED_TICKERS
+        
+        if action == 'pin':
+            PINNED_TICKERS.add(symbol)
+            pinned = True
+        elif action == 'unpin':
+            PINNED_TICKERS.discard(symbol)
+            pinned = False
+        else:  # toggle
+            if symbol in PINNED_TICKERS:
+                PINNED_TICKERS.discard(symbol)
+                pinned = False
+            else:
+                PINNED_TICKERS.add(symbol)
+                pinned = True
+        
+        save_pinned_stocks()
+        
+        return jsonify({
+            'success': True,
+            'symbol': symbol,
+            'pinned': pinned,
+            'total_pinned': len(PINNED_TICKERS),
+            'pinned_stocks': list(PINNED_TICKERS)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in pin_stock API: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pinned-stocks', methods=['GET'])
+def get_pinned_stocks():
+    """API endpoint to get all pinned stocks"""
+    try:
+        return jsonify({
+            'pinned_stocks': list(PINNED_TICKERS),
+            'total_count': len(PINNED_TICKERS)
+        })
+    except Exception as e:
+        logger.error(f"Error in get_pinned_stocks API: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 
 def _refresh_locked_predictions_data():
     """Refresh locked predictions data from all sources"""
@@ -1398,141 +1451,72 @@ def options_strategy():
 
 @app.route('/api/options-strategies')
 def options_strategies():
-    """API endpoint for options strategies analysis"""
+    """Memory-optimized API endpoint for options strategies analysis"""
     try:
+        import gc
+        from src.compute.options_math import load_min_inputs, compute_row, now_iso
+        
         timeframe = request.args.get('timeframe', '30D')
-        manual_refresh = request.args.get('manual_refresh', 'false').lower() == 'true'
-        force_realtime = request.args.get('force_realtime', 'false').lower() == 'true'
-        refresh = request.args.get('refresh', 'false').lower() == 'true'
+        print(f"[OPTIONS_API] ⚡ Memory-optimized API called with timeframe: {timeframe}")
+        logger.info(f"[OPTIONS_API] ⚡ Memory-optimized API called with timeframe: {timeframe}")
 
-        print(f"[OPTIONS_API] ⚡ API called with timeframe: {timeframe}, refresh={refresh}, manual_refresh={manual_refresh}, force_realtime={force_realtime}")
-        logger.info(f"[OPTIONS_API] ⚡ API called with timeframe: {timeframe}, refresh={refresh}")
-
-        # Force real-time data usage
-        use_live = manual_refresh or force_realtime or refresh or True  # Always use live by default
-
-        # Import consolidated modules
-        try:
-            from src.analyzers.short_strangle_engine import ShortStrangleEngine
-            print("[OPTIONS_API] ✅ Using organized structure engine")
-        except ImportError as import_error:
-            print(f"[OPTIONS_API] ❌ ERROR: Could not import ShortStrangleEngine: {import_error}")
+        # Load minimal input set per symbol (NO historical arrays)
+        raw_rows = load_min_inputs(timeframe)
+        
+        if not raw_rows:
             return jsonify({
-                "status": "error",
-                "strategies": [],
-                "error": f"Failed to load core strategy engine: {import_error}",
-                "timestamp": datetime.now().isoformat(),
-                "total_strategies": 0
-            }), 500
+                "timeframe": timeframe,
+                "rows": [],
+                "summary": {"total_premium_collected": 0.0, "avg_roi_pct": 0.0},
+                "generated_at": now_iso(),
+                "pinned_stocks": list(PINNED_TICKERS),
+                "status": "no_data"
+            })
 
-        engine = ShortStrangleEngine()
+        # Compute final rows from minimal inputs
+        rows = [compute_row(r).__dict__ for r in raw_rows]
+        
+        # Add pinning status to each row
+        for row in rows:
+            row['pinned'] = row.get('symbol') in PINNED_TICKERS
 
-        # Top tier 1 stocks for options trading
-        tier1_stocks = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ITC', 'HINDUNILVR']
-
-        strategies = []
-        print(f"[OPTIONS_API] 📊 Processing {len(tier1_stocks)} stocks with FORCED real-time data")
-
-        for symbol in tier1_stocks:
-            try:
-                print(f"[OPTIONS_API] 📡 Fetching real-time data for {symbol}...")
-                analysis = engine.analyze_short_strangle(symbol, manual_refresh=True, force_realtime=True)
-
-                if analysis and analysis.get('current_price', 0) > 0:
-                    strategies.append(analysis)
-                    print(f"[OPTIONS_API] ✅ {symbol} - Live Price: ₹{analysis['current_price']}, Monthly ROI: {analysis['expected_roi']:.1f}%")
-                    logger.info(f"[OPTIONS_API] ✅ {symbol} - Live Price: ₹{analysis['current_price']}, ROI: {analysis['expected_roi']:.1f}%")
-                else:
-                    print(f"[OPTIONS_API] ❌ Invalid analysis for {symbol}")
-                    logger.warning(f"[OPTIONS_API] ❌ Invalid analysis for {symbol}")
-            except Exception as e:
-                print(f"[OPTIONS_API] ❌ Error analyzing {symbol}: {str(e)}")
-                logger.error(f"[OPTIONS_API] ❌ Error analyzing {symbol}: {str(e)}")
-                continue
-
-        # Add pinned stocks that might not be in current results
-        if strategies:
-            existing_symbols = {s.get('symbol', '') for s in strategies if isinstance(s, dict)}
-
-            # Get pinned stocks that aren't in current results
-            missing_pinned = PINNED_TICKERS - existing_symbols
-
-            if missing_pinned:
-                logger.info(f"Adding {len(missing_pinned)} pinned stocks not in current results: {list(missing_pinned)}")
-
-                # Generate strategies for missing pinned stocks
-                for symbol in missing_pinned:
-                    try:
-                        pinned_strategy = engine.analyze_short_strangle(symbol, manual_refresh=True, force_realtime=True)
-                        if pinned_strategy:
-                            pinned_strategy['pinned'] = True  # Mark as pinned
-                            strategies.append(pinned_strategy)
-                    except Exception as e:
-                        logger.warning(f"Could not generate strategy for pinned stock {symbol}: {e}")
-                        # Add placeholder for unavailable pinned stock
-                        strategies.append({
-                            'symbol': symbol,
-                            'current_price': 0,
-                            'call_strike': 0,
-                            'put_strike': 0,
-                            'total_premium': 0,
-                            'breakeven_upper': 0,
-                            'breakeven_lower': 0,
-                            'margin_required': 0,
-                            'expected_roi': 0,
-                            'confidence': 0,
-                            'risk_level': 'Unknown',
-                            'pinned': True,
-                            'data_unavailable': True,
-                            'error': 'Data temporarily unavailable'
-                        })
-
-            # Mark existing strategies as pinned if they are in the pinned list
-            for strategy in strategies:
-                if isinstance(strategy, dict) and strategy.get('symbol') in PINNED_TICKERS:
-                    strategy['pinned'] = True
-
-        # Add result status and pinning data to strategies
-        for strategy in strategies:
-            # Add result status (mock for now, in real implementation this would come from tracking)
-            if not strategy.get('result'):
-                roi_value = float(strategy.get('expected_roi', 0))
-                if roi_value >= 20:
-                    strategy['result'] = 'success' if roi_value >= 25 else 'in_progress'
-                elif roi_value >= 10:
-                    strategy['result'] = 'in_progress'
-                else:
-                    strategy['result'] = 'failed' if roi_value < 5 else 'in_progress'
-            
-            # Add pinning status from backend pinned list
-            strategy['pinned'] = strategy.get('symbol') in PINNED_TICKERS
-
-        # Always return proper JSON structure with fallback
-        if not strategies:
-            strategies = []
-
-        result = {
-            "status": "success" if strategies else "no_data",
-            "strategies": strategies,
-            "timestamp": datetime.now().isoformat(),
-            "total_strategies": len(strategies),
-            "data_source": "real_time_yahoo_finance" if use_live else "cached",
-            "pinned_stocks": list(PINNED_TICKERS)
+        # Lightweight summary computation
+        summary = {
+            "total_premium_collected": round(sum(r["total_premium"] for r in rows), 2),
+            "avg_roi_pct": round(sum(r["roi_pct"] for r in rows) / len(rows), 2) if rows else 0.0,
+            "total_count": len(rows),
+            "success_count": len([r for r in rows if r["result"] == "success"]),
+            "in_progress_count": len([r for r in rows if r["result"] == "in_progress"]),
+            "failed_count": len([r for r in rows if r["result"] == "failed"])
         }
 
-        print(f"[OPTIONS_API] ✅ Returning {len(strategies)} strategies with improved ROI calculations")
+        # Release memory and force GC
+        del raw_rows
+        gc.collect()
+
+        result = {
+            "timeframe": timeframe,
+            "rows": rows,  # skinny rows only
+            "summary": summary,
+            "generated_at": now_iso(),
+            "pinned_stocks": list(PINNED_TICKERS),
+            "status": "success"
+        }
+
+        print(f"[OPTIONS_API] ✅ Returning {len(rows)} memory-optimized rows")
+        logger.info(f"[OPTIONS_API] ✅ Returning {len(rows)} memory-optimized rows")
         return jsonify(result)
 
     except Exception as e:
-        print(f"[OPTIONS_API] ❌ Critical error in options strategies: {str(e)}")
+        print(f"[OPTIONS_API] ❌ Critical error in memory-optimized options strategies: {str(e)}")
         logger.error(f"[OPTIONS_API] Critical error: {str(e)}")
-        # Always return valid JSON, never None
         return jsonify({
-            "status": "error",
-            "strategies": [],
+            "timeframe": timeframe,
+            "rows": [],
+            "summary": {"total_premium_collected": 0.0, "avg_roi_pct": 0.0},
+            "generated_at": now_iso(),
             "error": str(e),
-            "timestamp": datetime.now().isoformat(),
-            "total_strategies": 0
+            "status": "error"
         }), 500
 
 
