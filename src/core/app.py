@@ -322,9 +322,15 @@ try:
     logger.info("✅ enhanced_error_handler imported")
 except Exception as e:
     logger.warning(f"⚠️ enhanced_error_handler import failed: {e}")
-    # Create a dummy error handler
+    # Create a dummy error handler that returns a proper class instance
+    class DummyErrorHandler:
+        def handle_error(self, error_type, error_message, context=None):
+            logger.error(f"[{error_type}] {error_message}")
+        def get_error_summary(self):
+            return {'errors': 0}
+    
     def enhanced_error_handler():
-        return {'handle_error': lambda x: None}
+        return DummyErrorHandler()
 
 try:
     from src.utils.external_data_importer import ExternalDataImporter
