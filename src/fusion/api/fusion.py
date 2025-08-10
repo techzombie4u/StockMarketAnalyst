@@ -9,9 +9,11 @@ log = logging.getLogger(__name__)
 
 _CACHE = {"ts": 0.0, "payload": None}
 _CACHE_TTL = 30  # seconds
+_REFRESH_COUNTER = 0  # NEW
 
-def _utcnow():
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+def _utcnow_ms():
+    # Millisecond precision avoids "same second" collisions in tests
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 def _cache_valid():
     return _CACHE["payload"] is not None and (time.time() - _CACHE["ts"] < _CACHE_TTL)
@@ -78,7 +80,9 @@ def fusion_dashboard():
             payload["cache_hit"] = True
             return jsonify(payload)
 
+        # Regenerate payload (either cache miss or force refresh)
         raw = _load_top_signals()
+
         verdict_counts = {"STRONG_BUY": 0, "BUY": 0, "HOLD": 0, "CAUTIOUS": 0, "AVOID": 0}
         top_signals = []
         for s in raw:
@@ -94,8 +98,13 @@ def fusion_dashboard():
                 "ai_verdict_normalized": norm,
             })
 
+        # NEW: bump a version so force refresh is always detectable
+        global _REFRESH_COUNTER
+        _REFRESH_COUNTER += 1
+
         payload = {
-            "last_updated_utc": _utcnow(),
+            "last_updated_utc": _utcnow_ms(),             # <— now milliseconds
+            "cache_version": _REFRESH_COUNTER,            # <— NEW
             "market_session": "Closed",
             "timeframes": _timeframes(),
             "ai_verdict_summary": verdict_counts,
@@ -105,8 +114,10 @@ def fusion_dashboard():
             "alerts": [{"type": "INFO", "message": "Fusion dashboard operational"}],
             "generation_time_ms": (time.time() - t0) * 1000.0,
         }
+
         _CACHE["payload"] = payload
         _CACHE["ts"] = time.time()
+
         payload["cache_hit"] = False
         return jsonify(payload)
 

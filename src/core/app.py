@@ -1,7 +1,6 @@
-
 # src/core/app.py
 import os, pathlib
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 
 def _guess_template_folder():
     # Prefer web/templates if present; fallback to src/templates
@@ -47,6 +46,7 @@ def create_app() -> Flask:
 
     @app.route("/")
     def root():
-        return "Stock Analyst server is running"
+        # Was: return "Stock Analyst server is running"
+        return redirect(url_for("fusion_dashboard_page"))
 
     return app
