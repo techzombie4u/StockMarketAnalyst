@@ -1,17 +1,17 @@
 
 # src/run_server.py
-import os, sys, pathlib
+import os, sys
 
-# Add project root to sys.path so "src" is importable everywhere
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+# Ensure 'src' (this dir) is importable as the project root for 'core', 'fusion', 'agents'
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
 
-from src.wsgi import app  # now import works
+from core.app import create_app
+
+app = create_app()
 
 if __name__ == "__main__":
-    host = os.environ.get("HOST", "0.0.0.0")
-    port = int(os.environ.get("PORT", "5000"))
-    # no reloader (CI/validators), no debug
-    print("🚀 Starting Flask server...")
-    app.run(host=host, port=port, debug=False, use_reloader=False)
+    port = int(os.getenv("PORT", "5000"))
+    # No reloader; single process; thread-safe blueprints
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)

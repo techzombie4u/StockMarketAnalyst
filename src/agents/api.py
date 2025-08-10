@@ -1,4 +1,3 @@
-
 from flask import Blueprint, jsonify, request
 from .registry import registry
 import logging
@@ -112,7 +111,7 @@ def get_config():
             "error": str(e)
         }), 500
 
-@agents_bp.route("/config/<key>", methods=["POST"])
+@agents_bp.route("/config", methods=["POST"])
 def set_config(key):
     """Set configuration value"""
     try:

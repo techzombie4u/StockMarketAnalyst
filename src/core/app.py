@@ -1,3 +1,4 @@
+
 # src/core/app.py
 import os, pathlib
 from flask import Flask, render_template, request, jsonify, redirect, url_for
@@ -23,6 +24,16 @@ def create_app() -> Flask:
         static_folder=_guess_static_folder()
     )
 
+    # --- trivial health ---
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok"}), 200
+
+    # --- root page remains simple ---
+    @app.route("/")
+    def root():
+        return "Stock Analyst server is running", 200
+
     # Register existing product blueprints if available
     try:
         from src.products.equities.api import equity_bp
@@ -37,24 +48,47 @@ def create_app() -> Flask:
         pass
 
     # Register Fusion blueprint (required by validator)
-    from src.fusion.api.fusion import fusion_bp
-    app.register_blueprint(fusion_bp, url_prefix="/api/fusion")
-
-    # Register blueprints
-    app.register_blueprint(fusion_bp)
-    app.register_blueprint(predictions_bp)
-    app.register_blueprint(meta_bp)
-    app.register_blueprint(equities_bp)
-    app.register_blueprint(options_bp)
-    app.register_blueprint(agents_bp)
-    app.register_blueprint(shared_kpi_bp)
-
-    # Register KPI blueprint
-    from ..kpi.api import kpi_bp
-    app.register_blueprint(kpi_bp)
+    try:
+        from src.fusion.api.fusion import fusion_bp
+        app.register_blueprint(fusion_bp, url_prefix="/api/fusion")
+    except Exception as e:
+        app.logger.warning(f"Fusion blueprint not registered: {e}")
 
     # Register Agents blueprint
-    from src.agents.api import agents_bp
-    app.register_blueprint(agents_bp)
+    try:
+        from src.agents.api import agents_bp
+        app.register_blueprint(agents_bp)
+    except Exception as e:
+        app.logger.warning(f"Agents blueprint not registered: {e}")
+
+    # Register KPI blueprint
+    try:
+        from src.kpi.api import kpi_bp
+        app.register_blueprint(kpi_bp)
+    except Exception as e:
+        app.logger.warning(f"KPI blueprint not registered: {e}")
+
+    # --- bind agent run functions to registry (after registry load) ---
+    try:
+        from src.agents.registry import registry
+        from src.agents.new_ai_agent import run as new_ai_run
+        from src.agents.sentiment_agent import run as sentiment_run
+
+        registry.register_or_bind(
+            agent_id="new_ai_analyzer",
+            name="New AI Analyzer",
+            run_fn=new_ai_run,
+            description="Placeholder AI analyzer",
+            enabled=True
+        )
+        registry.register_or_bind(
+            agent_id="sentiment_analyzer",
+            name="Sentiment Analyzer",
+            run_fn=sentiment_run,
+            description="Placeholder sentiment analyzer",
+            enabled=True
+        )
+    except Exception as e:
+        app.logger.warning(f"Failed to bind agents: {e}")
 
     return app
