@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 import numpy as np
 import threading
 from typing import Dict, Any, Optional
@@ -521,10 +522,11 @@ class StockAnalystScheduler:
 
             # Register KPI background jobs
             try:
-                from common_repository.scheduler.jobs import register_kpi_jobs
-                register_kpi_jobs(scheduler)
+                # Import here to avoid circular imports
+                from src.common_repository.scheduler.jobs import init_schedulers
+                init_schedulers(self) # Pass self to access logger and scheduler instance
             except ImportError as e:
-                logger.error(f"Failed to import KPI jobs: {e}")
+                logger.error(f"Failed to import or initialize KPI jobs: {e}")
 
             logger.info("✅ All scheduler jobs configured successfully")
 
