@@ -8,82 +8,172 @@ BASE_DIR = os.path.join("data", "agents")
 REG_FILE = os.path.join(BASE_DIR, "registry.json")
 CFG_FILE = os.path.join(BASE_DIR, "config.json")
 
-def _now():
-    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+def _now_iso():
+    return (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+
+def _default_agent_meta(agent_id: str, name: str, description: str, enabled: bool) -> Dict[str, Any]:
+    return {
+        "id": agent_id,
+        "name": name,
+        "enabled": bool(enabled),
+        "description": description or "",
+        "last_run_utc": None,
+        "last_result": None,
+    }
 
 class AgentRegistry:
     def __init__(self):
         os.makedirs(BASE_DIR, exist_ok=True)
         self.agents: Dict[str, Dict[str, Any]] = {}
         self._run_map: Dict[str, Callable[[], Dict[str, Any]]] = {}
-        self.config = {"show_ai_verdict_columns": False}
+        self.config: Dict[str, Any] = {"show_ai_verdict_columns": False}
         self.load_registry()
         self.load_config()
+        # Self-heal on startup
+        self._repair_registry_on_load()
+        self._repair_config_on_load()
 
+    # ---------- Persistence ----------
     def load_registry(self):
         if os.path.exists(REG_FILE):
             with open(REG_FILE, "r", encoding="utf-8") as f:
-                self.agents = json.load(f)
+                try:
+                    data = json.load(f)
+                except Exception:
+                    data = {}
         else:
-            self.agents = {}
-            self.save_registry()
+            data = {}
+        # Normalize: ensure dict
+        if not isinstance(data, dict):
+            data = {}
+        self.agents = data
+        self.save_registry()
 
     def save_registry(self):
+        os.makedirs(BASE_DIR, exist_ok=True)
         with open(REG_FILE, "w", encoding="utf-8") as f:
             json.dump(self.agents, f, indent=2)
-
-    def register_or_bind(self, agent_id: str, name: str, run_fn: Callable, description: str = "", enabled: bool = True):
-        self._run_map[agent_id] = run_fn
-        if agent_id not in self.agents:
-            self.agents[agent_id] = {
-                "id": agent_id,
-                "name": name,
-                "enabled": enabled,
-                "description": description,
-                "last_run_utc": None,
-                "last_result": None
-            }
-            self.save_registry()
-
-    def list_agents(self):
-        return [dict((k, v) for k, v in a.items()) for a in self.agents.values()]
-
-    def enable_agent(self, agent_id: str): self._set_enabled(agent_id, True)
-    def disable_agent(self, agent_id: str): self._set_enabled(agent_id, False)
-
-    def _set_enabled(self, agent_id: str, enabled: bool):
-        if agent_id in self.agents:
-            self.agents[agent_id]["enabled"] = enabled
-            self.save_registry()
-
-    def run_agent(self, agent_id: str):
-        if agent_id not in self.agents:
-            return {"error": "Agent not found"}
-        if agent_id not in self._run_map:
-            return {"error": "No run function bound"}
-        result = self._run_map[agent_id]()
-        self.agents[agent_id]["last_result"] = result
-        self.agents[agent_id]["last_run_utc"] = _now()
-        self.save_registry()
-        return result
-
-    def run_all(self, enabled_only: bool = True):
-        results = {}
-        for aid, meta in self.agents.items():
-            if enabled_only and not meta.get("enabled", True):
-                continue
-            results[aid] = self.run_agent(aid)
-        return results
 
     def load_config(self):
         if os.path.exists(CFG_FILE):
             with open(CFG_FILE, "r", encoding="utf-8") as f:
-                self.config = json.load(f)
+                try:
+                    data = json.load(f)
+                except Exception:
+                    data = {}
         else:
-            self.save_config()
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+        # default
+        data.setdefault("show_ai_verdict_columns", False)
+        self.config = data
+        self.save_config()
 
     def save_config(self):
+        os.makedirs(BASE_DIR, exist_ok=True)
         with open(CFG_FILE, "w", encoding="utf-8") as f:
             json.dump(self.config, f, indent=2)
+
+    # ---------- Self-heal ----------
+    def _repair_registry_on_load(self):
+        """Fix any malformed entries (e.g., string values instead of dicts)."""
+        changed = False
+        fixed = {}
+        for aid, val in self.agents.items():
+            if isinstance(val, dict):
+                # Ensure required keys exist
+                val.setdefault("id", aid)
+                val.setdefault("name", aid)
+                val.setdefault("enabled", True)
+                val.setdefault("description", "")
+                val.setdefault("last_run_utc", None)
+                val.setdefault("last_result", None)
+                fixed[aid] = val
+            else:
+                # Malformed; replace with default meta
+                fixed[aid] = _default_agent_meta(aid, aid, "", True)
+                changed = True
+        if changed or len(fixed) != len(self.agents):
+            self.agents = fixed
+            self.save_registry()
+
+    def _repair_config_on_load(self):
+        if not isinstance(self.config, dict):
+            self.config = {"show_ai_verdict_columns": False}
+            self.save_config()
+        else:
+            if "show_ai_verdict_columns" not in self.config:
+                self.config["show_ai_verdict_columns"] = False
+                self.save_config()
+
+    # ---------- API helpers ----------
+    def register_or_bind(self, agent_id: str, name: str, run_fn: Callable[[], Dict[str, Any]],
+                         description: str = "", enabled: bool = True):
+        """Bind run function and ensure registry entry is a proper dict, repairing if needed."""
+        self._run_map[agent_id] = run_fn
+        cur = self.agents.get(agent_id)
+        if not isinstance(cur, dict):
+            # Either not present or malformed -> overwrite with good meta
+            self.agents[agent_id] = _default_agent_meta(agent_id, name, description, enabled)
+            self.save_registry()
+        else:
+            # Ensure required keys present; do not flip enabled unless missing
+            cur.setdefault("id", agent_id)
+            cur.setdefault("name", name)
+            cur.setdefault("description", description or "")
+            cur.setdefault("enabled", bool(enabled))
+            cur.setdefault("last_run_utc", None)
+            cur.setdefault("last_result", None)
+            self.save_registry()
+
+    def list_agents(self):
+        # Return list of dicts (robust against caller assumptions)
+        return [dict(v) for _, v in self.agents.items()]
+
+    def enable_agent(self, agent_id: str):
+        self._set_enabled(agent_id, True)
+
+    def disable_agent(self, agent_id: str):
+        self._set_enabled(agent_id, False)
+
+    def _set_enabled(self, agent_id: str, enabled: bool):
+        cur = self.agents.get(agent_id)
+        if not isinstance(cur, dict):
+            # Repair on the fly
+            self.agents[agent_id] = _default_agent_meta(agent_id, agent_id, "", enabled)
+        else:
+            self.agents[agent_id]["enabled"] = bool(enabled)
+        self.save_registry()
+
+    def run_agent(self, agent_id: str):
+        meta = self.agents.get(agent_id)
+        if not isinstance(meta, dict):
+            # Repair
+            self.agents[agent_id] = _default_agent_meta(agent_id, agent_id, "", True)
+            meta = self.agents[agent_id]
+        if agent_id not in self._run_map:
+            return {"error": "No run function bound"}
+        result = self._run_map[agent_id]()
+        meta["last_result"] = result
+        meta["last_run_utc"] = _now_iso()
+        self.save_registry()
+        return result
+
+    def run_all(self, enabled_only: bool = True):
+        results: Dict[str, Any] = {}
+        for aid, meta in list(self.agents.items()):
+            if not isinstance(meta, dict):
+                # Repair and continue
+                self.agents[aid] = _default_agent_meta(aid, aid, "", True)
+                meta = self.agents[aid]
+            if enabled_only and not meta.get("enabled", True):
+                continue
+            results[aid] = self.run_agent(aid)
+        return results
 
 registry = AgentRegistry()
