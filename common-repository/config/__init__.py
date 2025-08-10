@@ -1,0 +1,2 @@
+
+"""Common configuration management"""

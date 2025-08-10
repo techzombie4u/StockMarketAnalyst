@@ -1,0 +1,2 @@
+
+"""Signal aggregation and confirmation"""

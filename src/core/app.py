@@ -2,6 +2,7 @@
 Stock Market Analyst - Flask Dashboard
 
 Web interface for displaying stock screening results with auto-refresh.
+Refactored to use shared-core + product-plugins architecture.
 """
 
 import sys
@@ -19,8 +20,15 @@ import atexit
 import gc
 import time
 
-# Time zone setup
-IST = pytz.timezone('Asia/Kolkata')
+# Import shared core components
+from common_repository.config.feature_flags import feature_flags
+from common_repository.utils.date_utils import IST, get_ist_now
+from common_repository.utils.error_handler import ErrorContext, safe_execute
+from common_repository.storage.json_store import json_store
+
+# Import product services
+from products.equities.api import equity_bp
+from products.options.api import options_bp
 
 # Configure logging
 logging.basicConfig(
@@ -79,53 +87,45 @@ PIN_FILE = "data/pinned_stocks.json"
 PINNED_SYMBOLS = set()
 
 def load_pinned_stocks():
-    """Load pinned symbols from persistent file - lightweight storage"""
+    """Load pinned symbols from persistent file using shared storage"""
     global PINNED_SYMBOLS
     try:
-        if os.path.exists(PIN_FILE):
-            with open(PIN_FILE, 'r') as f:
-                data = json.load(f)
-                # Ensure we only store symbols, not full objects
-                if isinstance(data, list):
-                    PINNED_SYMBOLS = set([str(item) if isinstance(item, str) else item.get('symbol', '') for item in data if item])
-                else:
-                    PINNED_SYMBOLS = set()
-                # Clean out empty strings
-                PINNED_SYMBOLS = {s for s in PINNED_SYMBOLS if s and isinstance(s, str)}
-                logger.info(f"Loaded {len(PINNED_SYMBOLS)} pinned symbols: {list(PINNED_SYMBOLS)}")
-
-                # Verify file size is under 2KB as required
-                file_size = os.path.getsize(PIN_FILE)
-                if file_size > 2048:  # 2KB limit
-                    logger.warning(f"Pin file size {file_size} bytes exceeds 2KB limit, trimming...")
-                    # Keep only first 100 symbols to stay under limit
-                    PINNED_SYMBOLS = set(list(PINNED_SYMBOLS)[:100])
-                    save_pinned_stocks()
+        # Use shared storage system
+        data = json_store.load('pinned_stocks', [])
+        
+        # Ensure we only store symbols, not full objects
+        if isinstance(data, list):
+            PINNED_SYMBOLS = set([str(item) if isinstance(item, str) else item.get('symbol', '') for item in data if item])
         else:
-            os.makedirs(os.path.dirname(PIN_FILE), exist_ok=True)
-            with open(PIN_FILE, 'w') as f:
-                json.dump([], f)
             PINNED_SYMBOLS = set()
-            logger.info("Created new pinned symbols file")
+        
+        # Clean out empty strings
+        PINNED_SYMBOLS = {s for s in PINNED_SYMBOLS if s and isinstance(s, str)}
+        logger.info(f"Loaded {len(PINNED_SYMBOLS)} pinned symbols: {list(PINNED_SYMBOLS)}")
+
+        # Verify and trim if needed
+        if len(PINNED_SYMBOLS) > 100:
+            logger.warning(f"Too many pinned symbols ({len(PINNED_SYMBOLS)}), trimming to 100")
+            PINNED_SYMBOLS = set(list(PINNED_SYMBOLS)[:100])
+            save_pinned_stocks()
+            
     except Exception as e:
         logger.error(f"Error loading pinned symbols: {e}")
         PINNED_SYMBOLS = set()
 
 def save_pinned_stocks():
-    """Save pinned symbols to persistent file - lightweight storage only"""
+    """Save pinned symbols using shared storage system"""
     try:
-        os.makedirs(os.path.dirname(PIN_FILE), exist_ok=True)
         # Store only symbol strings, no full row objects
-        symbols_list = list(PINNED_SYMBOLS)[:100]  # Limit to 100 to ensure <2KB
-        with open(PIN_FILE, 'w') as f:
-            json.dump(symbols_list, f, separators=(',', ':'))  # Compact JSON
-
-        # Verify file size
-        file_size = os.path.getsize(PIN_FILE)
-        logger.info(f"Saved {len(symbols_list)} pinned symbols ({file_size} bytes)")
-
-        if file_size > 2048:
-            logger.error(f"WARNING: Pin file exceeds 2KB limit at {file_size} bytes")
+        symbols_list = list(PINNED_SYMBOLS)[:100]  # Limit to 100
+        
+        # Use shared storage system
+        success = json_store.save('pinned_stocks', symbols_list)
+        
+        if success:
+            logger.info(f"Saved {len(symbols_list)} pinned symbols")
+        else:
+            logger.error("Failed to save pinned symbols")
 
     except Exception as e:
         logger.error(f"Error saving pinned symbols: {e}")
@@ -311,6 +311,10 @@ app.template_folder = template_dir
 
 # Enable CORS for all routes
 CORS(app)
+
+# Register product blueprints
+app.register_blueprint(equity_bp)
+app.register_blueprint(options_bp)
 
 # Global scheduler instance
 scheduler = None
@@ -2201,8 +2205,25 @@ def calculate_std_dev(values):
 
 
 def create_app():
-    """Application factory function for WSGI deployment"""
+    """Application factory function for new architecture"""
+    logger.info("Creating application with new shared-core architecture")
+    
+    # Display architecture info
+    logger.info("🏗️ Architecture Components:")
+    logger.info("  📦 Common Repository: Shared utilities, models, services")
+    logger.info("  🎯 Products: Equity and Options services")
+    logger.info("  🔧 Feature Flags: Dynamic configuration management")
+    logger.info("  💾 Storage: JSON with backup and future SQLite support")
+    
+    # Initialize app with existing logic
     initialize_app()
+    
+    # Log registered blueprints
+    logger.info("🔌 Registered API endpoints:")
+    for rule in app.url_map.iter_rules():
+        if rule.endpoint.startswith('equity') or rule.endpoint.startswith('options'):
+            logger.info(f"  {rule.methods} {rule.rule} -> {rule.endpoint}")
+    
     return app
 
 if __name__ == '__main__':
