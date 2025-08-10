@@ -7,7 +7,8 @@ from flask import Blueprint, jsonify, request
 from ....agents.core.registry import agent_registry
 from ....agents.orchestrator import agent_orchestrator
 from ....agents.store.agent_outputs_repo import agent_outputs_repo
-from ....common_repository.config.feature_flags import feature_flags
+from src.common_repository.config.feature_flags import feature_flags
+from src.common_repository.utils.date_utils import get_ist_now
 
 logger = logging.getLogger(__name__)
 
@@ -175,6 +176,7 @@ def get_agent_history():
         agent_name = request.args.get('agent', 'all')
         limit = int(request.args.get('limit', 10))
 
+        from src.agents.store.agent_outputs_repo import AgentOutputsRepository
         outputs_repo = AgentOutputsRepository()
 
         if agent_name == 'all':

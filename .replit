@@ -106,7 +106,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python src/core/main.py"
+args = "export PYTHONPATH=\".:./src:$PYTHONPATH\" && python main.py"
 
 [[ports]]
 localPort = 5000

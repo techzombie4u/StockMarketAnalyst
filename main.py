@@ -11,9 +11,11 @@ import logging
 import threading
 import time
 
-# Add project root to Python path
-project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, project_root)
+# Add current directory and src directory to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_dir = os.path.join(current_dir, 'src')
+sys.path.insert(0, current_dir)
+sys.path.insert(0, src_dir)
 
 # Configure logging
 logging.basicConfig(
