@@ -1,5 +1,3 @@
 
-# Keep the package lightweight; export the blueprint from .agents
+# src/agents/api/__init__.py
 from .agents import agents_bp
-
-__all__ = ["agents_bp"]

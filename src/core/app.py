@@ -103,9 +103,18 @@ def create_app():
         @app.route("/__stop__", methods=["GET"])
         def __stop__():
             # Allows the test harness to stop the server if it locked the port
+            from flask import request
             shutdown = request.environ.get('werkzeug.server.shutdown')
             if shutdown:
                 shutdown()
             return "OK", 200
+
+    # ---- Register Agents API blueprint ----
+    try:
+        from src.agents.api import agents_bp
+        app.register_blueprint(agents_bp, url_prefix="/api/agents")
+        app.logger.info("✅ Registered agents blueprint at /api/agents")
+    except Exception as e:
+        app.logger.warning(f"❌ Agents blueprint not registered: {e}")
 
     return app

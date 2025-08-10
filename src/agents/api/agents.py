@@ -1,109 +1,73 @@
-
-# src/agents/api/agents.py
 from flask import Blueprint, jsonify, request
-import traceback
-from datetime import datetime, timezone
+from ..registry import REGISTRY, Agent
+from ..builtin_agents import run_new_ai_analyzer, run_sentiment_analyzer
 
-agents_bp = Blueprint("agents", __name__, url_prefix="/api/agents")
+agents_bp = Blueprint("agents_api", __name__)
 
-def _now_utc_iso():
-    """Get current UTC timestamp in ISO format"""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+# one-time registration (idempotent)
+def _ensure_registered():
+    # already registered?
+    current = {a["key"] for a in REGISTRY.list()}
+    if "new_ai_analyzer" not in current:
+        REGISTRY.register(Agent(key="new_ai_analyzer", name="New AI Analyzer", run_fn=run_new_ai_analyzer))
+    if "sentiment_analyzer" not in current:
+        REGISTRY.register(Agent(key="sentiment_analyzer", name="Sentiment Analyzer", run_fn=run_sentiment_analyzer))
 
-@agents_bp.route("/health", methods=["GET"])
-def health():
-    """Agents health check endpoint"""
+@agents_bp.before_app_request
+def _pre():
+    _ensure_registered()
+
+@agents_bp.get("/")
+def list_agents():
+    return jsonify({"success": True, "agents": REGISTRY.list()})
+
+@agents_bp.post("/<key>/run")
+def run_agent(key: str):
+    out = REGISTRY.run(key)
+    status = 200 if out.get("success") else 400
+    return jsonify(out), status
+
+@agents_bp.post("/<key>/enable")
+def enable_agent(key: str):
+    ok = REGISTRY.enable(key)
+    return (jsonify({"success": ok}), 200 if ok else 404)
+
+@agents_bp.post("/<key>/disable")
+def disable_agent(key: str):
+    ok = REGISTRY.disable(key)
+    return (jsonify({"success": ok}), 200 if ok else 404)
+
+@agents_bp.get("/<key>/result")
+def last_result(key: str):
+    r = REGISTRY.get_last_result(key)
+    if not r:
+        return jsonify({"success": False, "error": "no result"}), 404
+    return jsonify({"success": True, "result": r})
+
+@agents_bp.get("/history")
+def history():
+    key = request.args.get("agent", "").strip()
+    if not key:
+        return jsonify({"success": False, "error": "missing agent"}), 400
+    return jsonify(REGISTRY.history(key))
+
+@agents_bp.post("/run_all")
+def run_all():
+    return jsonify(REGISTRY.run_all())
+
+@agents_bp.get("/config")
+def get_config():
+    return jsonify(REGISTRY.get_config())
+
+@agents_bp.post("/config")
+def set_config():
     try:
-        return jsonify({
-            "status": "ok",
-            "timestamp": _now_utc_iso(),
-            "agents_available": True,
-            "message": "Agents API is running"
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "status": "error", 
-            "error": str(e),
-            "timestamp": _now_utc_iso()
-        }), 500
+        payload = request.get_json(force=True, silent=True) or {}
+    except Exception:
+        payload = {}
+    out = REGISTRY.set_config(payload if isinstance(payload, dict) else {})
+    return jsonify(out), (200 if out.get("success") else 400)
 
-@agents_bp.route("/run", methods=["POST"])
-def run_agents():
-    """Run agents endpoint"""
-    try:
-        data = request.get_json() or {}
-        agent_ids = data.get('agent_ids', [])
-        symbols = data.get('symbols', [])
-        
-        return jsonify({
-            "status": "completed",
-            "message": f"Executed {len(agent_ids)} agents on {len(symbols)} symbols",
-            "timestamp": _now_utc_iso(),
-            "results": []
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "error": str(e),
-            "timestamp": _now_utc_iso()
-        }), 500
-
-@agents_bp.route("/history", methods=["GET"])
-def get_history():
-    """Get agent execution history"""
-    try:
-        return jsonify({
-            "history": [],
-            "total": 0,
-            "timestamp": _now_utc_iso()
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "error": str(e),
-            "timestamp": _now_utc_iso()
-        }), 500
-
-@agents_bp.route("/trainer/models", methods=["GET"])
-def get_trainer_models():
-    """Get trainer models status"""
-    try:
-        return jsonify({
-            "models": [
-                {"symbol": "TCS", "status": "trained", "accuracy": 0.87},
-                {"symbol": "INFY", "status": "trained", "accuracy": 0.84},
-                {"symbol": "RELIANCE", "status": "training", "accuracy": 0.82}
-            ],
-            "total_models": 3,
-            "trained": 2,
-            "training": 1,
-            "timestamp": _now_utc_iso()
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "error": str(e),
-            "timestamp": _now_utc_iso()
-        }), 500
-
-@agents_bp.route("/trainer/retrain", methods=["POST"])
-def force_retrain():
-    """Force retrain models"""
-    try:
-        data = request.get_json() or {}
-        symbols = data.get('symbols', [])
-        
-        return jsonify({
-            "status": "started",
-            "message": f"Retraining initiated for {len(symbols)} symbols",
-            "timestamp": _now_utc_iso(),
-            "job_id": "retrain_" + str(int(datetime.now().timestamp()))
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "error": str(e),
-            "timestamp": _now_utc_iso()
-        }), 500
-
-print("✅ Agents API blueprint created successfully")
+@agents_bp.get("/health")
+def agents_health():
+    return jsonify({"status": "ok", "agents_count": len(REGISTRY.list())})
