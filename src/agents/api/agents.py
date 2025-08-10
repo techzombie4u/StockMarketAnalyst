@@ -1,12 +1,11 @@
+
 from flask import Blueprint, jsonify, request
 from ..registry import REGISTRY, Agent
 from ..builtin_agents import run_new_ai_analyzer, run_sentiment_analyzer
 
 agents_bp = Blueprint("agents_api", __name__)
 
-# one-time registration (idempotent)
 def _ensure_registered():
-    # already registered?
     current = {a["key"] for a in REGISTRY.list()}
     if "new_ai_analyzer" not in current:
         REGISTRY.register(Agent(key="new_ai_analyzer", name="New AI Analyzer", run_fn=run_new_ai_analyzer))
@@ -17,6 +16,8 @@ def _ensure_registered():
 def _pre():
     _ensure_registered()
 
+# ✅ accept both /api/agents and /api/agents/
+@agents_bp.get("")
 @agents_bp.get("/")
 def list_agents():
     return jsonify({"success": True, "agents": REGISTRY.list()})
@@ -61,13 +62,8 @@ def get_config():
 
 @agents_bp.post("/config")
 def set_config():
-    try:
-        payload = request.get_json(force=True, silent=True) or {}
-    except Exception:
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
         payload = {}
-    out = REGISTRY.set_config(payload if isinstance(payload, dict) else {})
+    out = REGISTRY.set_config(payload)
     return jsonify(out), (200 if out.get("success") else 400)
-
-@agents_bp.get("/health")
-def agents_health():
-    return jsonify({"status": "ok", "agents_count": len(REGISTRY.list())})
