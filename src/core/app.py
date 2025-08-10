@@ -21,7 +21,7 @@ import gc
 import time
 
 # Import shared core components
-from common_repository.config.feature_flags import feature_flags
+from common_repository.feature_flags import feature_flags
 from common_repository.utils.date_utils import IST, get_ist_now
 from common_repository.utils.error_handler import ErrorContext, safe_execute
 from common_repository.storage.json_store import json_store
@@ -92,13 +92,13 @@ def load_pinned_stocks():
     try:
         # Use shared storage system
         data = json_store.load('pinned_stocks', [])
-        
+
         # Ensure we only store symbols, not full objects
         if isinstance(data, list):
             PINNED_SYMBOLS = set([str(item) if isinstance(item, str) else item.get('symbol', '') for item in data if item])
         else:
             PINNED_SYMBOLS = set()
-        
+
         # Clean out empty strings
         PINNED_SYMBOLS = {s for s in PINNED_SYMBOLS if s and isinstance(s, str)}
         logger.info(f"Loaded {len(PINNED_SYMBOLS)} pinned symbols: {list(PINNED_SYMBOLS)}")
@@ -108,7 +108,7 @@ def load_pinned_stocks():
             logger.warning(f"Too many pinned symbols ({len(PINNED_SYMBOLS)}), trimming to 100")
             PINNED_SYMBOLS = set(list(PINNED_SYMBOLS)[:100])
             save_pinned_stocks()
-            
+
     except Exception as e:
         logger.error(f"Error loading pinned symbols: {e}")
         PINNED_SYMBOLS = set()
@@ -118,10 +118,10 @@ def save_pinned_stocks():
     try:
         # Store only symbol strings, no full row objects
         symbols_list = list(PINNED_SYMBOLS)[:100]  # Limit to 100
-        
+
         # Use shared storage system
         success = json_store.save('pinned_stocks', symbols_list)
-        
+
         if success:
             logger.info(f"Saved {len(symbols_list)} pinned symbols")
         else:
@@ -312,9 +312,18 @@ app.template_folder = template_dir
 # Enable CORS for all routes
 CORS(app)
 
-# Register product blueprints
+# Register blueprints
 app.register_blueprint(equity_bp)
 app.register_blueprint(options_bp)
+
+# Register KPI blueprint
+try:
+    from products.shared.api.kpi_api import kpi_bp
+    app.register_blueprint(kpi_bp)
+    logger.info("✅ KPI blueprint registered")
+except ImportError as e:
+    logger.error(f"Failed to import KPI blueprint: {e}")
+
 
 # Register meta API
 from src.app.api.meta import meta_bp
@@ -351,7 +360,7 @@ def get_stocks():
         # Track refresh type
         refresh_type = request.args.get('refresh_type', 'auto')
         force_refresh = request.args.get('force', '0') == '1'
-        
+
         # Update last updated timestamp
         from src.app.api.meta import update_last_updated
         update_last_updated('dashboard', refresh_type)
@@ -414,7 +423,7 @@ def get_stocks():
                 # Try to run a quick screening to get fresh data
                 try:
                     logger.info("Attempting to generate fresh data...")
-                    from analyzers.stock_screener import EnhancedStockScreener
+                    from src.analyzers.stock_screener import EnhancedStockScreener
                     screener = EnhancedStockScreener()
 
                     # Get a few stocks quickly for recovery
@@ -1593,7 +1602,7 @@ def prediction_tracker_interactive():
 
 @app.route('/options-strategy')
 def options_strategy():
-    """Options strategy page for passive income"""
+    """Options strategy analysis page"""
     return render_template('options_strategy.html')
 
 @app.route('/api/options-strategies')
@@ -1869,28 +1878,28 @@ def admin_feature_flags():
                 'flags': feature_flags.get_all_runtime_flags(),
                 'timestamp': datetime.now().isoformat()
             })
-            
+
         elif request.method == 'POST':
             data = request.get_json()
             flag_name = data.get('flag_name')
             flag_value = data.get('flag_value')
-            
+
             if not flag_name or flag_value is None:
                 return jsonify({'error': 'flag_name and flag_value required'}), 400
-                
+
             # Set the flag
             feature_flags.set_flag(flag_name, bool(flag_value))
-            
+
             # Check budgets after flag change
             from src.common_repository.utils.profiler import profiler
             profiler.check_and_enforce_budgets()
-            
+
             return jsonify({
                 'status': 'success',
                 'message': f'Flag {flag_name} set to {flag_value}',
                 'flags': feature_flags.get_all_runtime_flags()
             })
-            
+
     except Exception as e:
         logger.error(f"Error in admin feature flags: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -1902,16 +1911,16 @@ def admin_performance_stats():
         from src.common_repository.utils.telemetry import telemetry
         from src.common_repository.cache.cache_manager import cache_manager
         from src.common_repository.utils.memory import memory_manager
-        
+
         stats = {
             'telemetry': telemetry.get_all_metrics(),
             'cache': cache_manager.get_stats(),
             'memory': memory_manager.get_memory_stats(),
             'timestamp': datetime.now().isoformat()
         }
-        
+
         return jsonify(stats)
-        
+
     except Exception as e:
         logger.error(f"Error getting performance stats: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -2276,23 +2285,23 @@ def calculate_std_dev(values):
 def create_app():
     """Application factory function for new architecture"""
     logger.info("Creating application with new shared-core architecture")
-    
+
     # Display architecture info
     logger.info("🏗️ Architecture Components:")
     logger.info("  📦 Common Repository: Shared utilities, models, services")
     logger.info("  🎯 Products: Equity and Options services")
     logger.info("  🔧 Feature Flags: Dynamic configuration management")
     logger.info("  💾 Storage: JSON with backup and future SQLite support")
-    
+
     # Initialize app with existing logic
     initialize_app()
-    
+
     # Log registered blueprints
     logger.info("🔌 Registered API endpoints:")
     for rule in app.url_map.iter_rules():
         if rule.endpoint.startswith('equity') or rule.endpoint.startswith('options'):
             logger.info(f"  {rule.methods} {rule.rule} -> {rule.endpoint}")
-    
+
     return app
 
 if __name__ == '__main__':

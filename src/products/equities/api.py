@@ -4,7 +4,7 @@ Equity API endpoints
 
 from flask import Blueprint, jsonify, request
 from .service import equity_service
-from .utils import pinned_manager # Assuming pinned_manager is in .utils
+from common_repository.utils.pinned_manager import pinned_manager
 
 # Create blueprint with correct name
 equity_bp = Blueprint('equity', __name__, url_prefix='/api/equity')

@@ -41,7 +41,11 @@ class FeatureFlags:
                     'enable_realtime_agents': False,
                     'enable_all_timeframes_concurrent': False,
                     "enable_ai_verdict_column": True,
-                    "enable_pinned_stats_dashboard": True
+                    "enable_pinned_stats_dashboard": True,
+                    "enable_kpi_dashboard": True,
+                    "enable_goahead_triggers": True,
+                    "enable_timeframe_filtering": True,
+                    "enable_background_kpi_jobs": True
                 }
                 self._save_flags(default_flags)
                 return default_flags

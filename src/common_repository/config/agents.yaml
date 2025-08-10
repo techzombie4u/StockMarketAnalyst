@@ -1,0 +1,36 @@
+
+goahead:
+  triggers:
+    retrain:
+      hit_rate_drop_threshold: 0.10
+      brier_deterioration_threshold: 0.05
+      evaluation_window_days: 30
+    risk_tighten:
+      var_95_threshold: 0.005
+      max_dd_threshold: 0.05
+    throttling:
+      sharpe_threshold: 1.0
+      consecutive_windows: 2
+  
+  policy:
+    enabled: true
+    auto_acknowledge: false
+    notification_channels: ["ui", "log"]
+    
+  rate_limits:
+    manual_refresh_cooldown_sec: 120
+    trigger_evaluation_cooldown_sec: 300
+
+agents:
+  dev_agent:
+    enabled: false
+  trainer_agent:
+    enabled: false
+  equity_agent:
+    enabled: true
+  options_agent:
+    enabled: true
+  commodity_agent:
+    enabled: false
+  sentiment_agent:
+    enabled: false

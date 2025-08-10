@@ -65,7 +65,11 @@ class EquityService:
                 'roi': round((predicted_price - current_price) / current_price * 100, 2) if current_price > 0 else 0.0
             }
 
-            return analysis
+            return result
+    
+    def _get_current_time(self):
+        """Get current IST time"""
+        return get_ist_now()
 
         except Exception as e:
             logger.error(f"Error analyzing equity {symbol}: {e}")

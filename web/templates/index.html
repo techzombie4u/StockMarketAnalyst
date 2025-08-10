@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -445,7 +444,7 @@
                 <div class="loading-overlay" id="loadingOverlay">
                     <div class="spinner"></div>
                 </div>
-                
+
                 <div class="table-viewport" id="tableViewport">
                     <!-- Table header -->
                     <div class="table-row table-header-row">
@@ -459,7 +458,7 @@
                         <div>AI Verdict</div>
                         <div>Confidence</div>
                     </div>
-                    
+
                     <!-- Virtual rows container -->
                     <div id="virtualRows">
                         <!-- Rows will be rendered here by JavaScript -->
@@ -487,13 +486,13 @@
         async function initializeDashboard() {
             // Load pinned symbols from localStorage
             loadPinnedSymbols();
-            
+
             // Setup event listeners
             setupEventListeners();
-            
+
             // Initial data load
             await refreshData();
-            
+
             // Start auto-refresh timer
             startAutoRefresh();
         }
@@ -522,10 +521,10 @@
             // Refresh button
             document.getElementById('refreshBtn').addEventListener('click', refreshData);
             console.log('[INFO] ' + new Date().toLocaleTimeString() + ': ✅ Refresh button event listener attached');
-            
+
             // Virtual scroll
             document.getElementById('virtualTable').addEventListener('scroll', handleVirtualScroll);
-            
+
             // Page visibility for auto-refresh management
             document.addEventListener('visibilitychange', handleVisibilityChange);
         }
@@ -544,12 +543,12 @@
             if (autoRefreshTimer) {
                 clearInterval(autoRefreshTimer);
             }
-            
+
             autoRefreshTimer = setInterval(() => {
                 console.log('[AUTO-REFRESH] Triggering automatic refresh');
                 refreshData();
             }, REFRESH_INTERVAL);
-            
+
             console.log('[AUTO-REFRESH] Single auto-refresh timer started');
         }
 
@@ -562,42 +561,42 @@
 
         async function refreshData() {
             if (isLoading) return;
-            
+
             try {
                 isLoading = true;
                 updateStatus('loading', 'Loading stock data...');
                 showLoading();
                 enableRefreshButton(false);
-                
+
                 console.log('[INFO] ' + new Date().toLocaleTimeString() + ': 🔄 Starting stock data load');
-                
+
                 // Fetch stock data
                 const response = await fetch('/api/stocks');
                 console.log('[INFO] ' + new Date().toLocaleTimeString() + ': SDSAPI response status: ' + response.status);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 console.log('[INFO] ' + new Date().toLocaleTimeString() + ': SDSAPI data received');
-                
+
                 stockData = data.stocks || [];
-                
+
                 // Update main table
                 renderVirtualTable();
-                
+
                 // Update pinned stats
                 await updatePinnedStats();
-                
+
                 // Update UI
                 updateTableStats();
                 updateLastUpdated();
                 hideLoading();
                 updateStatus('success', `Successfully loaded ${stockData.length} stocks`);
-                
+
                 console.log('[INFO] ' + new Date().toLocaleTimeString() + ': 🎉 Successfully displayed ' + stockData.length + ' stocks');
-                
+
             } catch (error) {
                 console.error('Error loading data:', error);
                 updateStatus('error', 'Failed to load data: ' + error.message);
@@ -611,32 +610,32 @@
         function renderVirtualTable() {
             const container = document.getElementById('virtualRows');
             const pinnedContainer = document.getElementById('pinnedRows');
-            
+
             // Clear existing content
             container.innerHTML = '';
             pinnedContainer.innerHTML = '';
-            
+
             // Separate pinned and regular stocks
             const pinnedStocks = stockData.filter(stock => pinnedSymbols.has(stock.symbol));
             const regularStocks = stockData.filter(stock => !pinnedSymbols.has(stock.symbol));
-            
+
             // Render pinned rows
             pinnedStocks.forEach(stock => {
                 const row = createTableRow(stock, true);
                 pinnedContainer.appendChild(row);
             });
-            
+
             // Show/hide pinned section
             const pinnedSection = document.getElementById('pinnedSection');
             pinnedSection.style.display = pinnedStocks.length > 0 ? 'block' : 'none';
-            
+
             // Render first batch of regular rows (virtual scrolling)
             const initialBatch = regularStocks.slice(0, PAGE_SIZE);
             initialBatch.forEach(stock => {
                 const row = createTableRow(stock, false);
                 container.appendChild(row);
             });
-            
+
             console.log('[INFO] ' + new Date().toLocaleTimeString() + ': Stock table updated successfully with ' + stockData.length + ' rows');
         }
 
@@ -644,13 +643,13 @@
             const row = document.createElement('div');
             row.className = `table-row ${isPinned ? 'pinned-row' : ''}`;
             row.dataset.symbol = stock.symbol;
-            
+
             // Add AI verdict and confidence with proper fallbacks
             const aiVerdict = stock.ai_verdict || 'Hold';
             const aiConfidence = stock.ai_confidence || 70;
             const verdictColor = stock.verdict_color || 'verdict-hold';
             const roi = stock.roi || ((stock.target - stock.price) / stock.price * 100) || 0;
-            
+
             row.innerHTML = `
                 <div class="col-pin">
                     <button class="pin-btn ${isPinned ? 'pinned' : 'unpinned'}" 
@@ -677,7 +676,7 @@
                 </div>
                 <div>${aiConfidence}%</div>
             `;
-            
+
             return row;
         }
 
@@ -694,7 +693,7 @@
         async function togglePin(symbol) {
             try {
                 const wasPinned = pinnedSymbols.has(symbol);
-                
+
                 if (wasPinned) {
                     pinnedSymbols.delete(symbol);
                     // Call API to unpin
@@ -708,11 +707,11 @@
                     // Call API to pin
                     await fetch(`/api/equity/pin/${symbol}`, { method: 'POST' });
                 }
-                
+
                 savePinnedSymbols();
                 renderVirtualTable();
                 await updatePinnedStats();
-                
+
             } catch (error) {
                 console.error('Error toggling pin:', error);
             }
@@ -724,17 +723,17 @@
                     renderEmptyStats();
                     return;
                 }
-                
+
                 const response = await fetch('/api/equity/pinned_stats');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
+
                 const result = await response.json();
                 if (result.success) {
                     renderPinnedStats(result.data);
                 } else {
                     renderEmptyStats();
                 }
-                
+
             } catch (error) {
                 console.error('Error updating pinned stats:', error);
                 renderEmptyStats();
@@ -744,7 +743,7 @@
         function renderPinnedStats(stats) {
             const grid = document.getElementById('statsGrid');
             const lastUpdated = document.getElementById('statsLastUpdated');
-            
+
             grid.innerHTML = `
                 <div class="stat-card">
                     <div class="stat-label">Total Pinned</div>
@@ -779,7 +778,7 @@
                     </div>
                 </div>
             `;
-            
+
             lastUpdated.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
         }
 
@@ -803,7 +802,7 @@
             const highScoreCount = stockData.filter(stock => stock.score >= 75).length;
             const avgScore = stockData.length > 0 ? 
                 (stockData.reduce((sum, stock) => sum + stock.score, 0) / stockData.length).toFixed(1) : 0;
-            
+
             statsElement.textContent = `${stockData.length} stocks, ${highScoreCount} high-score, avg: ${avgScore}`;
             console.log('[INFO] ' + new Date().toLocaleTimeString() + ': Stats updated: ' + stockData.length + ' stocks, ' + highScoreCount + ' high-score, avg: ' + avgScore);
         }

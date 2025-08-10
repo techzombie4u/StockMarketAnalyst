@@ -1,4 +1,3 @@
-
 """
 Stock Market Analyst - Enhanced Scheduler Module
 
@@ -70,12 +69,12 @@ def is_market_hours():
 def check_queue_depth(job_name: str) -> bool:
     """Check if job can run based on queue depth"""
     global job_queue_depth
-    
+
     if job_queue_depth >= MAX_QUEUE_DEPTH:
         logger.warning(f"Queue depth exceeded ({job_queue_depth}), skipping job: {job_name}")
         telemetry.increment_counter('jobs.queue_exceeded')
         return False
-    
+
     return True
 
 def track_job_execution(job_name: str):
@@ -83,37 +82,37 @@ def track_job_execution(job_name: str):
     def decorator(func):
         def wrapper(*args, **kwargs):
             global job_queue_depth
-            
+
             if not check_queue_depth(job_name):
                 return False
-            
+
             job_queue_depth += 1
             start_time = time.time()
-            
+
             try:
                 logger.info(f"Starting job: {job_name}")
                 telemetry.set_gauge('jobs.queue_depth', job_queue_depth)
-                
+
                 result = func(*args, **kwargs)
-                
+
                 end_time = time.time()
                 duration_ms = (end_time - start_time) * 1000
-                
+
                 logger.info(f"Job completed: {job_name}, duration: {duration_ms:.2f}ms")
                 telemetry.record_metric('jobs.duration_ms', duration_ms, {'job': job_name})
                 telemetry.set_gauge('jobs.last_run_sec', int(start_time))
-                
+
                 return result
-                
+
             except Exception as e:
                 logger.error(f"Job failed: {job_name}, error: {str(e)}")
                 telemetry.increment_counter('jobs.failures', {'job': job_name})
                 return False
-                
+
             finally:
                 job_queue_depth = max(0, job_queue_depth - 1)
                 telemetry.set_gauge('jobs.queue_depth', job_queue_depth)
-        
+
         return wrapper
     return decorator
 
@@ -135,19 +134,19 @@ def quotes_refresh_job():
     """Light job: refresh quotes data during market hours"""
     try:
         logger.info("Running quotes refresh...")
-        
+
         # Only run during market hours
         if not is_market_hours():
             logger.info("Market closed, skipping quotes refresh")
             return True
-        
+
         # Light quotes refresh logic here
         # This would update cached quote data without heavy computation
         cache_manager.refresh_quotes_cache()
-        
+
         telemetry.increment_counter('jobs.completed', {'job': 'quotes_refresh'})
         return True
-        
+
     except Exception as e:
         logger.error(f"Quotes refresh failed: {str(e)}")
         return False
@@ -157,18 +156,18 @@ def options_chain_refresh_job():
     """Light job: refresh options chains during market hours"""
     try:
         logger.info("Running options chain refresh...")
-        
+
         # Only run during market hours
         if not is_market_hours():
             logger.info("Market closed, skipping options chain refresh")
             return True
-        
+
         # Light options chain refresh logic here
         cache_manager.refresh_options_cache()
-        
+
         telemetry.increment_counter('jobs.completed', {'job': 'options_chain_refresh'})
         return True
-        
+
     except Exception as e:
         logger.error(f"Options chain refresh failed: {str(e)}")
         return False
@@ -178,21 +177,21 @@ def kpi_incremental_update_job():
     """Light job: incremental KPI updates during market hours"""
     try:
         logger.info("Running KPI incremental update...")
-        
+
         # Only run during market hours
         if not is_market_hours():
             logger.info("Market closed, skipping KPI incremental update")
             return True
-        
+
         # Import here to avoid circular imports
         from src.core.kpi.calculator import kpi_calculator
-        
+
         success = kpi_calculator.incremental_update()
         if success:
             telemetry.increment_counter('jobs.completed', {'job': 'kpi_incremental_update'})
-        
+
         return success
-        
+
     except Exception as e:
         logger.error(f"KPI incremental update failed: {str(e)}")
         return False
@@ -202,18 +201,18 @@ def cache_maintenance_job():
     """Always-on job: cache cleanup and maintenance"""
     try:
         logger.info("Running cache maintenance...")
-        
+
         # Clear expired cache entries
         cache_manager.clear_expired()
-        
+
         # Force garbage collection
         import gc
         collected = gc.collect()
         logger.info(f"Cache maintenance: {collected} objects collected")
-        
+
         telemetry.increment_counter('jobs.completed', {'job': 'cache_maintenance'})
         return True
-        
+
     except Exception as e:
         logger.error(f"Cache maintenance failed: {str(e)}")
         return False
@@ -223,21 +222,21 @@ def kpi_full_recompute_job():
     """Heavy job: full KPI recomputation after market hours"""
     try:
         logger.info("Running KPI full recompute...")
-        
+
         # Only run after market hours
         if is_market_hours():
             logger.warning("Market open, skipping heavy KPI recompute job")
             return False
-        
+
         # Import here to avoid circular imports
         from src.core.kpi.calculator import kpi_calculator
-        
+
         success = kpi_calculator.full_recompute()
         if success:
             telemetry.increment_counter('jobs.completed', {'job': 'kpi_full_recompute'})
-        
+
         return success
-        
+
     except Exception as e:
         logger.error(f"KPI full recompute failed: {str(e)}")
         return False
@@ -247,22 +246,22 @@ def precompute_other_timeframes_job():
     """Heavy job: precompute multi-timeframe data after market hours"""
     try:
         logger.info("Running precompute other timeframes...")
-        
+
         # Only run after market hours and if enabled
         if is_market_hours():
             logger.warning("Market open, skipping heavy precompute job")
             return False
-        
+
         if not feature_flags.is_enabled('enable_all_timeframes_concurrent'):
             logger.info("Multi-timeframe precompute disabled by feature flag")
             return True
-        
+
         # Precompute logic would go here
         logger.info("Multi-timeframe precompute completed")
-        
+
         telemetry.increment_counter('jobs.completed', {'job': 'precompute_other_timeframes'})
         return True
-        
+
     except Exception as e:
         logger.error(f"Precompute other timeframes failed: {str(e)}")
         return False
@@ -272,22 +271,22 @@ def agent_training_scan_job():
     """Heavy job: agent-driven training scan after market hours"""
     try:
         logger.info("Running agent training scan...")
-        
+
         # Only run after market hours and if enabled
         if is_market_hours():
             logger.warning("Market open, skipping heavy training scan job")
             return False
-        
+
         if not feature_flags.is_enabled('enable_realtime_agents'):
             logger.info("Realtime agents disabled by feature flag")
             return True
-        
+
         # Agent training scan logic would go here
         logger.info("Agent training scan completed")
-        
+
         telemetry.increment_counter('jobs.completed', {'job': 'agent_training_scan'})
         return True
-        
+
     except Exception as e:
         logger.error(f"Agent training scan failed: {str(e)}")
         return False
@@ -473,7 +472,7 @@ class StockAnalystScheduler:
             )
 
             # Heavy jobs (after market hours only)
-            
+
             # KPI full recompute daily at 16:00 IST
             self.scheduler.add_job(
                 func=kpi_full_recompute_job,
@@ -520,9 +519,18 @@ class StockAnalystScheduler:
                 misfire_grace_time=300
             )
 
+            # Register KPI background jobs
+            try:
+                from common_repository.scheduler.jobs import register_kpi_jobs
+                register_kpi_jobs(scheduler)
+            except ImportError as e:
+                logger.error(f"Failed to import KPI jobs: {e}")
+
+            logger.info("✅ All scheduler jobs configured successfully")
+
             self.scheduler.start()
             self.running = True
-            
+
             logger.info(f"✅ Scheduler started with IST-aware job windows")
             logger.info(f"   Light jobs: quotes (30s), options (60s), KPI (5m), cache (10m)")
             logger.info(f"   Heavy jobs: KPI recompute (16:00), precompute (19:00), training (20:00)")

@@ -1,0 +1,13 @@
+
+{
+  "targets": {
+    "brier": {"3D": 0.18, "5D": 0.18, "10D": 0.22, "15D": 0.22, "30D": 0.22},
+    "hit_rate": {"all": 0.62},
+    "sharpe": {"all": 1.2},
+    "sortino": {"all": 2.0},
+    "max_dd": {"all": 0.05},
+    "var_95": {"all": 0.005}
+  },
+  "colors": {"good": "green", "warn": "amber", "bad": "red"},
+  "warn_bands": {"pct": 0.1}
+}
