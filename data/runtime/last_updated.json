@@ -1,0 +1,23 @@
+{
+  "key": "last_updated",
+  "data": {
+    "dashboard": {
+      "auto": "2025-08-10T12:54:26.729680+05:30",
+      "manual": "2025-08-10T12:49:45.821103+05:30"
+    },
+    "equities": {
+      "auto": null,
+      "manual": null
+    },
+    "options": {
+      "auto": null,
+      "manual": null
+    },
+    "commodities": {
+      "auto": null,
+      "manual": null
+    }
+  },
+  "timestamp": "2025-08-10T07:24:26.729853",
+  "version": "1.0"
+}
