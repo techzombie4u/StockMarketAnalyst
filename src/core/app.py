@@ -316,6 +316,10 @@ CORS(app)
 app.register_blueprint(equity_bp)
 app.register_blueprint(options_bp)
 
+# Register meta API
+from src.app.api.meta import meta_bp
+app.register_blueprint(meta_bp)
+
 # Global scheduler instance
 scheduler = None
 
@@ -342,8 +346,15 @@ def dashboard():
 
 @app.route('/api/stocks')
 def get_stocks():
-    """Get current stock analysis results"""
+    """Get current stock analysis results with refresh tracking"""
     try:
+        # Track refresh type
+        refresh_type = request.args.get('refresh_type', 'auto')
+        force_refresh = request.args.get('force', '0') == '1'
+        
+        # Update last updated timestamp
+        from src.app.api.meta import update_last_updated
+        update_last_updated('dashboard', refresh_type)
         # Clear data cache on every refresh
         clearDataCache()
 

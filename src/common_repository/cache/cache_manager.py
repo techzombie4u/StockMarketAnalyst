@@ -1,4 +1,3 @@
-
 """
 Two-Tier Cache Manager
 In-memory LRU + on-disk JSON with TTL and request coalescing
@@ -24,7 +23,7 @@ class LRUCache:
         self.max_size = max_size
         self.cache = OrderedDict()
         self.lock = threading.Lock()
-        
+
     def get(self, key: str) -> Optional[Any]:
         with self.lock:
             if key in self.cache:
@@ -32,17 +31,17 @@ class LRUCache:
                 self.cache.move_to_end(key)
                 return self.cache[key]
             return None
-            
+
     def put(self, key: str, value: Any):
         with self.lock:
             if key in self.cache:
                 self.cache.move_to_end(key)
             self.cache[key] = value
-            
+
             # Evict LRU if over limit
             while len(self.cache) > self.max_size:
                 self.cache.popitem(last=False)
-                
+
     def clear(self, prefix: Optional[str] = None):
         with self.lock:
             if prefix:
@@ -56,10 +55,10 @@ class CacheManager:
     def __init__(self, cache_dir: str = "data/cache"):
         self.cache_dir = cache_dir
         os.makedirs(cache_dir, exist_ok=True)
-        
+
         # In-memory cache
         self.memory_cache = LRUCache(max_size=2000)
-        
+
         # TTL settings (in seconds)
         self.ttls = {
             'quotes': 15,
@@ -68,50 +67,50 @@ class CacheManager:
             'model_inference': 300,  # 5 minutes
             'default': 300
         }
-        
+
         # Request coalescing - track in-flight requests
         self.in_flight = {}
         self.coalescing_lock = threading.Lock()
-        
+
     def _get_cache_key(self, provider: str, resource: str, symbol: str, params: Dict) -> str:
         """Generate cache key with params hash"""
         params_str = json.dumps(params, sort_keys=True)
         params_hash = hashlib.md5(params_str.encode()).hexdigest()[:8]
         return f"{provider}:{resource}:{symbol}:{params_hash}"
-        
+
     def _get_file_path(self, key: str) -> str:
         """Get file path for disk cache"""
         safe_key = key.replace(':', '_').replace('/', '_')
         return os.path.join(self.cache_dir, f"{safe_key}.json")
-        
+
     def _get_ttl(self, resource_type: str) -> int:
         """Get TTL for resource type"""
         return self.ttls.get(resource_type, self.ttls['default'])
-        
+
     def _is_expired(self, cache_entry: Dict, ttl: int) -> bool:
         """Check if cache entry is expired"""
         timestamp = cache_entry.get('timestamp', 0)
         return time.time() - timestamp > ttl
-        
+
     def get(self, provider: str, resource: str, symbol: str, params: Dict = None) -> Optional[Any]:
         """Get from cache with TTL check"""
         params = params or {}
         key = self._get_cache_key(provider, resource, symbol, params)
         ttl = self._get_ttl(resource)
-        
+
         # Try memory cache first
         memory_entry = self.memory_cache.get(key)
         if memory_entry and not self._is_expired(memory_entry, ttl):
             telemetry.increment('cache_hits')
             return memory_entry['data']
-            
+
         # Try disk cache
         try:
             file_path = self._get_file_path(key)
             if os.path.exists(file_path):
                 with open(file_path, 'r') as f:
                     disk_entry = json.load(f)
-                    
+
                 if not self._is_expired(disk_entry, ttl):
                     # Load back to memory cache
                     self.memory_cache.put(key, disk_entry)
@@ -122,23 +121,23 @@ class CacheManager:
                     os.remove(file_path)
         except Exception as e:
             logger.warning(f"Error reading disk cache for {key}: {e}")
-            
+
         telemetry.increment('cache_misses')
         return None
-        
+
     def put(self, provider: str, resource: str, symbol: str, data: Any, params: Dict = None):
         """Store in both memory and disk cache"""
         params = params or {}
         key = self._get_cache_key(provider, resource, symbol, params)
-        
+
         cache_entry = {
             'data': data,
             'timestamp': time.time()
         }
-        
+
         # Store in memory
         self.memory_cache.put(key, cache_entry)
-        
+
         # Store on disk
         try:
             file_path = self._get_file_path(key)
@@ -146,58 +145,58 @@ class CacheManager:
                 json.dump(cache_entry, f, default=str)
         except Exception as e:
             logger.warning(f"Error writing disk cache for {key}: {e}")
-            
+
     async def get_or_fetch(self, provider: str, resource: str, symbol: str, 
                           fetch_func: Callable[[], Awaitable[Any]], params: Dict = None) -> Any:
         """Get from cache or fetch with request coalescing"""
         params = params or {}
         key = self._get_cache_key(provider, resource, symbol, params)
-        
+
         # Try cache first
         cached_data = self.get(provider, resource, symbol, params)
         if cached_data is not None:
             return cached_data
-            
+
         # Check if request is already in flight
         with self.coalescing_lock:
             if key in self.in_flight:
                 # Wait for existing request
                 return await self.in_flight[key]
-                
+
             # Create new request future
             future = asyncio.create_task(self._fetch_and_cache(
                 provider, resource, symbol, fetch_func, params, key
             ))
             self.in_flight[key] = future
-            
+
         try:
             return await future
         finally:
             # Clean up in-flight tracking
             with self.coalescing_lock:
                 self.in_flight.pop(key, None)
-                
+
     async def _fetch_and_cache(self, provider: str, resource: str, symbol: str,
                               fetch_func: Callable[[], Awaitable[Any]], params: Dict, key: str) -> Any:
         """Fetch data and store in cache"""
         try:
             telemetry.increment('api_calls')
             data = await fetch_func()
-            
+
             if data is not None:
                 self.put(provider, resource, symbol, data, params)
-                
+
             return data
-            
+
         except Exception as e:
             telemetry.increment('api_failures')
             logger.error(f"Error fetching data for {key}: {e}")
             raise
-            
+
     def clear_expired(self):
         """Clear expired entries from cache"""
         current_time = time.time()
-        
+
         # Clear memory cache expired entries
         with self.memory_cache.lock:
             expired_keys = []
@@ -206,10 +205,10 @@ class CacheManager:
                 ttl = self._get_ttl(resource_type)
                 if self._is_expired(entry, ttl):
                     expired_keys.append(key)
-                    
+
             for key in expired_keys:
                 del self.memory_cache.cache[key]
-                
+
         # Clear disk cache expired files
         try:
             for filename in os.listdir(self.cache_dir):
@@ -218,25 +217,25 @@ class CacheManager:
                     try:
                         with open(file_path, 'r') as f:
                             entry = json.load(f)
-                            
+
                         # Extract resource type from filename
                         key_parts = filename.replace('.json', '').split('_')
                         resource_type = key_parts[1] if len(key_parts) > 1 else 'default'
                         ttl = self._get_ttl(resource_type)
-                        
+
                         if self._is_expired(entry, ttl):
                             os.remove(file_path)
-                            
+
                     except Exception as e:
                         logger.warning(f"Error checking expired file {filename}: {e}")
-                        
+
         except Exception as e:
             logger.warning(f"Error clearing expired disk cache: {e}")
-            
+
     def clear_scope(self, scope: str):
         """Clear cache for specific scope (provider:resource pattern)"""
         self.memory_cache.clear(prefix=scope)
-        
+
         # Clear matching disk files
         try:
             for filename in os.listdir(self.cache_dir):
@@ -245,28 +244,68 @@ class CacheManager:
                     os.remove(file_path)
         except Exception as e:
             logger.warning(f"Error clearing scope {scope}: {e}")
-            
+
+    def refresh_quotes_cache(self) -> bool:
+        """Refresh quotes cache (light operation for market hours)"""
+        try:
+            logger.info("Refreshing quotes cache...")
+
+            # Clear expired quote entries
+            quote_keys = [k for k in self._cache.keys() if k.startswith('quote:')]
+            expired_quotes = 0
+
+            for key in quote_keys:
+                if key in self._cache and self._is_expired(self._cache[key]['expires_at']):
+                    del self._cache[key]
+                    expired_quotes += 1
+
+            logger.info(f"Cleared {expired_quotes} expired quote entries")
+            telemetry.increment_counter('cache.quotes_refreshed')
+            return True
+
+        except Exception as e:
+            logger.error(f"Error refreshing quotes cache: {str(e)}")
+            return False
+
+    def refresh_options_cache(self) -> bool:
+        """Refresh options chain cache (light operation for market hours)"""
+        try:
+            logger.info("Refreshing options chain cache...")
+
+            # Clear expired options entries
+            options_keys = [k for k in self._cache.keys() if k.startswith('options:')]
+            expired_options = 0
+
+            for key in options_keys:
+                if key in self._cache and self._is_expired(self._cache[key]['expires_at']):
+                    del self._cache[key]
+                    expired_options += 1
+
+            logger.info(f"Cleared {expired_options} expired options entries")
+            telemetry.increment_counter('cache.options_refreshed')
+            return True
+
+        except Exception as e:
+            logger.error(f"Error refreshing options cache: {str(e)}")
+            return False
+
     def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics"""
-        memory_size = len(self.memory_cache.cache)
-        
-        disk_files = 0
-        disk_size_mb = 0
         try:
-            for filename in os.listdir(self.cache_dir):
-                if filename.endswith('.json'):
-                    disk_files += 1
-                    file_path = os.path.join(self.cache_dir, filename)
-                    disk_size_mb += os.path.getsize(file_path) / 1024 / 1024
-        except Exception:
-            pass
-            
-        return {
-            'memory_entries': memory_size,
-            'disk_files': disk_files,
-            'disk_size_mb': round(disk_size_mb, 2),
-            'in_flight_requests': len(self.in_flight)
-        }
+            total_entries = len(self._cache)
+            expired_entries = len([k for k, v in self._cache.items() 
+                                 if self._is_expired(v['expires_at'])])
+
+            return {
+                'total_entries': total_entries,
+                'expired_entries': expired_entries,
+                'active_entries': total_entries - expired_entries,
+                'hit_rate': self._calculate_hit_rate(),
+                'memory_usage_mb': self._estimate_memory_usage()
+            }
+        except Exception as e:
+            logger.error(f"Error getting cache stats: {str(e)}")
+            return {}
 
 # Global cache manager instance
 cache_manager = CacheManager()

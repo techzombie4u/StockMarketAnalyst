@@ -24,24 +24,22 @@ class FeatureFlags:
                 with open(self.config_file, 'r') as f:
                     return json.load(f)
             else:
-                # Default flags
+                # Default flag values with memory optimization
                 default_flags = {
-                    "enable_dynamic_confidence": True,
-                    "enable_ml_predictions": True,
-                    "enable_advanced_scoring": True,
-                    "enable_risk_management": True,
-                    "enable_sentiment_analysis": False,
-                    "enable_caching": True,
-                    "debug_mode": False,
-                    # Performance and reliability flags (heavy features OFF by default)
-                    "enable_dynamic_confidence": False,
-                    "enable_smart_agent_validation": True,
-                    "enable_enhanced_verdict_logic": True,  # kept lightweight
-                    "enable_visual_roi_trends": False,
-                    "enable_complete_timeframe_support": False,
-                    "enable_all_timeframes_concurrent": False,
-                    "enable_realtime_agents": False,
-                    "enable_autorefresh": True,
+                    'enable_dynamic_confidence': True,
+                    'enable_real_time_trends': True,
+                    'enable_all_timeframes': True,
+                    'enable_ai_agents': False,
+                    'enable_advanced_charting': True,
+                    'enable_options_strategies': True,
+                    'enable_prediction_tracking': True,
+                    'enable_performance_monitoring': True,
+                    'enable_backtesting': True,
+                    'enable_memory_optimization': True,
+                    'enable_autorefresh': True,
+                    'enable_kpi_triggers': True,
+                    'enable_realtime_agents': False,
+                    'enable_all_timeframes_concurrent': False
                 }
                 self._save_flags(default_flags)
                 return default_flags
