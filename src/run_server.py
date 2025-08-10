@@ -2,16 +2,26 @@
 # src/run_server.py
 import os, sys
 
-# Ensure 'src' (this dir) is importable as the project root for 'core', 'fusion', 'agents'
-SRC_DIR = os.path.dirname(os.path.abspath(__file__))
-if SRC_DIR not in sys.path:
-    sys.path.insert(0, SRC_DIR)
+# Absolute paths
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))           # /.../src
+ROOT_DIR = os.path.dirname(SRC_DIR)                            # /.../
 
-from core.app import create_app
+# Make both 'src' and its parent importable:
+# - so 'core', 'fusion', 'agents' (from SRC_DIR) import works
+# - and 'src.core', 'src.fusion' (from ROOT_DIR) import works
+for p in (SRC_DIR, ROOT_DIR):
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+try:
+    # Prefer non-prefixed import (since SRC_DIR is on sys.path)
+    from core.app import create_app
+except ImportError:
+    # Fallback to 'src.'-prefixed import (requires ROOT_DIR on sys.path)
+    from src.core.app import create_app
 
 app = create_app()
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
-    # No reloader; single process; thread-safe blueprints
     app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)

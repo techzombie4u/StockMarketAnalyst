@@ -1,14 +1,15 @@
-import os
-import json
+
+# src/agents/registry.py
+import os, json
 from datetime import datetime, timezone
-from typing import Dict, Any, Callable, Optional
+from typing import Dict, Any, Callable
 
 BASE_DIR = os.path.join("data", "agents")
 REG_FILE = os.path.join(BASE_DIR, "registry.json")
 CFG_FILE = os.path.join(BASE_DIR, "config.json")
 
 def _now():
-    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00","Z")
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 class AgentRegistry:
     def __init__(self):
@@ -19,7 +20,6 @@ class AgentRegistry:
         self.load_registry()
         self.load_config()
 
-    # ---------- Registry ----------
     def load_registry(self):
         if os.path.exists(REG_FILE):
             with open(REG_FILE, "r", encoding="utf-8") as f:
@@ -33,10 +33,6 @@ class AgentRegistry:
             json.dump(self.agents, f, indent=2)
 
     def register_or_bind(self, agent_id: str, name: str, run_fn: Callable, description: str = "", enabled: bool = True):
-        """
-        If agent exists in JSON, only (re)binds the run function.
-        Otherwise creates it and persists.
-        """
         self._run_map[agent_id] = run_fn
         if agent_id not in self.agents:
             self.agents[agent_id] = {
@@ -50,7 +46,6 @@ class AgentRegistry:
             self.save_registry()
 
     def list_agents(self):
-        # hide internal callable map
         return [dict((k, v) for k, v in a.items()) for a in self.agents.values()]
 
     def enable_agent(self, agent_id: str): self._set_enabled(agent_id, True)
@@ -80,7 +75,6 @@ class AgentRegistry:
             results[aid] = self.run_agent(aid)
         return results
 
-    # ---------- Config ----------
     def load_config(self):
         if os.path.exists(CFG_FILE):
             with open(CFG_FILE, "r", encoding="utf-8") as f:
@@ -92,5 +86,4 @@ class AgentRegistry:
         with open(CFG_FILE, "w", encoding="utf-8") as f:
             json.dump(self.config, f, indent=2)
 
-# Global instance
 registry = AgentRegistry()

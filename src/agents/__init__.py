@@ -19,3 +19,4 @@ from .api import agents_bp
 from .base import BaseAgent
 
 __all__ = ['registry', 'agents_bp', 'BaseAgent']
+# src.agents package initialization

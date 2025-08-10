@@ -1,8 +1,13 @@
 from flask import Blueprint, jsonify, request
-from .registry import registry
 import logging
 
 logger = logging.getLogger(__name__)
+
+try:
+    from .registry import registry
+except Exception:
+    # Fallback if imported as src.agents.api
+    from src.agents.registry import registry
 
 agents_bp = Blueprint("agents", __name__, url_prefix="/api/agents")
 
@@ -121,7 +126,7 @@ def set_config(key):
                 "success": False,
                 "error": "Missing 'value' in request body"
             }), 400
-            
+
         registry.set_config(key, data["value"])
         return jsonify({
             "success": True,
@@ -145,7 +150,7 @@ def get_agent_result(agent_id):
                 "success": False,
                 "error": "No result found for agent"
             }), 404
-            
+
         return jsonify({
             "success": True,
             "agent_id": agent_id,
