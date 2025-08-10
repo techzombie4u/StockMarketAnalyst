@@ -32,6 +32,10 @@ def create_app():
         app.logger.warning(f"❌ Agents blueprint not registered: {e}")
 
     # ---- Main dashboard routes ----
+    @app.route("/health")
+    def health():
+        return {"ok": True}, 200
+
     @app.route("/")
     def root():
         try:
