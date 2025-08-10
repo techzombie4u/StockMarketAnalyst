@@ -76,7 +76,25 @@ def create_app():
 
     @app.route("/")
     def root():
-        return "Stock Analyst server is running", 200
+        try:
+            return render_template("index.html")
+        except Exception as e:
+            app.logger.warning(f"Failed to load main dashboard: {e}")
+            return f"""
+            <html>
+                <head><title>Stock Analyst Dashboard</title></head>
+                <body>
+                    <h1>📊 Stock Analyst Server</h1>
+                    <p>Server is running successfully!</p>
+                    <ul>
+                        <li><a href="/fusion-dashboard">Fusion Dashboard</a></li>
+                        <li><a href="/health">Health Check</a></li>
+                        <li><a href="/api/fusion/dashboard">Fusion API</a></li>
+                        <li><a href="/api/agents/health">Agents API</a></li>
+                    </ul>
+                </body>
+            </html>
+            """, 200
 
     # Log routes once to verify on boot
     try:

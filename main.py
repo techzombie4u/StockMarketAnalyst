@@ -37,9 +37,28 @@ def delayed_scheduler_init():
 
 # This is the entry point for the script when run directly
 if __name__ == "__main__":
-    # Import and run the main function from src.core.main
-    from src.core.main import main
-    main()
+    try:
+        print("🚀 Starting Stock Analyst Application...")
+
+        # Initialize the application
+        from src.core.initialize import initialize_application
+        initialize_application()
+
+        # Create Flask app
+        from src.core.app import create_app
+        app = create_app()
+
+        # Run the application
+        print("✅ Application initialized successfully")
+        print("🌐 Server starting on http://0.0.0.0:5000")
+        print("📊 Main Dashboard: http://0.0.0.0:5000/")
+        print("🔥 Fusion Dashboard: http://0.0.0.0:5000/fusion-dashboard")
+        app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)
+
+    except Exception as e:
+        print(f"❌ Failed to start application: {str(e)}")
+        import traceback
+        traceback.print_exc()
 else:
     # For WSGI deployment (e.g., Gunicorn, uWSGI)
     # Import the Flask app from the organized structure

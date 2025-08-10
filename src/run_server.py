@@ -1,4 +1,3 @@
-
 # src/run_server.py
 import os, sys
 
@@ -24,4 +23,7 @@ app = create_app()
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
+    print("🚀 Starting Stock Analyst Server...")
+    print(f"📊 Dashboard will be available at: http://0.0.0.0:{port}/")
+    print(f"🔥 Fusion Dashboard at: http://0.0.0.0:{port}/fusion-dashboard")
+    app.run(debug=True, host="0.0.0.0", port=port, threaded=True)
