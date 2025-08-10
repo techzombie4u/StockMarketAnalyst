@@ -16,7 +16,7 @@ run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 120 --pre
 deploymentTarget = "cloudrun"
 
 [workflows]
-runButton = "Start Stock Analyst App"
+runButton = "Start Fusion Server"
 
 [[workflows.workflow]]
 name = "Run Stock Analyst"
@@ -107,6 +107,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "export PYTHONPATH=\".:./src:$PYTHONPATH\" && python main.py"
+
+[[workflows.workflow]]
+name = "Start Fusion Server"
+author = 41554566
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -u src/run_server.py"
 
 [[ports]]
 localPort = 5000
