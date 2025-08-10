@@ -78,10 +78,6 @@ def create_app():
     def root():
         return "Stock Analyst server is running", 200
 
-    @app.route("/health")
-    def health():
-        return jsonify({"status": "ok"}), 200
-
     # Log routes once to verify on boot
     try:
         rules = sorted([str(r.rule) for r in app.url_map.iter_rules()])
