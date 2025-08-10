@@ -84,7 +84,7 @@ def run_screening_job():
 
     try:
         logger.info("Starting scheduled stock screening...")
-        
+
         # Memory cleanup before heavy operations
         import gc
         gc.collect()
@@ -99,14 +99,14 @@ def run_screening_job():
         start_time = time.time()
         results = []
         session_status = 'error'
-        
+
         try:
             # Memory check before screening
             import psutil
             import os
             process = psutil.Process(os.getpid())
             memory_before = process.memory_info().rss / 1024 / 1024
-            
+
             # Check if screener is properly initialized
             if not hasattr(screener, 'under500_symbols'):
                 logger.error("Screener not properly initialized")
@@ -115,11 +115,11 @@ def run_screening_job():
             else:
                 results = screener.run_enhanced_screener()
                 session_status = 'success'
-                
+
             # Memory check after screening
             memory_after = process.memory_info().rss / 1024 / 1024
             memory_used = memory_after - memory_before
-            
+
             if memory_used > 100:  # More than 100MB used
                 logger.warning(f"High memory usage detected: {memory_used:.1f}MB")
                 # Force cleanup
@@ -315,15 +315,24 @@ class StockAnalystScheduler:
             # Configure scheduler
             self.configure_scheduler()
 
-            # Add the main screening job
+            # Schedule the screening job to run every hour during market hours
             self.scheduler.add_job(
-                func=run_screening_job,
-                trigger=IntervalTrigger(minutes=interval_minutes),
-                id='stock_screening',
-                name='Stock Screening Job',
+                func=self.run_screening_job,
+                trigger='interval',
+                minutes=interval_minutes,
+                id='screening_job',
                 replace_existing=True,
                 max_instances=1,
                 misfire_grace_time=300  # 5 minutes grace period
+            )
+
+            # Schedule memory cleanup job every 10 minutes
+            self.scheduler.add_job(
+                func=self.run_memory_cleanup,
+                trigger='interval',
+                minutes=10,
+                id='memory_cleanup',
+                replace_existing=True
             )
 
             # Schedule daily market close data update
@@ -437,6 +446,41 @@ class StockAnalystScheduler:
 
         except Exception as e:
             logger.warning(f"Error initializing new stock tracking: {str(e)}")
+
+    def run_memory_cleanup(self):
+        """Run memory cleanup and budget checks"""
+        try:
+            logger.info("Running scheduled memory cleanup")
+
+            # Import here to avoid circular imports
+            from src.common_repository.utils.memory import memory_manager
+            from src.common_repository.utils.profiler import profiler
+            from src.common_repository.cache.cache_manager import cache_manager
+
+            # Clean up expired cache entries
+            cache_manager.clear_expired()
+
+            # Run memory cleanup
+            memory_manager.cleanup_expired_data()
+
+            # Check and enforce budgets
+            profiler.check_and_enforce_budgets()
+
+            logger.info("Memory cleanup completed successfully")
+
+        except Exception as e:
+            logger.error(f"Error during memory cleanup: {str(e)}")
+
+    def get_scheduler_status(self):
+        """Get current scheduler status"""
+        if self.scheduler is None:
+            return {'running': False, 'message': 'Scheduler not initialized'}
+
+        return {
+            'running': self.scheduler.running,
+            'jobs': len(self.scheduler.get_jobs()),
+            'next_run_time': str(self.scheduler.get_jobs()[0].next_run_time) if self.scheduler.get_jobs() else 'None'
+        }
 
 def main():
     """Test scheduler"""

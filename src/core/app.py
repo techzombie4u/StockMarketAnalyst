@@ -1847,6 +1847,64 @@ def retrain_models():
             'message': str(e)
         }), 500
 
+@app.route('/api/admin/feature-flags', methods=['GET', 'POST'])
+def admin_feature_flags():
+    """Admin endpoint for feature flag management"""
+    try:
+        if request.method == 'GET':
+            # Get all current flags
+            return jsonify({
+                'status': 'success',
+                'flags': feature_flags.get_all_runtime_flags(),
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        elif request.method == 'POST':
+            data = request.get_json()
+            flag_name = data.get('flag_name')
+            flag_value = data.get('flag_value')
+            
+            if not flag_name or flag_value is None:
+                return jsonify({'error': 'flag_name and flag_value required'}), 400
+                
+            # Set the flag
+            feature_flags.set_flag(flag_name, bool(flag_value))
+            
+            # Check budgets after flag change
+            from src.common_repository.utils.profiler import profiler
+            profiler.check_and_enforce_budgets()
+            
+            return jsonify({
+                'status': 'success',
+                'message': f'Flag {flag_name} set to {flag_value}',
+                'flags': feature_flags.get_all_runtime_flags()
+            })
+            
+    except Exception as e:
+        logger.error(f"Error in admin feature flags: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/performance-stats', methods=['GET'])
+def admin_performance_stats():
+    """Admin endpoint for performance statistics"""
+    try:
+        from src.common_repository.utils.telemetry import telemetry
+        from src.common_repository.cache.cache_manager import cache_manager
+        from src.common_repository.utils.memory import memory_manager
+        
+        stats = {
+            'telemetry': telemetry.get_all_metrics(),
+            'cache': cache_manager.get_stats(),
+            'memory': memory_manager.get_memory_stats(),
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        return jsonify(stats)
+        
+    except Exception as e:
+        logger.error(f"Error getting performance stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/models/status', methods=['GET'])
 def get_model_status():
     """Get current model training status and KPIs"""
