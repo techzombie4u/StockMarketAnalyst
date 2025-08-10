@@ -16,7 +16,7 @@ run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 120 --pre
 deploymentTarget = "cloudrun"
 
 [workflows]
-runButton = "Start Fixed Stock Analyst"
+runButton = "Start Stock Analyst App"
 
 [[workflows.workflow]]
 name = "Run Stock Analyst"
@@ -92,6 +92,15 @@ args = "python main.py"
 
 [[workflows.workflow]]
 name = "Start Fixed Stock Analyst"
+author = 41554566
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "export PYTHONPATH=./src:$PYTHONPATH && python main.py"
+
+[[workflows.workflow]]
+name = "Start Stock Analyst App"
 author = 41554566
 mode = "sequential"
 
