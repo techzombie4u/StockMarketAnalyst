@@ -1,36 +1,108 @@
 
-goahead:
-  triggers:
-    retrain:
-      hit_rate_drop_threshold: 0.10
-      brier_deterioration_threshold: 0.05
-      evaluation_window_days: 30
-    risk_tighten:
-      var_95_threshold: 0.005
-      max_dd_threshold: 0.05
-    throttling:
-      sharpe_threshold: 1.0
-      consecutive_windows: 2
-  
-  policy:
-    enabled: true
-    auto_acknowledge: false
-    notification_channels: ["ui", "log"]
-    
-  rate_limits:
-    manual_refresh_cooldown_sec: 120
-    trigger_evaluation_cooldown_sec: 300
+# AI Agents Framework Configuration
+llm:
+  provider: "mistral"
+  api_base: "https://api.mistral.ai/v1"
+  api_key_env: "MISTRAL_API_KEY"
+  model: "mistral-medium"
+  temperature: 0.1
+  max_tokens: 2000
 
 agents:
-  dev_agent:
-    enabled: false
-  trainer_agent:
-    enabled: false
-  equity_agent:
+  dev:
     enabled: true
-  options_agent:
+    purpose: "Code development and architecture guidance"
+    inputs: ["change_request", "impact_matrix", "feature_flags"]
+    outputs: ["verdict", "confidence", "rationale", "suggested_actions"]
+    constraints:
+      latency_ms: 15000
+      token_cap: 1500
+      redactions: ["api_keys", "credentials"]
+    safety:
+      disallow_pii: true
+      disallow_position_sizing: true
+    run_policy: "manual_only"
+    
+  trainer:
     enabled: true
-  commodity_agent:
-    enabled: false
-  sentiment_agent:
-    enabled: false
+    purpose: "ML model training insights and recommendations"
+    inputs: ["kpi_deltas", "prediction_stats", "data_gaps"]
+    outputs: ["verdict", "confidence", "rationale", "suggested_actions", "risk_flags"]
+    constraints:
+      latency_ms: 20000
+      token_cap: 1800
+      redactions: ["pii", "sensitive_data"]
+    safety:
+      disallow_pii: true
+      disallow_position_sizing: false
+    run_policy: "on_kpi_change"
+    
+  equity:
+    enabled: true
+    purpose: "Equity trading analysis and recommendations"
+    inputs: ["predictions_snapshot", "kpi_snapshot", "market_context"]
+    outputs: ["verdict", "confidence", "rationale", "insights", "actions"]
+    constraints:
+      latency_ms: 10000
+      token_cap: 1200
+      redactions: ["account_ids", "positions"]
+    safety:
+      disallow_pii: true
+      disallow_position_sizing: true
+    run_policy: "on_prediction_close"
+    
+  options:
+    enabled: true
+    purpose: "Options strategy analysis and risk assessment"
+    inputs: ["options_chain", "predictions_snapshot", "market_context", "volatility"]
+    outputs: ["verdict", "confidence", "rationale", "risk_flags", "actions"]
+    constraints:
+      latency_ms: 12000
+      token_cap: 1400
+      redactions: ["margin_info", "account_data"]
+    safety:
+      disallow_pii: true
+      disallow_position_sizing: true
+    run_policy: "on_prediction_close"
+    
+  comm:
+    enabled: true
+    purpose: "Communication and reporting insights"
+    inputs: ["kpi_snapshot", "predictions", "market_context"]
+    outputs: ["verdict", "confidence", "insights", "actions"]
+    constraints:
+      latency_ms: 8000
+      token_cap: 1000
+      redactions: ["personal_info"]
+    safety:
+      disallow_pii: true
+      disallow_position_sizing: true
+    run_policy: "scheduled"
+    
+  new:
+    enabled: true
+    purpose: "New opportunity identification and analysis"
+    inputs: ["context", "product", "market_trends"]
+    outputs: ["verdict", "confidence", "insights", "suggested_actions"]
+    constraints:
+      latency_ms: 15000
+      token_cap: 1600
+      redactions: ["proprietary_data"]
+    safety:
+      disallow_pii: true
+      disallow_position_sizing: true
+    run_policy: "manual_only"
+    
+  sentiment:
+    enabled: true
+    purpose: "Market sentiment analysis and interpretation"
+    inputs: ["sentiment_aggregates", "news_summary", "market_context"]
+    outputs: ["verdict", "confidence", "insights", "risk_flags"]
+    constraints:
+      latency_ms: 5000
+      token_cap: 800
+      redactions: ["source_attribution"]
+    safety:
+      disallow_pii: true
+      disallow_position_sizing: true
+    run_policy: "scheduled"

@@ -6,3 +6,6 @@ from .personal_signal_agent import *
 from .prediction_stability_manager import *
 from .advanced_signal_filter import *
 from .ensemble_predictor import *
+"""
+AI Agents Framework
+"""

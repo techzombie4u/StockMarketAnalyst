@@ -4,7 +4,7 @@ Options API endpoints
 
 from flask import Blueprint, jsonify, request
 from .service import options_service
-from .utils import pinned_manager
+from ...common_repository.utils.pinned_manager import pinned_manager
 
 # Create blueprint with correct name
 options_bp = Blueprint('options', __name__, url_prefix='/api/options')

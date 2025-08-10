@@ -29,6 +29,8 @@ from src.common_repository.storage.json_store import json_store
 # Import product services
 from src.products.equities.api import equity_bp
 from src.products.options.api import options_bp
+from src.products.shared.api.kpi_api import kpi_bp
+from src.products.shared.api.agents_api import agents_bp
 
 # Configure logging
 logging.basicConfig(
@@ -315,15 +317,8 @@ CORS(app)
 # Register blueprints
 app.register_blueprint(equity_bp)
 app.register_blueprint(options_bp)
-
-# Register KPI blueprint
-try:
-    from src.products.shared.api.kpi_api import kpi_bp
-    app.register_blueprint(kpi_bp)
-    logger.info("✅ KPI blueprint registered")
-except ImportError as e:
-    logger.error(f"Failed to import KPI blueprint: {e}")
-
+app.register_blueprint(kpi_bp)
+app.register_blueprint(agents_bp)
 
 # Register meta API
 from src.app.api.meta import meta_bp
@@ -1731,6 +1726,12 @@ def initialize_app():
         except Exception as scheduler_error:
             logger.warning(f"⚠️ Scheduler failed to start: {scheduler_error}")
             scheduler = None
+
+        # Initialize AI agents orchestrator
+        if feature_flags.is_enabled('enable_agents_framework'):
+            from src.agents.orchestrator import agent_orchestrator
+            agent_orchestrator.start()
+            logger.info("AI Agents orchestrator started")
 
     except Exception as e:
         logger.error(f"❌ Error during app initialization: {str(e)}")
