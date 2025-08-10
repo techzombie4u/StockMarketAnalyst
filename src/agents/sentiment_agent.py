@@ -64,3 +64,35 @@ class SentimentAnalyzerAgent(BaseAgent):
 def run() -> Dict[str, Any]:
     agent = SentimentAnalyzerAgent()
     return agent.run()
+from .base_agent import BaseAgent
+from .storage import save_result
+import time
+
+class SentimentAgent(BaseAgent):
+    """
+    Minimal sentiment generator (mock, deterministic)
+    """
+    def __init__(self):
+        super().__init__(
+            agent_id="sentiment_analyzer",
+            name="Sentiment Analyzer",
+            description="Generates market sentiment and symbol highlights."
+        )
+
+    def run(self, **kwargs):
+        start = time.time()
+        result = {
+            "agent_id": self.agent_id,
+            "ran_at": int(start),
+            "market_sentiment": "NEUTRAL_TO_POSITIVE",
+            "highlights": [
+                {"symbol": "RELIANCE", "sentiment": "POSITIVE"},
+                {"symbol": "TCS", "sentiment": "STRONG_POSITIVE"},
+                {"symbol": "INFY", "sentiment": "NEUTRAL"},
+            ],
+            "metrics": {"latency_ms": round((time.time() - start) * 1000, 2)},
+        }
+        wrapped = {"success": True, "data": result}
+        self.last_result = wrapped
+        save_result(self.agent_id, wrapped)
+        return wrapped

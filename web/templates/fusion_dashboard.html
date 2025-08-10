@@ -7,6 +7,13 @@
 <body>
   <h1>Fusion Dashboard</h1>
 
+  <!-- Agents Control Panel (minimal) -->
+  <div id="agentsPanel" style="margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px;">
+    <strong>Agents Control</strong>
+    <button id="runAllAgentsBtn">Run All</button>
+    <div id="agentsList" style="margin-top:8px; font-size:14px;">Loading agents…</div>
+  </div>
+
   <div id="timeframeFilter">
     <select>
       <option>All</option><option>3D</option><option>5D</option>
@@ -40,7 +47,41 @@
         tbody.appendChild(tr);
       });
     }
+
+    async function fetchAgents(){
+      try{
+        const r = await fetch('/api/agents');
+        const j = await r.json();
+        if(!j.success){ throw new Error(j.error || 'failed'); }
+        const wrap = document.getElementById('agentsList');
+        wrap.innerHTML = j.data.map(a => `
+          <div style="margin:6px 0;">
+            <b>${a.name}</b> (${a.id}) — ${a.enabled ? 'ENABLED' : 'DISABLED'}
+            <button onclick="runAgent('${a.id}')">Run</button>
+            <button onclick="toggleAgent('${a.id}', ${a.enabled ? 'false' : 'true'})">
+              ${a.enabled ? 'Disable' : 'Enable'}
+            </button>
+          </div>
+        `).join('');
+      }catch(e){
+        document.getElementById('agentsList').innerText='Failed to load agents';
+      }
+    }
+    async function runAgent(id){
+      await fetch(`/api/agents/${id}/run`, {method:'POST', headers:{'Content-Type':'application/json'}});
+      alert('Run triggered for ' + id);
+    }
+    async function toggleAgent(id, enable){
+      await fetch(`/api/agents/${id}/${enable?'enable':'disable'}`, {method:'POST'});
+      fetchAgents();
+    }
+    document.getElementById('runAllAgentsBtn').onclick = async () => {
+      await fetch('/api/agents/run_all', {method:'POST'});
+      alert('All agents run triggered');
+    };
+    
     refresh();
+    fetchAgents();
   </script>
 </body>
 </html>

@@ -177,3 +177,69 @@ class AgentRegistry:
         return results
 
 registry = AgentRegistry()
+from typing import Dict, Any
+from .base_agent import BaseAgent
+from .new_ai_agent import NewAIAgent
+from .sentiment_agent import SentimentAgent
+from .storage import load_result
+
+_REGISTRY: Dict[str, BaseAgent] = {}
+
+def init_registry():
+    # idempotent
+    if "new_ai_analyzer" not in _REGISTRY:
+        _REGISTRY["new_ai_analyzer"] = NewAIAgent()
+    if "sentiment_analyzer" not in _REGISTRY:
+        _REGISTRY["sentiment_analyzer"] = SentimentAgent()
+
+def list_agents():
+    init_registry()
+    return [agent.to_dict() for agent in _REGISTRY.values()]
+
+def get_agent(agent_id: str) -> BaseAgent | None:
+    init_registry()
+    return _REGISTRY.get(agent_id)
+
+def register_agent(agent_id: str, agent: BaseAgent):
+    init_registry()
+    _REGISTRY[agent_id] = agent
+
+def enable_agent(agent_id: str) -> bool:
+    agent = get_agent(agent_id)
+    if not agent: return False
+    agent.enabled = True
+    return True
+
+def disable_agent(agent_id: str) -> bool:
+    agent = get_agent(agent_id)
+    if not agent: return False
+    agent.enabled = False
+    return True
+
+def run_agent(agent_id: str, **kwargs) -> Dict[str, Any]:
+    agent = get_agent(agent_id)
+    if not agent:
+        return {"success": False, "error": f"Agent {agent_id} not found"}
+    if not agent.enabled:
+        return {"success": False, "error": f"Agent {agent_id} is disabled"}
+    result = agent.run(**kwargs)
+    if not isinstance(result, dict) or "success" not in result:
+        return {"success": False, "error": "Invalid agent return shape"}
+    return result
+
+def run_all_agents() -> Dict[str, Any]:
+    init_registry()
+    results: Dict[str, Any] = {}
+    for aid, agent in _REGISTRY.items():
+        if not agent.enabled:
+            results[aid] = {"success": False, "error": "Agent disabled"}
+            continue
+        results[aid] = agent.run()
+    return {"success": True, "data": results}
+
+def get_last_result(agent_id: str) -> Dict[str, Any]:
+    agent = get_agent(agent_id)
+    if not agent:
+        return {"success": False, "error": f"Agent {agent_id} not found"}
+    # Prefer memory; fallback to disk
+    return agent.last_result or load_result(agent_id) or {"success": False, "error": "No result"}
