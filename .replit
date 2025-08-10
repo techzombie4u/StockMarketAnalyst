@@ -16,7 +16,7 @@ run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 120 --pre
 deploymentTarget = "cloudrun"
 
 [workflows]
-runButton = "Start Fixed Dashboard"
+runButton = "Start Dashboard"
 
 [[workflows.workflow]]
 name = "Run Stock Analyst"
@@ -129,6 +129,15 @@ args = "pkill -f \"python.*run_server.py\" || true"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "sleep 2"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -u src/run_server.py"
+
+[[workflows.workflow]]
+name = "Start Dashboard"
+author = 41554566
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
