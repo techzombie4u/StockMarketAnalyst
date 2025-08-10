@@ -324,6 +324,20 @@ app.register_blueprint(agents_bp)
 from src.app.api.meta import meta_bp
 app.register_blueprint(meta_bp)
 
+# Register fusion API
+try:
+    from src.app.api.fusion import fusion_bp
+    app.register_blueprint(fusion_bp)
+    logger.info("✅ Fusion API blueprint registered")
+except Exception as e:
+    logger.error(f"⚠️ Fusion API blueprint registration failed: {e}")
+
+# Add fusion dashboard route
+@app.route('/fusion-dashboard')
+def fusion_dashboard_page():
+    """Fusion Dashboard page route"""
+    return render_template('fusion_dashboard.html')
+
 # Global scheduler instance
 scheduler = None
 
