@@ -20,7 +20,7 @@ def main():
         
         # Start the Flask server
         server_process = subprocess.Popen([
-            sys.executable, "-m", "src.run_server"
+            sys.executable, "scripts/dev_server.py"
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         
         # Wait for server to start

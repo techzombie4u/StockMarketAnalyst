@@ -1,231 +1,44 @@
-
 <!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8"/>
   <title>Fusion Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <style>
-    body { 
-      font-family: Inter, Roboto, Arial, sans-serif; 
-      background: #F5F7FA; 
-      color: #0A1F44; 
-      margin: 0; 
-    }
-    header { 
-      padding: 16px 24px; 
-      background: #fff; 
-      border-bottom: 1px solid #E0E4EA; 
-    }
-    main { 
-      padding: 24px; 
-    }
-    .controls { 
-      display: flex; 
-      gap: 12px; 
-      margin-bottom: 16px; 
-      align-items: center; 
-    }
-    select, button { 
-      padding: 8px 12px; 
-      border-radius: 6px; 
-      border: 1px solid #E0E4EA; 
-      background: #fff; 
-    }
-    button {
-      background: #0A1F44;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #1FA774;
-    }
-    .table-container {
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    table { 
-      width: 100%; 
-      border-collapse: collapse; 
-    }
-    th, td { 
-      padding: 12px; 
-      border-bottom: 1px solid #E0E4EA; 
-      text-align: left; 
-    }
-    th { 
-      background: #F5F7FA; 
-      font-size: 12px; 
-      text-transform: uppercase; 
-      letter-spacing: .04em; 
-      color: #8B96A3; 
-      font-weight: 600;
-    }
-    .verdict-badge {
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-    .verdict-strong_buy { background: #1FA774; color: white; }
-    .verdict-buy { background: #4CAF50; color: white; }
-    .verdict-hold { background: #FFA726; color: white; }
-    .verdict-cautious { background: #FF7043; color: white; }
-    .verdict-avoid { background: #D94F4F; color: white; }
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #8B96A3;
-    }
-    .error {
-      background: #ffebee;
-      color: #c62828;
-      padding: 16px;
-      border-radius: 8px;
-      margin: 16px 0;
-    }
-  </style>
 </head>
-<body>
-  <header>
-    <h1>Fusion Dashboard</h1>
-    <p style="margin: 8px 0 0 0; color: #8B96A3; font-size: 14px;">
-      KPI + AI Verdict Integration Dashboard
-    </p>
-  </header>
+<body style="font-family: Inter, Arial, sans-serif">
+  <h1>Fusion Dashboard</h1>
 
-  <main>
-    <div class="controls">
-      <label for="timeframeFilter">Timeframe:</label>
-      <select id="timeframeFilter">
-        <option value="All">All</option>
-        <option value="3D">3D</option>
-        <option value="5D">5D</option>
-        <option value="10D">10D</option>
-        <option value="15D">15D</option>
-        <option value="30D">30D</option>
-      </select>
-      <button id="refreshBtn">Refresh</button>
-      <span id="lastUpdated" style="margin-left: auto; color: #8B96A3; font-size: 12px;"></span>
-    </div>
+  <div>
+    <label for="timeframeFilter">Timeframe</label>
+    <select id="timeframeFilter">
+      <option>All</option><option>3D</option><option>5D</option>
+      <option>10D</option><option>15D</option><option>30D</option>
+    </select>
+    <button id="refreshBtn">Refresh</button>
+  </div>
 
-    <div id="loadingIndicator" class="loading">
-      Loading fusion dashboard data...
-    </div>
-
-    <div id="errorMessage" class="error" style="display: none;"></div>
-
-    <div class="table-container" id="tableContainer" style="display: none;">
-      <table id="topSignalsTable">
-        <thead>
-          <tr>
-            <th>Symbol</th>
-            <th>Product</th>
-            <th>Timeframe</th>
-            <th>Score</th>
-            <th>Confidence</th>
-            <th>AI Verdict</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <div id="summaryStats" style="margin-top: 24px; display: none;">
-      <h3>Summary Statistics</h3>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-        <div style="background: #fff; padding: 16px; border-radius: 8px;">
-          <div style="font-size: 24px; font-weight: bold; color: #1FA774;" id="totalSignals">-</div>
-          <div style="color: #8B96A3;">Total Signals</div>
-        </div>
-        <div style="background: #fff; padding: 16px; border-radius: 8px;">
-          <div style="font-size: 24px; font-weight: bold; color: #0A1F44;" id="avgConfidence">-</div>
-          <div style="color: #8B96A3;">Avg Confidence</div>
-        </div>
-        <div style="background: #fff; padding: 16px; border-radius: 8px;">
-          <div style="font-size: 24px; font-weight: bold; color: #FFA726;" id="marketSession">-</div>
-          <div style="color: #8B96A3;">Market Session</div>
-        </div>
-      </div>
-    </div>
-  </main>
+  <table id="topSignalsTable" border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr><th>Symbol</th><th>Product</th><th>Score</th><th>AI Verdict</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
-    async function loadFusion(force = false) {
-      const loadingEl = document.getElementById('loadingIndicator');
-      const errorEl = document.getElementById('errorMessage');
-      const tableEl = document.getElementById('tableContainer');
-      const summaryEl = document.getElementById('summaryStats');
-      
-      try {
-        loadingEl.style.display = 'block';
-        errorEl.style.display = 'none';
-        tableEl.style.display = 'none';
-        summaryEl.style.display = 'none';
-
-        const url = `/api/fusion/dashboard${force ? '?forceRefresh=true' : ''}`;
-        const res = await fetch(url);
-        
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        
-        const data = await res.json();
-
-        // Update last updated timestamp
-        document.getElementById('lastUpdated').textContent =
-          `Last Updated: ${new Date(data.last_updated_utc).toLocaleString()}`;
-
-        // Update summary stats
-        document.getElementById('totalSignals').textContent = data.top_signals?.length || 0;
-        document.getElementById('marketSession').textContent = data.market_session || 'UNKNOWN';
-        
-        const avgConf = data.top_signals?.length > 0 ? 
-          (data.top_signals.reduce((sum, s) => sum + (s.confidence || 0), 0) / data.top_signals.length).toFixed(1) + '%' : 
-          'N/A';
-        document.getElementById('avgConfidence').textContent = avgConf;
-
-        // Update table
-        const tbody = document.querySelector('#topSignalsTable tbody');
-        tbody.innerHTML = '';
-        
-        (data.top_signals || []).forEach(signal => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${signal.symbol || 'N/A'}</strong></td>
-            <td>${signal.product || 'N/A'}</td>
-            <td>${signal.timeframe || 'N/A'}</td>
-            <td>${(signal.score || 0).toFixed(1)}</td>
-            <td>${(signal.confidence || 0).toFixed(1)}%</td>
-            <td><span class="verdict-badge verdict-${(signal.ai_verdict_normalized || 'hold').toLowerCase().replace('_', '')}">${signal.ai_verdict_normalized || 'HOLD'}</span></td>
-            <td>${signal.outcome_status || 'IN_PROGRESS'}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        // Show content
-        loadingEl.style.display = 'none';
-        tableEl.style.display = 'block';
-        summaryEl.style.display = 'block';
-
-      } catch (error) {
-        console.error('Fusion load failed:', error);
-        loadingEl.style.display = 'none';
-        errorEl.style.display = 'block';
-        errorEl.textContent = `Failed to load fusion data: ${error.message}`;
-      }
+    async function loadFusion(force=false) {
+      const res = await fetch(`/api/fusion/dashboard${force?'?forceRefresh=true':''}`);
+      const data = await res.json();
+      const tbody = document.querySelector('#topSignalsTable tbody');
+      tbody.innerHTML = '';
+      (data.top_signals || []).forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${s.symbol}</td><td>${s.product}</td><td>${s.score}</td><td>${s.ai_verdict_normalized}</td>`;
+        tbody.appendChild(tr);
+      });
     }
-
-    // Event listeners
-    document.getElementById('refreshBtn').addEventListener('click', () => loadFusion(true));
-    document.getElementById('timeframeFilter').addEventListener('change', () => loadFusion(false));
-
-    // Initial load
-    loadFusion(false);
+    document.getElementById('refreshBtn').addEventListener('click', ()=>loadFusion(true));
+    document.getElementById('timeframeFilter').addEventListener('change', ()=>loadFusion(false));
+    loadFusion();
   </script>
 </body>
 </html>
