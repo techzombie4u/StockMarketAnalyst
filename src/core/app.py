@@ -1,3 +1,4 @@
+
 # src/core/app.py
 import os, sys
 from flask import Flask, jsonify, render_template
@@ -14,65 +15,23 @@ def create_app():
     def health():
         return jsonify({"status": "ok"}), 200
 
-    # ---- Register Fusion blueprint/UI ----
-    fusion_bp = None
+    # ---- Register the working Fusion API ----
     try:
-        from fusion.api.fusion import fusion_bp as fb
-        fusion_bp = fb
-    except Exception:
-        try:
-            from src.fusion.api.fusion import fusion_bp as fb
-            fusion_bp = fb
-        except Exception as e:
-            app.logger.warning(f"Fusion blueprint not registered: {e}")
-    if fusion_bp:
+        from src.api.fusion_api import fusion_bp
         app.register_blueprint(fusion_bp)
-
-    # Provide /fusion-dashboard using the new unified dashboard
-    @app.route("/fusion-dashboard")
-    def fusion_dashboard_fallback():
-        try:
-            return render_template("dashboard.html")
-        except Exception:
-            return "Fusion Dashboard page not available", 404
+        app.logger.info("✅ Registered fusion API blueprint at /api/fusion")
+    except Exception as e:
+        app.logger.warning(f"❌ Fusion API blueprint not registered: {e}")
 
     # ---- Register Agents blueprint ----
     try:
-        from agents.api import agents_bp
+        from src.agents.api.agents import agents_bp
         app.register_blueprint(agents_bp)
         app.logger.info("✅ Registered agents blueprint at /api/agents")
     except Exception as e:
         app.logger.warning(f"❌ Agents blueprint not registered: {e}")
 
-    # ---- Bind/repair agent registry entries at startup ----
-    try:
-        try:
-            from agents.registry import registry
-            from agents.new_ai_agent import run as new_ai_run
-            from agents.sentiment_agent import run as sentiment_run
-        except Exception:
-            from src.agents.registry import registry
-            from src.agents.new_ai_agent import run as new_ai_run
-            from src.agents.sentiment_agent import run as sentiment_run
-
-        # (Re)bind run fns & ensure proper meta entries (self-heals malformed registry.json)
-        registry.register_or_bind(
-            agent_id="new_ai_analyzer",
-            name="New AI Analyzer",
-            run_fn=new_ai_run,
-            description="Lightweight analyzer for orchestration tests",
-            enabled=True,
-        )
-        registry.register_or_bind(
-            agent_id="sentiment_analyzer",
-            name="Sentiment Analyzer",
-            run_fn=sentiment_run,
-            description="Lightweight sentiment agent for orchestration tests",
-            enabled=True,
-        )
-    except Exception as e:
-        app.logger.warning(f"Failed to bind agents: {e}")
-
+    # ---- Main dashboard routes ----
     @app.route("/")
     def root():
         try:
@@ -94,6 +53,38 @@ def create_app():
                 </body>
             </html>
             """, 200
+
+    @app.route("/fusion-dashboard")
+    def fusion_dashboard():
+        try:
+            return render_template("dashboard.html")
+        except Exception:
+            return "Fusion Dashboard page not available", 404
+
+    # ---- Bind agent registry entries at startup ----
+    try:
+        from src.agents.core.registry import registry
+        from src.agents.new_ai_agent import run as new_ai_run
+        from src.agents.sentiment_agent import run as sentiment_run
+
+        # (Re)bind run fns & ensure proper meta entries
+        registry.register_or_bind(
+            agent_id="new_ai_analyzer",
+            name="New AI Analyzer", 
+            run_fn=new_ai_run,
+            description="Lightweight analyzer for orchestration tests",
+            enabled=True,
+        )
+        registry.register_or_bind(
+            agent_id="sentiment_analyzer",
+            name="Sentiment Analyzer",
+            run_fn=sentiment_run,
+            description="Lightweight sentiment agent for orchestration tests", 
+            enabled=True,
+        )
+        app.logger.info("✅ Agent registry initialized")
+    except Exception as e:
+        app.logger.warning(f"Failed to bind agents: {e}")
 
     # Log routes once to verify on boot
     try:
