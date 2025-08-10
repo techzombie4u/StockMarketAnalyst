@@ -53,17 +53,8 @@ def create_app() -> Flask:
     from ..kpi.api import kpi_bp
     app.register_blueprint(kpi_bp)
 
-    @app.route("/fusion-dashboard")
-    def fusion_dashboard_page():
-        return render_template("fusion_dashboard.html")
-
-    @app.route("/")
-    def root():
-        # Was: return "Stock Analyst server is running"
-        return redirect(url_for("fusion_dashboard_page"))
-
-    @app.route("/kpi")
-    def kpi_page():
-        return render_template("kpi.html")
+    # Register Agents blueprint
+    from src.agents.api import agents_bp
+    app.register_blueprint(agents_bp)
 
     return app

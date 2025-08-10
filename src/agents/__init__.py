@@ -9,3 +9,13 @@ from .ensemble_predictor import *
 """
 AI Agents Framework
 """
+"""
+Agent Orchestration System
+Provides pluggable AI agents with registry management
+"""
+
+from .registry import registry
+from .api import agents_bp
+from .base import BaseAgent
+
+__all__ = ['registry', 'agents_bp', 'BaseAgent']

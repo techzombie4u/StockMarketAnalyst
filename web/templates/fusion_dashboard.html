@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,7 +16,11 @@
   </div>
 
   <table id="topSignalsTable" border="1">
-    <thead><tr><th>Symbol</th><th>Verdict</th><th>Confidence</th></tr></thead>
+    <thead><tr><th>Symbol</th><th>Verdict</th><th>Confidence</th><th>5D Pred (%)</th>
+                    <th>Signal Strength</th>
+                    <th>Recommendation</th>
+                    <th class="ai-verdict-column" style="display: none;">AI Verdict</th>
+                </tr></thead>
     <tbody id="signalsTbody"></tbody>
   </table>
 
@@ -30,7 +33,10 @@
       tbody.innerHTML = '';
       (data.top_signals || []).forEach(s => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${s.symbol}</td><td>${s.ai_verdict_normalized}</td><td>${(s.confidence||0).toFixed(1)}%</td>`;
+        tr.innerHTML = `<td>${s.symbol}</td><td>${s.ai_verdict_normalized}</td><td>${(s.confidence||0).toFixed(1)}%</td>
+                        <td class="recommendation-cell"></td>
+                        <td class="ai-verdict-cell" style="display: none;"></td>
+                    </tr>`;
         tbody.appendChild(tr);
       });
     }
