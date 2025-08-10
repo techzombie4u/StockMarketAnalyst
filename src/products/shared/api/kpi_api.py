@@ -1,4 +1,3 @@
-
 """
 KPI API Endpoints
 Provides REST endpoints for KPI dashboard functionality
@@ -6,11 +5,11 @@ Provides REST endpoints for KPI dashboard functionality
 
 import time
 from flask import Blueprint, jsonify, request
-from typing import Dict, Any
-
-from products.shared.services.kpi_service import kpi_service
+from datetime import datetime
+import logging
+from dataclasses import asdict
 from common_repository.config.feature_flags import feature_flags
-from common_repository.utils.date_utils import get_ist_now
+from ..services.kpi_service import kpi_service
 
 # Create blueprint
 kpi_bp = Blueprint('kpi', __name__, url_prefix='/api/kpi')
@@ -23,24 +22,24 @@ def get_kpi_summary():
     """Get KPI summary with overall and by-product breakdowns"""
     try:
         timeframe = request.args.get('timeframe', 'All')
-        
+
         if timeframe not in ['All', '3D', '5D', '10D', '15D', '30D']:
             return jsonify({
                 'success': False,
                 'error': 'Invalid timeframe'
             }), 400
-        
+
         # Compute overall KPIs
         overall_kpis = kpi_service.compute(timeframe=timeframe)
-        
+
         # Compute by-product KPIs
         by_product = {}
         products = ['equities', 'options', 'commodities']
-        
+
         for product in products:
             if feature_flags.is_enabled(f'enable_{product}') or product == 'equities':
                 by_product[product] = kpi_service.compute(timeframe=timeframe, product=product)
-        
+
         # Evaluate triggers
         triggers = []
         if feature_flags.is_enabled('enable_goahead_triggers'):
@@ -48,11 +47,11 @@ def get_kpi_summary():
             triggers.extend(kpi_service.evaluate_triggers(overall_kpis))
             for product_kpis in by_product.values():
                 triggers.extend(kpi_service.evaluate_triggers(product_kpis))
-        
+
         # Get last refresh timestamps
         last_auto_refresh = overall_kpis.get('last_updated')
         last_manual_refresh = _get_last_manual_refresh(timeframe)
-        
+
         response = {
             'success': True,
             'data': {
@@ -65,9 +64,9 @@ def get_kpi_summary():
                 'trigger_count': len(triggers)
             }
         }
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -83,23 +82,23 @@ def get_product_kpis(product):
                 'success': False,
                 'error': 'Invalid product'
             }), 400
-        
+
         timeframe = request.args.get('timeframe', 'All')
-        
+
         if timeframe not in ['All', '3D', '5D', '10D', '15D', '30D']:
             return jsonify({
                 'success': False,
                 'error': 'Invalid timeframe'
             }), 400
-        
+
         # Compute product-specific KPIs
         kpis = kpi_service.compute(timeframe=timeframe, product=product)
-        
+
         # Evaluate triggers for this product
         triggers = []
         if feature_flags.is_enabled('enable_goahead_triggers'):
             triggers = kpi_service.evaluate_triggers(kpis)
-        
+
         response = {
             'success': True,
             'data': {
@@ -110,9 +109,9 @@ def get_product_kpis(product):
                 'last_updated': kpis.get('last_updated')
             }
         }
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -126,7 +125,7 @@ def recompute_kpis():
         scope = request.args.get('scope', 'overall')  # overall|product
         timeframe = request.args.get('timeframe', 'All')
         product = request.args.get('product') if scope == 'product' else None
-        
+
         # Rate limiting check
         rate_limit_key = f"{scope}_{timeframe}_{product or 'all'}"
         if not _check_rate_limit(rate_limit_key):
@@ -135,14 +134,14 @@ def recompute_kpis():
                 'error': 'Rate limit exceeded. Please wait before triggering another manual refresh.',
                 'retry_after': 120
             }), 429
-        
+
         # Recompute KPIs
         if scope == 'overall':
             kpis = kpi_service.compute(timeframe=timeframe)
             by_product = {}
             for prod in ['equities', 'options', 'commodities']:
                 by_product[prod] = kpi_service.compute(timeframe=timeframe, product=prod)
-            
+
             result_data = {
                 'overall': kpis,
                 'by_product': by_product
@@ -153,15 +152,15 @@ def recompute_kpis():
                     'success': False,
                     'error': 'Invalid or missing product for product scope'
                 }), 400
-            
+
             kpis = kpi_service.compute(timeframe=timeframe, product=product)
             result_data = {
                 'product_kpis': kpis
             }
-        
+
         # Update manual refresh timestamp
         _update_manual_refresh_timestamp(timeframe)
-        
+
         response = {
             'success': True,
             'message': f'KPIs recomputed for {scope} scope',
@@ -170,9 +169,9 @@ def recompute_kpis():
             'scope': scope,
             'timeframe': timeframe
         }
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -203,7 +202,7 @@ def acknowledge_trigger():
                 'success': False,
                 'error': 'Missing trigger_id'
             }), 400
-        
+
         # For now, just return success
         # In future prompts, this will integrate with agent execution
         return jsonify({
@@ -211,12 +210,80 @@ def acknowledge_trigger():
             'message': f'Trigger {trigger_id} acknowledged',
             'timestamp': get_ist_now().isoformat()
         })
-        
+
     except Exception as e:
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
+@kpi_bp.route('/api/kpi/status')
+def kpi_status():
+    """Get KPI system status"""
+    try:
+        return jsonify({
+            'status': 'active',
+            'timestamp': datetime.now().isoformat(),
+            'features': {
+                'background_jobs': feature_flags.is_enabled('enable_background_kpi_jobs'),
+                'timeframe_filtering': feature_flags.is_enabled('enable_timeframe_filtering'),
+                'goahead_triggers': feature_flags.is_enabled('enable_goahead_triggers')
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting KPI status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@kpi_bp.route('/api/kpi/goahead/decisions')
+def get_goahead_decisions():
+    """Get recent GoAhead decisions"""
+    try:
+        from src.common_repository.agents.goahead_engine import goahead_engine
+
+        hours = request.args.get('hours', 24, type=int)
+        decisions = goahead_engine.get_recent_decisions(hours)
+
+        return jsonify({
+            'status': 'success',
+            'decisions': decisions,
+            'count': len(decisions),
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error getting GoAhead decisions: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@kpi_bp.route('/api/kpi/goahead/trigger', methods=['POST'])
+def trigger_goahead_analysis():
+    """Manually trigger GoAhead analysis"""
+    try:
+        from src.common_repository.agents.goahead_engine import goahead_engine
+
+        # Get current KPI data
+        timeframes = ['3D', '5D', '10D', '15D', '30D']
+        all_decisions = []
+
+        for timeframe in timeframes:
+            try:
+                kpi_result = kpi_service.compute(timeframe)
+                if kpi_result.get('status') == 'success':
+                    kpi_data = {timeframe: kpi_result['metrics']}
+                    decisions = goahead_engine.analyze_kpis_and_decide(kpi_data)
+                    all_decisions.extend(decisions)
+            except Exception as e:
+                logger.warning(f"Error analyzing {timeframe}: {e}")
+                continue
+
+        return jsonify({
+            'status': 'success',
+            'message': f'GoAhead analysis complete',
+            'decisions_generated': len(all_decisions),
+            'decisions': [asdict(d) for d in all_decisions],
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error triggering GoAhead analysis: {e}")
+        return jsonify({'error': str(e)}), 500
 
 def _trigger_to_dict(trigger) -> Dict[str, Any]:
     """Convert KPITrigger to dictionary"""
@@ -234,12 +301,12 @@ def _check_rate_limit(key: str) -> bool:
     """Check if rate limit allows manual refresh"""
     current_time = time.time()
     last_refresh = _last_manual_refresh.get(key, 0)
-    
+
     # Allow if more than 2 minutes have passed
     if current_time - last_refresh > 120:
         _last_manual_refresh[key] = current_time
         return True
-    
+
     return False
 
 def _get_last_manual_refresh(timeframe: str) -> str:

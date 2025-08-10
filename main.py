@@ -31,7 +31,7 @@ def main():
         logger.info("🚀 Starting Stock Market Analyst Application - New Architecture")
 
         # Load and display feature flags
-        from common_repository.config.feature_flags import feature_flags
+        from src.common_repository.config.feature_flags import feature_flags
         logger.info(f"Feature flags loaded: {feature_flags.get_all_flags()}")
 
         # Import and run the Flask application

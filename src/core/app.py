@@ -21,14 +21,14 @@ import gc
 import time
 
 # Import shared core components
-from common_repository.feature_flags import feature_flags
-from common_repository.utils.date_utils import IST, get_ist_now
-from common_repository.utils.error_handler import ErrorContext, safe_execute
-from common_repository.storage.json_store import json_store
+from src.common_repository.config.feature_flags import feature_flags
+from src.common_repository.utils.date_utils import IST, get_ist_now
+from src.common_repository.utils.error_handler import ErrorContext, safe_execute
+from src.common_repository.storage.json_store import json_store
 
 # Import product services
-from products.equities.api import equity_bp
-from products.options.api import options_bp
+from src.products.equities.api import equity_bp
+from src.products.options.api import options_bp
 
 # Configure logging
 logging.basicConfig(
@@ -318,7 +318,7 @@ app.register_blueprint(options_bp)
 
 # Register KPI blueprint
 try:
-    from products.shared.api.kpi_api import kpi_bp
+    from src.products.shared.api.kpi_api import kpi_bp
     app.register_blueprint(kpi_bp)
     logger.info("✅ KPI blueprint registered")
 except ImportError as e:
