@@ -6,7 +6,7 @@ Agent Registry - Loads and manages agent configurations
 import os
 import yaml
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from ..core.contracts import AgentSpec
 from ...common_repository.config.feature_flags import feature_flags
 from ...common_repository.utils.ratelimit import rate_limiter
