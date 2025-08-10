@@ -21,7 +21,7 @@
       "risk_level": "Low",
       "market_cap": "Large Cap",
       "technical_summary": "Score: 76.0 | RSI: 48",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     },
     {
       "symbol": "SBIN",
@@ -43,7 +43,7 @@
       "risk_level": "Medium",
       "market_cap": "Large Cap",
       "technical_summary": "Score: 74.0 | RSI: 34",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     },
     {
       "symbol": "ONGC",
@@ -65,7 +65,7 @@
       "risk_level": "Medium",
       "market_cap": "Large Cap",
       "technical_summary": "Score: 74.0 | RSI: 18",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     },
     {
       "symbol": "HINDALCO",
@@ -87,7 +87,7 @@
       "risk_level": "Medium",
       "market_cap": "Mid Cap",
       "technical_summary": "Score: 70.0 | RSI: 47",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     },
     {
       "symbol": "BPCL",
@@ -109,7 +109,7 @@
       "risk_level": "Medium",
       "market_cap": "Mid Cap",
       "technical_summary": "Score: 69.0 | RSI: 33",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     },
     {
       "symbol": "GAIL",
@@ -131,7 +131,7 @@
       "risk_level": "Medium",
       "market_cap": "Mid Cap",
       "technical_summary": "Score: 69.0 | RSI: 30",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     },
     {
       "symbol": "PFC",
@@ -153,7 +153,7 @@
       "risk_level": "Medium",
       "market_cap": "Small Cap",
       "technical_summary": "Score: 69.0 | RSI: 39",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     },
     {
       "symbol": "BANKBARODA",
@@ -175,7 +175,7 @@
       "risk_level": "Medium",
       "market_cap": "Small Cap",
       "technical_summary": "Score: 66.0 | RSI: 44",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     },
     {
       "symbol": "RECLTD",
@@ -197,7 +197,7 @@
       "risk_level": "Medium",
       "market_cap": "Small Cap",
       "technical_summary": "Score: 66.0 | RSI: 40",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     },
     {
       "symbol": "NTPC",
@@ -219,11 +219,11 @@
       "risk_level": "Medium",
       "market_cap": "Large Cap",
       "technical_summary": "Score: 65.0 | RSI: 41",
-      "last_analyzed": "09/08/2025, 15:24:29"
+      "last_analyzed": "10/08/2025, 06:25:45"
     }
   ],
-  "last_updated": "09/08/2025, 20:54:29",
-  "timestamp": "2025-08-09T20:54:29.572152+05:30",
+  "last_updated": "10/08/2025, 11:55:45",
+  "timestamp": "2025-08-10T11:55:45.703374+05:30",
   "total_stocks": 10,
-  "screening_time": "27.89 seconds"
+  "screening_time": "28.52 seconds"
 }
