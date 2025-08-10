@@ -458,6 +458,7 @@
                                     <th>Prediction Date</th>
                                     <th>Target Price</th>
                                     <th>Actual Price</th>
+                                    <th>AI Verdict</th>
                                     <th>Result</th>
                                     <th>Confidence Level</th>
                                     <th>Error %</th>
@@ -739,6 +740,7 @@
                         predictionDate: data.start_date,
                         targetPrice: data.predicted_5d?.[4] || data.current_price,
                         actualPrice: getLatestActualPrice(data, '5d'),
+                        aiVerdict: getAIVerdict(data, '5d'),
                         result: getPredictionResult(data, '5d'),
                         confidence: data.confidence,
                         error: calculateError(data.predicted_5d?.[4], getLatestActualPrice(data, '5d'))
@@ -750,6 +752,7 @@
                         predictionDate: data.start_date,
                         targetPrice: data.predicted_30d?.[29] || data.current_price,
                         actualPrice: getLatestActualPrice(data, '30d'),
+                        aiVerdict: getAIVerdict(data, '30d'),
                         result: getPredictionResult(data, '30d'),
                         confidence: data.confidence,
                         error: calculateError(data.predicted_30d?.[29], getLatestActualPrice(data, '30d'))
@@ -768,6 +771,7 @@
                     <td>${formatDate(entry.predictionDate)}</td>
                     <td>₹${entry.targetPrice.toFixed(2)}</td>
                     <td>₹${entry.actualPrice > 0 ? entry.actualPrice.toFixed(2) : 'Pending'}</td>
+                    <td>${entry.aiVerdict}</td>
                     <td><span class="result-badge result-${entry.result.toLowerCase()}">${getResultIcon(entry.result)} ${entry.result}</span></td>
                     <td>${entry.confidence}%</td>
                     <td>${entry.error !== null ? entry.error.toFixed(2) + '%' : 'N/A'}</td>
@@ -776,7 +780,7 @@
 
             if (historyEntries.length === 0) {
                 const row = tableBody.insertRow();
-                row.innerHTML = '<td colspan="8" style="text-align: center; color: #7f8c8d; padding: 20px;">No prediction history available</td>';
+                row.innerHTML = '<td colspan="9" style="text-align: center; color: #7f8c8d; padding: 20px;">No prediction history available</td>';
             }
         }
 
@@ -887,6 +891,30 @@
             const errorPercent = Math.abs((finalActual - finalPredicted) / finalPredicted) * 100;
             return errorPercent <= 5 ? 'Met' : 'Missed';
         }
+
+        function getAIVerdict(data, period) {
+            const actualData = period === '5d' ? data.actual_progress_5d : data.actual_progress_30d;
+            const predictedData = period === '5d' ? data.predicted_5d : data.predicted_30d;
+
+            if (!actualData || !predictedData) return 'Pending';
+
+            const requiredDays = period === '5d' ? 5 : 30;
+            const actualValues = actualData.filter(val => val !== null && val !== undefined);
+
+            if (actualValues.length < requiredDays) return 'In Progress';
+
+            const finalPredicted = predictedData[requiredDays - 1];
+            const finalActual = actualValues[actualValues.length - 1];
+
+            if (!finalPredicted || !finalActual) return 'In Progress';
+
+            const errorPercent = Math.abs((finalActual - finalPredicted) / finalPredicted) * 100;
+
+            if (errorPercent <= 5) return 'Positive';
+            if (errorPercent <= 15) return 'Neutral';
+            return 'Negative';
+        }
+
 
         function getLatestActualPrice(data, period) {
             const actualData = period === '5d' ? data.actual_progress_5d : data.actual_progress_30d;

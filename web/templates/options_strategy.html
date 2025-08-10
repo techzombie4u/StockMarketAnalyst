@@ -393,6 +393,47 @@
             color: #4b5563;
         }
 
+        /* AI Verdict Column Styles */
+        .verdict-cell {
+            cursor: pointer;
+            min-width: 120px;
+            text-align: center;
+            padding: 8px 12px;
+        }
+
+        .verdict-content {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .verdict-positive {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .verdict-cautious {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .verdict-negative {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .verdict-unknown {
+            background-color: #f8f9fa;
+            color: #6c757d;
+        }
+
+        .error {
+            font-size: 0.9em;
+            color: #28a745;
+        }
+
         /* Responsive design */
         @media (max-width: 1024px) {
             .options-table {
@@ -528,7 +569,7 @@
                                 <th>Margin Req.</th>
                                 <th>ROI %</th>
                                 <th>Confidence</th>
-                                <th>Prediction Outcome</th>
+                                <th>AI Verdict</th>
                                 <th>Stop Loss (C/P)</th>
                                 <th>Risk</th>
                                 <th>Result</th>
@@ -922,7 +963,9 @@
                     <td>₹${marginReq}</td>
                     <td class="roi-cell">${roiPct}%</td>
                     <td class="confidence-cell">${confidence}%</td>
-                    <td class="outcome-cell">${outcome}</td>
+                    <td class="verdict-cell" data-symbol="${symbol}" data-product="options" data-timeframe="${currentTimeframe}">
+                        <span class="verdict-content">—</span>
+                    </td>
                     <td>Call: ₹${stopLossCall}<br>Put: ₹${stopLossPut}</td>
                     <td class="result-cell">${result}</td>
                     <td style="width: 40px;">
@@ -979,10 +1022,6 @@
                              <div class="detail-item">
                                 <span class="label">Risk:</span>
                                 <span>${strategy.risk}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="label">Result:</span>
-                                <span>${result}</span>
                             </div>
                         </div>
                     </td>

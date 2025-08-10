@@ -387,6 +387,283 @@
         }
 
         .hidden { display: none; }
+
+        /* AI Verdict Column Styles */
+        .verdict-cell {
+            cursor: pointer;
+            min-width: 120px;
+            text-align: center;
+            padding: 8px 12px;
+        }
+
+        .verdict-content {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .verdict-positive {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .verdict-cautious {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .verdict-negative {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .verdict-unknown {
+            background-color: #f8f9fa;
+            color: #6c757d;
+        }
+
+        /* GoAhead Panel Styles */
+        .goahead-panel {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .panel-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .tab-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .panel-content {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .agent-card {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fafafa;
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .agent-timestamp {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .agent-verdict {
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .agent-actions {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .risk-badge {
+            background: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.75em;
+            margin-left: 8px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Verdict Drawer Styles */
+        .verdict-drawer {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100%;
+            background: white;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+            z-index: 1001;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .verdict-drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .drawer-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .drawer-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .verdict-detail {
+            margin-bottom: 16px;
+        }
+
+        .verdict-detail h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 1em;
+        }
+
+        .verdict-detail .content {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .reasons-list,
+        .actions-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .reasons-list li,
+        .actions-list li {
+            padding: 4px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .reasons-list li:last-child,
+        .actions-list li:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
@@ -468,386 +745,71 @@
         </div>
     </div>
 
-    <script>
-        // Global state
-        let stockData = [];
-        let pinnedSymbols = new Set();
-        let isLoading = false;
-        let autoRefreshTimer = null;
-        const PAGE_SIZE = 50;
-        const REFRESH_INTERVAL = 60000; // 60 seconds
-
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('[INFO] ' + new Date().toLocaleTimeString() + ': 🚀 Initializing Stock Market Analyst Dashboard');
-            initializeDashboard();
-        });
-
-        async function initializeDashboard() {
-            // Load pinned symbols from localStorage
-            loadPinnedSymbols();
-
-            // Setup event listeners
-            setupEventListeners();
-
-            // Initial data load
-            await refreshData();
-
-            // Start auto-refresh timer
-            startAutoRefresh();
-        }
-
-        function loadPinnedSymbols() {
-            try {
-                const saved = localStorage.getItem('pinnedSymbols');
-                if (saved) {
-                    pinnedSymbols = new Set(JSON.parse(saved));
-                }
-            } catch (e) {
-                console.error('Error loading pinned symbols:', e);
-                pinnedSymbols = new Set();
-            }
-        }
-
-        function savePinnedSymbols() {
-            try {
-                localStorage.setItem('pinnedSymbols', JSON.stringify([...pinnedSymbols]));
-            } catch (e) {
-                console.error('Error saving pinned symbols:', e);
-            }
-        }
-
-        function setupEventListeners() {
-            // Refresh button
-            document.getElementById('refreshBtn').addEventListener('click', refreshData);
-            console.log('[INFO] ' + new Date().toLocaleTimeString() + ': ✅ Refresh button event listener attached');
-
-            // Virtual scroll
-            document.getElementById('virtualTable').addEventListener('scroll', handleVirtualScroll);
-
-            // Page visibility for auto-refresh management
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-        }
-
-        function handleVisibilityChange() {
-            if (document.hidden) {
-                console.log('[MEMORY] Timer stopped - page hidden');
-                stopAutoRefresh();
-            } else {
-                console.log('[MEMORY] Page visible - restarting timer');
-                startAutoRefresh();
-            }
-        }
-
-        function startAutoRefresh() {
-            if (autoRefreshTimer) {
-                clearInterval(autoRefreshTimer);
-            }
-
-            autoRefreshTimer = setInterval(() => {
-                console.log('[AUTO-REFRESH] Triggering automatic refresh');
-                refreshData();
-            }, REFRESH_INTERVAL);
-
-            console.log('[AUTO-REFRESH] Single auto-refresh timer started');
-        }
-
-        function stopAutoRefresh() {
-            if (autoRefreshTimer) {
-                clearInterval(autoRefreshTimer);
-                autoRefreshTimer = null;
-            }
-        }
-
-        async function refreshData() {
-            if (isLoading) return;
-
-            try {
-                isLoading = true;
-                updateStatus('loading', 'Loading stock data...');
-                showLoading();
-                enableRefreshButton(false);
-
-                console.log('[INFO] ' + new Date().toLocaleTimeString() + ': 🔄 Starting stock data load');
-
-                // Fetch stock data
-                const response = await fetch('/api/stocks');
-                console.log('[INFO] ' + new Date().toLocaleTimeString() + ': SDSAPI response status: ' + response.status);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('[INFO] ' + new Date().toLocaleTimeString() + ': SDSAPI data received');
-
-                stockData = data.stocks || [];
-
-                // Update main table
-                renderVirtualTable();
-
-                // Update pinned stats
-                await updatePinnedStats();
-
-                // Update UI
-                updateTableStats();
-                updateLastUpdated();
-                hideLoading();
-                updateStatus('success', `Successfully loaded ${stockData.length} stocks`);
-
-                console.log('[INFO] ' + new Date().toLocaleTimeString() + ': 🎉 Successfully displayed ' + stockData.length + ' stocks');
-
-            } catch (error) {
-                console.error('Error loading data:', error);
-                updateStatus('error', 'Failed to load data: ' + error.message);
-                hideLoading();
-            } finally {
-                isLoading = false;
-                enableRefreshButton(true);
-            }
-        }
-
-        function renderVirtualTable() {
-            const container = document.getElementById('virtualRows');
-            const pinnedContainer = document.getElementById('pinnedRows');
-
-            // Clear existing content
-            container.innerHTML = '';
-            pinnedContainer.innerHTML = '';
-
-            // Separate pinned and regular stocks
-            const pinnedStocks = stockData.filter(stock => pinnedSymbols.has(stock.symbol));
-            const regularStocks = stockData.filter(stock => !pinnedSymbols.has(stock.symbol));
-
-            // Render pinned rows
-            pinnedStocks.forEach(stock => {
-                const row = createTableRow(stock, true);
-                pinnedContainer.appendChild(row);
-            });
-
-            // Show/hide pinned section
-            const pinnedSection = document.getElementById('pinnedSection');
-            pinnedSection.style.display = pinnedStocks.length > 0 ? 'block' : 'none';
-
-            // Render first batch of regular rows (virtual scrolling)
-            const initialBatch = regularStocks.slice(0, PAGE_SIZE);
-            initialBatch.forEach(stock => {
-                const row = createTableRow(stock, false);
-                container.appendChild(row);
-            });
-
-            console.log('[INFO] ' + new Date().toLocaleTimeString() + ': Stock table updated successfully with ' + stockData.length + ' rows');
-        }
-
-        function createTableRow(stock, isPinned) {
-            const row = document.createElement('div');
-            row.className = `table-row ${isPinned ? 'pinned-row' : ''}`;
-            row.dataset.symbol = stock.symbol;
-
-            // Add AI verdict and confidence with proper fallbacks
-            const aiVerdict = stock.ai_verdict || 'Hold';
-            const aiConfidence = stock.ai_confidence || 70;
-            const verdictColor = stock.verdict_color || 'verdict-hold';
-            const roi = stock.roi || ((stock.target - stock.price) / stock.price * 100) || 0;
-
-            row.innerHTML = `
-                <div class="col-pin">
-                    <button class="pin-btn ${isPinned ? 'pinned' : 'unpinned'}" 
-                            onclick="togglePin('${stock.symbol}')" 
-                            title="${isPinned ? 'Unpin' : 'Pin'} ${stock.symbol}">
-                        ${isPinned ? '📌' : '📍'}
-                    </button>
+        <!-- GoAhead Actions Panel -->
+        <div id="goaheadPanel" class="goahead-panel" style="display: none;">
+            <div class="panel-header">
+                <h3>GoAhead Agent — Recommendations</h3>
+                <div class="panel-tabs">
+                    <button class="tab-btn active" data-tab="all">All Agents</button>
+                    <button class="tab-btn" data-tab="product">Product Agents</button>
+                    <button class="tab-btn" data-tab="trainer">Trainer</button>
                 </div>
-                <div class="col-symbol">${stock.symbol}</div>
-                <div class="col-state">
-                    <span style="color: ${getStateColor(stock.state)}">${stock.state}</span>
+            </div>
+            <div class="panel-content" id="goaheadContent">
+                <div class="loading">Loading recommendations...</div>
+            </div>
+        </div>
+
+    <!-- AI Verdict Run Modal -->
+    <div id="verdictModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Run AI Verdicts</h3>
+                <button class="close-btn" onclick="closeVerdictModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="agentSelect">Agent:</label>
+                    <select id="agentSelect">
+                        <option value="equity">Equity Agent</option>
+                        <option value="options">Options Agent</option>
+                        <option value="all">All Agents</option>
+                    </select>
                 </div>
-                <div>${stock.score}</div>
-                <div>₹${stock.price}</div>
-                <div>₹${stock.target}</div>
-                <div class="${roi >= 0 ? 'stat-positive' : 'stat-negative'}">
-                    ${roi.toFixed(2)}%
+                <div class="form-group">
+                    <label for="timeframeSelect">Timeframe:</label>
+                    <select id="timeframeSelect">
+                        <option value="5D">5 Days</option>
+                        <option value="30D">30 Days</option>
+                        <option value="all">All Timeframes</option>
+                    </select>
                 </div>
-                <div>
-                    <span class="verdict-badge ${verdictColor}" 
-                          title="Confidence: ${aiConfidence}%">
-                        ${aiVerdict}
-                    </span>
+                <div class="form-group">
+                    <label for="symbolInput">Symbol (Optional):</label>
+                    <input type="text" id="symbolInput" placeholder="e.g., RELIANCE">
                 </div>
-                <div>${aiConfidence}%</div>
-            `;
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeVerdictModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="runVerdicts()">Run Now</button>
+            </div>
+        </div>
+    </div>
 
-            return row;
-        }
+    <!-- Verdict History Drawer -->
+    <div id="verdictDrawer" class="verdict-drawer" style="display: none;">
+        <div class="drawer-header">
+            <h3>AI Verdict Details</h3>
+            <button class="close-btn" onclick="closeVerdictDrawer()">&times;</button>
+        </div>
+        <div class="drawer-content" id="drawerContent">
+            <div class="loading">Loading verdict details...</div>
+        </div>
+        <div class="drawer-footer">
+            <button class="btn btn-primary" onclick="runSingleVerdict()">Run Again</button>
+        </div>
+    </div>
 
-        function getStateColor(state) {
-            const colors = {
-                'BUY': '#16a34a',
-                'SELL': '#dc2626', 
-                'HOLD': '#64748b',
-                'WATCH': '#d97706'
-            };
-            return colors[state] || '#64748b';
-        }
-
-        async function togglePin(symbol) {
-            try {
-                const wasPinned = pinnedSymbols.has(symbol);
-
-                if (wasPinned) {
-                    pinnedSymbols.delete(symbol);
-                    // Call API to unpin
-                    await fetch(`/api/equity/unpin/${symbol}`, { method: 'POST' });
-                } else {
-                    if (pinnedSymbols.size >= 20) {
-                        alert('Maximum 20 symbols can be pinned');
-                        return;
-                    }
-                    pinnedSymbols.add(symbol);
-                    // Call API to pin
-                    await fetch(`/api/equity/pin/${symbol}`, { method: 'POST' });
-                }
-
-                savePinnedSymbols();
-                renderVirtualTable();
-                await updatePinnedStats();
-
-            } catch (error) {
-                console.error('Error toggling pin:', error);
-            }
-        }
-
-        async function updatePinnedStats() {
-            try {
-                if (pinnedSymbols.size === 0) {
-                    renderEmptyStats();
-                    return;
-                }
-
-                const response = await fetch('/api/equity/pinned_stats');
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                const result = await response.json();
-                if (result.success) {
-                    renderPinnedStats(result.data);
-                } else {
-                    renderEmptyStats();
-                }
-
-            } catch (error) {
-                console.error('Error updating pinned stats:', error);
-                renderEmptyStats();
-            }
-        }
-
-        function renderPinnedStats(stats) {
-            const grid = document.getElementById('statsGrid');
-            const lastUpdated = document.getElementById('statsLastUpdated');
-
-            grid.innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-label">Total Pinned</div>
-                    <div class="stat-value">${stats.count}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg ROI</div>
-                    <div class="stat-value ${stats.avg_roi >= 0 ? 'stat-positive' : 'stat-negative'}">
-                        ${stats.avg_roi}%
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg Confidence</div>
-                    <div class="stat-value">${stats.avg_confidence}%</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Top Gainer</div>
-                    <div class="stat-value stat-positive">
-                        ${stats.top_gainer ? `${stats.top_gainer.symbol} (${stats.top_gainer.roi}%)` : 'N/A'}
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Top Loser</div>
-                    <div class="stat-value stat-negative">
-                        ${stats.top_loser ? `${stats.top_loser.symbol} (${stats.top_loser.roi}%)` : 'N/A'}
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Total P/L</div>
-                    <div class="stat-value ${stats.total_pl >= 0 ? 'stat-positive' : 'stat-negative'}">
-                        ₹${stats.total_pl}
-                    </div>
-                </div>
-            `;
-
-            lastUpdated.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
-        }
-
-        function renderEmptyStats() {
-            const grid = document.getElementById('statsGrid');
-            grid.innerHTML = `
-                <div class="stat-card" style="grid-column: 1/-1; text-align: center;">
-                    <div class="stat-label">No pinned symbols</div>
-                    <div class="stat-value">Pin symbols to see aggregated stats</div>
-                </div>
-            `;
-        }
-
-        function handleVirtualScroll() {
-            // Virtual scrolling logic could be implemented here
-            // For now, we load all data at once for simplicity
-        }
-
-        function updateTableStats() {
-            const statsElement = document.getElementById('tableStats');
-            const highScoreCount = stockData.filter(stock => stock.score >= 75).length;
-            const avgScore = stockData.length > 0 ? 
-                (stockData.reduce((sum, stock) => sum + stock.score, 0) / stockData.length).toFixed(1) : 0;
-
-            statsElement.textContent = `${stockData.length} stocks, ${highScoreCount} high-score, avg: ${avgScore}`;
-            console.log('[INFO] ' + new Date().toLocaleTimeString() + ': Stats updated: ' + stockData.length + ' stocks, ' + highScoreCount + ' high-score, avg: ' + avgScore);
-        }
-
-        function updateLastUpdated() {
-            const element = document.getElementById('lastUpdated');
-            element.textContent = `Last updated: ${new Date().toLocaleTimeString()} (${pinnedSymbols.size > 0 ? 'auto' : 'manual'})`;
-        }
-
-        function updateStatus(type, message) {
-            const indicator = document.getElementById('statusIndicator');
-            indicator.className = `status-indicator status-${type}`;
-            indicator.textContent = message;
-            console.log(`[${type.toUpperCase()}] ` + new Date().toLocaleTimeString() + ': Status: ' + message);
-        }
-
-        function showLoading() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            console.log('[INFO] ' + new Date().toLocaleTimeString() + ': Showing loading state');
-        }
-
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
-            console.log('[INFO] ' + new Date().toLocaleTimeString() + ': Showing stock data');
-        }
-
-        function enableRefreshButton(enabled) {
-            const btn = document.getElementById('refreshBtn');
-            btn.disabled = !enabled;
-            if (enabled) {
-                console.log('[INFO] ' + new Date().toLocaleTimeString() + ': Refresh button enabled - ready');
-            }
-        }
-
-        // Initialize immediately when DOM is ready
-        console.log('[INFO] ' + new Date().toLocaleTimeString() + ': 📊 Starting immediate data load');
-        setTimeout(() => {
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function() {
-                    console.log('[INFO] ' + new Date().toLocaleTimeString() + ': 📋 Initial data load completed');
-                });
-            } else {
-                console.log('[INFO] ' + new Date().toLocaleTimeString() + ': 📋 Initial data load completed');
-            }
-        }, 100);
-    </script>
+    <script src="/static/js/dashboard.js"></script>
 </body>
 </html>

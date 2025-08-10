@@ -1731,7 +1731,8 @@ def initialize_app():
         if feature_flags.is_enabled('enable_agents_framework'):
             from src.agents.orchestrator import agent_orchestrator
             agent_orchestrator.start()
-            logger.info("AI Agents orchestrator started")
+            logger.info("✅ AI Agents orchestrator started")
+            logger.info("🤖 AI Verdict UI features enabled")
 
     except Exception as e:
         logger.error(f"❌ Error during app initialization: {str(e)}")

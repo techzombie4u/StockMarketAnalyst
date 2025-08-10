@@ -156,7 +156,7 @@ class KPIDashboard {
         this.updateSummaryTable();
 
         // Update timestamp
-        document.getElementById('lastUpdated').textContent = 
+        document.getElementById('lastUpdated').textContent =
             `Last Updated: ${new Date().toLocaleString()}`;
 
         // Load GoAhead decisions
@@ -239,7 +239,7 @@ class KPIDashboard {
         card.className = `kpi-card kpi-${status}`;
 
         const formattedValue = this.formatValue(value, format);
-        const trendElement = trendInfo ? 
+        const trendElement = trendInfo ?
             `<span class="trend-${trendInfo.direction} ml-2">
                 ${trendInfo.arrow} ${trendInfo.delta_pct > 0 ? '+' : ''}${trendInfo.delta_pct}%
             </span>` : '';
@@ -283,7 +283,7 @@ class KPIDashboard {
         // Get threshold for this KPI
         let threshold = null;
         if (this.thresholds.targets[key]) {
-            threshold = this.thresholds.targets[key][this.currentTimeframe] || 
+            threshold = this.thresholds.targets[key][this.currentTimeframe] ||
                       this.thresholds.targets[key]['all'];
         }
 
@@ -336,9 +336,9 @@ class KPIDashboard {
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
                         <div class="flex items-center space-x-2 mb-2">
-                            <span class="px-2 py-1 text-xs font-medium rounded-full 
-                                       ${trigger.severity === 'high' ? 'bg-red-100 text-red-800' : 
-                                         trigger.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 
+                            <span class="px-2 py-1 text-xs font-medium rounded-full
+                                       ${trigger.severity === 'high' ? 'bg-red-100 text-red-800' :
+                                         trigger.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                                          'bg-blue-100 text-blue-800'}">
                                 ${trigger.type}
                             </span>
@@ -380,8 +380,8 @@ class KPIDashboard {
 
         // This would require loading data for each timeframe
         // For now, just show current timeframe
-        const currentData = this.currentProduct === 'all' ? 
-                           this.kpiData.overall : 
+        const currentData = this.currentProduct === 'all' ?
+                           this.kpiData.overall :
                            this.kpiData.by_product[this.currentProduct];
 
         if (currentData) {
@@ -393,6 +393,9 @@ class KPIDashboard {
                 <td class="px-4 py-2">${this.formatValue(currentData.financial.sharpe_ratio, 'decimal')}</td>
                 <td class="px-4 py-2">${this.formatValue(currentData.risk.max_drawdown, 'percentage')}</td>
                 <td class="px-4 py-2">${this.formatValue(currentData.risk.var_95, 'decimal')}</td>
+                <td class="px-4 py-2 verdict-cell" data-timeframe="${this.currentTimeframe}">
+                    <div class="verdict-content verdict-unknown">—</div>
+                </td>
             `;
             tbody.appendChild(row);
         }
@@ -403,8 +406,8 @@ class KPIDashboard {
 
         const element = document.getElementById('last-updated');
         const autoTime = new Date(this.kpiData.last_auto_refresh).toLocaleString();
-        const manualTime = this.kpiData.last_manual_refresh ? 
-                          new Date(this.kpiData.last_manual_refresh).toLocaleString() : 
+        const manualTime = this.kpiData.last_manual_refresh ?
+                          new Date(this.kpiData.last_manual_refresh).toLocaleString() :
                           'Never';
 
         element.innerHTML = `Auto: ${autoTime} | Manual: ${manualTime}`;
@@ -494,7 +497,7 @@ class KPIDashboard {
             <div class="text-center py-8">
                 <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
                 <p class="text-red-600">${message}</p>
-                <button onclick="kpiDashboard.loadKPIData()" 
+                <button onclick="kpiDashboard.loadKPIData()"
                         class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                     Retry
                 </button>
@@ -554,7 +557,7 @@ function displayGoAheadDecisions(decisions) {
     const decisionsHtml = decisions.map(decision => {
         const urgencyClass = {
             'critical': 'danger',
-            'high': 'warning', 
+            'high': 'warning',
             'medium': 'info',
             'low': 'secondary'
         }[decision.urgency] || 'secondary';
@@ -628,3 +631,87 @@ function createSuccessElement() {
     document.querySelector('.container').insertBefore(successDiv, document.querySelector('.container').firstChild);
     return successDiv;
 }
+
+// Utility function for logging with timestamp
+function logInfo(...args) {
+    console.log('[INFO]', getCurrentTime(), ...args);
+}
+
+// Utility function to get current time string
+function getCurrentTime() {
+    return new Date().toLocaleTimeString();
+}
+
+// Add verdict loading to KPI dashboard
+setTimeout(() => {
+    loadKpiVerdicts();
+}, 1000);
+
+// Load AI verdicts for KPI rows
+async function loadKpiVerdicts() {
+    try {
+        const verdictCells = document.querySelectorAll('.verdict-cell');
+
+        for (const cell of verdictCells) {
+            const timeframe = cell.dataset.timeframe;
+
+            try {
+                const response = await fetch(`/api/agents/latest?agent=summary&scope=timeframe=${timeframe}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateVerdictCell(cell, data);
+                } else {
+                    updateVerdictCell(cell, null);
+                }
+            } catch (error) {
+                updateVerdictCell(cell, null);
+            }
+        }
+
+        console.log('[INFO]', getCurrentTime(), 'KPI verdicts loaded');
+    } catch (error) {
+        console.error('[ERROR]', getCurrentTime(), 'Error loading KPI verdicts:', error);
+    }
+}
+
+function updateVerdictCell(cell, verdictData) {
+    const content = cell.querySelector('.verdict-content');
+
+    if (!verdictData || !verdictData.output) {
+        content.textContent = '—';
+        content.className = 'verdict-content verdict-unknown';
+        return;
+    }
+
+    const output = verdictData.output;
+    const verdict = output.verdict || 'Unknown';
+    const confidence = output.confidence || 0;
+
+    content.textContent = `${verdict} (${confidence}%)`;
+
+    // Apply styling based on confidence and verdict
+    let className = 'verdict-content ';
+    if (confidence >= 80 && isPositiveVerdict(verdict)) {
+        className += 'verdict-positive';
+    } else if (confidence >= 60) {
+        className += 'verdict-cautious';
+    } else {
+        className += 'verdict-negative';
+    }
+
+    content.className = className;
+
+    // Add tooltip with reasons
+    if (output.reasons && output.reasons.length > 0) {
+        const tooltip = output.reasons.slice(0, 2).join('; ');
+        cell.title = tooltip;
+    }
+}
+
+function isPositiveVerdict(verdict) {
+    const positive = ['strong buy', 'buy', 'bullish', 'positive', 'strong'];
+    return positive.some(term => verdict.toLowerCase().includes(term));
+}
+
+// Load KPI data from API
