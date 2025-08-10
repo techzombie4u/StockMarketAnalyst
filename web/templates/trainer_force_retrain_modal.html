@@ -1,0 +1,52 @@
+
+<!-- Force Retrain Modal -->
+<div id="forceRetrainModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Force Model Retraining</h3>
+            <button class="close-btn" onclick="closeForceRetrainModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="retrainProductSelect">Product:</label>
+                <select id="retrainProductSelect">
+                    <option value="equities">Equities</option>
+                    <option value="options">Options</option>
+                    <option value="comm">Commodities</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="retrainTimeframeSelect">Timeframe:</label>
+                <select id="retrainTimeframeSelect">
+                    <option value="5D">5 Days</option>
+                    <option value="30D">30 Days</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="forceRetrainCheckbox" checked>
+                    Force retrain (bypass cooldown and triggers)
+                </label>
+            </div>
+            <div class="warning-message">
+                <strong>Warning:</strong> Model retraining may take several minutes and will temporarily impact performance.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeForceRetrainModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="executeForceRetrain()">Start Retraining</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.warning-message {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 16px;
+    color: #856404;
+    font-size: 0.9em;
+}
+</style>

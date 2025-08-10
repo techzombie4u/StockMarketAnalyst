@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupAutoRefresh();
         setupVerdictControls();
         loadGoAheadPanel();
+        setupTrainerControls();
+        loadTrainerPanel();
     } catch (error) {
         console.error('[ERROR]', getCurrentTime(), 'Failed to initialize dashboard:', error);
         showError('Failed to initialize dashboard');
@@ -51,67 +53,7 @@ function getCurrentTime() {
 }
 
 // Add AI Verdict functionality to dashboard
-Replacing
-<old_str>
-setupAutoRefresh();
-    } catch (error) {
-        console.error('[ERROR]', getCurrentTime(), 'Failed to initialize dashboard:', error);
-        showError('Failed to initialize dashboard');
-    }
-});
-</old_str>
-with
-<new_str>
-setupAutoRefresh();
-        setupVerdictControls();
-        loadGoAheadPanel();
-    } catch (error) {
-        console.error('[ERROR]', getCurrentTime(), 'Failed to initialize dashboard:', error);
-        showError('Failed to initialize dashboard');
-    }
-});
-</new_str>
-Add AI Verdict functionality to dashboard
-Replacing
-<old_str>
-setupAutoRefresh();
-    } catch (error) {
-        console.error('[ERROR]', getCurrentTime(), 'Failed to initialize dashboard:', error);
-        showError('Failed to initialize dashboard');
-    }
-});
-</old_str>
-with
-<new_str>
-setupAutoRefresh();
-        setupVerdictControls();
-        loadGoAheadPanel();
-    } catch (error) {
-        console.error('[ERROR]', getCurrentTime(), 'Failed to initialize dashboard:', error);
-        showError('Failed to initialize dashboard');
-    }
-});
-</new_str>
-Add verdict management functions
-Replacing
-<old_str>
-logInfo('📋 Initial data load completed');
-}
-
-// Auto-refresh functionality
-function setupAutoRefresh() {
-</old_str>
-with
-<new_str>
-logInfo('📋 Initial data load completed');
-
-    // Load AI verdicts for displayed stocks
-    setTimeout(() => {
-        loadVerdicts();
-    }, 500);
-}
-
-// AI Verdict Management
+// Add verdict management functions
 let verdictCache = new Map();
 
 function setupVerdictControls() {
@@ -507,5 +449,128 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// Auto-refresh functionality
-function setupAutoRefresh() {
+// Trainer Agent Functionality
+function setupTrainerControls() {
+    const trainBtn = document.getElementById('trainBtn');
+    if (trainBtn) {
+        trainBtn.addEventListener('click', runTraining);
+    }
+
+    const retrainBtn = document.getElementById('retrainBtn');
+    if (retrainBtn) {
+        retrainBtn.addEventListener('click', runRetraining);
+    }
+
+    const modelSelect = document.getElementById('modelSelect');
+    if (modelSelect) {
+        modelSelect.addEventListener('change', handleModelSelection);
+    }
+}
+
+async function loadTrainerPanel() {
+    try {
+        const response = await fetch('/api/trainer/models');
+        if (response.ok) {
+            const models = await response.json();
+            renderModelList(models);
+        } else {
+            console.error('[ERROR]', getCurrentTime(), 'Failed to load trainer models');
+            document.getElementById('modelListContainer').innerHTML = '<div class="error">Failed to load models</div>';
+        }
+    } catch (error) {
+        console.error('[ERROR]', getCurrentTime(), 'Error loading trainer panel:', error);
+        document.getElementById('modelListContainer').innerHTML = '<div class="error">Error loading models</div>';
+    }
+}
+
+function renderModelList(models) {
+    const container = document.getElementById('modelListContainer');
+    if (!container) return;
+
+    if (models.length === 0) {
+        container.innerHTML = '<div class="no-data">No trained models available</div>';
+        return;
+    }
+
+    const html = models.map(model => `
+        <div class="model-item">
+            <span class="model-name">${model.name}</span>
+            <span class="model-status status-${model.status}">${model.status}</span>
+            <button class="btn btn-secondary btn-sm select-model-btn" data-model-id="${model.id}">Select</button>
+        </div>
+    `).join('');
+    container.innerHTML = html;
+
+    document.querySelectorAll('.select-model-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const modelId = e.target.dataset.modelId;
+            const modelName = e.target.previousElementSibling.textContent;
+            document.getElementById('selectedModelName').textContent = modelName;
+            document.getElementById('selectedModelId').value = modelId;
+            document.getElementById('modelSelect').value = modelId; // Update select if exists
+        });
+    });
+}
+
+function handleModelSelection(e) {
+    const modelId = e.target.value;
+    const modelName = e.target.options[e.target.selectedIndex].text;
+    document.getElementById('selectedModelName').textContent = modelName;
+    document.getElementById('selectedModelId').value = modelId; // Update hidden input
+}
+
+async function runTraining() {
+    const modelName = document.getElementById('newModelNameInput').value.trim();
+    if (!modelName) {
+        showToast('Please enter a model name for training', 'warning');
+        return;
+    }
+
+    showToast(`Starting training for "${modelName}"...`, 'info');
+    try {
+        const response = await fetch('/api/trainer/train', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model_name: modelName })
+        });
+
+        if (response.ok) {
+            showToast(`Training initiated for "${modelName}". Check logs for progress.`, 'success');
+            loadTrainerPanel(); // Refresh model list
+        } else {
+            const errorData = await response.json();
+            showToast(`Failed to start training: ${errorData.error || response.statusText}`, 'error');
+        }
+    } catch (error) {
+        console.error('[ERROR]', getCurrentTime(), 'Error running training:', error);
+        showToast('Error running training. Please check console.', 'error');
+    }
+}
+
+async function runRetraining() {
+    const modelId = document.getElementById('selectedModelId').value;
+    if (!modelId) {
+        showToast('Please select a model to retrain', 'warning');
+        return;
+    }
+
+    showToast(`Starting retraining for model ID ${modelId}...`, 'info');
+    try {
+        const response = await fetch('/api/trainer/retrain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model_id: modelId })
+        });
+
+        if (response.ok) {
+            showToast(`Retraining initiated for model ID ${modelId}. Check logs for progress.`, 'success');
+            loadTrainerPanel(); // Refresh model list
+        } else {
+            const errorData = await response.json();
+            showToast(`Failed to start retraining: ${errorData.error || response.statusText}`, 'error');
+        }
+    } catch (error) {
+        console.error('[ERROR]', getCurrentTime(), 'Error running retraining:', error);
+        showToast('Error running retraining. Please check console.', 'error');
+    }
+}
