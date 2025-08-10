@@ -1,4 +1,3 @@
-
 # src/core/app.py
 import os, sys
 from flask import Flask, jsonify, render_template
@@ -32,10 +31,6 @@ def create_app():
         app.logger.warning(f"❌ Agents blueprint not registered: {e}")
 
     # ---- Main dashboard routes ----
-    @app.route("/health")
-    def health():
-        return {"ok": True}, 200
-
     @app.route("/")
     def root():
         try:
@@ -96,5 +91,21 @@ def create_app():
         app.logger.info("🔎 URL map:\n  " + "\n  ".join(rules))
     except Exception:
         pass
+
+    # --- SAFE HEALTH ROUTE (guarded) ---
+    if 'health' not in app.view_functions:
+        @app.route("/health", endpoint="health")
+        def health():
+            return {"ok": True}, 200
+
+    # --- SAFE STOP ROUTE (used by tests/utils/server_manager.py) ---
+    if '__stop__' not in app.view_functions:
+        @app.route("/__stop__", methods=["GET"])
+        def __stop__():
+            # Allows the test harness to stop the server if it locked the port
+            shutdown = request.environ.get('werkzeug.server.shutdown')
+            if shutdown:
+                shutdown()
+            return "OK", 200
 
     return app
