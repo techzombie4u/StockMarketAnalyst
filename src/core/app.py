@@ -38,18 +38,12 @@ def create_app():
             return "Fusion Dashboard page not available", 404
 
     # ---- Register Agents blueprint ----
-    agents_bp = None
     try:
-        from agents.api import agents_bp as abp
-        agents_bp = abp
-    except Exception:
-        try:
-            from src.agents.api import agents_bp as abp
-            agents_bp = abp
-        except Exception as e:
-            app.logger.warning(f"Agents blueprint not registered: {e}")
-    if agents_bp:
+        from agents.api import agents_bp
         app.register_blueprint(agents_bp)
+        app.logger.info("✅ Registered agents blueprint at /api/agents")
+    except Exception as e:
+        app.logger.warning(f"❌ Agents blueprint not registered: {e}")
 
     # ---- Bind/repair agent registry entries at startup ----
     try:
@@ -83,5 +77,16 @@ def create_app():
     @app.route("/")
     def root():
         return "Stock Analyst server is running", 200
+
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok"}), 200
+
+    # Log routes once to verify on boot
+    try:
+        rules = sorted([str(r.rule) for r in app.url_map.iter_rules()])
+        app.logger.info("🔎 URL map:\n  " + "\n  ".join(rules))
+    except Exception:
+        pass
 
     return app

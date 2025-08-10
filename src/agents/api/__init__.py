@@ -1,3 +1,5 @@
 
-from flask import Blueprint
-agents_bp = Blueprint("agents_bp", __name__)
+# Keep the package lightweight; export the blueprint from .agents
+from .agents import agents_bp
+
+__all__ = ["agents_bp"]
