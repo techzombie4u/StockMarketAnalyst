@@ -28,12 +28,11 @@ def create_app():
     if fusion_bp:
         app.register_blueprint(fusion_bp)
 
-    # Provide /fusion-dashboard if not in BP (failsafe)
+    # Provide /fusion-dashboard using the new unified dashboard
     @app.route("/fusion-dashboard")
     def fusion_dashboard_fallback():
-        # If the blueprint already defined this, Flask will ignore this duplicate.
         try:
-            return render_template("fusion_dashboard.html")
+            return render_template("dashboard.html")
         except Exception:
             return "Fusion Dashboard page not available", 404
 
@@ -77,7 +76,7 @@ def create_app():
     @app.route("/")
     def root():
         try:
-            return render_template("index.html")
+            return render_template("dashboard.html")
         except Exception as e:
             app.logger.warning(f"Failed to load main dashboard: {e}")
             return f"""

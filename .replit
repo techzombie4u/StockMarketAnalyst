@@ -16,7 +16,7 @@ run = ["sh", "-c", "gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 120 --pre
 deploymentTarget = "cloudrun"
 
 [workflows]
-runButton = "Start Fusion Server"
+runButton = "Start Fixed Dashboard"
 
 [[workflows.workflow]]
 name = "Run Stock Analyst"
@@ -112,6 +112,23 @@ args = "export PYTHONPATH=\".:./src:$PYTHONPATH\" && python main.py"
 name = "Start Fusion Server"
 author = 41554566
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python -u src/run_server.py"
+
+[[workflows.workflow]]
+name = "Start Fixed Dashboard"
+author = 41554566
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"python.*run_server.py\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 2"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
