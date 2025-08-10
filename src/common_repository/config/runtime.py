@@ -1,4 +1,3 @@
-
 """
 Runtime Configuration Constants
 Defines constants for scheduler, market hours, refresh intervals, and KPI calculations
@@ -27,6 +26,20 @@ KPI_MIN_SAMPLES = {
     "30D": int(os.getenv('KPI_MIN_SAMPLES_30D', 3))
 }
 
+# Cache and memory settings
+CACHE_TTL_SECONDS = 300
+MAX_CACHE_SIZE_MB = 50
+
+# Performance monitoring
+MEMORY_WARNING_THRESHOLD_MB = 100
+CPU_WARNING_THRESHOLD_PERCENT = 80
+
+# Frontend table constants
+DEFAULT_TABLE_PAGE_SIZE = 50
+PINNED_ROW_MAX = 20
+AI_VERDICT_DISPLAY = True
+PINNED_STATS_REFRESH_SEC = 60
+
 def get_market_tz():
     """Get market timezone object"""
     return pytz.timezone(MARKET_TZ)
@@ -44,12 +57,12 @@ def is_market_hours_now():
     try:
         ist = get_market_tz()
         now_ist = ist.localize(ist.normalize().now().replace(tzinfo=None))
-        
+
         market_open = get_market_open_time()
         market_close = get_market_close_time()
-        
+
         current_time = now_ist.time()
-        
+
         return market_open <= current_time <= market_close
     except Exception:
         # Default to False if timezone calculation fails
