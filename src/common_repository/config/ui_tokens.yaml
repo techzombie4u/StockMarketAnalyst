@@ -1,0 +1,43 @@
+
+# UI Design Tokens for Fusion Dashboard
+colors:
+  primary: "#0A1F44"
+  green: "#1FA774"
+  red: "#D94F4F"
+  bg_light: "#F5F7FA"
+  neutral_1: "#E0E4EA"
+  neutral_2: "#8B96A3"
+  amber: "#F59E0B"
+  blue: "#3B82F6"
+  
+# Verdict Colors
+verdict_colors:
+  STRONG_BUY: "#10B981"    # emerald-500
+  BUY: "#6EE7B7"           # emerald-300
+  HOLD: "#6B7280"          # gray-500
+  CAUTIOUS: "#F59E0B"      # amber-500
+  AVOID: "#EF4444"         # red-500
+
+fonts:
+  primary: "Inter"
+  secondary: "system-ui"
+  mono: "JetBrains Mono"
+
+layout:
+  base_unit: 8
+  card_padding: 16
+  table_row_height: 48
+  header_height: 64
+
+# Component tokens
+components:
+  badge:
+    border_radius: 6
+    padding_x: 8
+    padding_y: 4
+  card:
+    border_radius: 8
+    shadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+  table:
+    header_bg: "#F9FAFB"
+    row_hover: "#F3F4F6"

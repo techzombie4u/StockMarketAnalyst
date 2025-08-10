@@ -1,0 +1,186 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fusion Dashboard - Stock Market Analyst</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0A1F44',
+                        green: '#1FA774', 
+                        red: '#D94F4F',
+                        bgLight: '#F5F7FA',
+                        neutral1: '#E0E4EA',
+                        neutral2: '#8B96A3'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sticky-cols {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+        }
+        .verdict-STRONG_BUY { @apply bg-emerald-100 text-emerald-800; }
+        .verdict-BUY { @apply bg-green-100 text-green-800; }
+        .verdict-HOLD { @apply bg-gray-100 text-gray-800; }
+        .verdict-CAUTIOUS { @apply bg-amber-100 text-amber-800; }
+        .verdict-AVOID { @apply bg-red-100 text-red-800; }
+        
+        .chart-container {
+            height: 200px;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-primary">Fusion Dashboard</h1>
+                    <span id="marketStatus" class="ml-4 px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">OPEN</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="lastUpdated" class="text-sm text-gray-500">Loading...</span>
+                    <button id="refreshBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <span id="refreshIcon">🔄</span> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Filters Row -->
+        <div class="mb-6 flex flex-wrap gap-4">
+            <select id="timeframeFilter" class="px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="All">All Timeframes</option>
+                <option value="3D">3 Days</option>
+                <option value="5D" selected>5 Days</option>
+                <option value="10D">10 Days</option>
+                <option value="15D">15 Days</option>
+                <option value="30D">30 Days</option>
+            </select>
+            <select id="productFilter" class="px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="All">All Products</option>
+                <option value="equities">Equities</option>
+                <option value="options">Options</option>
+                <option value="comm">Communication</option>
+            </select>
+        </div>
+
+        <!-- Row A: KPI Overview -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Prediction Quality KPIs -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Prediction Quality KPIs</h2>
+                    <div class="flex space-x-1" id="predictionKpiTabs">
+                        <!-- Tabs populated by JS -->
+                    </div>
+                </div>
+                <div id="predictionKpiContent" class="space-y-4">
+                    <!-- KPI metrics populated by JS -->
+                </div>
+            </div>
+
+            <!-- Financial & Risk KPIs -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Financial & Risk KPIs</h2>
+                    <div class="flex space-x-1" id="financialKpiTabs">
+                        <!-- Tabs populated by JS -->
+                    </div>
+                </div>
+                <div id="financialKpiContent" class="space-y-4">
+                    <!-- KPI metrics populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Row B: AI Verdict Summary -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">AI Verdict Distribution</h2>
+            <div id="verdictSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Verdict charts populated by JS -->
+            </div>
+        </div>
+
+        <!-- Row C: Top Signals -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Top Signals</h2>
+                <button id="exportTopSignals" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded">
+                    Export CSV
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="sticky-cols px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pin</th>
+                            <th class="sticky-cols px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                            <th class="sticky-cols px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timeframe</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI Verdict</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Outcome</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topSignalsTable" class="bg-white divide-y divide-gray-200">
+                        <!-- Table rows populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Row D: Pinned Summary + Row E: Alerts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Pinned Summary -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Pinned Summary</h2>
+                    <button id="openPinnedView" class="px-3 py-1 text-sm bg-blue-100 text-blue-800 hover:bg-blue-200 rounded">
+                        Open Pinned View
+                    </button>
+                </div>
+                <div id="pinnedSummary" class="grid grid-cols-2 gap-4">
+                    <!-- Pinned stats populated by JS -->
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">System Alerts</h2>
+                <div id="alertsList" class="space-y-2 max-h-64 overflow-y-auto">
+                    <!-- Alerts populated by JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6">
+            <div class="flex items-center space-x-3">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span>Loading fusion data...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/fusion_dashboard.js"></script>
+</body>
+</html>

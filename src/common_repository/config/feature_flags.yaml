@@ -1,0 +1,27 @@
+
+# Feature Flags Configuration
+core_features:
+  enable_ai_verdict_column: true
+  enable_dynamic_confidence: true
+  enable_advanced_scoring: true
+  enable_prediction_tracking: true
+  enable_agents_framework: true
+  enable_trainer_agent: true
+  enable_kpi_dashboard: true
+
+# NEW: Fusion Dashboard flags
+ui_fusion_dashboard_enabled: true
+ui_kpi_trend_sparklines: true
+ui_show_ai_verdict_badges: true
+ui_fusion_cache_ttl_seconds: 120
+
+# Performance & Memory
+memory_optimization_enabled: true
+enable_request_debouncing: true
+cache_prediction_data: true
+limit_historical_data: true
+
+# Development & Testing
+debug_mode: false
+test_data_generation: false
+verbose_logging: false

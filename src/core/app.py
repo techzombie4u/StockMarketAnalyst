@@ -54,7 +54,6 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['CACHE_TYPE'] = 'simple'
 app.config['CACHE_DEFAULT_TIMEOUT'] = 60  # Reduced cache timeout
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-app.config['TEMPLATES_AUTO_RELOAD'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
 # Initialize cache with limits
@@ -2306,6 +2305,16 @@ def create_app():
             logger.info(f"  {rule.methods} {rule.rule} -> {rule.endpoint}")
 
     return app
+
+@app.route('/kpi-dashboard')
+def kpi_dashboard():
+    """KPI Dashboard page"""  
+    return render_template('kpi_dashboard.html')
+
+@app.route('/fusion-dashboard')
+def fusion_dashboard():
+    """Fusion Dashboard page"""
+    return render_template('fusion_dashboard.html')
 
 if __name__ == '__main__':
     initialize_app()
