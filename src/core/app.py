@@ -1,17 +1,30 @@
 
 # src/core/app.py
-import os
+import os, pathlib
 from flask import Flask, render_template
+
+def _guess_template_folder():
+    # Prefer web/templates if present; fallback to src/templates
+    here = pathlib.Path(__file__).resolve()
+    cand1 = here.parents[2] / "web" / "templates"
+    cand2 = here.parents[1] / "templates"
+    return str(cand1 if cand1.exists() else cand2)
+
+def _guess_static_folder():
+    # Optional static folder; try web/static then src/static
+    here = pathlib.Path(__file__).resolve()
+    cand1 = here.parents[2] / "web" / "static"
+    cand2 = here.parents[1] / "static"
+    return str(cand1 if cand1.exists() else cand2)
 
 def create_app() -> Flask:
     app = Flask(
         __name__,
-        template_folder=os.path.join(os.path.dirname(__file__), "..", "..", "web", "templates"),
-        static_folder=os.path.join(os.path.dirname(__file__), "..", "..", "web", "static")
+        template_folder=_guess_template_folder(),
+        static_folder=_guess_static_folder()
     )
 
-    # -------- Register Blueprints (keep your existing ones too) --------
-    # Equities / Options (if already exist, keep them)
+    # Register existing product blueprints if available
     try:
         from src.products.equities.api import equity_bp
         app.register_blueprint(equity_bp, url_prefix="/api/equities")
@@ -24,22 +37,16 @@ def create_app() -> Flask:
     except Exception:
         pass
 
-    # Fusion blueprint (new / fixed)
-    from src.fusion.api import fusion_bp
+    # Register Fusion blueprint (required by validator)
+    from src.fusion.api.fusion import fusion_bp
     app.register_blueprint(fusion_bp, url_prefix="/api/fusion")
 
-    # -------- Minimal route for the Fusion dashboard page --------
     @app.route("/fusion-dashboard")
     def fusion_dashboard_page():
-        # template includes required element IDs the validator checks for
         return render_template("fusion_dashboard.html")
 
     @app.route("/")
     def root():
         return "Stock Analyst server is running"
-
-    @app.route("/healthz")
-    def healthz():
-        return {"status": "ok", "message": "Flask server is running"}
 
     return app

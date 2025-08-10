@@ -1,48 +1,4 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <title>Fusion Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-</head>
-<body style="font-family: Inter, Arial, sans-serif">
-  <h1>Fusion Dashboard</h1>
 
-  <div>
-    <label for="timeframeFilter">Timeframe</label>
-    <select id="timeframeFilter">
-      <option>All</option><option>3D</option><option>5D</option>
-      <option>10D</option><option>15D</option><option>30D</option>
-    </select>
-    <button id="refreshBtn">Refresh</button>
-  </div>
-
-  <table id="topSignalsTable" border="1" cellpadding="6" cellspacing="0">
-    <thead>
-      <tr><th>Symbol</th><th>Product</th><th>Score</th><th>AI Verdict</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <script>
-    async function loadFusion(force=false) {
-      const res = await fetch(`/api/fusion/dashboard${force?'?forceRefresh=true':''}`);
-      const data = await res.json();
-      const tbody = document.querySelector('#topSignalsTable tbody');
-      tbody.innerHTML = '';
-      (data.top_signals || []).forEach(s => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${s.symbol}</td><td>${s.product}</td><td>${s.score}</td><td>${s.ai_verdict_normalized}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-    document.getElementById('refreshBtn').addEventListener('click', ()=>loadFusion(true));
-    document.getElementById('timeframeFilter').addEventListener('change', ()=>loadFusion(false));
-    loadFusion();
-  </script>
-</body>
-</html>
-<!-- web/templates/fusion_dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,7 +8,6 @@
 <body>
   <h1>Fusion Dashboard</h1>
 
-  <!-- Controls the validator expects -->
   <div id="timeframeFilter">
     <select>
       <option>All</option><option>3D</option><option>5D</option>
@@ -61,7 +16,6 @@
     <button id="refreshBtn" onclick="refresh()">Refresh</button>
   </div>
 
-  <!-- Main table the validator checks for -->
   <table id="topSignalsTable" border="1">
     <thead><tr><th>Symbol</th><th>Verdict</th><th>Confidence</th></tr></thead>
     <tbody id="signalsTbody"></tbody>
