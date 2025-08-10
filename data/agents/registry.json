@@ -20,5 +20,38 @@
   "config": {
     "show_ai_verdict_columns": false
   },
-  "last_updated": "2025-08-10T12:56:08.094Z"
+  "last_updated": "2025-08-10T12:56:08.094Z",
+  "new_ai_analyzer": {
+    "id": "new_ai_analyzer",
+    "name": "New AI Analyzer",
+    "enabled": false,
+    "description": "Placeholder AI analyzer",
+    "last_run_utc": "2025-08-10T13:17:39.595Z",
+    "last_result": {
+      "status": "ok",
+      "analysis": "Placeholder AI analysis based on current market conditions.",
+      "verdict": "HOLD",
+      "confidence": 0.5,
+      "reasoning": "Error getting LLM verdict: cannot import name 'get_ai_verdict' from 'src.common_repository.utils.ai_verdict' (/home/runner/workspace/src/common_repository/utils/ai_verdict.py)",
+      "agent_id": "new_ai_analyzer",
+      "timestamp": "2025-08-10T13:17:39.595Z"
+    }
+  },
+  "sentiment_analyzer": {
+    "id": "sentiment_analyzer",
+    "name": "Sentiment Analyzer",
+    "enabled": true,
+    "description": "Placeholder sentiment analyzer",
+    "last_run_utc": "2025-08-10T13:17:39.610Z",
+    "last_result": {
+      "status": "ok",
+      "sentiment_score": 0.273,
+      "summary": "Positive sentiment detected from market indicators and news flow.",
+      "verdict": "HOLD",
+      "confidence": 0.5,
+      "reasoning": "Error getting LLM verdict: cannot import name 'get_ai_verdict' from 'src.common_repository.utils.ai_verdict' (/home/runner/workspace/src/common_repository/utils/ai_verdict.py)",
+      "agent_id": "sentiment_analyzer",
+      "timestamp": "2025-08-10T13:17:39.610Z"
+    }
+  }
 }
