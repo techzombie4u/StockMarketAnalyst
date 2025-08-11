@@ -17,11 +17,11 @@ class FusionDashboard {
         setInterval(() => this.loadDashboardData(), 30000);
     }
 
-    async loadDashboardData(forceRefresh = false) {
-        console.log('[FusionUI] Loading fusion data, force:', forceRefresh);
+    async loadDashboardData(timeframe = 'all', forceRefresh = false) {
+        console.log('[FusionUI] Loading fusion data, timeframe:', timeframe, 'force:', forceRefresh);
 
         try {
-            const endpoint = '/api/fusion/dashboard';
+            const endpoint = `/api/fusion/dashboard${timeframe !== 'all' ? `?timeframe=${timeframe}` : ''}`;
             console.log('[FusionUI] Fetching from:', endpoint);
 
             const response = await fetch(endpoint);
@@ -45,7 +45,7 @@ class FusionDashboard {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'bg-red-900 text-red-100 p-4 rounded-lg mb-4';
             errorDiv.innerHTML = '<h3 class="font-bold">Dashboard Loading Error</h3><p>Unable to load dashboard data. Please refresh the page.</p>';
-            const container = document.querySelector('.border-4.border-dashed');
+            const container = document.querySelector('.space-y-6');
             if (container) {
                 container.insertBefore(errorDiv, container.firstChild);
             }
@@ -53,29 +53,72 @@ class FusionDashboard {
     }
 
     updateDashboardUI(data) {
-        // Update KPI cards
+        // Update main dashboard KPI cards (6 cards)
         const totalValue = document.getElementById('total-value');
         const totalPnl = document.getElementById('total-pnl');
         const activePositions = document.getElementById('active-positions');
+        const winRate = document.getElementById('win-rate');
+        const sharpeRatio = document.getElementById('sharpe-ratio');
+        const maxDrawdown = document.getElementById('max-drawdown');
         const pinnedCount = document.getElementById('pinned-count');
         const lockedCount = document.getElementById('locked-count');
 
         if (totalValue) totalValue.textContent = `$${data.kpis.total_portfolio_value.toLocaleString()}`;
         if (totalPnl) totalPnl.textContent = `$${data.kpis.total_pnl.toLocaleString()}`;
         if (activePositions) activePositions.textContent = data.kpis.total_positions;
+        if (winRate) winRate.textContent = `${(data.kpis.win_rate * 100).toFixed(1)}%`;
+        if (sharpeRatio) sharpeRatio.textContent = data.kpis.sharpe_ratio.toFixed(2);
+        if (maxDrawdown) maxDrawdown.textContent = `${(data.kpis.max_drawdown * 100).toFixed(1)}%`;
         if (pinnedCount) pinnedCount.textContent = data.summary.pinned_items;
         if (lockedCount) lockedCount.textContent = data.summary.locked_items;
 
-        // Update recent activity
-        const recentActivity = document.getElementById('recent-activity');
-        if (recentActivity && data.recent_activity) {
-            recentActivity.innerHTML = data.recent_activity.map(activity => `
-                <div class="flex justify-between items-center py-2 border-b border-slate-700 last:border-b-0">
-                    <div>
-                        <p class="text-sm text-white">${activity.details}</p>
-                        <p class="text-xs text-gray-400">${activity.symbol}</p>
+        // Update Top Signals table
+        const topSignalsTable = document.getElementById('top-signals-table');
+        if (topSignalsTable && data.top_signals) {
+            topSignalsTable.innerHTML = data.top_signals.map(signal => `
+                <tr>
+                    <td>
+                        <button onclick="fusionDashboard.pinItem('signal', '${signal.symbol}')" 
+                                class="pin-button">📌</button>
+                    </td>
+                    <td class="font-medium text-white">${signal.symbol}</td>
+                    <td>${signal.product || 'Equity'}</td>
+                    <td class="font-semibold">${signal.signal_score.toFixed(2)}</td>
+                    <td>$${signal.current_price.toFixed(2)}</td>
+                    <td>$${signal.target_price.toFixed(2)}</td>
+                    <td class="${signal.potential_roi >= 0 ? 'text-green-400' : 'text-red-400'}">
+                        ${(signal.potential_roi * 100).toFixed(1)}%
+                    </td>
+                    <td>
+                        <span class="ai-verdict-badge ${signal.ai_verdict.toLowerCase()}">
+                            ${signal.ai_verdict}
+                        </span>
+                    </td>
+                    <td>${(signal.confidence * 100).toFixed(0)}%</td>
+                </tr>
+            `).join('');
+        }
+
+        // Update alerts content
+        const alertsContent = document.getElementById('alerts-content');
+        if (alertsContent && data.summary.alerts) {
+            if (data.summary.alerts.length === 0) {
+                alertsContent.innerHTML = '<div class="text-sm text-gray-400">No active alerts</div>';
+            } else {
+                alertsContent.innerHTML = data.summary.alerts.map(alert => `
+                    <div class="text-sm">
+                        <span class="text-yellow-400">⚠️</span> ${alert.message}
                     </div>
-                    <p class="text-xs text-gray-400">${new Date(activity.timestamp).toLocaleTimeString()}</p>
+                `).join('');
+            }
+        }
+
+        // Update agent insights
+        const agentInsights = document.getElementById('agent-insights');
+        if (agentInsights && data.agent_insights) {
+            agentInsights.innerHTML = data.agent_insights.map(insight => `
+                <div class="text-sm">
+                    <span class="text-blue-400">🤖</span> ${insight.message}
                 </div>
             `).join('');
         }
@@ -131,39 +174,108 @@ class FusionDashboard {
         `).join('');
     }
 
-    async loadOptionsData() {
+    async loadOptionsData(tabType = 'candidates') {
         try {
-            const response = await fetch('/api/options/strategies');
-            if (!response.ok) throw new Error('Failed to fetch options data');
+            const endpoint = tabType === 'candidates' ? '/api/options/candidates' : '/api/options/positions';
+            const response = await fetch(endpoint);
+            if (!response.ok) {
+                // Fallback to strategies endpoint
+                const fallbackResponse = await fetch('/api/options/strategies');
+                if (!fallbackResponse.ok) throw new Error('Failed to fetch options data');
+                const fallbackData = await fallbackResponse.json();
+                this.updateOptionsTable(fallbackData.strategies || [], tabType);
+                return;
+            }
 
             const data = await response.json();
-            this.updateOptionsTable(data.strategies);
+            this.updateOptionsTable(data[tabType] || [], tabType);
+            
+            // Update KPIs
+            this.updateOptionsKPIs(data);
         } catch (error) {
             console.error('Error loading options:', error);
+            this.showOptionsError();
         }
     }
 
-    updateOptionsTable(strategies) {
-        const table = document.getElementById('options-table');
-        if (!table) return;
+    updateOptionsTable(optionsData, tabType) {
+        const tableBody = document.getElementById('options-table-body');
+        if (!tableBody) return;
 
-        table.innerHTML = strategies.map(strategy => `
-            <tr class="bg-slate-900 border-b border-slate-700">
-                <td class="px-6 py-4 font-medium text-white">${strategy.name}</td>
-                <td class="px-6 py-4">${strategy.symbol}</td>
-                <td class="px-6 py-4">${strategy.expiry}</td>
-                <td class="px-6 py-4 ${strategy.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">
-                    $${strategy.pnl.toLocaleString()}
+        if (optionsData.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="13" class="text-center text-gray-400 py-8">
+                        No ${tabType} found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tableBody.innerHTML = optionsData.map(option => `
+            <tr>
+                <td>
+                    <button onclick="fusionDashboard.pinItem('option', '${option.symbol}')" 
+                            class="pin-button">📌</button>
                 </td>
-                <td class="px-6 py-4">${strategy.probability}%</td>
-                <td class="px-6 py-4">
-                    <button onclick="fusionDashboard.pinItem('option', '${strategy.symbol}')" 
-                            class="text-blue-400 hover:text-blue-300 mr-2">Pin</button>
-                    <button onclick="fusionDashboard.lockItem('option', '${strategy.symbol}')" 
-                            class="text-red-400 hover:text-red-300">Lock</button>
+                <td class="font-medium text-white">${option.symbol}</td>
+                <td>${option.strategy || 'Long Call'}</td>
+                <td>${option.expiry}</td>
+                <td>$${option.strike}</td>
+                <td class="${option.premium_change >= 0 ? 'text-green-400' : 'text-red-400'}">
+                    $${option.premium}
+                </td>
+                <td>${option.delta?.toFixed(3) || '0.000'}</td>
+                <td>${option.gamma?.toFixed(3) || '0.000'}</td>
+                <td class="text-red-400">${option.theta?.toFixed(2) || '0.00'}</td>
+                <td>${option.vega?.toFixed(3) || '0.000'}</td>
+                <td>${(option.iv * 100)?.toFixed(1) || '0.0'}%</td>
+                <td class="text-green-400">${option.probability?.toFixed(0) || '50'}%</td>
+                <td>
+                    <button class="action-button">Trade</button>
                 </td>
             </tr>
         `).join('');
+    }
+
+    updateOptionsKPIs(data) {
+        const kpis = data.kpis || {};
+        
+        const elements = {
+            'options-total-premium': kpis.total_premium || 0,
+            'options-net-pnl': kpis.net_pnl || 0,
+            'options-delta': kpis.delta_exposure || 0,
+            'options-theta': kpis.theta_decay || 0,
+            'options-iv-rank': (kpis.iv_rank || 0) * 100,
+            'options-margin': kpis.margin_required || 0
+        };
+
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                if (id.includes('pnl') || id.includes('premium') || id.includes('theta') || id.includes('margin')) {
+                    element.textContent = `$${Math.abs(value).toLocaleString()}`;
+                } else if (id.includes('rank')) {
+                    element.textContent = `${value.toFixed(0)}%`;
+                } else {
+                    element.textContent = value.toFixed(2);
+                }
+            }
+        });
+    }
+
+    showOptionsError() {
+        const tableBody = document.getElementById('options-table-body');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="13" class="text-center text-red-400 py-8">
+                        Error loading options data. Please try again.
+                    </td>
+                </tr>
+            `;
+        }
     }
 
     async loadCommoditiesData() {
@@ -265,6 +377,66 @@ class FusionDashboard {
         // Could add toast notifications here
     }
 }
+
+// Add CSS styles for AI verdict badges and signal styling
+const style = document.createElement('style');
+style.textContent = `
+    .ai-verdict-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .ai-verdict-badge.strong_buy {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+    }
+    
+    .ai-verdict-badge.buy {
+        background-color: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+    }
+    
+    .ai-verdict-badge.hold {
+        background-color: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+    }
+    
+    .ai-verdict-badge.cautious {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+    
+    .ai-verdict-badge.avoid {
+        background-color: rgba(127, 29, 29, 0.3);
+        color: #dc2626;
+    }
+    
+    .pin-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 0.25rem;
+        opacity: 0.7;
+        transition: opacity 0.15s ease;
+    }
+    
+    .pin-button:hover {
+        opacity: 1;
+    }
+`;
+document.head.appendChild(style);
+
+// Global function for dashboard template compatibility
+window.loadDashboardData = function(timeframe = 'all') {
+    if (window.fusionDashboard) {
+        window.fusionDashboard.loadDashboardData(timeframe, true);
+    }
+};
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

@@ -1,31 +1,266 @@
+
 {% extends "_layout.html" %}
 
-{% block content %}
-<div class="px-4 py-6 sm:px-0">
-    <div class="border-4 border-dashed border-slate-700 rounded-lg p-4">
-        <h2 class="text-2xl font-bold text-white mb-6">Commodities Dashboard</h2>
+{% block title %}Commodities - Fusion{% endblock %}
 
-        <!-- Positions Table -->
-        <div class="bg-slate-800 rounded-lg p-6">
-            <h3 class="text-lg font-medium text-gray-300 mb-4">Commodities Positions</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-300">
-                    <thead class="text-xs text-gray-400 uppercase">
-                        <tr>
-                            <th class="px-6 py-3">Commodity</th>
-                            <th class="px-6 py-3">Quantity</th>
-                            <th class="px-6 py-3">Price</th>
-                            <th class="px-6 py-3">Market Value</th>
-                            <th class="px-6 py-3">P&L</th>
-                            <th class="px-6 py-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="commodities-table">
-                        <!-- Table rows will be populated by JavaScript -->
-                    </tbody>
-                </table>
+{% block content %}
+<div class="space-y-6">
+    <!-- Commodities KPI Strip (5 cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Value</div>
+            <div class="kpi-value text-green-400" id="commodities-total-value">$0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Daily P&L</div>
+            <div class="kpi-value text-blue-400" id="commodities-daily-pnl">$0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Active Positions</div>
+            <div class="kpi-value text-yellow-400" id="commodities-positions">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Volatility</div>
+            <div class="kpi-value text-red-400" id="commodities-volatility">0%</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Margin Used</div>
+            <div class="kpi-value text-purple-400" id="commodities-margin">$0</div>
+        </div>
+    </div>
+
+    <!-- Signals Table -->
+    <div class="commodities-table-container">
+        <h3 class="commodities-table-title">⚡ Commodity Signals</h3>
+        <div class="overflow-x-auto">
+            <table class="commodities-table">
+                <thead>
+                    <tr>
+                        <th>Pin</th>
+                        <th>Commodity</th>
+                        <th>Symbol</th>
+                        <th>Price</th>
+                        <th>Change</th>
+                        <th>Volume</th>
+                        <th>Signal</th>
+                        <th>Strength</th>
+                        <th>Trend</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="commodities-signals-table">
+                    <tr>
+                        <td colspan="10" class="text-center text-gray-400 py-8">Loading commodity signals...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Cross-Asset Correlation Card -->
+    <div class="correlation-card">
+        <h3 class="correlation-card-title">🔗 Cross-Asset Correlations</h3>
+        <div class="correlation-grid">
+            <div class="correlation-section">
+                <h4 class="correlation-section-title">Commodities vs Equities</h4>
+                <div class="correlation-items">
+                    <div class="correlation-item">
+                        <span class="correlation-label">Gold vs Tech Stocks:</span>
+                        <span class="correlation-value text-red-400" id="gold-tech-corr">-0.25</span>
+                    </div>
+                    <div class="correlation-item">
+                        <span class="correlation-label">Oil vs Energy Stocks:</span>
+                        <span class="correlation-value text-green-400" id="oil-energy-corr">0.72</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="correlation-section">
+                <h4 class="correlation-section-title">Commodity Pairs</h4>
+                <div class="correlation-items">
+                    <div class="correlation-item">
+                        <span class="correlation-label">Gold vs Silver:</span>
+                        <span class="correlation-value text-green-400" id="gold-silver-corr">0.85</span>
+                    </div>
+                    <div class="correlation-item">
+                        <span class="correlation-label">Oil vs Copper:</span>
+                        <span class="correlation-value text-blue-400" id="oil-copper-corr">0.45</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="correlation-section">
+                <h4 class="correlation-section-title">Macro Factors</h4>
+                <div class="correlation-items">
+                    <div class="correlation-item">
+                        <span class="correlation-label">USD Index Impact:</span>
+                        <span class="correlation-value text-red-400" id="usd-impact">-0.68</span>
+                    </div>
+                    <div class="correlation-item">
+                        <span class="correlation-label">Interest Rate Sensitivity:</span>
+                        <span class="correlation-value text-yellow-400" id="rate-sensitivity">-0.32</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .kpi-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        text-align: center;
+    }
+    
+    .kpi-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .kpi-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .commodities-table-container {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .commodities-table-title {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-size: 1.125rem;
+        font-weight: 600;
+        padding: 1rem;
+        margin: 0;
+    }
+    
+    .commodities-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .commodities-table th {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .commodities-table td {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .commodities-table tbody tr:hover {
+        background-color: var(--bg-tertiary);
+    }
+    
+    .correlation-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .correlation-card-title {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-size: 1.125rem;
+        font-weight: 600;
+        padding: 1rem;
+        margin: 0;
+    }
+    
+    .correlation-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+    
+    .correlation-section-title {
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    .correlation-items {
+        space-y: 0.75rem;
+    }
+    
+    .correlation-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .correlation-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .correlation-value {
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .signal-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .signal-badge.buy {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: var(--accent-green);
+    }
+    
+    .signal-badge.sell {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: var(--accent-red);
+    }
+    
+    .signal-badge.hold {
+        background-color: rgba(245, 158, 11, 0.2);
+        color: var(--accent-yellow);
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadCommoditiesData();
+    updateCorrelations();
+});
+
+function loadCommoditiesData() {
+    // This will be populated by the fusion_ui.js
+    if (window.fusionDashboard) {
+        window.fusionDashboard.loadCommoditiesData();
+    }
+}
+
+function updateCorrelations() {
+    // Update correlation values
+    // This would typically fetch from API
+    console.log('Updating correlations...');
+}
+</script>
 {% endblock %}

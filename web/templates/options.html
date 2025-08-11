@@ -1,31 +1,310 @@
+
 {% extends "_layout.html" %}
 
-{% block content %}
-<div class="px-4 py-6 sm:px-0">
-    <div class="border-4 border-dashed border-slate-700 rounded-lg p-4">
-        <h2 class="text-2xl font-bold text-white mb-6">Options Dashboard</h2>
+{% block title %}Options - Fusion{% endblock %}
 
-        <!-- Strategies Table -->
-        <div class="bg-slate-800 rounded-lg p-6">
-            <h3 class="text-lg font-medium text-gray-300 mb-4">Options Strategies</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-300">
-                    <thead class="text-xs text-gray-400 uppercase">
-                        <tr>
-                            <th class="px-6 py-3">Strategy</th>
-                            <th class="px-6 py-3">Symbol</th>
-                            <th class="px-6 py-3">Expiry</th>
-                            <th class="px-6 py-3">P&L</th>
-                            <th class="px-6 py-3">Probability</th>
-                            <th class="px-6 py-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="options-table">
-                        <!-- Table rows will be populated by JavaScript -->
-                    </tbody>
-                </table>
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Badges Row -->
+    <div class="flex flex-wrap gap-4">
+        <div class="header-badge">
+            <span class="badge-label">Active Strategies:</span>
+            <span class="badge-value" id="active-strategies-count">0</span>
+        </div>
+        <div class="header-badge">
+            <span class="badge-label">Underlying Assets:</span>
+            <span class="badge-value" id="underlying-count">0</span>
+        </div>
+        <div class="header-badge">
+            <span class="badge-label">Expiring Soon:</span>
+            <span class="badge-value text-yellow-400" id="expiring-soon-count">0</span>
+        </div>
+    </div>
+
+    <!-- Options KPI Row (6 cards including Margin Required) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Premium</div>
+            <div class="kpi-value text-green-400" id="options-total-premium">$0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Net P&L</div>
+            <div class="kpi-value text-blue-400" id="options-net-pnl">$0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Delta Exposure</div>
+            <div class="kpi-value text-purple-400" id="options-delta">0.00</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Theta Decay</div>
+            <div class="kpi-value text-red-400" id="options-theta">$0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">IV Rank</div>
+            <div class="kpi-value text-orange-400" id="options-iv-rank">0%</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Margin Required</div>
+            <div class="kpi-value text-yellow-400" id="options-margin">$0</div>
+        </div>
+    </div>
+
+    <!-- Strategy Tabs -->
+    <div class="strategy-tabs">
+        <button class="strategy-tab active" data-tab="candidates">Candidates</button>
+        <button class="strategy-tab" data-tab="positions">Active Positions</button>
+    </div>
+
+    <!-- Candidates/Positions Table -->
+    <div class="options-table-container">
+        <h3 class="options-table-title" id="table-title">📊 Option Candidates</h3>
+        <div class="overflow-x-auto">
+            <table class="options-table">
+                <thead>
+                    <tr id="table-header">
+                        <th>Pin</th>
+                        <th>Symbol</th>
+                        <th>Strategy</th>
+                        <th>Expiry</th>
+                        <th>Strike</th>
+                        <th>Premium</th>
+                        <th>Delta</th>
+                        <th>Gamma</th>
+                        <th>Theta</th>
+                        <th>Vega</th>
+                        <th>IV</th>
+                        <th>Probability</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="options-table-body">
+                    <tr>
+                        <td colspan="13" class="text-center text-gray-400 py-8">Loading options data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Greeks & Payoff Mini-Chart -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Portfolio Greeks -->
+        <div class="greeks-card">
+            <h3 class="greeks-card-title">🔢 Portfolio Greeks</h3>
+            <div class="greeks-grid">
+                <div class="greek-item">
+                    <span class="greek-label">Total Delta:</span>
+                    <span class="greek-value" id="portfolio-delta">0.00</span>
+                </div>
+                <div class="greek-item">
+                    <span class="greek-label">Total Gamma:</span>
+                    <span class="greek-value" id="portfolio-gamma">0.00</span>
+                </div>
+                <div class="greek-item">
+                    <span class="greek-label">Total Theta:</span>
+                    <span class="greek-value" id="portfolio-theta">$0.00</span>
+                </div>
+                <div class="greek-item">
+                    <span class="greek-label">Total Vega:</span>
+                    <span class="greek-value" id="portfolio-vega">0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payoff Chart Placeholder -->
+        <div class="payoff-chart-card">
+            <h3 class="payoff-chart-title">📈 Strategy Payoff</h3>
+            <div class="payoff-chart-content">
+                <div class="chart-placeholder">
+                    <div class="text-gray-400 text-center">
+                        <div class="text-6xl mb-4">📊</div>
+                        <div>Payoff chart will be displayed here</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .header-badge {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 1.5rem;
+        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .badge-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .badge-value {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .kpi-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .kpi-label {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .kpi-value {
+        font-size: 1.125rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .strategy-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .strategy-tab {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        padding: 0.75rem 1.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s ease;
+    }
+    
+    .strategy-tab:hover {
+        color: var(--text-primary);
+    }
+    
+    .strategy-tab.active {
+        color: var(--accent-blue);
+        border-bottom-color: var(--accent-blue);
+    }
+    
+    .options-table-container {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .options-table-title {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-size: 1.125rem;
+        font-weight: 600;
+        padding: 1rem;
+        margin: 0;
+    }
+    
+    .options-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .options-table th {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .options-table td {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .options-table tbody tr:hover {
+        background-color: var(--bg-tertiary);
+    }
+    
+    .greeks-card, .payoff-chart-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .greeks-card-title, .payoff-chart-title {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 1rem;
+        margin: 0;
+    }
+    
+    .greeks-grid {
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    
+    .greek-item {
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .greek-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .greek-value {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .payoff-chart-content {
+        padding: 2rem;
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .chart-placeholder {
+        text-align: center;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadOptionsData('candidates');
+    
+    // Tab functionality
+    document.querySelectorAll('.strategy-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.strategy-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            const tabType = this.dataset.tab;
+            document.getElementById('table-title').textContent = 
+                tabType === 'candidates' ? '📊 Option Candidates' : '📊 Active Positions';
+            
+            loadOptionsData(tabType);
+        });
+    });
+});
+</script>
 {% endblock %}

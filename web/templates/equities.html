@@ -1,31 +1,218 @@
 
 {% extends "_layout.html" %}
 
+{% block title %}Equities - Fusion{% endblock %}
+
 {% block content %}
-<div class="px-4 py-6 sm:px-0">
-    <div class="border-4 border-dashed border-slate-700 rounded-lg p-4">
-        <h2 class="text-2xl font-bold text-white mb-6">Equities Dashboard</h2>
-        
-        <!-- Positions Table -->
-        <div class="bg-slate-800 rounded-lg p-6">
-            <h3 class="text-lg font-medium text-gray-300 mb-4">Positions</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-300">
-                    <thead class="text-xs text-gray-400 uppercase">
-                        <tr>
-                            <th class="px-6 py-3">Symbol</th>
-                            <th class="px-6 py-3">Quantity</th>
-                            <th class="px-6 py-3">Market Value</th>
-                            <th class="px-6 py-3">P&L</th>
-                            <th class="px-6 py-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="equities-table">
-                        <!-- Table rows will be populated by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
+<div class="space-y-6">
+    <!-- Filters Row -->
+    <div class="flex flex-wrap gap-4">
+        <div class="filter-group">
+            <input type="text" id="equity-search" placeholder="Search symbols..." class="filter-input">
+        </div>
+        <div class="filter-group">
+            <select id="sector-filter" class="filter-select">
+                <option value="">All Sectors</option>
+                <option value="TECHNOLOGY">Technology</option>
+                <option value="BANKING">Banking</option>
+                <option value="PHARMACEUTICAL">Pharmaceutical</option>
+                <option value="AUTOMOTIVE">Automotive</option>
+                <option value="ENERGY">Energy</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Equities KPI Strip (8 cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Value</div>
+            <div class="kpi-value text-green-400" id="equities-total-value">$0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Today's P&L</div>
+            <div class="kpi-value text-blue-400" id="equities-daily-pnl">$0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Total P&L</div>
+            <div class="kpi-value text-yellow-400" id="equities-total-pnl">$0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Positions</div>
+            <div class="kpi-value text-purple-400" id="equities-positions">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Winners</div>
+            <div class="kpi-value text-green-400" id="equities-winners">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Losers</div>
+            <div class="kpi-value text-red-400" id="equities-losers">0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Win Rate</div>
+            <div class="kpi-value text-blue-400" id="equities-win-rate">0%</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Beta</div>
+            <div class="kpi-value text-orange-400" id="equities-beta">0.0</div>
+        </div>
+    </div>
+
+    <!-- Equities Table -->
+    <div class="positions-table-container">
+        <h3 class="positions-table-title">📈 Equity Positions</h3>
+        <div class="overflow-x-auto">
+            <table class="positions-table">
+                <thead>
+                    <tr>
+                        <th>Pin</th>
+                        <th>Symbol</th>
+                        <th>Company</th>
+                        <th>Sector</th>
+                        <th>Quantity</th>
+                        <th>Avg Price</th>
+                        <th>Current Price</th>
+                        <th>Market Value</th>
+                        <th>P&L</th>
+                        <th>P&L %</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="equities-positions-table">
+                    <tr>
+                        <td colspan="11" class="text-center text-gray-400 py-8">Loading equity positions...</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<style>
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        min-width: 200px;
+    }
+    
+    .filter-input, .filter-select {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+    }
+    
+    .filter-input:focus, .filter-select:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .kpi-card {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .kpi-label {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .kpi-value {
+        font-size: 1.125rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .positions-table-container {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .positions-table-title {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-size: 1.125rem;
+        font-weight: 600;
+        padding: 1rem;
+        margin: 0;
+    }
+    
+    .positions-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .positions-table th {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .positions-table td {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .positions-table tbody tr:hover {
+        background-color: var(--bg-tertiary);
+    }
+    
+    .pin-button, .action-button {
+        background-color: var(--accent-blue);
+        color: white;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        margin-right: 0.25rem;
+    }
+    
+    .pin-button:hover, .action-button:hover {
+        background-color: #2563eb;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadEquitiesData();
+    
+    // Search functionality
+    document.getElementById('equity-search').addEventListener('input', filterTable);
+    document.getElementById('sector-filter').addEventListener('change', filterTable);
+});
+
+function filterTable() {
+    const searchTerm = document.getElementById('equity-search').value.toLowerCase();
+    const sectorFilter = document.getElementById('sector-filter').value;
+    const rows = document.querySelectorAll('#equities-positions-table tr');
+    
+    rows.forEach(row => {
+        if (row.children.length === 1) return; // Skip loading row
+        
+        const symbol = row.children[1].textContent.toLowerCase();
+        const sector = row.children[3].textContent;
+        
+        const matchesSearch = symbol.includes(searchTerm);
+        const matchesSector = !sectorFilter || sector === sectorFilter;
+        
+        row.style.display = matchesSearch && matchesSector ? '' : 'none';
+    });
+}
+</script>
 {% endblock %}
