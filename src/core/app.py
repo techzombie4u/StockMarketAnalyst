@@ -26,6 +26,15 @@ def create_app():
         def index():
             return jsonify({"message": "Stock Analyst API", "status": "active"})
 
+        # JSON Error handlers
+        @app.errorhandler(404)
+        def not_found(error):
+            return jsonify({"success": False, "error": "not_found"}), 404
+
+        @app.errorhandler(500)
+        def server_error(error):
+            return jsonify({"success": False, "error": "server_error"}), 500
+
         print("✅ Flask app created successfully")
         return app
 

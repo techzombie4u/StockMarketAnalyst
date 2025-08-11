@@ -1,14 +1,24 @@
 
-import json, time
+import json
+import time
+import uuid
 from flask import request, g
+from src.core.metrics import inc
 
 def before_request():
+    """Initialize request tracking"""
     g._start_ts = time.time()
+    g._request_id = str(uuid.uuid4())
 
 def after_request(response):
+    """Log request and collect metrics"""
     try:
         latency_ms = int((time.time() - getattr(g, "_start_ts", time.time())) * 1000)
+        request_id = getattr(g, "_request_id", "unknown")
+        
+        # Log record
         rec = {
+            "request_id": request_id,
             "ts": int(time.time()),
             "method": request.method,
             "path": request.path,
@@ -16,6 +26,20 @@ def after_request(response):
             "latency_ms": latency_ms,
         }
         print(json.dumps(rec))
-    except Exception:
-        pass
+        
+        # Collect metrics
+        path_key = request.path.replace('/', '_').strip('_') or 'root'
+        inc(f"requests_total.{path_key}")
+        inc(f"latency_total_ms.{path_key}", latency_ms)
+        inc(f"latency_count.{path_key}")
+        
+        # Status code metrics
+        inc(f"status_{response.status_code}")
+        
+        # Add request ID to response headers
+        response.headers['X-Request-ID'] = request_id
+        
+    except Exception as e:
+        print(f"Logging error: {e}")
+    
     return response
