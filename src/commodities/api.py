@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 import json
 import os
 from datetime import datetime
-from ..core.cache import cache_medium, now_iso
+from src.core.cache import cache_medium, now_iso
 
 commodities_bp = Blueprint("commodities", __name__)
 

@@ -93,7 +93,7 @@ def load_pins():
     pins_data = {"equities": [], "options": [], "commodities": []}
     try:
         fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', 'fixtures')
-        
+
         # Load equity pins
         equity_pins_file = os.path.join(fixtures_dir, 'equities_pins.json')
         if os.path.exists(equity_pins_file):

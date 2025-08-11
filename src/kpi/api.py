@@ -6,7 +6,7 @@ import logging
 from flask import Blueprint, jsonify, request
 from datetime import datetime
 
-from .calculator import kpi_calculator
+from src.kpi.calculator import kpi_calculator
 from src.common_repository.utils.date_utils import get_ist_now
 
 logger = logging.getLogger(__name__)

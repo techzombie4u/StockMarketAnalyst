@@ -1,4 +1,3 @@
-
 from flask import Blueprint, jsonify, request
 from ..registry import REGISTRY, Agent
 from ..builtin_agents import run_new_ai_analyzer, run_sentiment_analyzer
