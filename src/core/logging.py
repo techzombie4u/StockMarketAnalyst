@@ -3,6 +3,7 @@ import time
 import uuid
 from flask import request, g
 from src.core.metrics import inc
+from src.core.guardrails import guardrails, record_request_metrics
 
 def before_request():
     """Initialize request tracking"""
@@ -37,6 +38,15 @@ def after_request(response):
 
         # Add request ID to response headers
         response.headers['X-Request-ID'] = request_id
+
+        # Update metrics
+        update_request_metrics(request.path, request.method, response.status_code, latency_ms)
+
+        # Record guardrails metrics
+        record_request_metrics(request.path, latency_ms, cache_hit=False)
+
+        # Enforce guardrails periodically
+        guardrails.enforce_guardrails()
 
     except Exception as e:
         print(f"Logging error: {e}")

@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify, request
 import json
 import os
-from ..core.cache import cache_medium, now_iso
+from datetime import datetime
+from src.core.cache import TTLCache
+from src.core.guardrails import check_feature_enabled, get_degraded_status
 
 equities_bp = Blueprint('equities', __name__)
 
@@ -9,6 +11,16 @@ equities_bp = Blueprint('equities', __name__)
 def get_equities_list():
     """Get paginated equities list with filters"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         # Get query parameters
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('pageSize', 25, type=int)
@@ -20,7 +32,7 @@ def get_equities_list():
         cache_key = f"equities_list_page_{page}_pageSize_{page_size}_sector_{sector}_scoreMin_{score_min}_timeframe_{timeframe}"
 
         if not force_refresh:
-            cached_data = cache_medium.get(cache_key)
+            cached_data = TTLCache.get(cache_key)
             if cached_data is not None:
                 return jsonify(cached_data)
 
@@ -92,25 +104,35 @@ def get_equities_list():
             "pageSize": page_size,
             "total": total,
             "items": items,
-            "timestamp": now_iso()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
-        cache_medium.set(cache_key, result)
+        TTLCache.set(cache_key, result)
 
         return jsonify(result)
 
     except Exception as e:
-        return jsonify({"error": str(e), "timestamp": now_iso()}), 500
+        return jsonify({"error": str(e), "timestamp": datetime.utcnow().isoformat() + "Z"}), 500
 
 @equities_bp.route('/positions')
 def get_positions():
     """Get all equity positions"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
         cache_key = 'equities_positions'
 
         if not force_refresh:
-            cached_data = cache_medium.get(cache_key)
+            cached_data = TTLCache.get(cache_key)
             if cached_data is not None:
                 return jsonify(cached_data)
 
@@ -122,27 +144,37 @@ def get_positions():
 
         result = {
             "positions": data.get('positions', []),
-            "timestamp": now_iso()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
-        cache_medium.set(cache_key, result)
+        TTLCache.set(cache_key, result)
 
         return jsonify(result)
 
     except Exception as e:
-        return jsonify({"error": str(e), "timestamp": now_iso()}), 500
+        return jsonify({"error": str(e), "timestamp": datetime.utcnow().isoformat() + "Z"}), 500
 
 @equities_bp.route('/kpis')
 def get_kpis():
     """Get equities KPIs with timeframe support"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         timeframe = request.args.get('timeframe', 'All')
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
 
         cache_key = f"equities_kpis_timeframe_{timeframe}"
 
         if not force_refresh:
-            cached_data = cache_medium.get(cache_key)
+            cached_data = TTLCache.get(cache_key)
             if cached_data is not None:
                 return jsonify(cached_data)
 
@@ -167,24 +199,34 @@ def get_kpis():
             "volatility": 15.2
         }
 
-        base_kpis["timestamp"] = now_iso()
+        base_kpis["timestamp"] = datetime.utcnow().isoformat() + "Z"
         base_kpis["timeframe"] = timeframe
 
-        cache_medium.set(cache_key, base_kpis)
+        TTLCache.set(cache_key, base_kpis)
 
         return jsonify(base_kpis)
     except Exception as e:
-        return jsonify({"error": str(e), "timestamp": now_iso()}), 500
+        return jsonify({"error": str(e), "timestamp": datetime.utcnow().isoformat() + "Z"}), 500
 
 @equities_bp.route('/analytics')
 def get_analytics():
     """Get equity analytics and KPIs"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
         cache_key = 'equities_analytics'
 
         if not force_refresh:
-            cached_data = cache_medium.get(cache_key)
+            cached_data = TTLCache.get(cache_key)
             if cached_data is not None:
                 return jsonify(cached_data)
 
@@ -213,12 +255,12 @@ def get_analytics():
                 "alpha": 2.3,
                 "tracking_error": 4.1
             },
-            "timestamp": now_iso()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
-        cache_medium.set(cache_key, analytics)
+        TTLCache.set(cache_key, analytics)
 
         return jsonify(analytics)
 
     except Exception as e:
-        return jsonify({"error": str(e), "timestamp": now_iso()}), 500
+        return jsonify({"error": str(e), "timestamp": datetime.utcnow().isoformat() + "Z"}), 500

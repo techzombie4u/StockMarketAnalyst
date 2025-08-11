@@ -51,6 +51,13 @@ def create_app():
             """Get application metrics"""
             return jsonify(metrics.get_metrics())
 
+        # Performance status endpoint
+        @app.route('/api/performance/status')
+        def get_performance_status():
+            """Get performance guardrails status"""
+            from src.core.guardrails import guardrails
+            return jsonify(guardrails.get_performance_status())
+
         print("✅ Flask app created successfully")
         return app
 

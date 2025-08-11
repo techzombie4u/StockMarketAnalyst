@@ -1,7 +1,10 @@
 from flask import Blueprint, jsonify, request
 import json
 import os
-from ..core.cache import cache_medium, now_iso
+from datetime import datetime
+import uuid
+from src.core.cache import TTLCache
+from src.core.guardrails import check_feature_enabled, get_degraded_status
 
 options_bp = Blueprint('options', __name__)
 
@@ -9,6 +12,16 @@ options_bp = Blueprint('options', __name__)
 def get_kpis():
     """Get options KPIs"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         return jsonify({
             "total_strategies": 8,
             "total_premium": 45000,
@@ -23,6 +36,16 @@ def get_kpis():
 def get_positions():
     """Get all options positions"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'fixtures')
         options_file = os.path.join(fixtures_dir, 'options_sample.json')
 
@@ -41,6 +64,16 @@ def get_positions():
 def get_strategies():
     """Get options strategies and analytics"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         strategies = [
             {
                 "name": "Bull Call Spread",
@@ -74,6 +107,16 @@ def get_strategies():
 def get_analytics():
     """Get options analytics"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         analytics = {
             "greeks_summary": {
                 "total_delta": 125.6,
@@ -102,6 +145,15 @@ def get_analytics():
 @options_bp.route('/calculators')
 def get_calculators():
     """Get options pricing calculators"""
+    # Check degraded mode
+    degraded = get_degraded_status()
+    if degraded['degraded']:
+        return jsonify({
+            'success': False,
+            'degraded': True,
+            'reason': degraded['reason'],
+            'message': 'Service temporarily degraded due to performance constraints'
+        }), 503
     return jsonify({
         "black_scholes": {
             "price": 125.50,
@@ -117,6 +169,16 @@ def get_calculators():
 def get_strangle_candidates():
     """Get short strangle candidates"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         underlying = request.args.get('underlying', 'TCS')
         expiry = request.args.get('expiry', '2024-02-29')
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
@@ -174,6 +236,16 @@ def get_strangle_candidates():
 def create_strangle_plan():
     """Create short strangle execution plan"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         data = request.get_json()
 
         plan_id = str(uuid.uuid4())[:8]
@@ -206,6 +278,16 @@ def create_strangle_plan():
 def get_positions_list():
     """Get options positions with status filter"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         status = request.args.get('status', 'all')
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
 
@@ -228,7 +310,7 @@ def get_positions_list():
                 "pop": 0.72
             },
             {
-                "id": "pos_002", 
+                "id": "pos_002",
                 "underlying": "INFY",
                 "strategy": "short_strangle",
                 "call_strike": 1900,
@@ -261,13 +343,23 @@ def get_positions_list():
 def get_position_detail(position_id):
     """Get detailed options position"""
     try:
+        # Check degraded mode
+        degraded = get_degraded_status()
+        if degraded['degraded']:
+            return jsonify({
+                'success': False,
+                'degraded': True,
+                'reason': degraded['reason'],
+                'message': 'Service temporarily degraded due to performance constraints'
+            }), 503
+
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
 
         # Sample detailed position
         position = {
             "id": position_id,
             "underlying": "TCS",
-            "strategy": "short_strangle", 
+            "strategy": "short_strangle",
             "call_strike": 4400,
             "put_strike": 4200,
             "expiry": "2024-02-29",
