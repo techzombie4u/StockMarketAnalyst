@@ -362,13 +362,25 @@ def main():
         print("🔗 API test: http://0.0.0.0:5000/api/test")
         print("🔗 Metrics: http://0.0.0.0:5000/metrics")
 
-        app.run(
-            host="0.0.0.0",
-            port=5000,
-            debug=False,
-            threaded=True,
-            use_reloader=False
-        )
+        # Try different ports if 5000 is in use
+        port = 5000
+        for attempt in range(5):
+            try:
+                app.run(
+                    host="0.0.0.0",
+                    port=port,
+                    debug=False,
+                    threaded=True,
+                    use_reloader=False
+                )
+                break
+            except OSError as e:
+                if "Address already in use" in str(e) and attempt < 4:
+                    port += 1
+                    print(f"🔄 Port {port-1} in use, trying port {port}...")
+                    continue
+                else:
+                    raise
 
     except KeyboardInterrupt:
         print("\n⏹️  Server stopped by user")
