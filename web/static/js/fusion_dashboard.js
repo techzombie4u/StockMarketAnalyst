@@ -255,6 +255,70 @@ class FusionDashboard {
     }
 
     renderTopSignals() {
+        try {
+            const tableBody = document.getElementById('topSignalsTable');
+            if (!tableBody) return;
+
+            tableBody.innerHTML = '';
+
+            let signals = this.data.top_signals || [];
+
+            // Apply filters
+            if (this.selectedProduct !== 'All') {
+                signals = signals.filter(s => s.product === this.selectedProduct);
+            }
+
+            signals.forEach(signal => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+
+                const verdictClass = `verdict-${signal.ai_verdict_normalized}`;
+                const outcomeClass = signal.outcome_status === 'MET' ? 'text-green-600' : 
+                                   signal.outcome_status === 'NOT_MET' ? 'text-red-600' : 'text-gray-600';
+
+                row.innerHTML = `
+                    <td class="sticky-cols px-3 py-4">
+                        <button class="text-yellow-500 hover:text-yellow-600" onclick="this.togglePin('${signal.symbol}')">
+                            ${signal.is_pinned ? '📌' : '📍'}
+                        </button>
+                    </td>
+                    <td class="sticky-cols px-3 py-4 font-medium">${signal.symbol}</td>
+                    <td class="sticky-cols px-3 py-4 capitalize">${signal.product}</td>
+                    <td class="px-3 py-4">${signal.timeframe}</td>
+                    <td class="px-3 py-4">
+                        <span class="px-2 py-1 text-xs font-medium rounded ${verdictClass}">
+                            ${signal.ai_verdict_normalized.replace('_', ' ')}
+                        </span>
+                    </td>
+                    <td class="px-3 py-4">${signal.confidence.toFixed(1)}%</td>
+                    <td class="px-3 py-4">${signal.score.toFixed(1)}</td>
+                    <td class="px-3 py-4 ${outcomeClass}">${signal.outcome_status.replace('_', ' ')}</td>
+                    <td class="ai-verdict-cell" style="display: none;">
+                        <span class="ai-verdict-badge">
+                            ${signal.ai_verdict || 'N/A'}
+                            ${signal.ai_confidence ? `(${Math.round(signal.ai_confidence * 100)}%)` : ''}
+                        </span>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+
+            if (signals.length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `
+                    <td colspan="8" class="px-3 py-8 text-center text-gray-500">
+                        No signals match the current filters
+                    </td>
+                `;
+                tableBody.appendChild(emptyRow);
+            }
+        } catch (error) {
+            console.error('Error rendering top signals:', error);
+        }
+    }
+
+    renderTopSignals() {
         const tableBody = document.getElementById('topSignalsTable');
         tableBody.innerHTML = '';
 

@@ -44,8 +44,29 @@ def get_positions():
         fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'fixtures')
         commodities_file = os.path.join(fixtures_dir, 'commodities_sample.json')
 
-        with open(commodities_file, 'r') as f:
-            data = json.load(f)
+        if os.path.exists(commodities_file):
+            with open(commodities_file, 'r') as f:
+                data = json.load(f)
+        else:
+            # Fallback data if fixture doesn't exist
+            data = {
+                "positions": [
+                    {
+                        "commodity": "GOLD",
+                        "quantity": 100,
+                        "price": 2045.50,
+                        "market_value": 204550,
+                        "pnl": 12500
+                    },
+                    {
+                        "commodity": "CRUDE_OIL",
+                        "quantity": 50,
+                        "price": 82.45,
+                        "market_value": 4122.50,
+                        "pnl": -850
+                    }
+                ]
+            }
 
         return jsonify({
             "positions": data.get('positions', []),

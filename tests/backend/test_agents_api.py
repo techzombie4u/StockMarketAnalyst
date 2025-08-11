@@ -1,6 +1,9 @@
 
 # tests/backend/test_agents_api.py
-import os, requests, time, json
+import os
+import requests
+import time
+import json
 
 BASE_URL = os.getenv("TEST_BASE_URL", "http://0.0.0.0:5000")
 

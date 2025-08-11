@@ -75,28 +75,33 @@ class FusionDashboard {
         // Update Top Signals table
         const topSignalsTable = document.getElementById('top-signals-table');
         if (topSignalsTable && data.top_signals) {
-            topSignalsTable.innerHTML = data.top_signals.map(signal => `
-                <tr>
-                    <td>
-                        <button onclick="window.fusionDashboard.pinItem('signal', '${signal.symbol}')" 
-                                class="pin-button">📌</button>
-                    </td>
-                    <td class="font-medium text-white">${signal.symbol}</td>
-                    <td>${signal.product || 'Equity'}</td>
-                    <td class="font-semibold">${signal.signal_score.toFixed(2)}</td>
-                    <td>$${signal.current_price.toFixed(2)}</td>
-                    <td>$${signal.target_price.toFixed(2)}</td>
-                    <td class="${signal.potential_roi >= 0 ? 'text-green-400' : 'text-red-400'}">
-                        ${(signal.potential_roi * 100).toFixed(1)}%
-                    </td>
-                    <td>
-                        <span class="ai-verdict-badge ${signal.ai_verdict.toLowerCase()}">
-                            ${signal.ai_verdict}
-                        </span>
-                    </td>
-                    <td>${(signal.confidence * 100).toFixed(0)}%</td>
-                </tr>
-            `).join('');
+            try {
+                topSignalsTable.innerHTML = data.top_signals.map(signal => `
+                    <tr>
+                        <td>
+                            <button onclick="window.fusionDashboard.pinItem('signal', '${signal.symbol}')" 
+                                    class="pin-button">📌</button>
+                        </td>
+                        <td class="font-medium text-white">${signal.symbol}</td>
+                        <td>${signal.product || 'Equity'}</td>
+                        <td class="font-semibold">${signal.signal_score.toFixed(2)}</td>
+                        <td>$${signal.current_price.toFixed(2)}</td>
+                        <td>$${signal.target_price.toFixed(2)}</td>
+                        <td class="${signal.potential_roi >= 0 ? 'text-green-400' : 'text-red-400'}">
+                            ${(signal.potential_roi * 100).toFixed(1)}%
+                        </td>
+                        <td>
+                            <span class="ai-verdict-badge ${signal.ai_verdict.toLowerCase()}">
+                                ${signal.ai_verdict}
+                            </span>
+                        </td>
+                        <td>${(signal.confidence * 100).toFixed(0)}%</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error updating top signals table:', error);
+                topSignalsTable.innerHTML = '<tr><td colspan="9" class="text-center text-red-400 py-4">Error loading signals</td></tr>';
+            }
         }
 
         // Update alerts content
@@ -370,7 +375,7 @@ class FusionDashboard {
                 this.loadPageSpecificData();
             });
         }
-        
+
         // Pin/unpin functionality
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('pin-btn')) {

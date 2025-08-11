@@ -30,9 +30,36 @@ def _payload():
         "product_breakdown": {},
         "pinned_summary": {"total": 5, "met": 2, "not_met": 2, "in_progress": 1},
         "top_signals": [
-            {"symbol":"RELIANCE","ai_verdict_normalized":"BUY","confidence":68.0},
-            {"symbol":"TCS","ai_verdict_normalized":"STRONG_BUY","confidence":74.0},
-            {"symbol":"INFY","ai_verdict_normalized":"HOLD","confidence":61.0},
+            {
+                "symbol": "RELIANCE",
+                "product": "equity",
+                "signal_score": 8.5,
+                "current_price": 2847.50,
+                "target_price": 3100.00,
+                "potential_roi": 0.089,
+                "ai_verdict": "BUY",
+                "confidence": 0.68
+            },
+            {
+                "symbol": "TCS",
+                "product": "equity",
+                "signal_score": 9.2,
+                "current_price": 3685.25,
+                "target_price": 4000.00,
+                "potential_roi": 0.085,
+                "ai_verdict": "STRONG_BUY",
+                "confidence": 0.74
+            },
+            {
+                "symbol": "INFY",
+                "product": "equity", 
+                "signal_score": 6.8,
+                "current_price": 1542.80,
+                "target_price": 1600.00,
+                "potential_roi": 0.037,
+                "ai_verdict": "HOLD",
+                "confidence": 0.61
+            }
         ],
         "alerts": [{"msg":"Sample alert"}],
         "generation_time_ms": 0.1

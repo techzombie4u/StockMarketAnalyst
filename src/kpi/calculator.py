@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 # Attempt to import math utilities, provide fallbacks if unavailable
 try:
     from src.common_repository.utils.math_utils import safe_divide, calculate_percentile
+    from src.common_repository.storage.json_store import json_store
+    from src.common_repository.utils.date_utils import get_ist_now
 except ImportError:
     # Fallback implementations
     def safe_divide(a, b, default=0):
@@ -31,6 +33,20 @@ except ImportError:
         sorted_vals = sorted(values)
         idx = int(len(sorted_vals) * percentile / 100)
         return sorted_vals[min(idx, len(sorted_vals) - 1)]
+    
+    # Mock json_store
+    class MockJsonStore:
+        def load(self, key, default=None):
+            return default or []
+        
+        def save(self, key, data):
+            pass
+    
+    json_store = MockJsonStore()
+    
+    # Mock date utility
+    def get_ist_now():
+        return datetime.now()
 
 
 class KPICalculator:

@@ -1,6 +1,12 @@
 
 # run_regression.py
-import os, sys, json, time, traceback, pathlib, subprocess
+import os
+import sys
+import json
+import time
+import traceback
+import pathlib
+import subprocess
 from tests.utils.server_manager import start_server, stop_server
 
 ART = pathlib.Path("logs/regression")

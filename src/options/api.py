@@ -49,8 +49,31 @@ def get_positions():
         fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'fixtures')
         options_file = os.path.join(fixtures_dir, 'options_sample.json')
 
-        with open(options_file, 'r') as f:
-            data = json.load(f)
+        if os.path.exists(options_file):
+            with open(options_file, 'r') as f:
+                data = json.load(f)
+        else:
+            # Fallback data if fixture doesn't exist
+            data = {
+                "positions": [
+                    {
+                        "id": "pos_001",
+                        "symbol": "NIFTY",
+                        "strategy": "short_strangle",
+                        "expiry": "2024-02-29",
+                        "strike": 21000,
+                        "premium": 125.50,
+                        "delta": 0.65,
+                        "gamma": 0.025,
+                        "theta": -0.15,
+                        "vega": 0.35,
+                        "iv": 0.185,
+                        "probability": 0.68,
+                        "market_value": 45000,
+                        "unrealized_pnl": 2500
+                    }
+                ]
+            }
 
         return jsonify({
             "positions": data.get('positions', []),
