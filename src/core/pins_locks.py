@@ -50,41 +50,83 @@ def unlock(item):
 @pins_locks_bp.route('/pins', methods=['GET'])
 def get_pins():
     """Get all pinned items"""
-    return jsonify({"pins": list_pins()})
+    try:
+        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+        return jsonify({"items": list_pins()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/pins', methods=['POST'])
 def add_pin():
     """Add a pinned item"""
-    data = request.get_json()
-    
-    new_pin = {
-        "id": data.get('id'),
-        "type": data.get('type'),
-        "symbol": data.get('symbol'),
-        "timestamp": datetime.utcnow().isoformat() + "Z"
-    }
+    try:
+        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+        data = request.get_json()
+        
+        # Handle single item or bulk items
+        if 'items' in data:
+            items = data['items']
+            for item in items:
+                new_pin = {
+                    "type": item.get('type'),
+                    "symbol": item.get('symbol'),
+                    "timestamp": datetime.utcnow().isoformat() + "Z"
+                }
+                pin(new_pin)
+        else:
+            new_pin = {
+                "type": data.get('type'),
+                "symbol": data.get('symbol'),
+                "timestamp": datetime.utcnow().isoformat() + "Z"
+            }
+            pin(new_pin)
 
-    pin(new_pin)
-
-    return jsonify({"success": True, "pin": new_pin})
+        return jsonify({
+            "success": True,
+            "items": list_pins()
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/locks', methods=['GET'])
 def get_locks():
     """Get all locked items"""
-    return jsonify({"locks": list_locks()})
+    try:
+        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+        return jsonify({"items": list_locks()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/locks', methods=['POST'])
 def add_lock():
     """Add a locked item"""
-    data = request.get_json()
+    try:
+        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+        data = request.get_json()
 
-    new_lock = {
-        "id": data.get('id'),
-        "type": data.get('type'),
-        "symbol": data.get('symbol'),
-        "timestamp": datetime.utcnow().isoformat() + "Z"
-    }
+        # Handle single item or bulk items
+        if 'items' in data:
+            items = data['items']
+            for item in items:
+                new_lock = {
+                    "type": item.get('type'),
+                    "symbol": item.get('symbol'),
+                    "timestamp": datetime.utcnow().isoformat() + "Z"
+                }
+                lock(new_lock)
+        else:
+            new_lock = {
+                "type": data.get('type'),
+                "symbol": data.get('symbol'),
+                "timestamp": datetime.utcnow().isoformat() + "Z"
+            }
+            lock(new_lock)
 
-    lock(new_lock)
-
-    return jsonify({"success": True, "lock": new_lock})
+        return jsonify({
+            "success": True,
+            "items": list_locks()
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

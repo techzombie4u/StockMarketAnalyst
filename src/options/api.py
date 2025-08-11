@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from datetime import datetime
 import os
 import json
+import uuid
 
 options_bp = Blueprint('options', __name__)
 
@@ -112,3 +113,187 @@ def get_calculators():
         },
         "timestamp": datetime.utcnow().isoformat() + "Z"
     })
+
+@options_bp.route('/strangle/candidates')
+def get_strangle_candidates():
+    """Get short strangle candidates"""
+    try:
+        underlying = request.args.get('underlying', 'TCS')
+        expiry = request.args.get('expiry', '2024-02-29')
+        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+        
+        candidates = [
+            {
+                "underlying": underlying,
+                "expiry": expiry,
+                "call_strike": 4400,
+                "put_strike": 4200,
+                "call_premium": 85.5,
+                "put_premium": 78.2,
+                "total_credit": 163.7,
+                "margin_required": 45000,
+                "roi": 0.364,
+                "breakeven_upper": 4563.7,
+                "breakeven_lower": 4036.3,
+                "pop": 0.68,
+                "max_profit": 16370,
+                "max_loss": -28630,
+                "dte": 25,
+                "iv_rank": 45.2
+            },
+            {
+                "underlying": underlying,
+                "expiry": expiry,
+                "call_strike": 4350,
+                "put_strike": 4150,
+                "call_premium": 95.8,
+                "put_premium": 88.9,
+                "total_credit": 184.7,
+                "margin_required": 42000,
+                "roi": 0.44,
+                "breakeven_upper": 4534.7,
+                "breakeven_lower": 4065.3,
+                "pop": 0.64,
+                "max_profit": 18470,
+                "max_loss": -21530,
+                "dte": 25,
+                "iv_rank": 48.7
+            }
+        ]
+        
+        return jsonify({
+            "underlying": underlying,
+            "expiry": expiry,
+            "candidates": candidates,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@options_bp.route('/strangle/plan', methods=['POST'])
+def create_strangle_plan():
+    """Create short strangle execution plan"""
+    try:
+        data = request.get_json()
+        
+        plan_id = str(uuid.uuid4())[:8]
+        
+        plan = {
+            "plan_id": plan_id,
+            "underlying": data.get('underlying'),
+            "call_strike": data.get('strikes', {}).get('call'),
+            "put_strike": data.get('strikes', {}).get('put'),
+            "expiry": data.get('expiry'),
+            "sl_rules": data.get('sl_rules', {}),
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat() + "Z",
+            "estimated_credit": data.get('estimated_credit', 0),
+            "margin_required": data.get('margin_required', 0)
+        }
+        
+        # In real implementation, save to database
+        
+        return jsonify({
+            "success": True,
+            "plan_id": plan_id,
+            "plan": plan
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@options_bp.route('/positions')
+def get_positions_list():
+    """Get options positions with status filter"""
+    try:
+        status = request.args.get('status', 'all')
+        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+        
+        positions = [
+            {
+                "id": "pos_001",
+                "underlying": "TCS",
+                "strategy": "short_strangle",
+                "call_strike": 4400,
+                "put_strike": 4200,
+                "expiry": "2024-02-29",
+                "status": "open",
+                "entry_credit": 163.7,
+                "current_value": 145.2,
+                "pnl": 1850,
+                "margin_used": 45000,
+                "roi": 0.041,
+                "dte": 15,
+                "breakevens": [4036.3, 4563.7],
+                "pop": 0.72
+            },
+            {
+                "id": "pos_002", 
+                "underlying": "INFY",
+                "strategy": "short_strangle",
+                "call_strike": 1900,
+                "put_strike": 1750,
+                "expiry": "2024-02-22",
+                "status": "closed",
+                "entry_credit": 142.5,
+                "exit_value": 45.8,
+                "pnl": 9670,
+                "margin_used": 38000,
+                "roi": 0.255,
+                "dte": 0,
+                "breakevens": [1607.5, 2042.5],
+                "pop": 0.85
+            }
+        ]
+        
+        if status != 'all':
+            positions = [p for p in positions if p['status'] == status]
+            
+        return jsonify({
+            "positions": positions,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@options_bp.route('/positions/<position_id>')
+def get_position_detail(position_id):
+    """Get detailed options position"""
+    try:
+        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+        
+        # Sample detailed position
+        position = {
+            "id": position_id,
+            "underlying": "TCS",
+            "strategy": "short_strangle", 
+            "call_strike": 4400,
+            "put_strike": 4200,
+            "expiry": "2024-02-29",
+            "status": "open",
+            "entry_credit": 163.7,
+            "current_value": 145.2,
+            "pnl": 1850,
+            "margin_used": 45000,
+            "roi": 0.041,
+            "dte": 15,
+            "breakevens": [4036.3, 4563.7],
+            "pop": 0.72,
+            "greeks": {
+                "delta": -0.05,
+                "gamma": 0.08,
+                "theta": 2.4,
+                "vega": -15.6
+            },
+            "payoff": {
+                "x": [3800, 3900, 4000, 4100, 4200, 4300, 4400, 4500, 4600, 4700, 4800],
+                "y": [-28630, -18630, -8630, 1370, 11370, 16370, 16370, 16370, 6370, -3630, -13630]
+            }
+        }
+        
+        return jsonify(position)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
