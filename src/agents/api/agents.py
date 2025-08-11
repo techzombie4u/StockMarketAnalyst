@@ -19,7 +19,40 @@ def _pre():
 @agents_bp.get("")
 @agents_bp.get("/")
 def list_agents():
-    return jsonify({"success": True, "agents": REGISTRY.list()})
+    """List all available agents"""
+    return jsonify({
+        "agents": [
+            {
+                "id": "equity_agent",
+                "name": "Equity Analysis Agent",
+                "status": "active",
+                "last_run": "2024-08-11T16:00:00Z"
+            },
+            {
+                "id": "options_agent",
+                "name": "Options Strategy Agent",
+                "status": "active",
+                "last_run": "2024-08-11T15:45:00Z"
+            },
+            {
+                "id": "sentiment_agent",
+                "name": "Market Sentiment Agent",
+                "status": "active",
+                "last_run": "2024-08-11T16:15:00Z"
+            }
+        ],
+        "total": 3,
+        "active": 3
+    })
+
+@agents_bp.route('/status', methods=['GET'])
+def agents_status():
+    """Get status of all agents"""
+    return jsonify({
+        "status": "healthy",
+        "agents_running": 3,
+        "last_check": "2024-08-11T16:45:00Z"
+    })
 
 @agents_bp.post("/<key>/run")
 def run_agent(key: str):

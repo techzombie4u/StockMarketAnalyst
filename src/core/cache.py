@@ -1,45 +1,46 @@
-from datetime import datetime, timezone
-import time
-from typing import Any, Optional, Dict
-import json
-from datetime import datetime, timedelta
 
-def now_iso() -> str:
-    """Return current UTC timestamp in ISO format"""
-    return datetime.now(timezone.utc).isoformat()
+import time
+from datetime import datetime, timezone
 
 class TTLCache:
-    def __init__(self, ttl_sec: int = 30):
-        self.ttl = ttl_sec
-        self._cache: Dict[str, Dict[str, Any]] = {}
-
-    def get(self, key: str) -> Optional[Any]:
-        """Get cached value if not expired"""
-        if key not in self._cache:
+    """Simple TTL (Time To Live) cache implementation"""
+    
+    def __init__(self, ttl_sec=300, namespace="default"):
+        self.ttl_sec = ttl_sec
+        self.namespace = namespace
+        self._cache = {}
+        self._timestamps = {}
+    
+    def get(self, key):
+        """Get item from cache if not expired"""
+        full_key = f"{self.namespace}:{key}"
+        
+        if full_key not in self._cache:
             return None
-
-        entry = self._cache[key]
-        if time.time() - entry['timestamp'] > self.ttl:
-            del self._cache[key]
+            
+        # Check if expired
+        if time.time() - self._timestamps[full_key] > self.ttl_sec:
+            del self._cache[full_key]
+            del self._timestamps[full_key]
             return None
+            
+        return self._cache[full_key]
+    
+    def set(self, key, value):
+        """Set item in cache with current timestamp"""
+        full_key = f"{self.namespace}:{key}"
+        self._cache[full_key] = value
+        self._timestamps[full_key] = time.time()
+    
+    def clear(self):
+        """Clear all cache entries"""
+        self._cache.clear()
+        self._timestamps.clear()
 
-        return entry['payload']
+def ttl_cache(ttl_sec=300, namespace="default"):
+    """Create a TTL cache instance"""
+    return TTLCache(ttl_sec=ttl_sec, namespace=namespace)
 
-    def set(self, key: str, payload: Any) -> None:
-        """Set cached value with current timestamp"""
-        self._cache[key] = {
-            'payload': payload,
-            'timestamp': time.time()
-        }
-
-    def clear(self, key: Optional[str] = None) -> None:
-        """Clear specific key or entire cache"""
-        if key:
-            self._cache.pop(key, None)
-        else:
-            self._cache.clear()
-
-# Global cache instances with different TTLs
-cache_short = TTLCache(ttl_sec=15)    # For quotes, real-time data
-cache_medium = TTLCache(ttl_sec=300)  # For KPIs, analysis
-cache_long = TTLCache(ttl_sec=900)    # For historical data
+def now_iso():
+    """Return current UTC time in ISO format"""
+    return datetime.now(timezone.utc).isoformat()
