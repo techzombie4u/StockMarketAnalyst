@@ -4,14 +4,34 @@ import requests, time, json, os
 
 BASE_URL = os.getenv("TEST_BASE_URL", "http://0.0.0.0:5000")
 
-def test_fusion_health():
+def test_fusion_dashboard_contract():
+    """Test /api/fusion/dashboard returns complete contract"""
     r = requests.get(f"{BASE_URL}/api/fusion/dashboard", timeout=5)
     assert r.status_code == 200, f"HTTP {r.status_code}: {r.text}"
     data = r.json()
+    
+    # Core contract fields
     for key in ["last_updated_utc","market_session","timeframes","ai_verdict_summary",
                 "product_breakdown","pinned_summary","top_signals","alerts","generation_time_ms"]:
         assert key in data, f"Missing key {key}"
-    assert isinstance(data["top_signals"], list)
+    
+    # Timeframes contract
+    assert isinstance(data["timeframes"], list), "timeframes must be array"
+    assert len(data["timeframes"]) >= 6, "Must have at least 6 timeframes"
+    
+    # Pinned summary contract
+    pinned = data["pinned_summary"]
+    assert isinstance(pinned, dict), "pinned_summary must be object"
+    for field in ["total_pinned", "categories", "recent_pins"]:
+        assert field in pinned, f"Missing pinned_summary field: {field}"
+    
+    # Top signals contract with ai_verdict_normalized
+    assert isinstance(data["top_signals"], list), "top_signals must be array"
+    for signal in data["top_signals"]:
+        assert "ai_verdict_normalized" in signal, "Missing ai_verdict_normalized in signal"
+        valid_verdicts = {"STRONG_BUY", "BUY", "HOLD", "CAUTIOUS", "AVOID"}
+        assert signal["ai_verdict_normalized"] in valid_verdicts, \
+            f"Invalid verdict: {signal['ai_verdict_normalized']}"
 
 def test_timeframes_and_kpis():
     r = requests.get(f"{BASE_URL}/api/fusion/dashboard", timeout=5)
