@@ -13,5 +13,14 @@ for p in (SRC_DIR, ROOT_DIR):
         sys.path.insert(0, p)
 
 from core.app import create_app
-app = create_app()
-app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, threaded=True)
+
+if __name__ == "__main__":
+    app = create_app()
+
+    # Debug: Print all registered routes
+    print("🔍 Registered routes:")
+    for rule in app.url_map.iter_rules():
+        print(f"  {rule.endpoint}: {rule.rule} [{', '.join(rule.methods)}]")
+
+    print("🚀 Starting server on http://localhost:5000")
+    app.run(host="0.0.0.0", port=5000, debug=True)

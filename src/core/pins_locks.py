@@ -9,7 +9,7 @@ PINS_PATH  = os.path.join(BASE, "pins.json")
 LOCKS_PATH = os.path.join(BASE, "locks.json")
 _LOCK = threading.Lock()
 
-pins_locks_bp = Blueprint('pins_locks', __name__)
+pins_locks_bp = Blueprint('pins_locks', __name__, url_prefix='/api')
 
 def _read(path):
     try:
@@ -62,7 +62,7 @@ def add_pin():
     try:
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
         data = request.get_json()
-        
+
         # Handle single item or bulk items
         if 'items' in data:
             items = data['items']
@@ -85,7 +85,7 @@ def add_pin():
             "success": True,
             "items": list_pins()
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -127,6 +127,6 @@ def add_lock():
             "success": True,
             "items": list_locks()
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
