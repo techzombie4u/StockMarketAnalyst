@@ -1,353 +1,40 @@
 
-{% extends "_layout.html" %}
-
-{% block title %}Dashboard - Fusion{% endblock %}
-
-{% block content %}
-<div class="space-y-6">
-    <!-- Hero KPI Row (6 cards) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <div class="kpi-card">
-            <div class="kpi-label">Total Portfolio</div>
-            <div class="kpi-value text-green-400" id="total-value">$0</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Total P&L</div>
-            <div class="kpi-value text-blue-400" id="total-pnl">$0</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Active Positions</div>
-            <div class="kpi-value text-yellow-400" id="active-positions">0</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Win Rate</div>
-            <div class="kpi-value text-green-400" id="win-rate">0%</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Sharpe Ratio</div>
-            <div class="kpi-value text-blue-400" id="sharpe-ratio">0.0</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Max Drawdown</div>
-            <div class="kpi-value text-red-400" id="max-drawdown">0%</div>
-        </div>
-    </div>
-
-    <!-- Timeframe Chips Row -->
-    <div class="flex flex-wrap gap-2">
-        <button class="timeframe-chip active" data-timeframe="all">All</button>
-        <button class="timeframe-chip" data-timeframe="3d">3D</button>
-        <button class="timeframe-chip" data-timeframe="5d">5D</button>
-        <button class="timeframe-chip" data-timeframe="10d">10D</button>
-        <button class="timeframe-chip" data-timeframe="15d">15D</button>
-        <button class="timeframe-chip" data-timeframe="30d">30D</button>
-    </div>
-
-    <!-- Pinned + Alerts + Agent Insights 3-up Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Pinned Items -->
-        <div class="insight-card">
-            <h3 class="insight-card-title">📌 Pinned Items</h3>
-            <div class="insight-card-content">
-                <div class="flex justify-between text-sm">
-                    <span>Total Pinned:</span>
-                    <span class="text-blue-400 font-semibold" id="pinned-count">0</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span>Locked Items:</span>
-                    <span class="text-red-400 font-semibold" id="locked-count">0</span>
-                </div>
-                <div class="mt-2">
-                    <label class="flex items-center text-sm">
-                        <input type="checkbox" id="pinned-filter" class="mr-2">
-                        Show pinned only
-                    </label>
-                </div>
-            </div>
-        </div>
-
-        <!-- Alerts -->
-        <div class="insight-card">
-            <h3 class="insight-card-title">🚨 Active Alerts</h3>
-            <div class="insight-card-content">
-                <div id="alerts-content" class="space-y-2">
-                    <div class="text-sm text-gray-400">No active alerts</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Agent Insights -->
-        <div class="insight-card">
-            <h3 class="insight-card-title">🤖 Agent Insights</h3>
-            <div class="insight-card-content">
-                <div id="agent-insights" class="space-y-2">
-                    <div class="text-sm">Loading agent insights...</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Top Signals Table -->
-    <div class="signals-table-container">
-        <h3 class="signals-table-title">📊 Top Signals</h3>
-        <div class="overflow-x-auto">
-            <table class="signals-table">
-                <thead>
-                    <tr>
-                        <th>Pin</th>
-                        <th>Symbol</th>
-                        <th>Product</th>
-                        <th>Signal Score</th>
-                        <th>Current Price</th>
-                        <th>Target Price</th>
-                        <th>Potential ROI</th>
-                        <th>AI Verdict</th>
-                        <th>Confidence</th>
-                    </tr>
-                </thead>
-                <tbody id="top-signals-table">
-                    <tr>
-                        <td colspan="9" class="text-center text-gray-400 py-8">Loading top signals...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+{% extends "_layout.html" %}{% block content %}
+<div class="grid grid-6">
+  <div class="card kpi"><div class="title">Prediction Accuracy</div><div id="kpi-acc" class="v">—</div></div>
+  <div class="card kpi"><div class="title">Sharpe (3M)</div><div id="kpi-sharpe" class="v">—</div></div>
+  <div class="card kpi"><div class="title">Sortino (3M)</div><div id="kpi-sortino" class="v">—</div></div>
+  <div class="card kpi"><div class="title">Max Drawdown (30D)</div><div id="kpi-mdd" class="v">—</div></div>
+  <div class="card kpi"><div class="title">Win/Loss Expectancy</div><div id="kpi-exp" class="v">—</div></div>
+  <div class="card kpi"><div class="title">Coverage</div><div id="kpi-cov" class="v">—</div></div>
 </div>
 
-<style>
-    .kpi-card {
-        background-color: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        text-align: center;
-    }
-    
-    .kpi-label {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .kpi-value {
-        font-size: 1.875rem;
-        font-weight: 700;
-        line-height: 1;
-    }
-    
-    .timeframe-chip {
-        background-color: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        color: var(--text-secondary);
-        padding: 0.5rem 1rem;
-        border-radius: 1.5rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
-    
-    .timeframe-chip:hover {
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
-    }
-    
-    .timeframe-chip.active {
-        background-color: var(--accent-blue);
-        color: white;
-        border-color: var(--accent-blue);
-    }
-    
-    .insight-card {
-        background-color: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        overflow: hidden;
-    }
-    
-    .insight-card-title {
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
-        font-size: 1rem;
-        font-weight: 600;
-        padding: 1rem;
-        margin: 0;
-    }
-    
-    .insight-card-content {
-        padding: 1rem;
-        space-y: 0.5rem;
-    }
-    
-    .signals-table-container {
-        background-color: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        overflow: hidden;
-    }
-    
-    .signals-table-title {
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
-        font-size: 1.125rem;
-        font-weight: 600;
-        padding: 1rem;
-        margin: 0;
-    }
-    
-    .signals-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .signals-table th {
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
-        font-size: 0.875rem;
-        font-weight: 600;
-        padding: 0.75rem;
-        text-align: left;
-        border-bottom: 1px solid var(--border-color);
-    }
-    
-    .signals-table td {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        padding: 0.75rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-    
-    .signals-table tbody tr:hover {
-        background-color: var(--bg-tertiary);
-    }
-</style>
+<div class="chips" id="tf-chips"></div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Timeframe chip functionality
-    const chips = document.querySelectorAll('.timeframe-chip');
-    chips.forEach(chip => {
-        chip.addEventListener('click', function() {
-            chips.forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
-            loadDashboardData(this.dataset.timeframe);
-        });
-    });
-    
-    // Pinned filter functionality
-    const pinnedFilter = document.getElementById('pinned-filter');
-    pinnedFilter.addEventListener('change', function() {
-        const showPinnedOnly = this.checked;
-        updateURLParams({ pinned: showPinnedOnly ? 'true' : null });
-        loadDashboardData('all', showPinnedOnly);
-    });
-    
-    // Check URL params on load
-    const urlParams = new URLSearchParams(window.location.search);
-    const pinnedParam = urlParams.get('pinned');
-    if (pinnedParam === 'true') {
-        pinnedFilter.checked = true;
-    }
-    
-    // Initial load
-    loadDashboardData('all', pinnedFilter.checked);
-    loadPinnedCounts();
-});
+<div class="grid grid-3">
+  <div class="card">
+    <div class="title">Pinned Rollup <span id="tf-badge" class="badge">All</span></div>
+    <div>Total: <b id="pin-total">0</b> &nbsp; Met: <b id="pin-met">0</b> &nbsp; Not Met: <b id="pin-not">0</b> &nbsp; In-Progress: <b id="pin-prog">0</b></div>
+  </div>
+  <div class="card">
+    <div class="title">Alerts & Notices</div>
+    <ul id="alerts"></ul>
+  </div>
+  <div class="card">
+    <div class="title">GoAhead Agent – Insights</div>
+    <div id="insights">—</div>
+  </div>
+</div>
 
-async function loadPinnedCounts() {
-    try {
-        const [pinsResponse, locksResponse] = await Promise.all([
-            fetch('/api/pins'),
-            fetch('/api/locks')
-        ]);
-        
-        if (pinsResponse.ok && locksResponse.ok) {
-            const pinsData = await pinsResponse.json();
-            const locksData = await locksResponse.json();
-            
-            document.getElementById('pinned-count').textContent = pinsData.items?.length || 0;
-            document.getElementById('locked-count').textContent = locksData.items?.length || 0;
-        }
-    } catch (error) {
-        console.error('Error loading pin/lock counts:', error);
-    }
-}
+<div>
+  <div class="title">Top Signals</div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Product</th><th>Symbol</th><th>Verdict</th><th>Confidence</th><th>Rationale</th><th>Last Updated</th></tr></thead>
+      <tbody id="top-signals"></tbody>
+    </table>
+  </div>
+</div>
 
-async function pinItem(type, symbol) {
-    try {
-        const response = await fetch('/api/pins', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                items: [{ type: type, symbol: symbol }]
-            })
-        });
-        
-        if (response.ok) {
-            loadPinnedCounts();
-            // Update the pin button state
-            updatePinButtonState(symbol, true);
-        }
-    } catch (error) {
-        console.error('Error pinning item:', error);
-    }
-}
-
-async function lockItem(type, symbol) {
-    try {
-        const response = await fetch('/api/locks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                items: [{ type: type, symbol: symbol }]
-            })
-        });
-        
-        if (response.ok) {
-            loadPinnedCounts();
-            // Update the lock button state
-            updateLockButtonState(symbol, true);
-        }
-    } catch (error) {
-        console.error('Error locking item:', error);
-    }
-}
-
-function updatePinButtonState(symbol, isPinned) {
-    const pinBtn = document.querySelector(`[data-symbol="${symbol}"] .pin-btn`);
-    if (pinBtn) {
-        pinBtn.classList.toggle('pinned', isPinned);
-        pinBtn.innerHTML = isPinned ? '★' : '☆';
-        pinBtn.title = isPinned ? 'Unpin item' : 'Pin item';
-    }
-}
-
-function updateLockButtonState(symbol, isLocked) {
-    const lockBtn = document.querySelector(`[data-symbol="${symbol}"] .lock-btn`);
-    if (lockBtn) {
-        lockBtn.classList.toggle('locked', isLocked);
-        lockBtn.innerHTML = isLocked ? '🔒' : '🔓';
-        lockBtn.title = isLocked ? 'Unlock item' : 'Lock item';
-    }
-}
-
-function updateURLParams(params) {
-    const url = new URL(window.location);
-    Object.keys(params).forEach(key => {
-        if (params[key] === null) {
-            url.searchParams.delete(key);
-        } else {
-            url.searchParams.set(key, params[key]);
-        }
-    });
-    window.history.replaceState({}, '', url);
-}
-
-function loadDashboardData(timeframe, pinnedOnly = false) {
-    // This function should be implemented to load dashboard data
-    // with filtering based on timeframe and pinned status
-    console.log('Loading dashboard data:', { timeframe, pinnedOnly });
-}
-</script>
+<script src="/static/js/fusion_ui.js" defer></script>
 {% endblock %}
