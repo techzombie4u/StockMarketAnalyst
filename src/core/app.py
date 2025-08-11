@@ -116,7 +116,7 @@ def create_app():
         # OpenAPI specification endpoint
         @app.route('/api', methods=['GET'])
         def serve_openapi_spec():
-    """Serve the OpenAPI specification"""
+            """Serve the OpenAPI specification"""
             try:
                 import yaml
                 import os
