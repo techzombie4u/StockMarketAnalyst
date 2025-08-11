@@ -34,9 +34,34 @@ if __name__ == "__main__":
     app.register_blueprint(pins_locks_bp)
 
     # Debug: Print all registered routes
-    print("🔍 Registered routes:")
+    print("\n🔍 Registered routes:")
+    route_count = 0
+    api_routes = []
     for rule in app.url_map.iter_rules():
-        print(f"  {rule.endpoint}: {rule.rule} [{', '.join(rule.methods)}]")
+        route_count += 1
+        route_info = f"  {rule.endpoint}: {rule.rule} [{', '.join(rule.methods)}]"
+        print(route_info)
+        if '/api/' in rule.rule:
+            api_routes.append(rule.rule)
 
-    print("🚀 Starting server on http://localhost:5000")
+    print(f"\n📊 Total routes: {route_count}")
+    print(f"📊 API routes: {len(api_routes)}")
+
+    if api_routes:
+        print("\n🔗 API Endpoints:")
+        for route in sorted(api_routes):
+            print(f"  http://0.0.0.0:5000{route}")
+    else:
+        print("\n⚠️  No API routes found! Check blueprint registration.")
+
+    # Add error handlers
+    @app.errorhandler(404)
+    def not_found(error):
+        return {"error": "Not found", "message": "The requested endpoint does not exist"}, 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        return {"error": "Internal server error", "message": str(error)}, 500
+
+    print(f"\n🚀 Starting server on http://0.0.0.0:5000")
     app.run(host="0.0.0.0", port=5000, debug=True)
