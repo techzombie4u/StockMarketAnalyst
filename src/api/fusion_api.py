@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from pathlib import Path
 
 # Create blueprint
-fusion_bp = Blueprint("fusion", __name__, url_prefix="/api/fusion")
+fusion_bp = Blueprint("fusion", __name__)
 
 # Simple cache
 _CACHE = {"ts": None, "payload": None}

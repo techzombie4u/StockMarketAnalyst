@@ -5,7 +5,7 @@ from datetime import datetime
 from src.core.cache import TTLCache
 from src.core.guardrails import check_feature_enabled, get_degraded_status
 
-equities_bp = Blueprint('equities', __name__)
+equities_bp = Blueprint("equities", __name__)
 
 @equities_bp.route('/list')
 def get_equities_list():

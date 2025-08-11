@@ -58,6 +58,37 @@ def create_app():
             from src.core.guardrails import guardrails
             return jsonify(guardrails.get_performance_status())
 
+        # Register blueprints with proper URL prefixes
+        try:
+            from src.api.fusion_api import fusion_bp
+            app.register_blueprint(fusion_bp, url_prefix="/api/fusion")
+            print("✅ Registered fusion_bp")
+        except Exception as e:
+            print(f"⚠️  Failed to register fusion_bp: {e}")
+
+        try:
+            from src.agents.api.agents import agents_bp as agents_api_bp
+            app.register_blueprint(agents_api_bp, url_prefix="/api/agents")
+            print("✅ Registered agents_bp")
+        except Exception as e:
+            print(f"⚠️  Failed to register agents_bp: {e}")
+
+        # Register other blueprints with prefixes
+        blueprints_to_register = [
+            (pins_locks_bp, "/api", "pins_locks_bp"),
+            (equities_bp, "/api/equities", "equities_bp"), 
+            (options_bp, "/api/options", "options_bp"),
+            (commodities_bp, "/api/commodities", "commodities_bp"),
+            (kpi_bp, "/api/kpi", "kpi_bp")
+        ]
+
+        for bp, prefix, name in blueprints_to_register:
+            try:
+                app.register_blueprint(bp, url_prefix=prefix)
+                print(f"✅ Registered {name}")
+            except Exception as e:
+                print(f"⚠️  Failed to register {name}: {e}")
+
         print("✅ Flask app created successfully")
         return app
 
@@ -70,11 +101,11 @@ def serve_openapi_spec():
     try:
         import yaml
         import os
-        
+
         # Get the path to openapi.yaml in repo root
         repo_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         openapi_path = os.path.join(repo_root, 'openapi.yaml')
-        
+
         if os.path.exists(openapi_path):
             with open(openapi_path, 'r') as f:
                 spec = yaml.safe_load(f)
@@ -84,7 +115,7 @@ def serve_openapi_spec():
                 "error": "OpenAPI specification not found",
                 "message": "The openapi.yaml file is missing from the repository root"
             }), 404
-            
+
     except Exception as e:
         return jsonify({
             "error": "Failed to load OpenAPI specification",
