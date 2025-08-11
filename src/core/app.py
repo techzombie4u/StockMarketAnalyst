@@ -64,3 +64,29 @@ def create_app():
     except Exception as e:
         print(f"❌ Error creating Flask app: {e}")
         raise
+@app.route('/api', methods=['GET'])
+def serve_openapi_spec():
+    """Serve the OpenAPI specification"""
+    try:
+        import yaml
+        import os
+        
+        # Get the path to openapi.yaml in repo root
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        openapi_path = os.path.join(repo_root, 'openapi.yaml')
+        
+        if os.path.exists(openapi_path):
+            with open(openapi_path, 'r') as f:
+                spec = yaml.safe_load(f)
+            return jsonify(spec)
+        else:
+            return jsonify({
+                "error": "OpenAPI specification not found",
+                "message": "The openapi.yaml file is missing from the repository root"
+            }), 404
+            
+    except Exception as e:
+        return jsonify({
+            "error": "Failed to load OpenAPI specification",
+            "details": str(e)
+        }), 500
