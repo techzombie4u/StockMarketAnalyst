@@ -2,8 +2,7 @@ import json
 import time
 import uuid
 from flask import request, g
-from src.core.metrics import inc
-from src.core.guardrails import guardrails, record_request_metrics
+from src.core.metrics import metrics, update_request_metrics
 
 def before_request():
     """Initialize request tracking"""
@@ -28,13 +27,9 @@ def after_request(response):
         print(json.dumps(rec))
 
         # Collect metrics
-        path_key = request.path.replace('/', '_').strip('_') or 'root'
-        inc(f"requests_total.{path_key}")
-        inc(f"latency_total_ms.{path_key}", latency_ms)
-        inc(f"latency_count.{path_key}")
-
-        # Status code metrics
-        inc(f"status_{response.status_code}")
+        metrics.increment(request.path)
+        metrics.increment(f"status_{response.status_code}")
+        metrics.record_latency(request.path, latency_ms)
 
         # Add request ID to response headers
         response.headers['X-Request-ID'] = request_id
@@ -42,13 +37,13 @@ def after_request(response):
         # Update metrics
         update_request_metrics(request.path, request.method, response.status_code, latency_ms)
 
-        # Record guardrails metrics
-        record_request_metrics(request.path, latency_ms, cache_hit=False)
-
-        # Enforce guardrails periodically
-        guardrails.enforce_guardrails()
-
     except Exception as e:
         print(f"Logging error: {e}")
 
     return response
+
+def add_request_logging(app):
+    """Add request logging middleware to Flask app"""
+    app.before_request(before_request)
+    app.after_request(after_request)
+    return app
