@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # Create blueprint
 agents_bp = Blueprint('agents', __name__, url_prefix='/api/agents')
 
-@agents_bp.route('/list', methods=['GET'])
+@agents_bp.route('/')
 def list_agents():
     """List enabled agents and their specifications"""
     try:
