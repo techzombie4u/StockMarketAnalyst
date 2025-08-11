@@ -1,0 +1,143 @@
+
+{% extends "_layout.html" %}
+
+{% block title %}Options - Fusion{% endblock %}
+{% block nav_title %}Options{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Controls -->
+    <div class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold">Options Analysis</h2>
+        <button onclick="refreshData()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors">
+            Refresh Data
+        </button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h3 class="text-sm font-medium text-gray-400 uppercase">Total Contracts</h3>
+            <p class="text-xl font-bold text-white mt-1" id="kpi-contracts">--</p>
+        </div>
+        <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h3 class="text-sm font-medium text-gray-400 uppercase">Total Premium</h3>
+            <p class="text-xl font-bold text-white mt-1" id="kpi-premium">--</p>
+        </div>
+        <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h3 class="text-sm font-medium text-gray-400 uppercase">Avg IV</h3>
+            <p class="text-xl font-bold text-white mt-1" id="kpi-iv">--</p>
+        </div>
+        <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h3 class="text-sm font-medium text-gray-400 uppercase">Bullish</h3>
+            <p class="text-xl font-bold text-white mt-1" id="kpi-bullish">--</p>
+        </div>
+        <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h3 class="text-sm font-medium text-gray-400 uppercase">Bearish</h3>
+            <p class="text-xl font-bold text-white mt-1" id="kpi-bearish">--</p>
+        </div>
+    </div>
+
+    <!-- Options Table -->
+    <div class="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+        <div class="p-4 border-b border-slate-700">
+            <h3 class="text-lg font-semibold">Options Contracts</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-700">
+                    <tr>
+                        <th class="text-left py-3 px-4">Contract</th>
+                        <th class="text-left py-3 px-4">Premium</th>
+                        <th class="text-left py-3 px-4">Delta</th>
+                        <th class="text-left py-3 px-4">Gamma</th>
+                        <th class="text-left py-3 px-4">IV</th>
+                        <th class="text-left py-3 px-4">Max Profit</th>
+                        <th class="text-left py-3 px-4">Payoff Ratio</th>
+                        <th class="text-left py-3 px-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="options-table-body">
+                    <tr>
+                        <td colspan="8" class="text-center py-8 text-gray-400">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadData();
+});
+
+async function loadData() {
+    try {
+        const [optionsList, kpis] = await Promise.all([
+            fetch('/api/options/list').then(r => r.json()),
+            fetch('/api/options/kpis').then(r => r.json())
+        ]);
+        
+        // Update KPIs
+        document.getElementById('kpi-contracts').textContent = kpis.total_contracts;
+        document.getElementById('kpi-premium').textContent = '$' + kpis.total_premium.toFixed(0);
+        document.getElementById('kpi-iv').textContent = kpis.avg_implied_volatility + '%';
+        document.getElementById('kpi-bullish').textContent = kpis.bullish_strategies;
+        document.getElementById('kpi-bearish').textContent = kpis.bearish_strategies;
+        
+        // Update table
+        const tbody = document.getElementById('options-table-body');
+        tbody.innerHTML = optionsList.options.map(option => `
+            <tr class="border-b border-slate-700 hover:bg-slate-700">
+                <td class="py-3 px-4 font-medium">${option.symbol || 'N/A'}</td>
+                <td class="py-3 px-4">$${option.premium || 'N/A'}</td>
+                <td class="py-3 px-4">${option.delta}</td>
+                <td class="py-3 px-4">${option.gamma}</td>
+                <td class="py-3 px-4">${option.implied_vol}%</td>
+                <td class="py-3 px-4 text-green-400">$${option.max_profit}</td>
+                <td class="py-3 px-4">${option.payoff_ratio}</td>
+                <td class="py-3 px-4">
+                    <button onclick="pinItem('${option.symbol}')" class="text-yellow-400 hover:text-yellow-300 mr-2">Pin</button>
+                    <button onclick="lockItem('${option.symbol}')" class="text-blue-400 hover:text-blue-300">Lock</button>
+                </td>
+            </tr>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading options data:', error);
+    }
+}
+
+async function refreshData() {
+    await fetch('/api/options/list?forceRefresh=true');
+    loadData();
+}
+
+async function pinItem(item) {
+    try {
+        await fetch('/api/fusion/pin', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({item: item})
+        });
+        console.log('Pinned:', item);
+    } catch (error) {
+        console.error('Error pinning item:', error);
+    }
+}
+
+async function lockItem(item) {
+    try {
+        await fetch('/api/fusion/lock', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({item: item})
+        });
+        console.log('Locked:', item);
+    } catch (error) {
+        console.error('Error locking item:', error);
+    }
+}
+</script>
+{% endblock %}
