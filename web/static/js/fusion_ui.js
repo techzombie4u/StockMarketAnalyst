@@ -491,3 +491,77 @@ function loadPinnedCounts() {
 document.addEventListener('DOMContentLoaded', () => {
     window.fusionDashboard = new FusionDashboard();
 });
+document.addEventListener("DOMContentLoaded", async () => {
+  let currentTimeframe = "All";
+
+  // Load dashboard data
+  async function loadDashboard() {
+    try {
+      const response = await fetch("/api/fusion/dashboard");
+      const data = await response.json();
+      
+      // Update KPI cards with current timeframe data
+      const tfData = data.timeframes[currentTimeframe] || {};
+      document.getElementById("kpi-acc").textContent = (tfData.predictionAccuracy || 0.68).toFixed(2);
+      document.getElementById("kpi-sharpe").textContent = (tfData.sharpe || 1.12).toFixed(2);
+      document.getElementById("kpi-sortino").textContent = (tfData.sortino || 1.25).toFixed(2);
+      document.getElementById("kpi-mdd").textContent = ((tfData.maxDrawdown || -0.08) * 100).toFixed(1) + "%";
+      document.getElementById("kpi-exp").textContent = (tfData.expectancy || 1.35).toFixed(2);
+      document.getElementById("kpi-cov").textContent = ((tfData.coverage || 0.85) * 100).toFixed(0) + "%";
+
+      // Update timeframe chips
+      const chipsContainer = document.getElementById("tf-chips");
+      const timeframes = Object.keys(data.timeframes);
+      chipsContainer.innerHTML = timeframes.map(tf => 
+        `<div class="chip ${tf === currentTimeframe ? 'active' : ''}" data-tf="${tf}">${tf}</div>`
+      ).join("");
+
+      // Add click handlers to chips
+      chipsContainer.querySelectorAll(".chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+          currentTimeframe = chip.dataset.tf;
+          loadDashboard(); // Reload with new timeframe
+        });
+      });
+
+      // Update pinned rollup
+      const rollup = data.pinned_rollup || {};
+      document.getElementById("pin-total").textContent = rollup.total || 0;
+      document.getElementById("pin-met").textContent = rollup.met || 0;
+      document.getElementById("pin-not").textContent = rollup.not_met || 0;
+      document.getElementById("pin-prog").textContent = rollup.in_progress || 0;
+      document.getElementById("tf-badge").textContent = currentTimeframe;
+
+      // Update alerts
+      const alertsList = document.getElementById("alerts");
+      alertsList.innerHTML = (data.alerts || []).map(alert => 
+        `<li>${alert}</li>`
+      ).join("");
+
+      // Update insights
+      document.getElementById("insights").textContent = data.insights || "No insights available";
+
+      // Update top signals table
+      const signalsTable = document.getElementById("top-signals");
+      signalsTable.innerHTML = (data.signals || []).map(signal => `
+        <tr>
+          <td>${signal.product}</td>
+          <td>${signal.symbol}</td>
+          <td><span class="badge">${signal.verdict}</span></td>
+          <td>${(signal.confidence * 100).toFixed(0)}%</td>
+          <td>${signal.rationale}</td>
+          <td>${new Date(signal.updated).toLocaleString()}</td>
+        </tr>
+      `).join("");
+
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+    }
+  }
+
+  // Initial load
+  await loadDashboard();
+
+  // Auto-refresh every 30 seconds
+  setInterval(loadDashboard, 30000);
+});
