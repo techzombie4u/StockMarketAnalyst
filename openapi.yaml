@@ -1,38 +1,20 @@
-
-openapi: 3.0.3
+openapi: 3.0.0
 info:
   title: Fusion Stock Analyst API
-  description: |
-    Comprehensive API for stock analysis, options trading, commodities tracking, and performance metrics.
-    
-    This API provides endpoints for:
-    - **Fusion Dashboard**: Aggregated KPIs and market insights
-    - **Equities**: Stock analysis and portfolio management
-    - **Options**: Options strategies and position tracking
-    - **Commodities**: Commodity signals and correlations
-    - **KPIs**: Performance metrics and calculations
-    - **Pins & Locks**: User preferences and risk management
-    - **Agents**: AI-powered analysis and recommendations
-  version: 1.7.5
+  description: AI-enhanced stock analysis platform with real-time signals and KPIs
+  version: 1.7.4
   contact:
     name: Fusion Stock Analyst
-    url: https://fusion-stock-analyst.replit.app
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+    email: support@fusionanalyst.com
 
 servers:
   - url: http://0.0.0.0:5000
     description: Development server
-  - url: https://fusion-stock-analyst.replit.app
-    description: Production server
 
 paths:
-  # Health & Status
   /health:
     get:
-      tags: [Health]
-      summary: Health check endpoint
+      summary: Health check
       responses:
         '200':
           description: Server is healthy
@@ -44,1058 +26,182 @@ paths:
                   status:
                     type: string
                     example: "healthy"
-                  message:
-                    type: string
-                    example: "Server is running"
 
-  /api/test:
+  /api/fusion/dashboard:
     get:
-      tags: [Health]
-      summary: API test endpoint
+      summary: Get fusion dashboard data
+      parameters:
+        - name: forceRefresh
+          in: query
+          schema:
+            type: boolean
+        - name: tf
+          in: query
+          schema:
+            type: string
+            enum: [All, 3D, 5D, 10D, 15D, 30D]
       responses:
         '200':
-          description: API is working
+          description: Dashboard data
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: "API is working"
+                  kpis:
+                    type: object
+                  timeframes:
+                    type: object
+                  top_signals:
+                    type: array
+                  pinned_rollup:
+                    type: object
 
-  # Fusion Dashboard
-  /api/fusion/dashboard:
+  /api/equities/list:
     get:
-      tags: [Fusion]
-      summary: Get fusion dashboard data
-      description: Main dashboard endpoint with KPIs, timeframes, and market insights
-      parameters:
-        - name: forceRefresh
-          in: query
-          schema:
-            type: boolean
-            default: false
-          description: Force refresh of cached data
+      summary: Get equities list
       responses:
         '200':
-          description: Dashboard data retrieved successfully
+          description: List of equity items
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FusionDashboard'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  items:
+                    type: array
 
-  # Equities
-  /list:
+  /api/equities/kpis:
     get:
-      tags: [Equities]
-      summary: Get paginated equities list
+      summary: Get equity KPIs
       parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: pageSize
-          in: query
-          schema:
-            type: integer
-            default: 25
-        - name: sector
-          in: query
-          schema:
-            type: string
-        - name: scoreMin
-          in: query
-          schema:
-            type: number
-            format: float
-            default: 0.0
         - name: timeframe
           in: query
           schema:
             type: string
-            enum: [All, 3D, 5D, 10D, 15D, 30D]
-            default: All
-        - name: forceRefresh
-          in: query
-          schema:
-            type: boolean
-            default: false
       responses:
         '200':
-          description: Equities list retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EquitiesList'
-        '503':
-          description: Service degraded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DegradedResponse'
+          description: Equity KPIs
 
-  # Options
-  /strangle/candidates:
+  /api/options/strangle/candidates:
     get:
-      tags: [Options]
-      summary: Get short strangle candidates
+      summary: Get options strangle candidates
       parameters:
         - name: underlying
           in: query
           schema:
             type: string
-            default: TCS
+            example: "TCS"
         - name: expiry
           in: query
           schema:
             type: string
             format: date
-            default: "2024-02-29"
-        - name: forceRefresh
-          in: query
-          schema:
-            type: boolean
-            default: false
+            example: "2025-08-28"
       responses:
         '200':
-          description: Strangle candidates retrieved successfully
+          description: Strangle candidates
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StrangleCandidates'
+                type: array
+                items:
+                  type: object
+                  properties:
+                    payoff:
+                      type: number
+                    margin:
+                      type: number
 
-  /strangle/plan:
-    post:
-      tags: [Options]
-      summary: Create short strangle execution plan
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StranglePlanRequest'
-      responses:
-        '200':
-          description: Plan created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StranglePlanResponse'
-
-  # Commodities
-  /signals:
+  /api/commodities/signals:
     get:
-      tags: [Commodities]
-      summary: Get commodities signals
-      parameters:
-        - name: timeframe
-          in: query
-          schema:
-            type: string
-            enum: [All, 3D, 5D, 10D, 15D, 30D]
-            default: 10D
-        - name: forceRefresh
-          in: query
-          schema:
-            type: boolean
-            default: false
+      summary: Get commodity signals
       responses:
         '200':
-          description: Signals retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommoditySignals'
+          description: Commodity signals list
 
-  /correlations:
+  /api/commodities/correlations:
     get:
-      tags: [Commodities]
-      summary: Get commodities correlations
+      summary: Get commodity correlations
       parameters:
         - name: symbol
           in: query
           schema:
             type: string
-            default: GOLD
-        - name: forceRefresh
-          in: query
-          schema:
-            type: boolean
-            default: false
+            example: "GOLD"
       responses:
         '200':
-          description: Correlations retrieved successfully
+          description: Correlation data
+
+  /api/pins:
+    get:
+      summary: Get pinned items
+      responses:
+        '200':
+          description: Pinned items
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommodityCorrelations'
+                type: object
+                properties:
+                  items:
+                    type: array
+    post:
+      summary: Update pinned items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+      responses:
+        '200':
+          description: Success
 
-  # KPI
+  /api/locks:
+    get:
+      summary: Get locked items
+      responses:
+        '200':
+          description: Locked items
+    post:
+      summary: Update locked items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+      responses:
+        '200':
+          description: Success
+
   /api/kpi/metrics:
     get:
-      tags: [KPI]
-      summary: Get KPI metrics for specified timeframe
+      summary: Get KPI metrics
       parameters:
         - name: timeframe
           in: query
           schema:
             type: string
-            enum: [All, 3D, 5D, 10D, 15D, 30D]
-            default: All
       responses:
         '200':
-          description: KPI metrics retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/KPIMetrics'
-        '400':
-          description: Invalid timeframe
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/kpi/all-timeframes:
-    get:
-      tags: [KPI]
-      summary: Get KPIs for all timeframes
-      responses:
-        '200':
-          description: All timeframe KPIs retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AllTimeframeKPIs'
-
-  # Pins & Locks
-  /api/pins:
-    get:
-      tags: [Pins & Locks]
-      summary: Get user pins
-      responses:
-        '200':
-          description: Pins retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PinsList'
-    post:
-      tags: [Pins & Locks]
-      summary: Add new pin
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddPinRequest'
-      responses:
-        '200':
-          description: Pin added successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PinResponse'
-
-  /api/locks:
-    get:
-      tags: [Pins & Locks]
-      summary: Get user locks
-      responses:
-        '200':
-          description: Locks retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LocksList'
-    post:
-      tags: [Pins & Locks]
-      summary: Add new lock
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddLockRequest'
-      responses:
-        '200':
-          description: Lock added successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LockResponse'
+          description: KPI metrics
 
 components:
   schemas:
-    # Fusion Dashboard
-    FusionDashboard:
-      type: object
-      required:
-        - last_updated_utc
-        - market_session
-        - timeframes
-        - ai_verdict_summary
-        - product_breakdown
-        - pinned_summary
-        - top_signals
-        - alerts
-        - generation_time_ms
-      properties:
-        last_updated_utc:
-          type: string
-          format: date-time
-          example: "2024-02-15T10:30:00Z"
-        market_session:
-          type: string
-          enum: [OPEN, CLOSED, PRE_MARKET, AFTER_HOURS]
-          example: CLOSED
-        timeframes:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeframeKPIs'
-        ai_verdict_summary:
-          type: object
-          properties:
-            STRONG_BUY:
-              type: integer
-              example: 2
-            BUY:
-              type: integer
-              example: 5
-            HOLD:
-              type: integer
-              example: 7
-            CAUTIOUS:
-              type: integer
-              example: 1
-            AVOID:
-              type: integer
-              example: 0
-        product_breakdown:
-          type: object
-          properties:
-            equities:
-              type: integer
-              example: 10
-            options:
-              type: integer
-              example: 5
-        pinned_summary:
-          type: object
-          required:
-            - total
-            - met
-            - not_met
-            - in_progress
-          properties:
-            total:
-              type: integer
-              example: 5
-            met:
-              type: integer
-              example: 2
-            not_met:
-              type: integer
-              example: 1
-            in_progress:
-              type: integer
-              example: 1
-        top_signals:
-          type: array
-          items:
-            $ref: '#/components/schemas/TopSignal'
-        alerts:
-          type: array
-          items:
-            $ref: '#/components/schemas/Alert'
-        generation_time_ms:
-          type: number
-          format: float
-          example: 42.0
-
-    TimeframeKPIs:
-      type: object
-      required:
-        - name
-        - prediction_kpis
-        - financial_kpis
-        - risk_kpis
-      properties:
-        name:
-          type: string
-          enum: [All, 3D, 5D, 10D, 15D, 30D]
-          example: "10D"
-        prediction_kpis:
-          $ref: '#/components/schemas/PredictionKPIs'
-        financial_kpis:
-          $ref: '#/components/schemas/FinancialKPIs'
-        risk_kpis:
-          $ref: '#/components/schemas/RiskKPIs'
-
-    PredictionKPIs:
-      type: object
-      properties:
-        hit_rate:
-          type: number
-          format: float
-          example: 0.625
-        brier:
-          type: number
-          format: float
-          example: 0.195
-        calibration_error:
-          type: number
-          format: float
-          example: 0.0475
-        top_decile_hit_rate:
-          type: number
-          format: float
-          example: 1.0
-        top_decile_avg_edge:
-          type: number
-          format: float
-          example: 0.004
-
-    FinancialKPIs:
-      type: object
-      properties:
-        sharpe_90d:
-          type: number
-          format: float
-          example: 6.27
-        sortino_90d:
-          type: number
-          format: float
-          example: 30.08
-        max_drawdown:
-          type: number
-          format: float
-          example: 0.038
-        win_loss_expectancy:
-          type: number
-          format: float
-          example: 0.0012
-
-    RiskKPIs:
-      type: object
-      properties:
-        var_95_1d:
-          type: number
-          format: float
-          example: 0.0042
-        var_99_1d:
-          type: number
-          format: float
-          example: 0.01
-        exposure_pct:
-          type: number
-          format: float
-          example: 0.25
-        slippage_bps:
-          type: integer
-          example: 6
-
-    TopSignal:
-      type: object
-      required:
-        - symbol
-        - product
-        - score
-        - ai_verdict_normalized
-      properties:
-        symbol:
-          type: string
-          example: "TCS"
-        product:
-          type: string
-          enum: [equity, option, commodity]
-          example: equity
-        score:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 1
-          example: 0.87
-        ai_verdict_normalized:
-          type: string
-          enum: [STRONG_BUY, BUY, HOLD, CAUTIOUS, AVOID]
-          example: BUY
-
-    Alert:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "alert_001"
-        type:
-          type: string
-          enum: [INFO, WARNING, ERROR]
-          example: WARNING
-        message:
-          type: string
-          example: "High volatility detected in tech sector"
-        timestamp:
-          type: string
-          format: date-time
-
-    # Equities
-    EquitiesList:
-      type: object
-      properties:
-        page:
-          type: integer
-          example: 1
-        pageSize:
-          type: integer
-          example: 25
-        total:
-          type: integer
-          example: 4
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Equity'
-        timestamp:
-          type: string
-          format: date-time
-
-    Equity:
+    Signal:
       type: object
       properties:
         symbol:
           type: string
-          example: "TCS"
-        name:
-          type: string
-          example: "Tata Consultancy Services"
-        sector:
-          type: string
-          example: "IT"
-        price:
+        signal_score:
           type: number
-          format: float
-          example: 4275.3
-        volRegime:
+        ai_verdict:
           type: string
-          enum: [LOW, MEDIUM, HIGH]
-          example: MEDIUM
-        verdict:
-          type: string
-          enum: [STRONG_BUY, BUY, HOLD, CAUTIOUS, AVOID]
-          example: STRONG_BUY
         confidence:
           type: number
-          format: float
-          minimum: 0
-          maximum: 1
-          example: 0.74
-        kpis:
-          type: object
-          properties:
-            winRate:
-              type: number
-              format: float
-              example: 0.67
-            sharpe:
-              type: number
-              format: float
-              example: 1.2
-            mdd:
-              type: number
-              format: float
-              example: -0.08
-        updated:
-          type: string
-          format: date-time
-
-    # Options
-    StrangleCandidates:
-      type: object
-      properties:
-        underlying:
-          type: string
-          example: "TCS"
-        expiry:
-          type: string
-          format: date
-          example: "2024-02-29"
-        candidates:
-          type: array
-          items:
-            $ref: '#/components/schemas/StrangleCandidate'
-        timestamp:
-          type: string
-          format: date-time
-
-    StrangleCandidate:
-      type: object
-      properties:
-        underlying:
-          type: string
-          example: "TCS"
-        expiry:
-          type: string
-          format: date
-        call_strike:
-          type: number
-          format: float
-          example: 4400
-        put_strike:
-          type: number
-          format: float
-          example: 4200
-        call_premium:
-          type: number
-          format: float
-          example: 85.5
-        put_premium:
-          type: number
-          format: float
-          example: 78.2
-        total_credit:
-          type: number
-          format: float
-          example: 163.7
-        margin_required:
-          type: number
-          format: float
-          example: 45000
-        roi:
-          type: number
-          format: float
-          example: 0.364
-        breakeven_upper:
-          type: number
-          format: float
-          example: 4563.7
-        breakeven_lower:
-          type: number
-          format: float
-          example: 4036.3
-        pop:
-          type: number
-          format: float
-          example: 0.68
-        max_profit:
-          type: number
-          format: float
-          example: 16370
-        max_loss:
-          type: number
-          format: float
-          example: -28630
-        dte:
-          type: integer
-          example: 25
-        iv_rank:
-          type: number
-          format: float
-          example: 45.2
-
-    StranglePlanRequest:
-      type: object
-      required:
-        - underlying
-        - strikes
-        - expiry
-      properties:
-        underlying:
-          type: string
-          example: "TCS"
-        strikes:
-          type: object
-          properties:
-            call:
-              type: number
-              format: float
-              example: 4400
-            put:
-              type: number
-              format: float
-              example: 4200
-        expiry:
-          type: string
-          format: date
-          example: "2024-02-29"
-        sl_rules:
-          type: object
-          properties:
-            max_loss_pct:
-              type: number
-              format: float
-              example: 0.5
-        estimated_credit:
-          type: number
-          format: float
-          example: 163.7
-        margin_required:
-          type: number
-          format: float
-          example: 45000
-
-    StranglePlanResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        plan_id:
-          type: string
-          example: "abc12345"
-        plan:
-          type: object
-          properties:
-            plan_id:
-              type: string
-            underlying:
-              type: string
-            call_strike:
-              type: number
-              format: float
-            put_strike:
-              type: number
-              format: float
-            expiry:
-              type: string
-              format: date
-            sl_rules:
-              type: object
-            status:
-              type: string
-              enum: [pending, active, closed]
-            created_at:
-              type: string
-              format: date-time
-            estimated_credit:
-              type: number
-              format: float
-            margin_required:
-              type: number
-              format: float
-
-    # Commodities
-    CommoditySignals:
-      type: object
-      properties:
-        signals:
-          type: array
-          items:
-            $ref: '#/components/schemas/CommoditySignal'
-        timeframe:
-          type: string
-          enum: [All, 3D, 5D, 10D, 15D, 30D]
-        timestamp:
-          type: string
-          format: date-time
-
-    CommoditySignal:
-      type: object
-      properties:
-        symbol:
-          type: string
-          example: "GOLD"
-        signal_type:
-          type: string
-          enum: [momentum, reversal, breakout]
-          example: momentum
-        direction:
-          type: string
-          enum: [bullish, bearish, neutral]
-          example: bullish
-        strength:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 1
-          example: 0.78
-        price:
-          type: number
-          format: float
-          example: 2045.50
-        target:
-          type: number
-          format: float
-          example: 2120.00
-        stop_loss:
-          type: number
-          format: float
-          example: 1980.00
-        confidence:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 1
-          example: 0.72
-        timeframe:
-          type: string
-        generated_at:
-          type: string
-          format: date-time
-
-    CommodityCorrelations:
-      type: object
-      properties:
-        symbol:
-          type: string
-          example: "GOLD"
-        correlations:
-          type: object
-          additionalProperties:
-            type: number
-            format: float
-          example:
-            USD_INR: 0.72
-            NIFTY: -0.25
-            DXY: 0.68
-            10Y_YIELD: 0.45
-        timeframe:
-          type: string
-          example: "90D"
-        timestamp:
-          type: string
-          format: date-time
-
-    # KPI
-    KPIMetrics:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            prediction_kpis:
-              $ref: '#/components/schemas/PredictionKPIs'
-            financial_kpis:
-              $ref: '#/components/schemas/FinancialKPIs'
-            risk_kpis:
-              $ref: '#/components/schemas/RiskKPIs'
-        timestamp:
-          type: string
-          format: date-time
-
-    AllTimeframeKPIs:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          additionalProperties:
-            type: object
-            properties:
-              prediction_kpis:
-                $ref: '#/components/schemas/PredictionKPIs'
-              financial_kpis:
-                $ref: '#/components/schemas/FinancialKPIs'
-              risk_kpis:
-                $ref: '#/components/schemas/RiskKPIs'
-        timestamp:
-          type: string
-          format: date-time
-
-    # Pins & Locks
-    PinsList:
-      type: object
-      properties:
-        pins:
-          type: array
-          items:
-            $ref: '#/components/schemas/Pin'
-        total:
-          type: integer
-        timestamp:
-          type: string
-          format: date-time
-
-    Pin:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "pin_001"
-        symbol:
-          type: string
-          example: "TCS"
-        target_price:
-          type: number
-          format: float
-          example: 4500.0
-        reason:
-          type: string
-          example: "Strong quarterly results expected"
-        created_at:
-          type: string
-          format: date-time
-        status:
-          type: string
-          enum: [active, met, expired]
-          example: active
-
-    AddPinRequest:
-      type: object
-      required:
-        - symbol
-        - target_price
-      properties:
-        symbol:
-          type: string
-          example: "TCS"
-        target_price:
-          type: number
-          format: float
-          example: 4500.0
-        reason:
-          type: string
-          example: "Strong quarterly results expected"
-
-    PinResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        pin_id:
-          type: string
-          example: "pin_001"
-        message:
-          type: string
-          example: "Pin added successfully"
-
-    LocksList:
-      type: object
-      properties:
-        locks:
-          type: array
-          items:
-            $ref: '#/components/schemas/Lock'
-        total:
-          type: integer
-        timestamp:
-          type: string
-          format: date-time
-
-    Lock:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "lock_001"
-        symbol:
-          type: string
-          example: "TCS"
-        lock_type:
-          type: string
-          enum: [stop_loss, position_limit, risk_limit]
-          example: stop_loss
-        threshold:
-          type: number
-          format: float
-          example: 4000.0
-        reason:
-          type: string
-          example: "Risk management"
-        created_at:
-          type: string
-          format: date-time
-        status:
-          type: string
-          enum: [active, triggered, disabled]
-          example: active
-
-    AddLockRequest:
-      type: object
-      required:
-        - symbol
-        - lock_type
-        - threshold
-      properties:
-        symbol:
-          type: string
-          example: "TCS"
-        lock_type:
-          type: string
-          enum: [stop_loss, position_limit, risk_limit]
-          example: stop_loss
-        threshold:
-          type: number
-          format: float
-          example: 4000.0
-        reason:
-          type: string
-          example: "Risk management"
-
-    LockResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        lock_id:
-          type: string
-          example: "lock_001"
-        message:
-          type: string
-          example: "Lock added successfully"
-
-    # Common schemas
-    DegradedResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: false
-        degraded:
-          type: boolean
-          example: true
-        reason:
-          type: string
-          example: "budget_exceeded"
-        message:
-          type: string
-          example: "Service temporarily degraded due to performance constraints"
-
-    Error:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: "Invalid timeframe"
-        message:
-          type: string
-          example: "Must be one of: All, 3D, 5D, 10D, 15D, 30D"
-        timestamp:
-          type: string
-          format: date-time
-
-tags:
-  - name: Health
-    description: Health check and status endpoints
-  - name: Fusion
-    description: Main dashboard with aggregated data and insights
-  - name: Equities
-    description: Stock analysis and portfolio management
-  - name: Options
-    description: Options strategies and position tracking
-  - name: Commodities
-    description: Commodity signals and correlations
-  - name: KPI
-    description: Performance metrics and calculations
-  - name: Pins & Locks
-    description: User preferences and risk management

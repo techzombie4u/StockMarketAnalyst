@@ -103,5 +103,28 @@ def main():
         print("\n🛑 Stopping server...")
         stop_server(server)
 
+def run_backend_tests():
+    """Run backend contract tests"""
+    import subprocess
+    import sys
+    
+    print("🧪 Running backend contract tests...")
+    try:
+        result = subprocess.run([sys.executable, "-m", "pytest", "-q", "tests/backend"], 
+                              capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            print("✅ Backend tests passed")
+            return True
+        else:
+            print(f"❌ Backend tests failed: {result.stdout} {result.stderr}")
+            return False
+    except Exception as e:
+        print(f"⚠️ Could not run backend tests: {e}")
+        return False
+
 if __name__ == "__main__":
     main()
+    
+    # Run backend tests after main regression
+    print("\n" + "="*60)
+    run_backend_tests()

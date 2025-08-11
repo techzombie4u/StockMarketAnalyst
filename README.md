@@ -1,54 +1,54 @@
-
 # Fusion Stock Analyst API
 
 A comprehensive stock analysis platform with AI-powered insights, options strategies, and real-time market data.
 
-## 🚀 Features
+## 🚀 How to Run
 
-- **Fusion Dashboard**: Aggregated KPIs and market insights across timeframes
-- **Equities Analysis**: Stock screening, portfolio tracking, and performance metrics
-- **Options Strategies**: Short strangle analysis, position tracking, and Greeks calculation
-- **Commodities**: Signal generation and correlation analysis
-- **Performance Metrics**: Real-time KPI calculation and monitoring
-- **AI Agents**: Intelligent analysis and recommendations
-- **Risk Management**: Pins and locks for position and risk control
+### Quick Start
+```bash
+python -u src/run_server.py
+```
 
-## 📊 API Surface
+The application will start on http://0.0.0.0:5000
 
-| Category | Endpoint | Method | Description | Status |
-|----------|----------|---------|-------------|--------|
-| **Health** | `/health` | GET | Health check | ✅ |
-| | `/api/test` | GET | API test | ✅ |
-| **Fusion** | `/api/fusion/dashboard` | GET | Main dashboard data | ✅ |
-| | `/api/fusion/test` | GET | Test endpoint | ✅ |
-| **Equities** | `/list` | GET | Paginated equities list | ✅ |
-| | `/positions` | GET | Equity positions | ✅ |
-| | `/kpis` | GET | Equity KPIs | ✅ |
-| | `/analytics` | GET | Equity analytics | ✅ |
-| **Options** | `/strangle/candidates` | GET | Short strangle candidates | ✅ |
-| | `/strangle/plan` | POST | Create execution plan | ✅ |
-| | `/positions` | GET | Options positions | ✅ |
-| | `/positions/<id>` | GET | Position details | ✅ |
-| | `/strategies` | GET | Options strategies | ✅ |
-| | `/analytics` | GET | Options analytics | ✅ |
-| | `/calculators` | GET | Pricing calculators | ✅ |
-| **Commodities** | `/signals` | GET | Commodity signals | ✅ |
-| | `/correlations` | GET | Correlation analysis | ✅ |
-| | `/positions` | GET | Commodity positions | ✅ |
-| | `/analytics` | GET | Commodity analytics | ✅ |
-| | `/api/commodities` | GET | Commodities data | ✅ |
-| **KPI** | `/api/kpi/metrics` | GET | KPI metrics by timeframe | ✅ |
-| | `/api/kpi/recompute` | POST | Force KPI recalculation | ✅ |
-| | `/api/kpi/all-timeframes` | GET | All timeframe KPIs | ✅ |
-| | `/api/kpi/status` | GET | KPI system status | ✅ |
-| **Pins & Locks** | `/api/pins` | GET, POST | User pins management | ✅ |
-| | `/api/locks` | GET, POST | Risk locks management | ✅ |
-| | `/api/status` | GET | System status | ✅ |
-| **Agents** | `/` | GET | List agents | ✅ |
-| **Documentation** | `/api` | GET | OpenAPI specification | ✅ |
-| **Metrics** | `/metrics` | GET | System metrics | ✅ |
+### Regression Testing
+```bash
+python run_regression.py
+```
 
-## 🔧 Quick Start
+## 📡 API Surface
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/api/fusion/dashboard` | GET | Main dashboard data with KPIs and signals |
+| `/api/equities/list` | GET | List of equity items |
+| `/api/equities/kpis` | GET | Equity KPIs by timeframe |
+| `/api/options/strangle/candidates` | GET | Options strangle candidates |
+| `/api/commodities/signals` | GET | Commodity signals |
+| `/api/commodities/correlations` | GET | Commodity correlations |
+| `/api/pins` | GET/POST | Manage pinned items |
+| `/api/locks` | GET/POST | Manage locked items |
+| `/api/kpi/metrics` | GET | KPI metrics calculation |
+
+## 🎯 Definition of Done Checklist
+
+- [ ] Server starts without errors on `python -u src/run_server.py`
+- [ ] `/health` returns 200 JSON response
+- [ ] `/api/fusion/dashboard` returns timeframes, pinned_summary, top_signals
+- [ ] `/api/equities/list` returns items array
+- [ ] `/api/options/strangle/candidates` includes margin and payoff fields
+- [ ] `/api/commodities/signals` returns signal list
+- [ ] UI routes accessible: `/dashboard`, `/equities`, `/options`, `/commodities`
+- [ ] UI matches prototype: dark theme, 6 KPI cards, timeframe chips
+- [ ] Pinned/Alerts/Agent Insights row visible
+- [ ] Top Signals table displays correctly
+- [ ] Backend tests pass: `pytest -q tests/backend`
+- [ ] Pin/Lock functionality works with ⭐/🔒 buttons
+
+## 🔧 Setup Instructions
+
+### Quick Start
 
 ### Development Server
 
