@@ -9,7 +9,7 @@ PINS_PATH  = os.path.join(BASE, "pins.json")
 LOCKS_PATH = os.path.join(BASE, "locks.json")
 _LOCK = threading.Lock()
 
-pins_locks_bp = Blueprint('pins_locks', __name__, url_prefix='/api/pins-locks')
+pins_locks_bp = Blueprint('pins_locks', __name__, url_prefix='/api')
 
 def _read(path):
     try:
