@@ -89,3 +89,6 @@ class KPICalculator:
             "30D": compute_all("30D"), 
             "all": compute_all("all")
         }
+
+# Export for backwards compatibility
+__all__ = ['compute_all', 'get_kpi_status', 'KPICalculator', 'now_iso']

@@ -16,7 +16,6 @@ def _pre():
     _ensure_registered()
 
 # ✅ accept both /api/agents and /api/agents/
-@agents_bp.get("")
 @agents_bp.get("/")
 def list_agents():
     """List all available agents"""

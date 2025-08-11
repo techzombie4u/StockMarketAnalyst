@@ -150,3 +150,101 @@ def fusion_test():
     })
 
 print("✅ Fusion API blueprint created successfully")
+from flask import Blueprint, jsonify, request
+from src.core.cache import ttl_cache, now_iso
+
+fusion_bp = Blueprint("fusion", __name__)
+_cache = ttl_cache(ttl_sec=60, namespace="fusion")
+
+@fusion_bp.route('/dashboard')
+def get_dashboard():
+    """Main fusion dashboard endpoint"""
+    force = request.args.get("forceRefresh", "").lower() in ("1", "true", "yes")
+    
+    if not force:
+        cached = _cache.get("dashboard")
+        if cached is not None:
+            return jsonify(cached)
+    
+    dashboard_data = {
+        "kpis": {
+            "total_portfolio_value": 2850000,
+            "total_pnl": 125000,
+            "total_positions": 45,
+            "win_rate": 0.72,
+            "sharpe_ratio": 1.35,
+            "max_drawdown": -0.08
+        },
+        "timeframes": {
+            "All": {
+                "predictionAccuracy": 0.72,
+                "sharpe": 1.35,
+                "sortino": 1.48,
+                "maxDrawdown": -0.08,
+                "expectancy": 1.42,
+                "coverage": 0.89
+            },
+            "30D": {
+                "predictionAccuracy": 0.74,
+                "sharpe": 1.28,
+                "sortino": 1.41,
+                "maxDrawdown": -0.06,
+                "expectancy": 1.38,
+                "coverage": 0.85
+            },
+            "10D": {
+                "predictionAccuracy": 0.69,
+                "sharpe": 1.15,
+                "sortino": 1.32,
+                "maxDrawdown": -0.04,
+                "expectancy": 1.25,
+                "coverage": 0.82
+            }
+        },
+        "top_signals": [
+            {
+                "symbol": "TCS",
+                "product": "Equity",
+                "signal_score": 8.7,
+                "current_price": 4275.30,
+                "target_price": 4500.00,
+                "potential_roi": 0.0526,
+                "ai_verdict": "STRONG_BUY",
+                "confidence": 0.87
+            },
+            {
+                "symbol": "RELIANCE",
+                "product": "Equity", 
+                "signal_score": 8.2,
+                "current_price": 2904.10,
+                "target_price": 3100.00,
+                "potential_roi": 0.0675,
+                "ai_verdict": "BUY",
+                "confidence": 0.82
+            }
+        ],
+        "pinned_rollup": {
+            "total": 8,
+            "met": 5,
+            "not_met": 2,
+            "in_progress": 1
+        },
+        "alerts": [
+            "Market volatility above normal levels",
+            "3 positions approaching stop loss"
+        ],
+        "insights": "Strong buy signals in IT sector. Consider increasing allocation.",
+        "agent_insights": [
+            {"message": "AI sentiment analysis shows bullish trend"},
+            {"message": "Options flow indicates institutional buying"}
+        ],
+        "last_updated": now_iso()
+    }
+    
+    _cache.set("dashboard", dashboard_data)
+    return jsonify(dashboard_data)
+
+@fusion_bp.route('/test')
+def fusion_test():
+    """Test endpoint for fusion API"""
+    return jsonify({"success": True, "message": "Fusion API is working"})

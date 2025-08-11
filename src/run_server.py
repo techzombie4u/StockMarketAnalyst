@@ -252,11 +252,65 @@ def register_blueprints_safely(app):
     try:
         # Import and register pins/locks blueprint
         from src.core.pins_locks import pins_locks_bp
-        app.register_blueprint(pins_locks_bp)
+        app.register_blueprint(pins_locks_bp, url_prefix="/api")
         print("✅ Registered pins_locks_bp")
         blueprints_count += 1
     except Exception as e:
         print(f"⚠️  Failed to register pins_locks_bp: {e}")
+
+    try:
+        # Import and register equities blueprint
+        from src.equities.api import equities_bp
+        app.register_blueprint(equities_bp, url_prefix="/api/equities")
+        print("✅ Registered equities_bp")
+        blueprints_count += 1
+    except Exception as e:
+        print(f"⚠️  Failed to register equities_bp: {e}")
+
+    try:
+        # Import and register options blueprint
+        from src.options.api import options_bp
+        app.register_blueprint(options_bp, url_prefix="/api/options")
+        print("✅ Registered options_bp")
+        blueprints_count += 1
+    except Exception as e:
+        print(f"⚠️  Failed to register options_bp: {e}")
+
+    try:
+        # Import and register commodities blueprint
+        from src.commodities.api import commodities_bp
+        app.register_blueprint(commodities_bp, url_prefix="/api/commodities")
+        print("✅ Registered commodities_bp")
+        blueprints_count += 1
+    except Exception as e:
+        print(f"⚠️  Failed to register commodities_bp: {e}")
+
+    try:
+        # Import and register KPI blueprint
+        from src.kpi.api import kpi_bp
+        app.register_blueprint(kpi_bp, url_prefix="/api/kpi")
+        print("✅ Registered kpi_bp")
+        blueprints_count += 1
+    except Exception as e:
+        print(f"⚠️  Failed to register kpi_bp: {e}")
+
+    try:
+        # Import and register agents blueprint
+        from src.agents.api.agents import agents_bp
+        app.register_blueprint(agents_bp, url_prefix="/api/agents")
+        print("✅ Registered agents_bp")
+        blueprints_count += 1
+    except Exception as e:
+        print(f"⚠️  Failed to register agents_bp: {e}")
+
+    try:
+        # Import and register fusion API blueprint
+        from src.api.fusion_api import fusion_bp
+        app.register_blueprint(fusion_bp, url_prefix="/api/fusion")
+        print("✅ Registered fusion_bp")
+        blueprints_count += 1
+    except Exception as e:
+        print(f"⚠️  Failed to register fusion_bp: {e}")
 
     print(f"📊 Successfully registered {blueprints_count} blueprints")
     return blueprints_count

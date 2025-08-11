@@ -41,6 +41,9 @@ def ttl_cache(ttl_sec=300, namespace="default"):
     """Create a TTL cache instance"""
     return TTLCache(ttl_sec=ttl_sec, namespace=namespace)
 
+# Export for backwards compatibility
+__all__ = ['TTLCache', 'ttl_cache', 'now_iso']
+
 def now_iso():
     """Return current UTC time in ISO format"""
     return datetime.now(timezone.utc).isoformat()
