@@ -1,10 +1,14 @@
 import os
 from flask import Flask, request, jsonify
+import logging
+from datetime import datetime
+from src.core.logging import add_request_logging
+from src.core.metrics import metrics
 
 def create_app():
     """Create and configure Flask application"""
     try:
-        app = Flask(__name__, 
+        app = Flask(__name__,
                     template_folder='../../web/templates',
                     static_folder='../../web/static')
 
@@ -15,6 +19,12 @@ def create_app():
             'JSON_SORT_KEYS': False,
             'PROPAGATE_EXCEPTIONS': True
         })
+
+        # Configure logging
+        logging.basicConfig(level=logging.INFO)
+
+        # Add request logging middleware
+        app = add_request_logging(app)
 
         # Health check endpoint
         @app.route("/health")
@@ -34,6 +44,12 @@ def create_app():
         @app.errorhandler(500)
         def server_error(error):
             return jsonify({"success": False, "error": "server_error"}), 500
+
+        # Metrics endpoint
+        @app.route('/metrics')
+        def get_metrics():
+            """Get application metrics"""
+            return jsonify(metrics.get_metrics())
 
         print("✅ Flask app created successfully")
         return app

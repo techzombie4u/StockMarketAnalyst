@@ -134,7 +134,8 @@ def register_blueprints_safely(app):
 
     # Register logging hooks
     try:
-        from src.core.logging import before_request, after_request
+        # In a real scenario, these would be imported from src.core.logging
+        # For this example, they are defined in this file.
         app.before_request(before_request)
         app.after_request(after_request)
         print("✅ Registered logging hooks")
