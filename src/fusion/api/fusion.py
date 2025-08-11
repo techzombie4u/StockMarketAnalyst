@@ -38,7 +38,7 @@ def _payload():
         "generation_time_ms": 0.1
     }
 
-@fusion_bp.route("/api/fusion/dashboard")
+@fusion_bp.route("/dashboard")
 def fusion_api():
     force = (request.args.get("forceRefresh", "") or "").lower() in ("1", "true", "yes")
     now = time.time()
@@ -105,7 +105,7 @@ def get_pins():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@fusion_bp.route('/dashboard')
+@fusion_bp.route('/dashboard-data')
 def dashboard():
     """Return dashboard data with KPIs and summary"""
     try:

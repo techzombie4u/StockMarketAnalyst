@@ -12,7 +12,7 @@ try:
 except Exception:
     from src.agents.registry import registry
 
-agents_bp = Blueprint("agents", __name__, url_prefix="/api/agents")
+agents_bp = Blueprint("agents", __name__)
 
 @agents_bp.app_errorhandler(Exception)
 def _error_handler(e):

@@ -28,25 +28,6 @@ def create_app():
     app.register_blueprint(commodities_bp, url_prefix="/api/commodities")
     app.register_blueprint(pins_locks_bp, url_prefix="/api")
 
-    # Pin/Lock endpoints
-    @app.route('/api/pins', methods=['POST'])
-    def add_pin():
-        try:
-            data = request.get_json()
-            # Add pin logic here - for now just return success
-            return jsonify({"success": True, "message": "Item pinned"})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-    @app.route('/api/locks', methods=['POST'])
-    def add_lock():
-        try:
-            data = request.get_json()
-            # Add lock logic here - for now just return success
-            return jsonify({"success": True, "message": "Item locked"})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
     # Pages — KEEP LAYOUT IDENTICAL to prototype
     @app.get("/dashboard")
     def dashboard():   return render_template("dashboard.html")
