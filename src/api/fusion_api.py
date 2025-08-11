@@ -71,13 +71,24 @@ def fusion_dashboard():
         for tf in VALID_TIMEFRAMES:
             kpi_data = get_kpi_summary(tf)
             timeframes[tf] = {
-                "predictionAccuracy": kpi_data.get("acc", 0.0),
-                "sharpe": kpi_data.get("sharpe", 0.0),
-                "sortino": kpi_data.get("sortino", 0.0),
-                "maxDrawdown": kpi_data.get("mdd", 0.0),
-                "expectancy": kpi_data.get("winExp", 0.0),
-                "coverage": kpi_data.get("coverage", 0.0)
+                "predictionAccuracy": round(kpi_data.get("acc", 0.0), 3),
+                "sharpe": round(kpi_data.get("sharpe", 0.0), 2),
+                "sortino": round(kpi_data.get("sortino", 0.0), 2),
+                "maxDrawdown": round(kpi_data.get("mdd", 0.0), 3),
+                "expectancy": round(kpi_data.get("winExp", 0.0), 3),
+                "coverage": round(kpi_data.get("coverage", 0.0), 2)
             }
+        
+        # Use KPI data for main dashboard metrics as well
+        default_kpis = get_kpi_summary("All")
+        kpis = {
+            "predictionAccuracy": round(default_kpis.get("acc", 0.0), 3),
+            "sharpe": round(default_kpis.get("sharpe", 0.0), 2),
+            "sortino": round(default_kpis.get("sortino", 0.0), 2),
+            "maxDrawdown": round(default_kpis.get("mdd", 0.0), 3),
+            "expectancy": round(default_kpis.get("winExp", 0.0), 3),
+            "coverage": round(default_kpis.get("coverage", 0.0), 2)
+        }
 
         # Placeholder for AI verdict summary (can be computed or fetched)
         ai_verdict_summary = {
@@ -145,6 +156,7 @@ def fusion_dashboard():
         payload = {
             "last_updated_utc": now_iso(),
             "market_session": "CLOSED",
+            "kpis": kpis,
             "timeframes": timeframes,
             "ai_verdict_summary": ai_verdict_summary,
             "product_breakdown": product_breakdown,
