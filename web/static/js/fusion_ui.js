@@ -78,7 +78,7 @@ class FusionDashboard {
             topSignalsTable.innerHTML = data.top_signals.map(signal => `
                 <tr>
                     <td>
-                        <button onclick="fusionDashboard.pinItem('signal', '${signal.symbol}')" 
+                        <button onclick="window.fusionDashboard.pinItem('signal', '${signal.symbol}')" 
                                 class="pin-button">📌</button>
                     </td>
                     <td class="font-medium text-white">${signal.symbol}</td>
@@ -165,9 +165,9 @@ class FusionDashboard {
                     $${position.unrealized_pnl.toLocaleString()}
                 </td>
                 <td class="px-6 py-4">
-                    <button onclick="fusionDashboard.pinItem('equity', '${position.symbol}')" 
+                    <button onclick="window.fusionDashboard.pinItem('equity', '${position.symbol}')" 
                             class="text-blue-400 hover:text-blue-300 mr-2">Pin</button>
-                    <button onclick="fusionDashboard.lockItem('equity', '${position.symbol}')" 
+                    <button onclick="window.fusionDashboard.lockItem('equity', '${position.symbol}')" 
                             class="text-red-400 hover:text-red-300">Lock</button>
                 </td>
             </tr>
@@ -189,7 +189,7 @@ class FusionDashboard {
 
             const data = await response.json();
             this.updateOptionsTable(data[tabType] || [], tabType);
-            
+
             // Update KPIs
             this.updateOptionsKPIs(data);
         } catch (error) {
@@ -216,7 +216,7 @@ class FusionDashboard {
         tableBody.innerHTML = optionsData.map(option => `
             <tr>
                 <td>
-                    <button onclick="fusionDashboard.pinItem('option', '${option.symbol}')" 
+                    <button onclick="window.fusionDashboard.pinItem('option', '${option.symbol}')" 
                             class="pin-button">📌</button>
                 </td>
                 <td class="font-medium text-white">${option.symbol}</td>
@@ -231,7 +231,7 @@ class FusionDashboard {
                 <td class="text-red-400">${option.theta?.toFixed(2) || '0.00'}</td>
                 <td>${option.vega?.toFixed(3) || '0.000'}</td>
                 <td>${(option.iv * 100)?.toFixed(1) || '0.0'}%</td>
-                <td class="text-green-400">${option.probability?.toFixed(0) || '50'}%</td>
+                <td>${(option.probability * 100)?.toFixed(0) || '50'}%</td>
                 <td>
                     <button class="action-button">Trade</button>
                 </td>
@@ -241,7 +241,7 @@ class FusionDashboard {
 
     updateOptionsKPIs(data) {
         const kpis = data.kpis || {};
-        
+
         const elements = {
             'options-total-premium': kpis.total_premium || 0,
             'options-net-pnl': kpis.net_pnl || 0,
@@ -304,9 +304,9 @@ class FusionDashboard {
                     $${position.pnl.toLocaleString()}
                 </td>
                 <td class="px-6 py-4">
-                    <button onclick="fusionDashboard.pinItem('commodity', '${position.commodity}')" 
+                    <button onclick="window.fusionDashboard.pinItem('commodity', '${position.commodity}')" 
                             class="text-blue-400 hover:text-blue-300 mr-2">Pin</button>
-                    <button onclick="fusionDashboard.lockItem('commodity', '${position.commodity}')" 
+                    <button onclick="window.fusionDashboard.lockItem('commodity', '${position.commodity}')" 
                             class="text-red-400 hover:text-red-300">Lock</button>
                 </td>
             </tr>
@@ -370,6 +370,39 @@ class FusionDashboard {
                 this.loadPageSpecificData();
             });
         }
+        
+        // Pin/unpin functionality
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('pin-btn')) {
+                const symbol = e.target.dataset.symbol;
+                const type = e.target.dataset.type || 'equity';
+                togglePin(type, symbol, e.target);
+            }
+        });
+
+        async function togglePin(type, symbol, buttonElement) {
+            try {
+                const response = await fetch('/api/pins', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: [{ type: type, symbol: symbol }]
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const isPinned = buttonElement.classList.toggle('pinned');
+                    buttonElement.innerHTML = isPinned ? '★' : '☆';
+                    buttonElement.title = isPinned ? 'Unpin item' : 'Pin item';
+
+                    // Update pinned counter
+                    loadPinnedCounts();
+                }
+            } catch (error) {
+                console.error('Error toggling pin:', error);
+            }
+        }
     }
 
     showError(message) {
@@ -389,32 +422,32 @@ style.textContent = `
         font-weight: 600;
         text-transform: uppercase;
     }
-    
+
     .ai-verdict-badge.strong_buy {
         background-color: rgba(16, 185, 129, 0.2);
         color: #10b981;
     }
-    
+
     .ai-verdict-badge.buy {
         background-color: rgba(34, 197, 94, 0.2);
         color: #22c55e;
     }
-    
+
     .ai-verdict-badge.hold {
         background-color: rgba(245, 158, 11, 0.2);
         color: #f59e0b;
     }
-    
+
     .ai-verdict-badge.cautious {
         background-color: rgba(239, 68, 68, 0.2);
         color: #ef4444;
     }
-    
+
     .ai-verdict-badge.avoid {
         background-color: rgba(127, 29, 29, 0.3);
         color: #dc2626;
     }
-    
+
     .pin-button {
         background: none;
         border: none;
@@ -424,9 +457,13 @@ style.textContent = `
         opacity: 0.7;
         transition: opacity 0.15s ease;
     }
-    
+
     .pin-button:hover {
         opacity: 1;
+    }
+
+    .pinned {
+        color: #facc15; /* Tailwind yellow-300 */
     }
 `;
 document.head.appendChild(style);
@@ -437,6 +474,13 @@ window.loadDashboardData = function(timeframe = 'all') {
         window.fusionDashboard.loadDashboardData(timeframe, true);
     }
 };
+
+// Helper function to update pinned counts globally
+function loadPinnedCounts() {
+    if (window.fusionDashboard) {
+        window.fusionDashboard.loadDashboardData(); // Reloads dashboard to get updated counts
+    }
+}
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

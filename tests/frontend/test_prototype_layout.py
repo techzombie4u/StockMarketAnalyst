@@ -34,6 +34,15 @@ def test_dashboard_kpi_cards():
             insights_card = page.locator(".agent-insights, [data-testid='agent-insights'], .insights-card")
             expect(insights_card).to_be_visible()
             
+            # Check for console errors
+            console_errors = []
+            page.on("console", lambda msg: console_errors.append(msg) if msg.type == "error" else None)
+            page.wait_for_timeout(1000)  # Wait for any async errors
+            
+            if console_errors:
+                error_messages = [f"{err.type}: {err.text}" for err in console_errors]
+                pytest.fail(f"Console errors found: {error_messages}")
+            
         finally:
             browser.close()
 
