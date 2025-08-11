@@ -1,4 +1,3 @@
-
 import json
 import time
 import uuid
@@ -15,7 +14,7 @@ def after_request(response):
     try:
         latency_ms = int((time.time() - getattr(g, "_start_ts", time.time())) * 1000)
         request_id = getattr(g, "_request_id", "unknown")
-        
+
         # Log record
         rec = {
             "request_id": request_id,
@@ -26,20 +25,20 @@ def after_request(response):
             "latency_ms": latency_ms,
         }
         print(json.dumps(rec))
-        
+
         # Collect metrics
         path_key = request.path.replace('/', '_').strip('_') or 'root'
         inc(f"requests_total.{path_key}")
         inc(f"latency_total_ms.{path_key}", latency_ms)
         inc(f"latency_count.{path_key}")
-        
+
         # Status code metrics
         inc(f"status_{response.status_code}")
-        
+
         # Add request ID to response headers
         response.headers['X-Request-ID'] = request_id
-        
+
     except Exception as e:
         print(f"Logging error: {e}")
-    
+
     return response
