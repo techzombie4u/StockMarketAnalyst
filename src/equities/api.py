@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
-from datetime import datetime
-import os
 import json
+import os
+from ..core.cache import cache_medium, now_iso
 
 equities_bp = Blueprint('equities', __name__)
 
@@ -16,6 +16,13 @@ def get_equities_list():
         score_min = request.args.get('scoreMin', 0.0, type=float)
         timeframe = request.args.get('timeframe', 'All')
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+
+        cache_key = f"equities_list_page_{page}_pageSize_{page_size}_sector_{sector}_scoreMin_{score_min}_timeframe_{timeframe}"
+
+        if not force_refresh:
+            cached_data = cache_medium.get(cache_key)
+            if cached_data is not None:
+                return jsonify(cached_data)
 
         # Sample equities data
         all_equities = [
@@ -67,10 +74,10 @@ def get_equities_list():
 
         # Apply filters
         filtered_equities = all_equities
-        
+
         if sector:
             filtered_equities = [eq for eq in filtered_equities if eq['sector'].lower() == sector.lower()]
-        
+
         if score_min > 0:
             filtered_equities = [eq for eq in filtered_equities if eq['confidence'] >= score_min]
 
@@ -80,34 +87,50 @@ def get_equities_list():
         end_idx = start_idx + page_size
         items = filtered_equities[start_idx:end_idx]
 
-        return jsonify({
+        result = {
             "page": page,
             "pageSize": page_size,
             "total": total,
             "items": items,
-            "timestamp": datetime.utcnow().isoformat() + "Z"
-        })
+            "timestamp": now_iso()
+        }
+
+        cache_medium.set(cache_key, result)
+
+        return jsonify(result)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "timestamp": now_iso()}), 500
 
 @equities_bp.route('/positions')
 def get_positions():
     """Get all equity positions"""
     try:
+        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+        cache_key = 'equities_positions'
+
+        if not force_refresh:
+            cached_data = cache_medium.get(cache_key)
+            if cached_data is not None:
+                return jsonify(cached_data)
+
         fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'fixtures')
         equities_file = os.path.join(fixtures_dir, 'equities_sample.json')
 
         with open(equities_file, 'r') as f:
             data = json.load(f)
 
-        return jsonify({
+        result = {
             "positions": data.get('positions', []),
-            "timestamp": datetime.utcnow().isoformat() + "Z"
-        })
+            "timestamp": now_iso()
+        }
+
+        cache_medium.set(cache_key, result)
+
+        return jsonify(result)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "timestamp": now_iso()}), 500
 
 @equities_bp.route('/kpis')
 def get_kpis():
@@ -115,7 +138,14 @@ def get_kpis():
     try:
         timeframe = request.args.get('timeframe', 'All')
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        
+
+        cache_key = f"equities_kpis_timeframe_{timeframe}"
+
+        if not force_refresh:
+            cached_data = cache_medium.get(cache_key)
+            if cached_data is not None:
+                return jsonify(cached_data)
+
         # Adjust KPIs based on timeframe
         timeframe_multiplier = {
             'All': 1.0,
@@ -136,18 +166,28 @@ def get_kpis():
             "avg_return": 12.5 * timeframe_multiplier,
             "volatility": 15.2
         }
-        
-        base_kpis["timestamp"] = datetime.utcnow().isoformat() + "Z"
+
+        base_kpis["timestamp"] = now_iso()
         base_kpis["timeframe"] = timeframe
-        
+
+        cache_medium.set(cache_key, base_kpis)
+
         return jsonify(base_kpis)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "timestamp": now_iso()}), 500
 
 @equities_bp.route('/analytics')
 def get_analytics():
     """Get equity analytics and KPIs"""
     try:
+        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
+        cache_key = 'equities_analytics'
+
+        if not force_refresh:
+            cached_data = cache_medium.get(cache_key)
+            if cached_data is not None:
+                return jsonify(cached_data)
+
         fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'fixtures')
         equities_file = os.path.join(fixtures_dir, 'equities_sample.json')
 
@@ -173,10 +213,12 @@ def get_analytics():
                 "alpha": 2.3,
                 "tracking_error": 4.1
             },
-            "timestamp": datetime.utcnow().isoformat() + "Z"
+            "timestamp": now_iso()
         }
+
+        cache_medium.set(cache_key, analytics)
 
         return jsonify(analytics)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "timestamp": now_iso()}), 500

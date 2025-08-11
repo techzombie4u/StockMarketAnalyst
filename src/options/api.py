@@ -1,8 +1,7 @@
 from flask import Blueprint, jsonify, request
-from datetime import datetime
-import os
 import json
-import uuid
+import os
+from ..core.cache import cache_medium, now_iso
 
 options_bp = Blueprint('options', __name__)
 
@@ -121,7 +120,7 @@ def get_strangle_candidates():
         underlying = request.args.get('underlying', 'TCS')
         expiry = request.args.get('expiry', '2024-02-29')
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        
+
         candidates = [
             {
                 "underlying": underlying,
@@ -160,14 +159,14 @@ def get_strangle_candidates():
                 "iv_rank": 48.7
             }
         ]
-        
+
         return jsonify({
             "underlying": underlying,
             "expiry": expiry,
             "candidates": candidates,
             "timestamp": datetime.utcnow().isoformat() + "Z"
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -176,9 +175,9 @@ def create_strangle_plan():
     """Create short strangle execution plan"""
     try:
         data = request.get_json()
-        
+
         plan_id = str(uuid.uuid4())[:8]
-        
+
         plan = {
             "plan_id": plan_id,
             "underlying": data.get('underlying'),
@@ -191,15 +190,15 @@ def create_strangle_plan():
             "estimated_credit": data.get('estimated_credit', 0),
             "margin_required": data.get('margin_required', 0)
         }
-        
+
         # In real implementation, save to database
-        
+
         return jsonify({
             "success": True,
             "plan_id": plan_id,
             "plan": plan
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -209,7 +208,7 @@ def get_positions_list():
     try:
         status = request.args.get('status', 'all')
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        
+
         positions = [
             {
                 "id": "pos_001",
@@ -246,15 +245,15 @@ def get_positions_list():
                 "pop": 0.85
             }
         ]
-        
+
         if status != 'all':
             positions = [p for p in positions if p['status'] == status]
-            
+
         return jsonify({
             "positions": positions,
             "timestamp": datetime.utcnow().isoformat() + "Z"
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -263,7 +262,7 @@ def get_position_detail(position_id):
     """Get detailed options position"""
     try:
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        
+
         # Sample detailed position
         position = {
             "id": position_id,
@@ -292,8 +291,8 @@ def get_position_detail(position_id):
                 "y": [-28630, -18630, -8630, 1370, 11370, 16370, 16370, 16370, 6370, -3630, -13630]
             }
         }
-        
+
         return jsonify(position)
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
