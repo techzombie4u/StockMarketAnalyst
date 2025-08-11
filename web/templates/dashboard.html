@@ -57,6 +57,12 @@
                     <span>Locked Items:</span>
                     <span class="text-red-400 font-semibold" id="locked-count">0</span>
                 </div>
+                <div class="mt-2">
+                    <label class="flex items-center text-sm">
+                        <input type="checkbox" id="pinned-filter" class="mr-2">
+                        Show pinned only
+                    </label>
+                </div>
             </div>
         </div>
 
@@ -229,8 +235,119 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Pinned filter functionality
+    const pinnedFilter = document.getElementById('pinned-filter');
+    pinnedFilter.addEventListener('change', function() {
+        const showPinnedOnly = this.checked;
+        updateURLParams({ pinned: showPinnedOnly ? 'true' : null });
+        loadDashboardData('all', showPinnedOnly);
+    });
+    
+    // Check URL params on load
+    const urlParams = new URLSearchParams(window.location.search);
+    const pinnedParam = urlParams.get('pinned');
+    if (pinnedParam === 'true') {
+        pinnedFilter.checked = true;
+    }
+    
     // Initial load
-    loadDashboardData('all');
+    loadDashboardData('all', pinnedFilter.checked);
+    loadPinnedCounts();
 });
+
+async function loadPinnedCounts() {
+    try {
+        const [pinsResponse, locksResponse] = await Promise.all([
+            fetch('/api/pins'),
+            fetch('/api/locks')
+        ]);
+        
+        if (pinsResponse.ok && locksResponse.ok) {
+            const pinsData = await pinsResponse.json();
+            const locksData = await locksResponse.json();
+            
+            document.getElementById('pinned-count').textContent = pinsData.items?.length || 0;
+            document.getElementById('locked-count').textContent = locksData.items?.length || 0;
+        }
+    } catch (error) {
+        console.error('Error loading pin/lock counts:', error);
+    }
+}
+
+async function pinItem(type, symbol) {
+    try {
+        const response = await fetch('/api/pins', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: [{ type: type, symbol: symbol }]
+            })
+        });
+        
+        if (response.ok) {
+            loadPinnedCounts();
+            // Update the pin button state
+            updatePinButtonState(symbol, true);
+        }
+    } catch (error) {
+        console.error('Error pinning item:', error);
+    }
+}
+
+async function lockItem(type, symbol) {
+    try {
+        const response = await fetch('/api/locks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: [{ type: type, symbol: symbol }]
+            })
+        });
+        
+        if (response.ok) {
+            loadPinnedCounts();
+            // Update the lock button state
+            updateLockButtonState(symbol, true);
+        }
+    } catch (error) {
+        console.error('Error locking item:', error);
+    }
+}
+
+function updatePinButtonState(symbol, isPinned) {
+    const pinBtn = document.querySelector(`[data-symbol="${symbol}"] .pin-btn`);
+    if (pinBtn) {
+        pinBtn.classList.toggle('pinned', isPinned);
+        pinBtn.innerHTML = isPinned ? '★' : '☆';
+        pinBtn.title = isPinned ? 'Unpin item' : 'Pin item';
+    }
+}
+
+function updateLockButtonState(symbol, isLocked) {
+    const lockBtn = document.querySelector(`[data-symbol="${symbol}"] .lock-btn`);
+    if (lockBtn) {
+        lockBtn.classList.toggle('locked', isLocked);
+        lockBtn.innerHTML = isLocked ? '🔒' : '🔓';
+        lockBtn.title = isLocked ? 'Unlock item' : 'Lock item';
+    }
+}
+
+function updateURLParams(params) {
+    const url = new URL(window.location);
+    Object.keys(params).forEach(key => {
+        if (params[key] === null) {
+            url.searchParams.delete(key);
+        } else {
+            url.searchParams.set(key, params[key]);
+        }
+    });
+    window.history.replaceState({}, '', url);
+}
+
+function loadDashboardData(timeframe, pinnedOnly = false) {
+    // This function should be implemented to load dashboard data
+    // with filtering based on timeframe and pinned status
+    console.log('Loading dashboard data:', { timeframe, pinnedOnly });
+}
 </script>
 {% endblock %}

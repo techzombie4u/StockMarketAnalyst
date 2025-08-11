@@ -20,6 +20,12 @@
                 <option value="ENERGY">Energy</option>
             </select>
         </div>
+        <div class="filter-group">
+            <label class="flex items-center text-sm text-gray-300">
+                <input type="checkbox" id="pinned-filter" class="mr-2">
+                Show pinned only
+            </label>
+        </div>
     </div>
 
     <!-- Equities KPI Strip (8 cards) -->
@@ -65,7 +71,7 @@
             <table class="positions-table">
                 <thead>
                     <tr>
-                        <th>Pin</th>
+                        <th>Pin/Lock</th>
                         <th>Symbol</th>
                         <th>Company</th>
                         <th>Sector</th>
@@ -186,33 +192,199 @@
     .pin-button:hover, .action-button:hover {
         background-color: #2563eb;
     }
+    
+    .pin-btn, .lock-btn {
+        background: none;
+        border: none;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0.25rem;
+        margin-right: 0.25rem;
+        opacity: 0.6;
+        transition: opacity 0.2s ease;
+    }
+    
+    .pin-btn:hover, .lock-btn:hover {
+        opacity: 1;
+    }
+    
+    .pin-btn.pinned {
+        color: #fbbf24;
+        opacity: 1;
+    }
+    
+    .lock-btn.locked {
+        color: #ef4444;
+        opacity: 1;
+    }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Check URL params on load
+    const urlParams = new URLSearchParams(window.location.search);
+    const pinnedParam = urlParams.get('pinned');
+    if (pinnedParam === 'true') {
+        document.getElementById('pinned-filter').checked = true;
+    }
+    
     loadEquitiesData();
     
     // Search functionality
     document.getElementById('equity-search').addEventListener('input', filterTable);
     document.getElementById('sector-filter').addEventListener('change', filterTable);
+    document.getElementById('pinned-filter').addEventListener('change', function() {
+        updateURLParams({ pinned: this.checked ? 'true' : null });
+        filterTable();
+    });
 });
+
+async function loadEquitiesData() {
+    try {
+        // Load pinned items first
+        const pinsResponse = await fetch('/api/pins');
+        const locksResponse = await fetch('/api/locks');
+        
+        let pinnedSymbols = [];
+        let lockedSymbols = [];
+        
+        if (pinsResponse.ok) {
+            const pinsData = await pinsResponse.json();
+            pinnedSymbols = pinsData.items?.filter(item => item.type === 'equity').map(item => item.symbol) || [];
+        }
+        
+        if (locksResponse.ok) {
+            const locksData = await locksResponse.json();
+            lockedSymbols = locksData.items?.filter(item => item.type === 'equity').map(item => item.symbol) || [];
+        }
+        
+        // Load equities data (mock for now - replace with actual API)
+        const mockEquities = [
+            { symbol: 'TCS', company: 'Tata Consultancy Services', sector: 'TECHNOLOGY', quantity: 100, avgPrice: 3500, currentPrice: 3650, marketValue: 365000, pnl: 15000, pnlPercent: 4.29 },
+            { symbol: 'RELIANCE', company: 'Reliance Industries', sector: 'ENERGY', quantity: 50, avgPrice: 2400, currentPrice: 2350, marketValue: 117500, pnl: -2500, pnlPercent: -2.08 },
+            { symbol: 'HDFCBANK', company: 'HDFC Bank', sector: 'BANKING', quantity: 75, avgPrice: 1600, currentPrice: 1650, marketValue: 123750, pnl: 3750, pnlPercent: 3.13 }
+        ];
+        
+        renderEquitiesTable(mockEquities, pinnedSymbols, lockedSymbols);
+        
+    } catch (error) {
+        console.error('Error loading equities data:', error);
+        document.getElementById('equities-positions-table').innerHTML = '<tr><td colspan="11" class="text-center text-red-400 py-8">Error loading data</td></tr>';
+    }
+}
+
+function renderEquitiesTable(equities, pinnedSymbols, lockedSymbols) {
+    const tableBody = document.getElementById('equities-positions-table');
+    
+    const rows = equities.map(equity => {
+        const isPinned = pinnedSymbols.includes(equity.symbol);
+        const isLocked = lockedSymbols.includes(equity.symbol);
+        const pnlClass = equity.pnl >= 0 ? 'text-green-400' : 'text-red-400';
+        
+        return `
+            <tr data-symbol="${equity.symbol}">
+                <td>
+                    <button class="pin-btn ${isPinned ? 'pinned' : ''}" 
+                            onclick="togglePin('equity', '${equity.symbol}')"
+                            title="${isPinned ? 'Unpin item' : 'Pin item'}">
+                        ${isPinned ? '★' : '☆'}
+                    </button>
+                    <button class="lock-btn ${isLocked ? 'locked' : ''}" 
+                            onclick="toggleLock('equity', '${equity.symbol}')"
+                            title="${isLocked ? 'Unlock item' : 'Lock item'}">
+                        ${isLocked ? '🔒' : '🔓'}
+                    </button>
+                </td>
+                <td class="font-semibold">${equity.symbol}</td>
+                <td>${equity.company}</td>
+                <td>${equity.sector}</td>
+                <td>${equity.quantity}</td>
+                <td>₹${equity.avgPrice.toLocaleString()}</td>
+                <td>₹${equity.currentPrice.toLocaleString()}</td>
+                <td>₹${equity.marketValue.toLocaleString()}</td>
+                <td class="${pnlClass}">₹${equity.pnl.toLocaleString()}</td>
+                <td class="${pnlClass}">${equity.pnlPercent}%</td>
+                <td>
+                    <button class="action-button">Trade</button>
+                    <button class="action-button">Analysis</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    tableBody.innerHTML = rows;
+}
+
+async function togglePin(type, symbol) {
+    try {
+        const response = await fetch('/api/pins', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: [{ type: type, symbol: symbol }]
+            })
+        });
+        
+        if (response.ok) {
+            // Reload data to reflect changes
+            loadEquitiesData();
+        }
+    } catch (error) {
+        console.error('Error toggling pin:', error);
+    }
+}
+
+async function toggleLock(type, symbol) {
+    try {
+        const response = await fetch('/api/locks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: [{ type: type, symbol: symbol }]
+            })
+        });
+        
+        if (response.ok) {
+            // Reload data to reflect changes
+            loadEquitiesData();
+        }
+    } catch (error) {
+        console.error('Error toggling lock:', error);
+    }
+}
 
 function filterTable() {
     const searchTerm = document.getElementById('equity-search').value.toLowerCase();
     const sectorFilter = document.getElementById('sector-filter').value;
+    const pinnedOnly = document.getElementById('pinned-filter').checked;
     const rows = document.querySelectorAll('#equities-positions-table tr');
     
     rows.forEach(row => {
-        if (row.children.length === 1) return; // Skip loading row
+        if (row.children.length === 1) return; // Skip loading/error rows
         
         const symbol = row.children[1].textContent.toLowerCase();
         const sector = row.children[3].textContent;
+        const pinBtn = row.querySelector('.pin-btn');
+        const isPinned = pinBtn && pinBtn.classList.contains('pinned');
         
         const matchesSearch = symbol.includes(searchTerm);
         const matchesSector = !sectorFilter || sector === sectorFilter;
+        const matchesPinned = !pinnedOnly || isPinned;
         
-        row.style.display = matchesSearch && matchesSector ? '' : 'none';
+        row.style.display = matchesSearch && matchesSector && matchesPinned ? '' : 'none';
     });
+}
+
+function updateURLParams(params) {
+    const url = new URL(window.location);
+    Object.keys(params).forEach(key => {
+        if (params[key] === null) {
+            url.searchParams.delete(key);
+        } else {
+            url.searchParams.set(key, params[key]);
+        }
+    });
+    window.history.replaceState({}, '', url);
 }
 </script>
 {% endblock %}

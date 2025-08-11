@@ -71,7 +71,7 @@ def get_pins():
 
 @pins_locks_bp.route('/pins', methods=['POST'])
 def add_pin():
-    """Add a pinned item"""
+    """Add or toggle a pinned item"""
     try:
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
         data = request.get_json()
@@ -79,20 +79,47 @@ def add_pin():
         # Handle single item or bulk items
         if 'items' in data:
             items = data['items']
+            current_pins = list_pins()
+            
             for item in items:
+                item_key = f"{item.get('type')}_{item.get('symbol')}"
+                
+                # Check if item is already pinned
+                is_already_pinned = any(
+                    isinstance(p, dict) and p.get('type') == item.get('type') and p.get('symbol') == item.get('symbol')
+                    for p in current_pins
+                )
+                
+                if is_already_pinned:
+                    # Remove from pins (toggle off)
+                    unpin(item_key)
+                else:
+                    # Add to pins
+                    new_pin = {
+                        "type": item.get('type'),
+                        "symbol": item.get('symbol'),
+                        "timestamp": datetime.utcnow().isoformat() + "Z"
+                    }
+                    pin(new_pin)
+        else:
+            item_key = f"{data.get('type')}_{data.get('symbol')}"
+            current_pins = list_pins()
+            
+            # Check if item is already pinned
+            is_already_pinned = any(
+                isinstance(p, dict) and p.get('type') == data.get('type') and p.get('symbol') == data.get('symbol')
+                for p in current_pins
+            )
+            
+            if is_already_pinned:
+                unpin(item_key)
+            else:
                 new_pin = {
-                    "type": item.get('type'),
-                    "symbol": item.get('symbol'),
+                    "type": data.get('type'),
+                    "symbol": data.get('symbol'),
                     "timestamp": datetime.utcnow().isoformat() + "Z"
                 }
                 pin(new_pin)
-        else:
-            new_pin = {
-                "type": data.get('type'),
-                "symbol": data.get('symbol'),
-                "timestamp": datetime.utcnow().isoformat() + "Z"
-            }
-            pin(new_pin)
 
         return jsonify({
             "success": True,
@@ -113,7 +140,7 @@ def get_locks():
 
 @pins_locks_bp.route('/locks', methods=['POST'])
 def add_lock():
-    """Add a locked item"""
+    """Add or toggle a locked item"""
     try:
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
         data = request.get_json()
@@ -121,20 +148,47 @@ def add_lock():
         # Handle single item or bulk items
         if 'items' in data:
             items = data['items']
+            current_locks = list_locks()
+            
             for item in items:
+                item_key = f"{item.get('type')}_{item.get('symbol')}"
+                
+                # Check if item is already locked
+                is_already_locked = any(
+                    isinstance(l, dict) and l.get('type') == item.get('type') and l.get('symbol') == item.get('symbol')
+                    for l in current_locks
+                )
+                
+                if is_already_locked:
+                    # Remove from locks (toggle off)
+                    unlock(item_key)
+                else:
+                    # Add to locks
+                    new_lock = {
+                        "type": item.get('type'),
+                        "symbol": item.get('symbol'),
+                        "timestamp": datetime.utcnow().isoformat() + "Z"
+                    }
+                    lock(new_lock)
+        else:
+            item_key = f"{data.get('type')}_{data.get('symbol')}"
+            current_locks = list_locks()
+            
+            # Check if item is already locked
+            is_already_locked = any(
+                isinstance(l, dict) and l.get('type') == data.get('type') and l.get('symbol') == data.get('symbol')
+                for l in current_locks
+            )
+            
+            if is_already_locked:
+                unlock(item_key)
+            else:
                 new_lock = {
-                    "type": item.get('type'),
-                    "symbol": item.get('symbol'),
+                    "type": data.get('type'),
+                    "symbol": data.get('symbol'),
                     "timestamp": datetime.utcnow().isoformat() + "Z"
                 }
                 lock(new_lock)
-        else:
-            new_lock = {
-                "type": data.get('type'),
-                "symbol": data.get('symbol'),
-                "timestamp": datetime.utcnow().isoformat() + "Z"
-            }
-            lock(new_lock)
 
         return jsonify({
             "success": True,
