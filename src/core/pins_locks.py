@@ -1,6 +1,6 @@
+from flask import Blueprint, jsonify, request
 import os, json, threading
 from datetime import datetime
-from flask import Blueprint, request, jsonify
 
 BASE = os.path.join(os.path.dirname(__file__), "../../data/persistent")
 os.makedirs(BASE, exist_ok=True)
@@ -9,7 +9,7 @@ PINS_PATH  = os.path.join(BASE, "pins.json")
 LOCKS_PATH = os.path.join(BASE, "locks.json")
 _LOCK = threading.Lock()
 
-pins_locks_bp = Blueprint('pins_locks', __name__, url_prefix='/api')
+pins_locks_bp = Blueprint('pins_locks', __name__, url_prefix='/api/pins-locks')
 
 def _read(path):
     try:
@@ -46,6 +46,19 @@ def unlock(item):
     with _LOCK:
         locks = [x for x in list_locks() if x != item]
         _write(LOCKS_PATH, locks); return locks
+
+@pins_locks_bp.route('/status', methods=['GET'])
+def pins_locks_status():
+    """Get pins and locks system status"""
+    return jsonify({
+        "status": "active",
+        "module": "pins_locks",
+        "endpoints": [
+            "/api/pins-locks/status",
+            "/api/pins-locks/pins",
+            "/api/pins-locks/locks"
+        ]
+    })
 
 @pins_locks_bp.route('/pins', methods=['GET'])
 def get_pins():

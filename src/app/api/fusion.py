@@ -29,6 +29,27 @@ _fusion_cache = {
     'ttl_seconds': 120
 }
 
+@fusion_bp.route('/status', methods=['GET'])
+def fusion_status():
+    """Get fusion system status"""
+    return jsonify({
+        "status": "active",
+        "module": "fusion",
+        "endpoints": [
+            "/api/fusion/status",
+            "/api/fusion/data"
+        ]
+    })
+
+@fusion_bp.route('/data', methods=['GET'])
+def fusion_data():
+    """Get fusion data"""
+    return jsonify({
+        "message": "Fusion data endpoint",
+        "data": [],
+        "timestamp": "2025-01-09T00:00:00Z"
+    })
+
 @fusion_bp.route('/dashboard', methods=['GET'])
 def get_fusion_dashboard():
     """Get complete fusion dashboard data"""
