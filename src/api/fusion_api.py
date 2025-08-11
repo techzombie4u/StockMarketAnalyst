@@ -13,7 +13,7 @@ VALID_TIMEFRAMES = ["All", "3D", "5D", "10D", "15D", "30D"]
 VALID_VERDICTS = ['STRONG_BUY', 'BUY', 'HOLD', 'CAUTIOUS', 'AVOID']
 
 # Import KPI calculator and mapper
-from src.kpi.calculator import kpi_calculator
+from src.kpi.calculator import compute_all, get_kpi_status
 from src.core.fusion.kpi_mapper import kpi_mapper
 
 def _now_utc_iso():
