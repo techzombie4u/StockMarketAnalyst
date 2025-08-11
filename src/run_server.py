@@ -13,9 +13,25 @@ for p in (SRC_DIR, ROOT_DIR):
         sys.path.insert(0, p)
 
 from core.app import create_app
+from src.app.api.fusion import fusion_bp
+from src.app.api.meta import meta_bp
+from src.app.api.predictions import predictions_bp
+from src.equities.api import equities_bp
+from src.options.api import options_bp
+from src.commodities.api import commodities_bp
+from src.core.pins_locks import pins_locks_bp
 
 if __name__ == "__main__":
     app = create_app()
+
+    # Register blueprints
+    app.register_blueprint(fusion_bp)
+    app.register_blueprint(meta_bp)
+    app.register_blueprint(predictions_bp)
+    app.register_blueprint(equities_bp)
+    app.register_blueprint(options_bp)
+    app.register_blueprint(commodities_bp)
+    app.register_blueprint(pins_locks_bp)
 
     # Debug: Print all registered routes
     print("🔍 Registered routes:")
