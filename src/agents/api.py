@@ -160,6 +160,21 @@ def get_recommendations():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@agents_bp.route('/kpis')
+def get_kpis():
+    """Get agents KPIs"""
+    try:
+        return jsonify({
+            "total_agents": 4,
+            "active_agents": 3,
+            "avg_confidence": 78.5,
+            "predictions_today": 24,
+            "accuracy_rate": 85.2,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @agents_bp.route('/runs')
 def get_runs():
     """Get all agent runs"""
