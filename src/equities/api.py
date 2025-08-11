@@ -1,59 +1,62 @@
 
-from flask import Blueprint, jsonify, request
-from core.cache import TTLCache
-from core.metrics import inc
-import json, os, random
+from flask import Blueprint, jsonify
+from datetime import datetime
+import os
+import json
 
 equities_bp = Blueprint('equities', __name__)
-cache = TTLCache(ttl_sec=300)
 
-def _load_fixtures():
-    fixtures_path = os.path.join(os.path.dirname(__file__), "../../data/fixtures")
+@equities_bp.route('/positions')
+def get_positions():
+    """Get all equity positions"""
     try:
-        with open(os.path.join(fixtures_path, "equities_sample.json"), "r") as f:
-            equities = json.load(f)
-        with open(os.path.join(fixtures_path, "prices_TCS.json"), "r") as f:
-            tcs_prices = json.load(f)
-        with open(os.path.join(fixtures_path, "prices_RELIANCE.json"), "r") as f:
-            rel_prices = json.load(f)
-        return equities, tcs_prices, rel_prices
-    except Exception:
-        return [], [], []
+        fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'fixtures')
+        equities_file = os.path.join(fixtures_dir, 'equities_sample.json')
+        
+        with open(equities_file, 'r') as f:
+            data = json.load(f)
+        
+        return jsonify({
+            "positions": data.get('positions', []),
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-@equities_bp.get("/list")
-def list_equities():
-    inc("api.equities.list")
-    cached = cache.get()
-    if cached and not request.args.get("forceRefresh"):
-        return jsonify(cached)
-    
-    equities, tcs_prices, rel_prices = _load_fixtures()
-    
-    # Add computed KPIs/ROI
-    for equity in equities:
-        equity["roi_5d"] = round(random.uniform(-5.0, 12.0), 2)
-        equity["roi_30d"] = round(random.uniform(-15.0, 35.0), 2)
-        equity["sharpe_ratio"] = round(random.uniform(0.5, 2.5), 2)
-        equity["volatility"] = round(random.uniform(15.0, 45.0), 2)
-        equity["beta"] = round(random.uniform(0.7, 1.8), 2)
-    
-    result = {"equities": equities, "count": len(equities)}
-    cache.set(result)
-    return jsonify(result)
-
-@equities_bp.get("/kpis")
-def equities_kpis():
-    inc("api.equities.kpis")
-    equities, _, _ = _load_fixtures()
-    
-    total_value = sum(eq.get("market_cap", 0) for eq in equities)
-    avg_roi_5d = sum(random.uniform(-5, 12) for _ in equities) / max(len(equities), 1)
-    avg_roi_30d = sum(random.uniform(-15, 35) for _ in equities) / max(len(equities), 1)
-    
-    return jsonify({
-        "total_instruments": len(equities),
-        "total_market_value": total_value,
-        "avg_roi_5d": round(avg_roi_5d, 2),
-        "avg_roi_30d": round(avg_roi_30d, 2),
-        "top_performers": len([eq for eq in equities if random.random() > 0.7])
-    })
+@equities_bp.route('/analytics')
+def get_analytics():
+    """Get equity analytics and KPIs"""
+    try:
+        fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'fixtures')
+        equities_file = os.path.join(fixtures_dir, 'equities_sample.json')
+        
+        with open(equities_file, 'r') as f:
+            data = json.load(f)
+        
+        positions = data.get('positions', [])
+        
+        analytics = {
+            "portfolio_metrics": {
+                "total_value": sum(pos.get('market_value', 0) for pos in positions),
+                "total_pnl": sum(pos.get('unrealized_pnl', 0) for pos in positions),
+                "position_count": len(positions),
+                "avg_position_size": sum(pos.get('market_value', 0) for pos in positions) / len(positions) if positions else 0
+            },
+            "risk_metrics": {
+                "value_at_risk": -15000,
+                "beta": 1.2,
+                "correlation": 0.85
+            },
+            "performance": {
+                "roi": 12.5,
+                "alpha": 2.3,
+                "tracking_error": 4.1
+            },
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+        
+        return jsonify(analytics)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

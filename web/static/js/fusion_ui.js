@@ -1,180 +1,264 @@
-// web/static/js/fusion_ui.js
-(function () {
-  const sel = (id) => document.getElementById(id);
 
-  // Safely set text/html only if element exists
-  function setText(id, value) {
-    const el = sel(id);
-    if (el) el.textContent = value;
-  }
-  function setHTML(id, html) {
-    const el = sel(id);
-    if (el) el.innerHTML = html;
-  }
-  function show(id) {
-    const el = sel(id);
-    if (el) el.style.display = '';
-  }
-  function hide(id) {
-    const el = sel(id);
-    if (el) el.style.display = 'none';
-  }
+// Fusion UI JavaScript for Dashboard, Equities, Options, Commodities
+console.log('[FusionUI] DOM loaded, initializing...');
 
-  // Defensive formatting helpers
-  function fmtPct(v) {
-    const n = Number.isFinite(Number(v)) ? Number(v) : 0;
-    return n.toFixed(1);
-  }
+class FusionDashboard {
+    constructor() {
+        this.baseUrl = '';
+        this.cache = new Map();
+        this.init();
+    }
 
-  function safeNum(v, d = 0) {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : d;
-  }
+    init() {
+        this.loadDashboardData();
+        this.loadPageSpecificData();
+        this.setupEventListeners();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(() => this.loadDashboardData(), 30000);
+    }
 
-  async function fetchFusion(force = false) {
-    const url = force ? '/api/fusion/dashboard?forceRefresh=true' : '/api/fusion/dashboard';
-    console.log('[FusionUI] Fetching from:', url);
-
-    try {
-      const res = await fetch(url, {
-        cache: 'no-store',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+    async loadDashboardData(forceRefresh = false) {
+        console.log('[FusionUI] Loading fusion data, force:', forceRefresh);
+        
+        try {
+            const endpoint = '/api/fusion/dashboard';
+            console.log('[FusionUI] Fetching from:', endpoint);
+            
+            const response = await fetch(endpoint);
+            console.log('[FusionUI] Response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log('[FusionUI] Response error:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+            
+            const data = await response.json();
+            this.updateDashboardUI(data);
+            
+        } catch (error) {
+            console.log('[FusionUI] Fetch error:', error);
+            console.error('Error loading dashboard data:', error);
+            this.showError('Failed to load dashboard data');
         }
-      });
-
-      console.log('[FusionUI] Response status:', res.status);
-
-      if (!res.ok) {
-        const txt = await res.text().catch(() => 'Unknown error');
-        console.error('[FusionUI] Response error:', txt);
-        throw new Error(`Fusion API ${res.status}: ${txt}`);
-      }
-
-      const data = await res.json();
-      console.log('[FusionUI] Response data:', data);
-      return data;
-    } catch (error) {
-      console.error('[FusionUI] Fetch error:', error);
-      throw error;
-    }
-  }
-
-  function verdictBadge(v) {
-    const m = {
-      STRONG_BUY: 'success',
-      BUY: 'primary',
-      HOLD: 'secondary',
-      CAUTIOUS: 'warning',
-      AVOID: 'danger'
-    };
-    const cls = m[v] || 'secondary';
-    return `<span class="badge bg-${cls}">${v || 'HOLD'}</span>`;
-  }
-
-  function renderPinnedSummary(pinned) {
-    console.log('[FusionUI] Rendering pinned summary:', pinned);
-    setText('pinnedTotal', pinned?.total ?? 0);
-    setText('pinnedMet', pinned?.met ?? 0);
-    setText('pinnedNotMet', pinned?.not_met ?? 0);
-    setText('pinnedInProgress', pinned?.in_progress ?? 0);
-  }
-
-  function renderTopSignals(signals) {
-    console.log('[FusionUI] Rendering top signals:', signals);
-    const bodyId = 'resultsTbody';
-    const body = sel(bodyId);
-    if (!body) {
-      console.warn('[FusionUI] Results tbody not found');
-      return;
     }
 
-    if (!signals || !signals.length) {
-      setHTML(bodyId, `<tr><td colspan="9" class="text-center text-muted">No signals available</td></tr>`);
-      return;
+    updateDashboardUI(data) {
+        // Update KPI cards
+        const totalValue = document.getElementById('total-value');
+        const totalPnl = document.getElementById('total-pnl');
+        const activePositions = document.getElementById('active-positions');
+        const pinnedCount = document.getElementById('pinned-count');
+        const lockedCount = document.getElementById('locked-count');
+
+        if (totalValue) totalValue.textContent = `$${data.kpis.total_portfolio_value.toLocaleString()}`;
+        if (totalPnl) totalPnl.textContent = `$${data.kpis.total_pnl.toLocaleString()}`;
+        if (activePositions) activePositions.textContent = data.kpis.total_positions;
+        if (pinnedCount) pinnedCount.textContent = data.summary.pinned_items;
+        if (lockedCount) lockedCount.textContent = data.summary.locked_items;
+
+        // Update recent activity
+        const recentActivity = document.getElementById('recent-activity');
+        if (recentActivity && data.recent_activity) {
+            recentActivity.innerHTML = data.recent_activity.map(activity => `
+                <div class="flex justify-between items-center py-2 border-b border-slate-700 last:border-b-0">
+                    <div>
+                        <p class="text-sm text-white">${activity.details}</p>
+                        <p class="text-xs text-gray-400">${activity.symbol}</p>
+                    </div>
+                    <p class="text-xs text-gray-400">${new Date(activity.timestamp).toLocaleTimeString()}</p>
+                </div>
+            `).join('');
+        }
     }
 
-    const rows = signals.map(s => {
-      const conf = fmtPct(s.confidence ?? 0) + '%';
-      const price = s.last_price != null ? s.last_price : (s.price || '-');
-      const target = s.target_price != null ? s.target_price : '-';
-      const roi = (s.roi_pct != null) ? `${fmtPct(s.roi_pct)}%` : '-';
-      const score = fmtPct(s.score ?? 0);
-
-      return `
-        <tr>
-          <td><input type="checkbox" disabled /></td>
-          <td><strong>${s.symbol ?? '-'}</strong></td>
-          <td>${s.state ?? s.product ?? 'equity'}</td>
-          <td>${score}</td>
-          <td>${price}</td>
-          <td>${target}</td>
-          <td>${roi}</td>
-          <td>${verdictBadge(s.ai_verdict_normalized ?? 'HOLD')}</td>
-          <td>${conf}</td>
-        </tr>`;
-    }).join('');
-    setHTML(bodyId, rows);
-  }
-
-  function renderStatus(data) {
-    setText('statusText', 'Ready');
-    setText('lastUpdated', data?.last_updated_utc ?? '-');
-    setText('genTime', (data?.generation_time_ms ?? 0) + 'ms');
-    setText('alertsCount', (data?.alerts?.length ?? 0));
-  }
-
-  async function loadFusion(force = false) {
-    try {
-      console.log('[FusionUI] Loading fusion data, force:', force);
-      show('loadingSpinner');
-      setText('statusText', force ? 'Refreshing…' : 'Loading…');
-
-      const data = await fetchFusion(force);
-      console.log('[FusionUI] Got data:', data);
-
-      renderPinnedSummary(data?.pinned_summary);
-      renderTopSignals(data?.top_signals);
-      renderStatus(data);
-
-      hide('loadingSpinner');
-      setText('statusText', 'Ready');
-      console.log('[FusionUI] Load completed successfully');
-    } catch (err) {
-      console.error('[FusionUI] Load error:', err);
-      hide('loadingSpinner');
-      setText('statusText', 'Error');
-
-      const body = sel('resultsTbody');
-      if (body) {
-        body.innerHTML = `<tr><td colspan="9" class="text-danger text-center">Failed to load data: ${err.message}</td></tr>`;
-      }
-
-      // Also show error in pinned summary
-      setText('pinnedTotal', 'Error');
-      setText('pinnedMet', '-');
-      setText('pinnedNotMet', '-');
-      setText('pinnedInProgress', '-');
+    async loadPageSpecificData() {
+        const path = window.location.pathname;
+        
+        switch(path) {
+            case '/equities':
+                await this.loadEquitiesData();
+                break;
+            case '/options':
+                await this.loadOptionsData();
+                break;
+            case '/commodities':
+                await this.loadCommoditiesData();
+                break;
+        }
     }
-  }
 
-  function bindUI() {
-    const refreshBtn = sel('refreshBtn');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => {
-        console.log('[FusionUI] Manual refresh triggered');
-        loadFusion(true);
-      });
-    } else {
-      console.warn('[FusionUI] Refresh button not found');
+    async loadEquitiesData() {
+        try {
+            const response = await fetch('/api/equities/positions');
+            if (!response.ok) throw new Error('Failed to fetch equities data');
+            
+            const data = await response.json();
+            this.updateEquitiesTable(data.positions);
+        } catch (error) {
+            console.error('Error loading equities:', error);
+        }
     }
-  }
 
-  window.addEventListener('DOMContentLoaded', () => {
-    console.log('[FusionUI] DOM loaded, initializing...');
-    bindUI();
-    // First paint
-    setTimeout(() => loadFusion(false), 100);
-  });
-})();
+    updateEquitiesTable(positions) {
+        const table = document.getElementById('equities-table');
+        if (!table) return;
+
+        table.innerHTML = positions.map(position => `
+            <tr class="bg-slate-900 border-b border-slate-700">
+                <td class="px-6 py-4 font-medium text-white">${position.symbol}</td>
+                <td class="px-6 py-4">${position.quantity}</td>
+                <td class="px-6 py-4">$${position.market_value.toLocaleString()}</td>
+                <td class="px-6 py-4 ${position.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'}">
+                    $${position.unrealized_pnl.toLocaleString()}
+                </td>
+                <td class="px-6 py-4">
+                    <button onclick="fusionDashboard.pinItem('equity', '${position.symbol}')" 
+                            class="text-blue-400 hover:text-blue-300 mr-2">Pin</button>
+                    <button onclick="fusionDashboard.lockItem('equity', '${position.symbol}')" 
+                            class="text-red-400 hover:text-red-300">Lock</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async loadOptionsData() {
+        try {
+            const response = await fetch('/api/options/strategies');
+            if (!response.ok) throw new Error('Failed to fetch options data');
+            
+            const data = await response.json();
+            this.updateOptionsTable(data.strategies);
+        } catch (error) {
+            console.error('Error loading options:', error);
+        }
+    }
+
+    updateOptionsTable(strategies) {
+        const table = document.getElementById('options-table');
+        if (!table) return;
+
+        table.innerHTML = strategies.map(strategy => `
+            <tr class="bg-slate-900 border-b border-slate-700">
+                <td class="px-6 py-4 font-medium text-white">${strategy.name}</td>
+                <td class="px-6 py-4">${strategy.symbol}</td>
+                <td class="px-6 py-4">${strategy.expiry}</td>
+                <td class="px-6 py-4 ${strategy.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">
+                    $${strategy.pnl.toLocaleString()}
+                </td>
+                <td class="px-6 py-4">${strategy.probability}%</td>
+                <td class="px-6 py-4">
+                    <button onclick="fusionDashboard.pinItem('option', '${strategy.symbol}')" 
+                            class="text-blue-400 hover:text-blue-300 mr-2">Pin</button>
+                    <button onclick="fusionDashboard.lockItem('option', '${strategy.symbol}')" 
+                            class="text-red-400 hover:text-red-300">Lock</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async loadCommoditiesData() {
+        try {
+            const response = await fetch('/api/commodities/positions');
+            if (!response.ok) throw new Error('Failed to fetch commodities data');
+            
+            const data = await response.json();
+            this.updateCommoditiesTable(data.positions);
+        } catch (error) {
+            console.error('Error loading commodities:', error);
+        }
+    }
+
+    updateCommoditiesTable(positions) {
+        const table = document.getElementById('commodities-table');
+        if (!table) return;
+
+        table.innerHTML = positions.map(position => `
+            <tr class="bg-slate-900 border-b border-slate-700">
+                <td class="px-6 py-4 font-medium text-white">${position.commodity}</td>
+                <td class="px-6 py-4">${position.quantity}</td>
+                <td class="px-6 py-4">$${position.price.toLocaleString()}</td>
+                <td class="px-6 py-4">$${position.market_value.toLocaleString()}</td>
+                <td class="px-6 py-4 ${position.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">
+                    $${position.pnl.toLocaleString()}
+                </td>
+                <td class="px-6 py-4">
+                    <button onclick="fusionDashboard.pinItem('commodity', '${position.commodity}')" 
+                            class="text-blue-400 hover:text-blue-300 mr-2">Pin</button>
+                    <button onclick="fusionDashboard.lockItem('commodity', '${position.commodity}')" 
+                            class="text-red-400 hover:text-red-300">Lock</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async pinItem(type, symbol) {
+        try {
+            const response = await fetch('/api/pins', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: `${type}_${symbol}`,
+                    type: type,
+                    symbol: symbol
+                })
+            });
+
+            if (response.ok) {
+                console.log(`Pinned ${type} ${symbol}`);
+                // Refresh dashboard to update pinned count
+                this.loadDashboardData(true);
+            }
+        } catch (error) {
+            console.error('Error pinning item:', error);
+        }
+    }
+
+    async lockItem(type, symbol) {
+        try {
+            const response = await fetch('/api/locks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: `${type}_${symbol}`,
+                    type: type,
+                    symbol: symbol
+                })
+            });
+
+            if (response.ok) {
+                console.log(`Locked ${type} ${symbol}`);
+                // Refresh dashboard to update locked count
+                this.loadDashboardData(true);
+            }
+        } catch (error) {
+            console.error('Error locking item:', error);
+        }
+    }
+
+    setupEventListeners() {
+        // Force refresh button if it exists
+        const refreshBtn = document.getElementById('force-refresh');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.loadDashboardData(true);
+                this.loadPageSpecificData();
+            });
+        }
+    }
+
+    showError(message) {
+        console.error('FusionUI Error:', message);
+        // Could add toast notifications here
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.fusionDashboard = new FusionDashboard();
+});

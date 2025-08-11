@@ -1,19 +1,19 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Fusion Dashboard{% endblock %}</title>
+    <title>Fusion Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
                         slate: {
-                            800: '#1e293b',
-                            900: '#0f172a'
+                            950: '#0f172a'
                         }
                     }
                 }
@@ -21,21 +21,30 @@
         }
     </script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen">
-    <nav class="bg-slate-800 border-b border-slate-700 p-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold">{% block nav_title %}Fusion Dashboard{% endblock %}</h1>
-            <div class="space-x-4">
-                <a href="/dashboard" class="hover:text-blue-400 transition-colors">Dashboard</a>
-                <a href="/equities" class="hover:text-blue-400 transition-colors">Equities</a>
-                <a href="/options" class="hover:text-blue-400 transition-colors">Options</a>
-                <a href="/commodities" class="hover:text-blue-400 transition-colors">Commodities</a>
+<body class="bg-slate-950 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-slate-900 border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <h1 class="text-xl font-bold text-blue-400">Fusion Dashboard</h1>
+                    <div class="flex space-x-4">
+                        <a href="/dashboard" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Dashboard</a>
+                        <a href="/equities" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Equities</a>
+                        <a href="/options" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Options</a>
+                        <a href="/commodities" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Commodities</a>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
-    
-    <main class="container mx-auto p-6">
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Scripts -->
+    <script src="/static/js/fusion_ui.js"></script>
 </body>
 </html>

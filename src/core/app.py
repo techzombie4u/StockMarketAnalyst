@@ -19,12 +19,14 @@ def create_app():
     from equities.api import equities_bp
     from options.api import options_bp
     from commodities.api import commodities_bp
+    from core.pins_locks import pins_locks_bp
 
     app.register_blueprint(fusion_bp, url_prefix="/api/fusion")
     app.register_blueprint(agents_bp, url_prefix="/api/agents")
     app.register_blueprint(equities_bp, url_prefix="/api/equities")
     app.register_blueprint(options_bp, url_prefix="/api/options")
     app.register_blueprint(commodities_bp, url_prefix="/api/commodities")
+    app.register_blueprint(pins_locks_bp, url_prefix="/api")
 
     # Pages — KEEP LAYOUT IDENTICAL to prototype
     @app.get("/dashboard")

@@ -1,3 +1,8 @@
+from flask import Blueprint, jsonify, request
+from datetime import datetime
+from core.cache import TTLCache
+from core.metrics import inc
+import json, os, random
 
 # src/agents/api.py
 from flask import Blueprint, jsonify, request
@@ -17,7 +22,7 @@ def _error_handler(e):
 def list_agents():
     return jsonify(registry.list_agents())
 
-@agents_bp.route("/<agent_id>/run", methods=["POST"])
+@agents_bp.route("/run/<agent_id>", methods=["POST"])
 def run_agent(agent_id):
     out = registry.run_agent(agent_id)
     if isinstance(out, dict) and out.get("error"):
@@ -49,16 +54,11 @@ def update_config():
         registry.config["show_ai_verdict_columns"] = bool(body["show_ai_verdict_columns"])
     registry.save_config()
     return jsonify({"success": True, "config": registry.config})
-from flask import Blueprint, jsonify, request
-from core.cache import TTLCache
-from core.metrics import inc
-import json, os, random
 
-agents_bp = Blueprint('agents', __name__)
 cache = TTLCache(ttl_sec=180)
 
 @agents_bp.get("/list")
-def list_agents():
+def list_agents_old():
     inc("api.agents.list")
     
     agents = [
@@ -83,7 +83,7 @@ def agents_kpis():
     })
 
 @agents_bp.post("/run/<agent_id>")
-def run_agent(agent_id):
+def run_agent_old(agent_id):
     inc("api.agents.run")
     
     result = {
@@ -95,3 +95,67 @@ def run_agent(agent_id):
     }
     
     return jsonify(result)
+
+@agents_bp.route('/status')
+def get_status():
+    """Get agents status"""
+    try:
+        agents_status = [
+            {
+                "name": "Equity Agent",
+                "status": "active",
+                "last_run": datetime.utcnow().isoformat() + "Z",
+                "performance": 85.6
+            },
+            {
+                "name": "Options Agent", 
+                "status": "active",
+                "last_run": datetime.utcnow().isoformat() + "Z",
+                "performance": 78.2
+            },
+            {
+                "name": "Sentiment Agent",
+                "status": "idle",
+                "last_run": datetime.utcnow().isoformat() + "Z",
+                "performance": 92.1
+            }
+        ]
+
+        return jsonify({
+            "agents": agents_status,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@agents_bp.route('/recommendations')
+def get_recommendations():
+    """Get agent recommendations"""
+    try:
+        recommendations = [
+            {
+                "agent": "Equity Agent",
+                "symbol": "TCS",
+                "action": "BUY",
+                "confidence": 85.6,
+                "target_price": 3750,
+                "reasoning": "Strong technical indicators and earnings outlook"
+            },
+            {
+                "agent": "Options Agent",
+                "symbol": "NIFTY",
+                "action": "SELL_PUT",
+                "confidence": 72.3,
+                "strike": 21000,
+                "reasoning": "High implied volatility and support levels"
+            }
+        ]
+
+        return jsonify({
+            "recommendations": recommendations,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
