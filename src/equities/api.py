@@ -1,4 +1,3 @@
-
 from flask import Blueprint, jsonify
 from datetime import datetime
 import os
@@ -12,15 +11,29 @@ def get_positions():
     try:
         fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'fixtures')
         equities_file = os.path.join(fixtures_dir, 'equities_sample.json')
-        
+
         with open(equities_file, 'r') as f:
             data = json.load(f)
-        
+
         return jsonify({
             "positions": data.get('positions', []),
             "timestamp": datetime.utcnow().isoformat() + "Z"
         })
-        
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@equities_bp.route('/kpis')
+def get_kpis():
+    """Get equities KPIs"""
+    try:
+        return jsonify({
+            "total_positions": 15,
+            "total_value": 125000,
+            "pnl": 8500,
+            "win_rate": 68.5,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -30,12 +43,12 @@ def get_analytics():
     try:
         fixtures_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'fixtures')
         equities_file = os.path.join(fixtures_dir, 'equities_sample.json')
-        
+
         with open(equities_file, 'r') as f:
             data = json.load(f)
-        
+
         positions = data.get('positions', [])
-        
+
         analytics = {
             "portfolio_metrics": {
                 "total_value": sum(pos.get('market_value', 0) for pos in positions),
@@ -55,8 +68,8 @@ def get_analytics():
             },
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
-        
+
         return jsonify(analytics)
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500

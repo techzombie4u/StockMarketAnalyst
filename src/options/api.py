@@ -5,6 +5,20 @@ import json
 
 options_bp = Blueprint('options', __name__)
 
+@options_bp.route('/kpis')
+def get_kpis():
+    """Get options KPIs"""
+    try:
+        return jsonify({
+            "total_strategies": 8,
+            "total_premium": 45000,
+            "pnl": 12500,
+            "success_rate": 72.3,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @options_bp.route('/positions')
 def get_positions():
     """Get all options positions"""

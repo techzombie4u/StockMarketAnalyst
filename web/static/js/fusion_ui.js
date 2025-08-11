@@ -1,4 +1,3 @@
-
 // Fusion UI JavaScript for Dashboard, Equities, Options, Commodities
 console.log('[FusionUI] DOM loaded, initializing...');
 
@@ -13,34 +12,43 @@ class FusionDashboard {
         this.loadDashboardData();
         this.loadPageSpecificData();
         this.setupEventListeners();
-        
+
         // Auto-refresh every 30 seconds
         setInterval(() => this.loadDashboardData(), 30000);
     }
 
     async loadDashboardData(forceRefresh = false) {
         console.log('[FusionUI] Loading fusion data, force:', forceRefresh);
-        
+
         try {
             const endpoint = '/api/fusion/dashboard';
             console.log('[FusionUI] Fetching from:', endpoint);
-            
+
             const response = await fetch(endpoint);
             console.log('[FusionUI] Response status:', response.status);
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.log('[FusionUI] Response error:', errorText);
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
-            
+
             const data = await response.json();
             this.updateDashboardUI(data);
-            
+
         } catch (error) {
             console.log('[FusionUI] Fetch error:', error);
-            console.error('Error loading dashboard data:', error);
-            this.showError('Failed to load dashboard data');
+            if (document.getElementById('dashboard-loading')) {
+                document.getElementById('dashboard-loading').style.display = 'none';
+            }
+            // Show error message to user
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'bg-red-900 text-red-100 p-4 rounded-lg mb-4';
+            errorDiv.innerHTML = '<h3 class="font-bold">Dashboard Loading Error</h3><p>Unable to load dashboard data. Please refresh the page.</p>';
+            const container = document.querySelector('.border-4.border-dashed');
+            if (container) {
+                container.insertBefore(errorDiv, container.firstChild);
+            }
         }
     }
 
@@ -75,7 +83,7 @@ class FusionDashboard {
 
     async loadPageSpecificData() {
         const path = window.location.pathname;
-        
+
         switch(path) {
             case '/equities':
                 await this.loadEquitiesData();
@@ -93,7 +101,7 @@ class FusionDashboard {
         try {
             const response = await fetch('/api/equities/positions');
             if (!response.ok) throw new Error('Failed to fetch equities data');
-            
+
             const data = await response.json();
             this.updateEquitiesTable(data.positions);
         } catch (error) {
@@ -127,7 +135,7 @@ class FusionDashboard {
         try {
             const response = await fetch('/api/options/strategies');
             if (!response.ok) throw new Error('Failed to fetch options data');
-            
+
             const data = await response.json();
             this.updateOptionsTable(data.strategies);
         } catch (error) {
@@ -162,7 +170,7 @@ class FusionDashboard {
         try {
             const response = await fetch('/api/commodities/positions');
             if (!response.ok) throw new Error('Failed to fetch commodities data');
-            
+
             const data = await response.json();
             this.updateCommoditiesTable(data.positions);
         } catch (error) {

@@ -6,6 +6,20 @@ import json
 
 commodities_bp = Blueprint('commodities', __name__)
 
+@commodities_bp.route('/kpis')
+def get_kpis():
+    """Get commodities KPIs"""
+    try:
+        return jsonify({
+            "total_contracts": 25,
+            "total_value": 85000,
+            "pnl": 6200,
+            "success_rate": 64.8,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @commodities_bp.route('/positions')
 def get_positions():
     """Get all commodities positions"""

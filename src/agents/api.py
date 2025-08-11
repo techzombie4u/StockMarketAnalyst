@@ -60,20 +60,20 @@ cache = TTLCache(ttl_sec=180)
 @agents_bp.get("/list")
 def list_agents_old():
     inc("api.agents.list")
-    
+
     agents = [
         {"id": "equity_analyzer", "name": "Equity Analyzer", "status": "active", "confidence": round(random.uniform(70, 95), 1)},
         {"id": "options_strategist", "name": "Options Strategist", "status": "active", "confidence": round(random.uniform(65, 90), 1)},
         {"id": "commodity_tracker", "name": "Commodity Tracker", "status": "active", "confidence": round(random.uniform(60, 85), 1)},
         {"id": "risk_manager", "name": "Risk Manager", "status": "monitoring", "confidence": round(random.uniform(75, 95), 1)}
     ]
-    
+
     return jsonify({"agents": agents, "count": len(agents)})
 
 @agents_bp.get("/kpis")
 def agents_kpis():
     inc("api.agents.kpis")
-    
+
     return jsonify({
         "total_agents": 4,
         "active_agents": 3,
@@ -85,7 +85,7 @@ def agents_kpis():
 @agents_bp.post("/run/<agent_id>")
 def run_agent_old(agent_id):
     inc("api.agents.run")
-    
+
     result = {
         "agent_id": agent_id,
         "status": "completed",
@@ -93,7 +93,7 @@ def run_agent_old(agent_id):
         "predictions_generated": random.randint(3, 12),
         "confidence": round(random.uniform(65, 92), 1)
     }
-    
+
     return jsonify(result)
 
 @agents_bp.route('/status')
@@ -108,7 +108,7 @@ def get_status():
                 "performance": 85.6
             },
             {
-                "name": "Options Agent", 
+                "name": "Options Agent",
                 "status": "active",
                 "last_run": datetime.utcnow().isoformat() + "Z",
                 "performance": 78.2
@@ -157,5 +157,19 @@ def get_recommendations():
             "timestamp": datetime.utcnow().isoformat() + "Z"
         })
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@agents_bp.route('/runs')
+def get_runs():
+    """Get all agent runs"""
+    try:
+        return jsonify({
+            "active_agents": 6,
+            "completed_runs": 156,
+            "success_rate": 89.2,
+            "avg_execution_time": 2.4,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
