@@ -1,0 +1,6 @@
+
+[
+  {"ticker":"GOLD","contract":"AUG","verdict":"HOLD","confidence":0.58,"atr14":0.012,"rsi":51,"breakout":46,"trendScore":54,"volRegime":"LOW","seasonality":0.41,"corrUSDINR":-0.22,"corrNIFTY":-0.12},
+  {"ticker":"SILVER","contract":"AUG","verdict":"BUY","confidence":0.62,"atr14":0.016,"rsi":57,"breakout":61,"trendScore":60,"volRegime":"MEDIUM","seasonality":0.47,"corrUSDINR":-0.18,"corrNIFTY":-0.09},
+  {"ticker":"CRUDEOIL","contract":"SEP","verdict":"CAUTIOUS","confidence":0.49,"atr14":0.028,"rsi":44,"breakout":39,"trendScore":45,"volRegime":"HIGH","seasonality":0.33,"corrUSDINR":0.06,"corrNIFTY":0.18}
+]

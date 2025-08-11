@@ -1,0 +1,20 @@
+
+{
+  "short_strangle": {
+    "underlying": "TCS",
+    "spot": 4250,
+    "ceStrike": 4300,
+    "peStrike": 3900,
+    "credit": 39.5,
+    "iv": 0.22,
+    "dte": 14,
+    "stopLoss": "SL at 1.8x credit per leg",
+    "status": "Open",
+    "roiPct": 0.062,
+    "margin": 64000,
+    "outcome": "—",
+    "notes": "Auto-picked ~±0.24Δ strikes",
+    "greeks": {"delta":0.01,"gamma":0.02,"theta":-0.23,"vega":0.17},
+    "payoff": {"x":[3600,3700,3800,3900,4000,4100,4200,4300,4400], "y":[-20000,-12000,-4000,0,12000,8000,0,-4000,-16000]}
+  }
+}

@@ -1,0 +1,7 @@
+
+[
+  {"symbol":"TCS","name":"Tata Consultancy Services","sector":"IT","price":4275.3,"momentum":78,"volatility":"MEDIUM","rsi":59,"macd":1.2,"from52wHigh":-0.06,"model":"Ensemble","verdict":"STRONG_BUY","confidence":0.74},
+  {"symbol":"RELIANCE","name":"Reliance Industries","sector":"Energy","price":2904.1,"momentum":71,"volatility":"LOW","rsi":55,"macd":0.8,"from52wHigh":-0.04,"model":"RF","verdict":"BUY","confidence":0.68},
+  {"symbol":"INFY","name":"Infosys","sector":"IT","price":1588.2,"momentum":49,"volatility":"MEDIUM","rsi":47,"macd":-0.2,"from52wHigh":-0.12,"model":"LSTM","verdict":"HOLD","confidence":0.61},
+  {"symbol":"SBIN","name":"State Bank of India","sector":"Financials","price":820.6,"momentum":66,"volatility":"MEDIUM","rsi":58,"macd":0.6,"from52wHigh":-0.03,"model":"Ensemble","verdict":"BUY","confidence":0.64}
+]
