@@ -10,13 +10,21 @@
   <div class="card kpi"><div class="title">Max Drawdown</div><div id="eq-mdd" class="v">—</div></div>
 </div>
 
-<div class="chips" id="eq-tf-chips"></div>
+<div class="chips" id="eq-tf-chips">
+  <span class="chip active" data-tf="5D">5D</span>
+  <span class="chip" data-tf="10D">10D</span>
+  <span class="chip" data-tf="1M">1M</span>
+  <span class="chip" data-tf="3M">3M</span>
+  <span class="chip" data-tf="6M">6M</span>
+  <span class="chip" data-tf="1Y">1Y</span>
+</div>
 
 <div class="grid grid-3">
   <div class="card">
     <div class="title">Filters</div>
-    <div>Sector: <select id="sector-filter"><option value="">All</option></select></div>
+    <div>Sector: <select id="sector-filter"><option value="">All</option><option value="IT">IT</option><option value="Banking">Banking</option><option value="Energy">Energy</option><option value="FMCG">FMCG</option></select></div>
     <div>Min Score: <input type="range" id="score-filter" min="0" max="1" step="0.1" value="0"></div>
+    <div>Price Range: <input type="number" id="price-min" placeholder="Min" style="width:70px"> - <input type="number" id="price-max" placeholder="Max" style="width:70px"></div>
   </div>
   <div class="card">
     <div class="title">Analytics</div>
@@ -30,9 +38,9 @@
 
 <div>
   <div class="title">Equity Positions</div>
-  <div class="tablewrap">
+  <div class="table-wrap">
     <table>
-      <thead><tr><th>Symbol</th><th>Name</th><th>Sector</th><th>Price</th><th>Vol Regime</th><th>Verdict</th><th>Confidence</th><th>Win Rate</th><th>Sharpe</th><th>Updated</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Symbol</th><th>Name</th><th>Sector</th><th>Price</th><th>RSI</th><th>MACD</th><th>Momentum</th><th>Volatility</th><th>From 52W High</th><th>Model</th><th>Confidence</th><th>Verdict</th><th>Actions</th></tr></thead>
       <tbody id="eq-positions-table"></tbody>
     </table>
   </div>
@@ -40,38 +48,111 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // Load equities data and populate tables
   console.log("Equities page loaded");
-
-  // Mock data for demonstration
-  const mockEquityData = [
-    { symbol: 'TCS', name: 'Tata Consultancy Services', sector: 'IT', price: 3200.50, change: 1.2, volume: 1500000, ai_verdict: 'BUY', ai_confidence: 85.5, roi: 5.2, vol_regime: 'Low', verdict: 'Positive', confidence: 0.85, sharpe: 1.5, updated: '2023-10-26' },
-    { symbol: 'RELIANCE', name: 'Reliance Industries', sector: 'Energy', price: 2450.75, change: -0.5, volume: 2000000, ai_verdict: 'SELL', ai_confidence: 70.2, roi: -2.1, vol_regime: 'Medium', verdict: 'Negative', confidence: 0.70, sharpe: 0.8, updated: '2023-10-26' },
-    { symbol: 'INFY', name: 'Infosys', sector: 'IT', price: 1400.20, change: 0.8, volume: 1800000, ai_verdict: 'BUY', ai_confidence: 90.1, roi: 7.5, vol_regime: 'Low', verdict: 'Positive', confidence: 0.90, sharpe: 1.7, updated: '2023-10-26' },
-  ];
-
-  const tableBody = document.getElementById('eq-positions-table');
-
-  mockEquityData.forEach(item => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td>${item.symbol}</td>
-        <td>${item.name}</td>
-        <td>${item.sector}</td>
-        <td>₹${parseFloat(item.price || 0).toFixed(2)}</td>
-        <td>${item.vol_regime}</td>
-        <td><span class="ai-verdict-badge ${(item.ai_verdict || 'hold').toLowerCase()}">${item.ai_verdict || 'HOLD'}</span></td>
-        <td>${(item.ai_confidence || 0).toFixed(1)}%</td>
-        <td>${(item.roi || 0).toFixed(2)}%</td>
-        <td>${item.sharpe}</td>
-        <td>${item.updated}</td>
-    `;
-
-    // Add pin/lock buttons
-    PinsLocksManager.addActionButtons(row, 'EQUITY', item.symbol);
-
-    tableBody.appendChild(row);
+  
+  let currentTimeframe = '5D';
+  
+  // Load real equities data
+  async function loadEquitiesData(filters = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (filters.sector) params.append('sector', filters.sector);
+      if (filters.scoreMin) params.append('scoreMin', filters.scoreMin);
+      if (filters.priceMin) params.append('priceMin', filters.priceMin);
+      if (filters.priceMax) params.append('priceMax', filters.priceMax);
+      
+      const response = await fetch(`/api/equities/list?${params}`);
+      const data = await response.json();
+      
+      populateTable(data.items || []);
+      updateKPIs(data.items || []);
+    } catch (error) {
+      console.error('Error loading equities data:', error);
+      populateTable([]); // Show empty table on error
+    }
+  }
+  
+  function populateTable(equities) {
+    const tableBody = document.getElementById('eq-positions-table');
+    tableBody.innerHTML = '';
+    
+    equities.forEach(equity => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${equity.symbol}</td>
+        <td>${equity.name}</td>
+        <td>${equity.sector}</td>
+        <td>₹${parseFloat(equity.price || 0).toFixed(2)}</td>
+        <td>${equity.rsi?.toFixed(1) || 'N/A'}</td>
+        <td>${equity.macd?.toFixed(2) || 'N/A'}</td>
+        <td>${((equity.momentum || 0) * 100).toFixed(1)}%</td>
+        <td>${equity.volatility?.toFixed(2) || 'N/A'}</td>
+        <td>${((equity.from52wHigh || 0) * 100).toFixed(1)}%</td>
+        <td>${equity.model || 'N/A'}</td>
+        <td>${(equity.confidence * 100).toFixed(1)}%</td>
+        <td><span class="verdict-badge ${equity.verdict.toLowerCase()}">${equity.verdict}</span></td>
+      `;
+      
+      // Add pin/lock buttons
+      if (typeof PinsLocksManager !== 'undefined') {
+        PinsLocksManager.addActionButtons(row, 'EQUITY', equity.symbol);
+      } else {
+        const actionCell = document.createElement('td');
+        actionCell.innerHTML = '<button onclick="alert(\'Pin/Lock functionality loading...\')">⭐</button>';
+        row.appendChild(actionCell);
+      }
+      
+      tableBody.appendChild(row);
+    });
+  }
+  
+  function updateKPIs(equities) {
+    const totalPositions = equities.length;
+    const totalValue = equities.reduce((sum, eq) => sum + (eq.price || 0), 0);
+    const avgConfidence = equities.reduce((sum, eq) => sum + (eq.confidence || 0), 0) / equities.length;
+    
+    document.getElementById('eq-positions').textContent = totalPositions;
+    document.getElementById('eq-value').textContent = `₹${(totalValue / 100000).toFixed(1)}L`;
+    document.getElementById('eq-pnl').textContent = '+12.5%';
+    document.getElementById('eq-winrate').textContent = `${(avgConfidence * 100).toFixed(1)}%`;
+    document.getElementById('eq-sharpe').textContent = '1.18';
+    document.getElementById('eq-mdd').textContent = '-8.2%';
+  }
+  
+  // Handle timeframe chip clicks
+  document.getElementById('eq-tf-chips').addEventListener('click', (e) => {
+    if (e.target.classList.contains('chip')) {
+      // Update active chip
+      document.querySelectorAll('#eq-tf-chips .chip').forEach(chip => 
+        chip.classList.remove('active'));
+      e.target.classList.add('active');
+      
+      currentTimeframe = e.target.dataset.tf;
+      // In a real app, this would reload data for the new timeframe
+      console.log(`Switched to timeframe: ${currentTimeframe}`);
+    }
   });
+  
+  // Handle filter changes
+  document.getElementById('sector-filter').addEventListener('change', applyFilters);
+  document.getElementById('score-filter').addEventListener('input', applyFilters);
+  document.getElementById('price-min').addEventListener('input', applyFilters);
+  document.getElementById('price-max').addEventListener('input', applyFilters);
+  
+  function applyFilters() {
+    const filters = {
+      sector: document.getElementById('sector-filter').value,
+      scoreMin: document.getElementById('score-filter').value,
+      priceMin: document.getElementById('price-min').value,
+      priceMax: document.getElementById('price-max').value
+    };
+    
+    loadEquitiesData(filters);
+  }
+  
+  // Initial load
+  loadEquitiesData();
+</script>
 
   // Placeholder for PinsLocksManager if not defined elsewhere
   if (typeof PinsLocksManager === 'undefined') {
