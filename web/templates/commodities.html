@@ -1,56 +1,80 @@
 {% extends "_layout.html" %}
+
+{% block title %}Commodities{% endblock %}
+
 {% block content %}
-<div class="grid grid-6">
-  <div class="card kpi"><div class="title">Total Contracts</div><div id="comm-contracts" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Total Value</div><div id="comm-value" class="v">—</div></div>
-  <div class="card kpi"><div class="title">P&L</div><div id="comm-pnl" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Success Rate</div><div id="comm-success" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Avg Return</div><div id="comm-return" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Correlation</div><div id="comm-corr" class="v">—</div></div>
+<div class="container">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold">Commodities</h2>
+        <div class="toolbar">
+            <button class="btn" onclick="refreshData()">Refresh</button>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Commodity</th>
+                    <th>Price</th>
+                    <th>Change</th>
+                    <th>Signal</th>
+                    <th>Correlation</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="commodities-table-body">
+                <!-- Data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
 </div>
+{% endblock %}
 
-<div class="chips" id="comm-tf-chips"></div>
-
-<div class="grid grid-3">
-  <div class="card">
-    <div class="title">Commodity Filters</div>
-    <div>Sector: <select id="comm-sector-filter"><option value="">All</option><option value="metals">Metals</option><option value="energy">Energy</option><option value="agriculture">Agriculture</option></select></div>
-    <div>Signal Type: <select id="signal-filter"><option value="">All</option><option value="momentum">Momentum</option><option value="reversal">Reversal</option></select></div>
-  </div>
-  <div class="card">
-    <div class="title">Sector Exposure</div>
-    <div id="comm-exposure">Loading sector breakdown...</div>
-  </div>
-  <div class="card">
-    <div class="title">Correlations</div>
-    <div id="comm-correlations">Loading correlations...</div>
-  </div>
-</div>
-
-<div>
-  <div class="title">Commodity Positions</div>
-  <div class="tablewrap">
-    <table>
-      <thead><tr><th>Commodity</th><th>Quantity</th><th>Price</th><th>Market Value</th><th>P&L</th><th>Signal</th><th>Confidence</th><th>Updated</th></tr></thead>
-      <tbody id="comm-positions-table"></tbody>
-    </table>
-  </div>
-</div>
-
-<div>
-  <div class="title">Commodity Signals</div>
-  <div class="tablewrap">
-    <table>
-      <thead><tr><th>Symbol</th><th>Signal Type</th><th>Direction</th><th>Strength</th><th>Price</th><th>Target</th><th>Stop Loss</th><th>Confidence</th></tr></thead>
-      <tbody id="comm-signals-table"></tbody>
-    </table>
-  </div>
-</div>
-
+{% block scripts %}
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  // Load commodities data and populate tables
-  console.log("Commodities page loaded");
-});
+// Load commodities data
+async function loadCommodities() {
+    try {
+        const response = await fetch('/api/commodities/signals');
+        const data = await response.json();
+
+        const tbody = document.getElementById('commodities-table-body');
+        tbody.innerHTML = data.signals.map(item => `
+            <tr>
+                <td>${item.symbol}</td>
+                <td>${item.price}</td>
+                <td class="${item.change >= 0 ? 'status-active' : 'status-error'}">
+                    ${item.change}%
+                </td>
+                <td>
+                    <span class="badge ${item.signal === 'BUY' ? 'badge-ok' : item.signal === 'SELL' ? 'badge-danger' : 'badge-warn'}">
+                        ${item.signal}
+                    </span>
+                </td>
+                <td>${item.correlation}</td>
+                <td>
+                    <button class="pin-btn" onclick="togglePin('${item.symbol}')">
+                        ⭐
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading commodities:', error);
+    }
+}
+
+function refreshData() {
+    loadCommodities();
+}
+
+function togglePin(symbol) {
+    // Pin/unpin functionality
+    console.log('Toggle pin for:', symbol);
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', loadCommodities);
 </script>
 {% endblock %}

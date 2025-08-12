@@ -1,56 +1,74 @@
+{% extends "_layout.html" %}
 
-{% extends "_layout.html" %}{% block content %}
-<div class="grid grid-6">
-  <div class="card kpi"><div class="title">Total Strategies</div><div id="opt-strategies" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Total Premium</div><div id="opt-premium" class="v">—</div></div>
-  <div class="card kpi"><div class="title">P&L</div><div id="opt-pnl" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Success Rate</div><div id="opt-success" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Total Delta</div><div id="opt-delta" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Total Theta</div><div id="opt-theta" class="v">—</div></div>
+{% block title %}Options{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold">Options Strategies</h2>
+        <div class="toolbar">
+            <button class="btn" onclick="refreshData()">Refresh</button>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Strategy</th>
+                    <th>Premium</th>
+                    <th>Max Profit</th>
+                    <th>Max Loss</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="options-table-body">
+                <!-- Data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
 </div>
+{% endblock %}
 
-<div class="chips" id="opt-tf-chips"></div>
-
-<div class="grid grid-3">
-  <div class="card">
-    <div class="title">Strategy Filters</div>
-    <div>Type: <select id="strategy-filter"><option value="">All</option><option value="strangle">Strangle</option><option value="straddle">Straddle</option></select></div>
-    <div>Status: <select id="status-filter"><option value="">All</option><option value="open">Open</option><option value="closed">Closed</option></select></div>
-  </div>
-  <div class="card">
-    <div class="title">Greeks Summary</div>
-    <div id="opt-greeks">Loading Greeks...</div>
-  </div>
-  <div class="card">
-    <div class="title">Payoff Analysis</div>
-    <div id="opt-payoff">Payoff chart loading...</div>
-  </div>
-</div>
-
-<div>
-  <div class="title">Options Positions</div>
-  <div class="tablewrap">
-    <table>
-      <thead><tr><th>ID</th><th>Symbol</th><th>Strategy</th><th>Expiry</th><th>Strike</th><th>Premium</th><th>Delta</th><th>Theta</th><th>P&L</th><th>Status</th></tr></thead>
-      <tbody id="opt-positions-table"></tbody>
-    </table>
-  </div>
-</div>
-
-<div>
-  <div class="title">Strangle Candidates</div>
-  <div class="tablewrap">
-    <table>
-      <thead><tr><th>Underlying</th><th>Call Strike</th><th>Put Strike</th><th>Credit</th><th>ROI</th><th>POP</th><th>Breakevens</th><th>DTE</th></tr></thead>
-      <tbody id="strangle-candidates"></tbody>
-    </table>
-  </div>
-</div>
-
+{% block scripts %}
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  // Load options data and populate tables
-  console.log("Options page loaded");
-});
+// Load options data
+async function loadOptions() {
+    try {
+        const response = await fetch('/api/options/strangle/candidates');
+        const data = await response.json();
+
+        const tbody = document.getElementById('options-table-body');
+        tbody.innerHTML = data.candidates.map(item => `
+            <tr>
+                <td>${item.symbol}</td>
+                <td>${item.strategy}</td>
+                <td>${item.premium}</td>
+                <td>${item.max_profit}</td>
+                <td>${item.max_loss}</td>
+                <td>
+                    <button class="pin-btn" onclick="togglePin('${item.symbol}')">
+                        ⭐
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading options:', error);
+    }
+}
+
+function refreshData() {
+    loadOptions();
+}
+
+function togglePin(symbol) {
+    // Pin/unpin functionality
+    console.log('Toggle pin for:', symbol);
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', loadOptions);
 </script>
 {% endblock %}
