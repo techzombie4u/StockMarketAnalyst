@@ -1,132 +1,104 @@
-{% extends "_layout.html" %}
 
-{% block title %}Commodities{% endblock %}
-
-{% block content %}
-<div class="commodities-container">
-    <div class="header-section">
-        <h1>Commodities Analysis</h1>
-        <div class="analysis-tabs">
-            <button class="tab-btn active" data-section="signals">Signals</button>
-            <button class="tab-btn" data-section="correlations">Correlations</button>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commodities - Fusion Stock Analyst</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        th {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Commodities</h1>
+        <p>Commodity Signals and Correlations</p>
     </div>
 
-    <div id="signals-section" class="analysis-section">
-        <h2>Trading Signals</h2>
-        <table class="commodities-table">
+    <div class="section">
+        <h3>Commodity Signals</h3>
+        <table>
             <thead>
                 <tr>
                     <th>Commodity</th>
                     <th>Signal</th>
-                    <th>Strength</th>
                     <th>Price</th>
-                    <th>Target</th>
-                    <th>Stop Loss</th>
-                    <th>Timeframe</th>
+                    <th>Change %</th>
                     <th>Confidence</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
-            <tbody id="signals-body">
-                <!-- Data will be loaded via JavaScript -->
+            <tbody id="commodities-table">
+                <tr>
+                    <td colspan="5" style="text-align: center;">Loading...</td>
+                </tr>
             </tbody>
         </table>
     </div>
 
-    <div id="correlations-section" class="analysis-section" style="display: none;">
-        <h2>Correlation Matrix</h2>
-        <div id="correlation-matrix">
-            <!-- Correlation data will be loaded here -->
-        </div>
-    </div>
-</div>
-
-<script>
-// Load commodity signals
-async function loadCommoditySignals() {
-    try {
-        const response = await fetch('/api/commodities/signals');
-        const data = await response.json();
-
-        const tbody = document.getElementById('signals-body');
-        tbody.innerHTML = data.signals.map(signal => `
-            <tr>
-                <td>${signal.commodity}</td>
-                <td><span class="signal ${signal.signal.toLowerCase()}">${signal.signal}</span></td>
-                <td>${(signal.strength * 100).toFixed(0)}%</td>
-                <td>₹${signal.price.toLocaleString()}</td>
-                <td>₹${signal.target.toLocaleString()}</td>
-                <td>₹${signal.stop_loss.toLocaleString()}</td>
-                <td>${signal.timeframe}</td>
-                <td>${(signal.confidence * 100).toFixed(0)}%</td>
-                <td>
-                    <button class="action-btn">Trade</button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Failed to load commodity signals:', error);
-    }
-}
-
-// Load correlation matrix
-async function loadCorrelations() {
-    try {
-        const response = await fetch('/api/commodities/correlations');
-        const data = await response.json();
-
-        const correlations = data.correlations;
-        const commodities = Object.keys(correlations);
-
-        let matrixHTML = '<table class="correlation-table"><thead><tr><th></th>';
-        commodities.forEach(commodity => {
-            matrixHTML += `<th>${commodity}</th>`;
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCommoditiesData();
         });
-        matrixHTML += '</tr></thead><tbody>';
 
-        commodities.forEach(rowCommodity => {
-            matrixHTML += `<tr><th>${rowCommodity}</th>`;
-            commodities.forEach(colCommodity => {
-                const correlation = correlations[rowCommodity] && correlations[rowCommodity][colCommodity];
-                const value = correlation !== undefined ? correlation.toFixed(2) : (rowCommodity === colCommodity ? '1.00' : '—');
-                const cellClass = correlation > 0.5 ? 'positive' : correlation < -0.5 ? 'negative' : 'neutral';
-                matrixHTML += `<td class="${cellClass}">${value}</td>`;
-            });
-            matrixHTML += '</tr>';
-        });
-        matrixHTML += '</tbody></table>';
+        async function loadCommoditiesData() {
+            try {
+                const response = await fetch('/api/commodities/signals');
+                const data = await response.json();
 
-        document.getElementById('correlation-matrix').innerHTML = matrixHTML;
-    } catch (error) {
-        console.error('Failed to load correlations:', error);
-    }
-}
+                const tbody = document.getElementById('commodities-table');
+                tbody.innerHTML = '';
+                
+                if (data.signals && data.signals.length > 0) {
+                    data.signals.forEach(signal => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${signal.commodity}</td>
+                            <td>${signal.signal}</td>
+                            <td>₹${signal.price.toLocaleString()}</td>
+                            <td>${signal.change_percent > 0 ? '+' : ''}${signal.change_percent.toFixed(2)}%</td>
+                            <td>${(signal.confidence * 100).toFixed(1)}%</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No commodity data available</td></tr>';
+                }
 
-// Tab switching
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        // Update active tab
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-
-        // Show/hide sections
-        const section = this.dataset.section;
-        document.querySelectorAll('.analysis-section').forEach(s => {
-            s.style.display = 'none';
-        });
-        document.getElementById(`${section}-section`).style.display = 'block';
-
-        // Load appropriate data
-        if (section === 'signals') {
-            loadCommoditySignals();
-        } else if (section === 'correlations') {
-            loadCorrelations();
+            } catch (error) {
+                console.error('Error loading commodities data:', error);
+                document.getElementById('commodities-table').innerHTML = 
+                    '<tr><td colspan="5" style="text-align: center;">Error loading data</td></tr>';
+            }
         }
-    });
-});
-
-// Load data on page load
-document.addEventListener('DOMContentLoaded', loadCommoditySignals);
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>

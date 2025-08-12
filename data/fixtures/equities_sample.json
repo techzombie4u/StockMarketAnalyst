@@ -1,52 +1,50 @@
 
-[
-  {"symbol":"TCS","name":"Tata Consultancy Services","sector":"IT","price":4275.3,"momentum":78,"volatility":"MEDIUM","rsi":59,"macd":1.2,"from52wHigh":-0.06,"model":"Ensemble","verdict":"STRONG_BUY","confidence":0.74},
-  {"symbol":"RELIANCE","name":"Reliance Industries","sector":"Energy","price":2904.1,"momentum":71,"volatility":"LOW","rsi":55,"macd":0.8,"from52wHigh":-0.04,"model":"RF","verdict":"BUY","confidence":0.68},
-  {"symbol":"INFY","name":"Infosys","sector":"IT","price":1588.2,"momentum":49,"volatility":"MEDIUM","rsi":47,"macd":-0.2,"from52wHigh":-0.12,"model":"LSTM","verdict":"HOLD","confidence":0.61},
-  {"symbol":"SBIN","name":"State Bank of India","sector":"Financials","price":820.6,"momentum":66,"volatility":"MEDIUM","rsi":58,"macd":0.6,"from52wHigh":-0.03,"model":"Ensemble","verdict":"BUY","confidence":0.64}
-]
 {
   "items": [
+    {
+      "symbol": "RELIANCE",
+      "name": "Reliance Industries Ltd",
+      "sector": "Energy",
+      "price": 2850.75,
+      "change": 45.20,
+      "change_percent": 1.61,
+      "volume": 1250000,
+      "market_cap": 1925000000000,
+      "pe_ratio": 24.5,
+      "verdict": "BUY",
+      "confidence": 0.85,
+      "last_updated": "2025-01-12T10:30:00Z"
+    },
     {
       "symbol": "TCS",
       "name": "Tata Consultancy Services",
       "sector": "IT",
-      "price": 4200.50,
-      "change": 45.25,
-      "change_percent": 1.09,
-      "volume": 1250000,
-      "market_cap": 15420000000000,
-      "pe_ratio": 28.5,
-      "verdict": "BUY",
-      "last_updated": "2024-12-12T10:30:00Z"
-    },
-    {
-      "symbol": "RELIANCE",
-      "name": "Reliance Industries",
-      "sector": "Oil & Gas",
-      "price": 2850.75,
-      "change": -12.30,
-      "change_percent": -0.43,
-      "volume": 2100000,
-      "market_cap": 19250000000000,
-      "pe_ratio": 24.8,
+      "price": 4125.30,
+      "change": -12.45,
+      "change_percent": -0.30,
+      "volume": 890000,
+      "market_cap": 1510000000000,
+      "pe_ratio": 28.2,
       "verdict": "HOLD",
-      "last_updated": "2024-12-12T10:30:00Z"
+      "confidence": 0.72,
+      "last_updated": "2025-01-12T10:30:00Z"
     },
     {
-      "symbol": "HDFCBANK",
-      "name": "HDFC Bank",
-      "sector": "Banking",
-      "price": 1650.25,
-      "change": 28.15,
-      "change_percent": 1.73,
-      "volume": 1800000,
-      "market_cap": 12580000000000,
-      "pe_ratio": 19.2,
+      "symbol": "INFY",
+      "name": "Infosys Limited",
+      "sector": "IT",
+      "price": 1750.65,
+      "change": 25.10,
+      "change_percent": 1.45,
+      "volume": 1100000,
+      "market_cap": 740000000000,
+      "pe_ratio": 26.8,
       "verdict": "BUY",
-      "last_updated": "2024-12-12T10:30:00Z"
+      "confidence": 0.78,
+      "last_updated": "2025-01-12T10:30:00Z"
     }
   ],
   "total_count": 3,
-  "generated_at": "2024-12-12T10:30:00Z"
+  "generation_time_ms": 45,
+  "last_updated": "2025-01-12T10:30:00Z"
 }

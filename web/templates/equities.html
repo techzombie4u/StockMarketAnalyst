@@ -1,115 +1,106 @@
 
-{% extends "_layout.html" %}
-
-{% block title %}Equities{% endblock %}
-
-{% block content %}
-<div class="equities-container">
-    <div class="header-section">
-        <h1>Equities Analysis</h1>
-        <div class="filters">
-            <input type="number" placeholder="Min Price" id="min-price">
-            <input type="number" placeholder="Max Price" id="max-price">
-            <select id="sector-filter">
-                <option value="">All Sectors</option>
-                <option value="Banking">Banking</option>
-                <option value="IT">IT</option>
-                <option value="Energy">Energy</option>
-            </select>
-            <button onclick="applyFilters()">Apply Filters</button>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equities - Fusion Stock Analyst</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        th {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Equities</h1>
+        <p>Stock Analysis and Insights</p>
     </div>
-    
-    <div class="equities-table-container">
-        <table class="equities-table">
+
+    <div class="section">
+        <h3>Equity List</h3>
+        <table>
             <thead>
                 <tr>
                     <th>Symbol</th>
                     <th>Name</th>
-                    <th>Price</th>
-                    <th>Change</th>
-                    <th>Change %</th>
                     <th>Sector</th>
-                    <th>Volume</th>
-                    <th>Actions</th>
+                    <th>Price</th>
+                    <th>Change %</th>
+                    <th>Verdict</th>
                 </tr>
             </thead>
-            <tbody id="equities-body">
-                <!-- Data will be loaded via JavaScript -->
+            <tbody id="equities-table">
+                <tr>
+                    <td colspan="6" style="text-align: center;">Loading...</td>
+                </tr>
             </tbody>
         </table>
     </div>
-</div>
 
-<script>
-// Load equities data
-async function loadEquities() {
-    try {
-        const response = await fetch('/api/equities/list');
-        const data = await response.json();
-        
-        const tbody = document.getElementById('equities-body');
-        tbody.innerHTML = data.items.map(item => `
-            <tr>
-                <td>${item.symbol}</td>
-                <td>${item.name}</td>
-                <td>₹${item.price.toFixed(2)}</td>
-                <td class="${item.change >= 0 ? 'positive' : 'negative'}">
-                    ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}
-                </td>
-                <td class="${item.change_percent >= 0 ? 'positive' : 'negative'}">
-                    ${item.change_percent >= 0 ? '+' : ''}${item.change_percent.toFixed(2)}%
-                </td>
-                <td>${item.sector}</td>
-                <td>${item.volume.toLocaleString()}</td>
-                <td>
-                    <button class="pin-btn">⭐</button>
-                    <button class="lock-btn">🔒</button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Failed to load equities:', error);
-    }
-}
-
-function applyFilters() {
-    const minPrice = document.getElementById('min-price').value;
-    const maxPrice = document.getElementById('max-price').value;
-    const sector = document.getElementById('sector-filter').value;
-    
-    const params = new URLSearchParams();
-    if (minPrice) params.append('min_price', minPrice);
-    if (maxPrice) params.append('max_price', maxPrice);
-    if (sector) params.append('sector', sector);
-    
-    fetch(`/api/equities/list?${params}`)
-        .then(response => response.json())
-        .then(data => {
-            const tbody = document.getElementById('equities-body');
-            tbody.innerHTML = data.items.map(item => `
-                <tr>
-                    <td>${item.symbol}</td>
-                    <td>${item.name}</td>
-                    <td>₹${item.price.toFixed(2)}</td>
-                    <td class="${item.change >= 0 ? 'positive' : 'negative'}">
-                        ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}
-                    </td>
-                    <td class="${item.change_percent >= 0 ? 'positive' : 'negative'}">
-                        ${item.change_percent >= 0 ? '+' : ''}${item.change_percent.toFixed(2)}%
-                    </td>
-                    <td>${item.sector}</td>
-                    <td>${item.volume.toLocaleString()}</td>
-                    <td>
-                        <button class="pin-btn">⭐</button>
-                        <button class="lock-btn">🔒</button>
-                    </td>
-                </tr>
-            `).join('');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEquitiesData();
         });
-}
 
-// Load data on page load
-document.addEventListener('DOMContentLoaded', loadEquities);
-</script>
-{% endblock %}
+        async function loadEquitiesData() {
+            try {
+                const response = await fetch('/api/equities/list');
+                const data = await response.json();
+
+                const tbody = document.getElementById('equities-table');
+                tbody.innerHTML = '';
+                
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.symbol}</td>
+                            <td>${item.name}</td>
+                            <td>${item.sector}</td>
+                            <td>₹${item.price}</td>
+                            <td>${item.change_percent > 0 ? '+' : ''}${item.change_percent.toFixed(2)}%</td>
+                            <td>${item.verdict}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No equity data available</td></tr>';
+                }
+
+            } catch (error) {
+                console.error('Error loading equities data:', error);
+                document.getElementById('equities-table').innerHTML = 
+                    '<tr><td colspan="6" style="text-align: center;">Error loading data</td></tr>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,72 +1,67 @@
 
-from flask import Blueprint, jsonify, request
+import json
+import os
 import time
+from datetime import datetime
+from flask import Blueprint, jsonify, request
+import logging
+
+logger = logging.getLogger(__name__)
 
 kpi_bp = Blueprint('kpi', __name__)
 
-@kpi_bp.route('/metrics')
-def kpi_metrics():
-    """Get KPI metrics calculation"""
+def load_kpi_data():
+    """Load KPI metrics data"""
     try:
-        timeframe = request.args.get('timeframe', '10D')
+        filepath = os.path.join('data', 'kpi', 'kpi_metrics.json')
+        if os.path.exists(filepath):
+            with open(filepath, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading KPI data: {e}")
+    return {"metrics": {}}
+
+@kpi_bp.route('/metrics')
+def metrics():
+    """Get KPI metrics"""
+    start_time = time.time()
+    
+    try:
+        # Get query parameters
+        timeframe = request.args.get('timeframe', '5D')
         
-        metrics_data = {
-            "metrics": {
-                "portfolio": {
-                    "total_value": 525000,
-                    "day_change": 2350,
-                    "day_change_percent": 0.45,
-                    "total_return": 15.6,
-                    "total_return_percent": 3.06
-                },
-                "positions": {
-                    "total_active": 15,
-                    "winners": 9,
-                    "losers": 6,
-                    "win_rate": 60.0
-                },
-                "risk": {
-                    "var_1d": 8500,
-                    "max_drawdown": 12000,
-                    "sharpe_ratio": 1.25,
-                    "sortino_ratio": 1.68
-                },
-                "alerts": {
-                    "active_count": 3,
-                    "high_priority": 1,
-                    "medium_priority": 2
-                }
-            },
+        # Load data
+        data = load_kpi_data()
+        all_metrics = data.get('metrics', {})
+        
+        if timeframe in all_metrics:
+            metrics = all_metrics[timeframe]
+        else:
+            metrics = {}
+        
+        generation_time_ms = int((time.time() - start_time) * 1000)
+        
+        return jsonify({
             "timeframe": timeframe,
-            "calculation_time_ms": 35,
-            "last_updated": "2025-01-12T06:00:00Z"
-        }
-        
-        return jsonify(metrics_data)
+            "metrics": metrics,
+            "available_timeframes": list(all_metrics.keys()),
+            "generation_time_ms": generation_time_ms
+        })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error in KPI metrics: {e}")
+        return jsonify({
+            "error": "internal_server_error",
+            "message": str(e),
+            "metrics": {}
+        }), 500
 
 @kpi_bp.route('/status')
-def kpi_status():
+def status():
     """Get KPI system status"""
-    try:
-        status_data = {
-            "status": "healthy",
-            "last_calculation": "2025-01-12T06:00:00Z",
-            "calculation_frequency": "5m",
-            "data_sources": {
-                "equities": "connected",
-                "options": "connected",
-                "commodities": "connected"
-            },
-            "performance": {
-                "avg_calculation_time_ms": 42,
-                "success_rate": 98.5
-            }
-        }
-        
-        return jsonify(status_data)
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({
+        "status": "active",
+        "last_calculation": datetime.now().isoformat(),
+        "calculation_count": 1250,
+        "avg_calculation_time_ms": 89
+    })

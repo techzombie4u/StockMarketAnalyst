@@ -1,34 +1,17 @@
-[
-  {
-    "type": "equity",
-    "symbol": "TCS",
-    "timestamp": "2025-08-11T12:24:23.961842Z"
-  },
-  {
-    "type": "equity",
-    "symbol": "RELIANCE",
-    "timestamp": "2025-08-11T12:24:23.997860Z"
-  },
-  {
-    "type": "equity",
-    "symbol": "INFY",
-    "timestamp": "2025-08-11T12:24:24.044971Z"
-  }
-]
 {
   "pins": [
     {
-      "symbol": "TCS",
       "type": "EQUITY",
-      "pinned_at": "2024-12-12T09:15:00Z",
-      "reason": "High growth potential"
+      "symbol": "RELIANCE",
+      "pinned_at": "2025-01-12T09:15:00Z",
+      "reason": "High momentum"
     },
     {
-      "symbol": "RELIANCE",
       "type": "EQUITY", 
-      "pinned_at": "2024-12-12T08:30:00Z",
-      "reason": "Market leader"
+      "symbol": "TCS",
+      "pinned_at": "2025-01-12T09:20:00Z",
+      "reason": "Strong fundamentals"
     }
   ],
-  "last_updated": "2024-12-12T10:30:00Z"
+  "last_updated": "2025-01-12T10:30:00Z"
 }

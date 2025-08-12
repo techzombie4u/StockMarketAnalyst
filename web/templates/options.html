@@ -1,141 +1,106 @@
-{% extends "_layout.html" %}
 
-{% block title %}Options{% endblock %}
-
-{% block content %}
-<div class="options-container">
-    <div class="header-section">
-        <h1>Options Strategies</h1>
-        <div class="strategy-tabs">
-            <button class="tab-btn active" data-strategy="strangle">Strangle</button>
-            <button class="tab-btn" data-strategy="positions">Positions</button>
-        </div>
-    </div>
-
-    <div id="strangle-section" class="strategy-section">
-        <h2>Short Strangle Candidates</h2>
-        <table class="options-table">
-            <thead>
-                <tr>
-                    <th>Underlying</th>
-                    <th>Current Price</th>
-                    <th>Strike Call</th>
-                    <th>Strike Put</th>
-                    <th>Margin</th>
-                    <th>Max Profit</th>
-                    <th>Max Loss</th>
-                    <th>IV Rank</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="strangle-body">
-                <!-- Data will be loaded via JavaScript -->
-            </tbody>
-        </table>
-    </div>
-
-    <div id="positions-section" class="strategy-section" style="display: none;">
-        <h2>Current Positions</h2>
-        <table class="options-table">
-            <thead>
-                <tr>
-                    <th>Strategy</th>
-                    <th>Underlying</th>
-                    <th>Quantity</th>
-                    <th>Entry Date</th>
-                    <th>Current P&L</th>
-                    <th>Margin</th>
-                    <th>DTE</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="positions-body">
-                <!-- Data will be loaded via JavaScript -->
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<script>
-// Load strangle candidates
-async function loadStrangleCandidates() {
-    try {
-        const response = await fetch('/api/options/strangle/candidates');
-        const data = await response.json();
-
-        const tbody = document.getElementById('strangle-body');
-        tbody.innerHTML = data.candidates.map(candidate => `
-            <tr>
-                <td>${candidate.underlying}</td>
-                <td>₹${candidate.current_price.toFixed(2)}</td>
-                <td>${candidate.strike_call}</td>
-                <td>${candidate.strike_put}</td>
-                <td>₹${candidate.margin.toLocaleString()}</td>
-                <td>₹${candidate.payoff.max_profit.toLocaleString()}</td>
-                <td>₹${candidate.payoff.max_loss.toLocaleString()}</td>
-                <td>${candidate.iv_rank}%</td>
-                <td>
-                    <button class="action-btn">Trade</button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Failed to load strangle candidates:', error);
-    }
-}
-
-// Load positions
-async function loadPositions() {
-    try {
-        const response = await fetch('/api/options/positions');
-        const data = await response.json();
-
-        const tbody = document.getElementById('positions-body');
-        tbody.innerHTML = data.positions.map(position => `
-            <tr>
-                <td>${position.strategy}</td>
-                <td>${position.underlying}</td>
-                <td>${position.quantity}</td>
-                <td>${position.entry_date}</td>
-                <td class="${position.current_pnl >= 0 ? 'positive' : 'negative'}">
-                    ₹${position.current_pnl.toLocaleString()}
-                </td>
-                <td>₹${position.total_margin.toLocaleString()}</td>
-                <td>${position.days_to_expiry}</td>
-                <td>
-                    <button class="action-btn">Close</button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Failed to load positions:', error);
-    }
-}
-
-// Tab switching
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        // Update active tab
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-
-        // Show/hide sections
-        const strategy = this.dataset.strategy;
-        document.querySelectorAll('.strategy-section').forEach(section => {
-            section.style.display = 'none';
-        });
-        document.getElementById(`${strategy}-section`).style.display = 'block';
-
-        // Load appropriate data
-        if (strategy === 'strangle') {
-            loadStrangleCandidates();
-        } else if (strategy === 'positions') {
-            loadPositions();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options - Fusion Stock Analyst</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
         }
-    });
-});
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        th {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Options</h1>
+        <p>Options Trading Strategies</p>
+    </div>
 
-// Load data on page load
-document.addEventListener('DOMContentLoaded', loadStrangleCandidates);
-</script>
-{% endblock %}
+    <div class="section">
+        <h3>Strangle Candidates</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Underlying</th>
+                    <th>Call Strike</th>
+                    <th>Put Strike</th>
+                    <th>Margin</th>
+                    <th>Payoff</th>
+                    <th>Verdict</th>
+                </tr>
+            </thead>
+            <tbody id="options-table">
+                <tr>
+                    <td colspan="6" style="text-align: center;">Loading...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOptionsData();
+        });
+
+        async function loadOptionsData() {
+            try {
+                const response = await fetch('/api/options/strangle/candidates');
+                const data = await response.json();
+
+                const tbody = document.getElementById('options-table');
+                tbody.innerHTML = '';
+                
+                if (data.candidates && data.candidates.length > 0) {
+                    data.candidates.forEach(candidate => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${candidate.underlying}</td>
+                            <td>${candidate.strike_call}</td>
+                            <td>${candidate.strike_put}</td>
+                            <td>₹${candidate.margin.toLocaleString()}</td>
+                            <td>₹${candidate.payoff.toLocaleString()}</td>
+                            <td>${candidate.verdict}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No options data available</td></tr>';
+                }
+
+            } catch (error) {
+                console.error('Error loading options data:', error);
+                document.getElementById('options-table').innerHTML = 
+                    '<tr><td colspan="6" style="text-align: center;">Error loading data</td></tr>';
+            }
+        }
+    </script>
+</body>
+</html>

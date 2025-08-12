@@ -1,47 +1,27 @@
-{
-  "new_ai_analyzer": {
-    "id": "new_ai_analyzer",
-    "name": "New AI Analyzer",
-    "enabled": true,
-    "description": "Lightweight analyzer for orchestration tests",
-    "last_run_utc": null,
-    "last_result": null
-  },
-  "sentiment_analyzer": {
-    "id": "sentiment_analyzer",
-    "name": "Sentiment Analyzer",
-    "enabled": true,
-    "description": "Lightweight sentiment agent for orchestration tests",
-    "last_run_utc": null,
-    "last_result": null
-  }
-}
+
 {
   "agents": {
     "equity_analyzer": {
-      "id": "equity_analyzer",
-      "name": "Equity Analysis Agent",
-      "description": "Analyzes equity trends and provides recommendations",
+      "name": "Equity Analyzer",
+      "description": "Analyzes equity signals and trends",
       "enabled": true,
-      "last_run": "2024-12-12T10:00:00Z",
+      "last_run": "2025-01-12T10:00:00Z",
       "status": "active"
     },
     "options_strategist": {
-      "id": "options_strategist", 
-      "name": "Options Strategy Agent",
-      "description": "Identifies profitable options strategies",
+      "name": "Options Strategist",
+      "description": "Identifies options trading opportunities",
       "enabled": true,
-      "last_run": "2024-12-12T10:00:00Z",
+      "last_run": "2025-01-12T10:15:00Z",
       "status": "active"
     },
     "sentiment_tracker": {
-      "id": "sentiment_tracker",
-      "name": "Market Sentiment Agent", 
-      "description": "Tracks market sentiment and news",
+      "name": "Sentiment Tracker", 
+      "description": "Tracks market sentiment indicators",
       "enabled": true,
-      "last_run": "2024-12-12T10:00:00Z",
+      "last_run": "2025-01-12T10:05:00Z",
       "status": "active"
     }
   },
-  "last_updated": "2024-12-12T10:30:00Z"
+  "last_updated": "2025-01-12T10:30:00Z"
 }

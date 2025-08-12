@@ -1,18 +1,12 @@
-[
-  {
-    "type": "option",
-    "symbol": "NIFTY",
-    "timestamp": "2025-08-11T12:24:24.026052Z"
-  }
-]
+
 {
   "locks": [
     {
-      "symbol": "VOLATILE_STOCK",
       "type": "EQUITY",
-      "locked_at": "2024-12-12T09:00:00Z",
-      "reason": "High volatility warning"
+      "symbol": "YESBANK",
+      "locked_at": "2025-01-12T08:45:00Z",
+      "reason": "High risk"
     }
   ],
-  "last_updated": "2024-12-12T10:30:00Z"
+  "last_updated": "2025-01-12T10:30:00Z"
 }

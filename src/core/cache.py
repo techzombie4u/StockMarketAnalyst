@@ -1,155 +1,116 @@
-from time import time
-from typing import Any, Dict, Optional, Union
-import threading
-import gc
+import json
+import time
+import os
+from typing import Any, Dict, Optional, Callable
 from functools import wraps
+import threading
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TTLCache:
-    """Thread-safe TTL (Time To Live) cache implementation"""
-
-    def __init__(self, default_ttl: int = 300):  # 5 minutes default
+    def __init__(self, default_ttl: int = 300):
+        self.cache = {}
+        self.timestamps = {}
         self.default_ttl = default_ttl
-        self._cache: Dict[str, Dict[str, Any]] = {}
-        self._lock = threading.RLock()
-
-    def _now_iso(self) -> str:
-        """Get current time in ISO format"""
-        from datetime import datetime
-        return datetime.now().isoformat()
-
-    def _is_expired(self, entry: Dict[str, Any]) -> bool:
-        """Check if cache entry is expired"""
-        return time() > entry['expires_at']
+        self.lock = threading.Lock()
 
     def get(self, key: str) -> Optional[Any]:
-        """Get value from cache"""
-        with self._lock:
-            if key not in self._cache:
+        with self.lock:
+            if key not in self.cache:
                 return None
 
-            entry = self._cache[key]
-            if self._is_expired(entry):
-                del self._cache[key]
+            if time.time() - self.timestamps[key] > self.default_ttl:
+                del self.cache[key]
+                del self.timestamps[key]
                 return None
 
-            # Update access time
-            entry['last_accessed'] = self._now_iso()
-            return entry['value']
+            return self.cache[key]
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
-        """Set value in cache with TTL"""
-        if ttl is None:
-            ttl = self.default_ttl
+    def set(self, key: str, value: Any, ttl: Optional[int] = None):
+        with self.lock:
+            self.cache[key] = value
+            self.timestamps[key] = time.time()
 
-        with self._lock:
-            self._cache[key] = {
-                'value': value,
-                'created_at': self._now_iso(),
-                'last_accessed': self._now_iso(),
-                'expires_at': time() + ttl,
-                'ttl': ttl
-            }
+    def clear(self):
+        with self.lock:
+            self.cache.clear()
+            self.timestamps.clear()
 
-    def delete(self, key: str) -> bool:
-        """Delete key from cache"""
-        with self._lock:
-            if key in self._cache:
-                del self._cache[key]
-                return True
-            return False
+# Global cache instance
+_cache = TTLCache()
 
-    def clear(self) -> None:
-        """Clear all cache entries"""
-        with self._lock:
-            self._cache.clear()
-            gc.collect()
-
-    def cleanup_expired(self) -> int:
-        """Remove expired entries and return count removed"""
-        with self._lock:
-            expired_keys = []
-            for key, entry in self._cache.items():
-                if self._is_expired(entry):
-                    expired_keys.append(key)
-
-            for key in expired_keys:
-                del self._cache[key]
-
-            if expired_keys:
-                gc.collect()
-
-            return len(expired_keys)
-
-    def stats(self) -> Dict[str, Any]:
-        """Get cache statistics"""
-        with self._lock:
-            total_entries = len(self._cache)
-            expired_count = sum(1 for entry in self._cache.values() if self._is_expired(entry))
-
-            return {
-                'total_entries': total_entries,
-                'active_entries': total_entries - expired_count,
-                'expired_entries': expired_count,
-                'memory_usage_mb': len(str(self._cache)) / (1024 * 1024)
-            }
-
-# Global cache instances
-_app_cache = TTLCache(default_ttl=300)  # 5 minutes
-_kpi_cache = TTLCache(default_ttl=180)  # 3 minutes
-_data_cache = TTLCache(default_ttl=600)  # 10 minutes
-
-def get_app_cache() -> TTLCache:
-    """Get application-level cache"""
-    return _app_cache
-
-def get_kpi_cache() -> TTLCache:
-    """Get KPI-specific cache"""
-    return _kpi_cache
-
-def get_data_cache() -> TTLCache:
-    """Get data-specific cache"""
-    return _data_cache
-
-def cached(ttl: int = 300, cache_name: str = 'app'):
-    """Decorator for caching function results"""
-    def decorator(func):
+def ttl_cache(ttl: int = 300):
+    """
+    TTL cache decorator
+    """
+    def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # Select cache
-            if cache_name == 'kpi':
-                cache = _kpi_cache
-            elif cache_name == 'data':
-                cache = _data_cache
-            else:
-                cache = _app_cache
-
-            # Create cache key
+            # Create cache key from function name and arguments
             cache_key = f"{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
 
             # Try to get from cache
-            result = cache.get(cache_key)
-            if result is not None:
-                return result
+            cached_result = _cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
 
             # Execute function and cache result
             result = func(*args, **kwargs)
-            cache.set(cache_key, result, ttl)
-            return result
+            _cache.set(cache_key, result, ttl)
 
+            return result
         return wrapper
     return decorator
 
-def clear_all_caches():
-    """Clear all cache instances"""
-    _app_cache.clear()
-    _kpi_cache.clear()
-    _data_cache.clear()
-    print("🧹 All caches cleared")
+def get_cache_stats() -> Dict[str, Any]:
+    """Get cache statistics"""
+    with _cache.lock:
+        return {
+            "cache_size": len(_cache.cache),
+            "cache_keys": list(_cache.cache.keys())
+        }
 
-def cache_stats() -> Dict[str, Any]:
-    """Get statistics for all caches"""
-    return {
-        'app_cache': _app_cache.stats(),
-        'kpi_cache': _kpi_cache.stats(),
-        'data_cache': _data_cache.stats()
-    }
+def clear_cache():
+    """Clear all cached data"""
+    _cache.clear()
+    logger.info("Cache cleared")
+
+# File-based cache for persistent data
+class FileCache:
+    def __init__(self, cache_dir: str = "data/cache"):
+        self.cache_dir = cache_dir
+        os.makedirs(cache_dir, exist_ok=True)
+
+    def get_file_path(self, key: str) -> str:
+        return os.path.join(self.cache_dir, f"{key}.json")
+
+    def get(self, key: str) -> Optional[Any]:
+        file_path = self.get_file_path(key)
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+                    if 'expires_at' in data and time.time() > data['expires_at']:
+                        os.remove(file_path)
+                        return None
+                    return data.get('value')
+        except Exception as e:
+            logger.error(f"Error reading cache file {file_path}: {e}")
+        return None
+
+    def set(self, key: str, value: Any, ttl: int = 3600):
+        file_path = self.get_file_path(key)
+        try:
+            data = {
+                'value': value,
+                'expires_at': time.time() + ttl,
+                'created_at': time.time()
+            }
+            with open(file_path, 'w') as f:
+                json.dump(data, f, indent=2, default=str)
+        except Exception as e:
+            logger.error(f"Error writing cache file {file_path}: {e}")
+
+# Global file cache instance
+file_cache = FileCache()

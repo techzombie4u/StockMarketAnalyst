@@ -1,70 +1,32 @@
 
 {
-  "short_strangle": {
-    "underlying": "TCS",
-    "spot": 4250,
-    "ceStrike": 4300,
-    "peStrike": 3900,
-    "credit": 39.5,
-    "iv": 0.22,
-    "dte": 14,
-    "stopLoss": "SL at 1.8x credit per leg",
-    "status": "Open",
-    "roiPct": 0.062,
-    "margin": 64000,
-    "outcome": "—",
-    "notes": "Auto-picked ~±0.24Δ strikes",
-    "greeks": {"delta":0.01,"gamma":0.02,"theta":-0.23,"vega":0.17},
-    "payoff": {"x":[3600,3700,3800,3900,4000,4100,4200,4300,4400], "y":[-20000,-12000,-4000,0,12000,8000,0,-4000,-16000]}
-  }
-}
-{
   "candidates": [
     {
-      "underlying": "TCS",
-      "strike_call": 4400,
-      "strike_put": 4000,
-      "expiry": "2024-12-26",
+      "underlying": "RELIANCE",
+      "strike_call": 2900,
+      "strike_put": 2800,
+      "expiry": "2025-02-27",
       "margin": 45000,
-      "payoff": {
-        "max_profit": 15000,
-        "max_loss": 45000,
-        "breakeven_upper": 4415,
-        "breakeven_lower": 3985
-      },
-      "premium_call": 85.50,
-      "premium_put": 92.25,
-      "iv_call": 18.5,
-      "iv_put": 19.2,
-      "delta_call": 0.45,
-      "delta_put": -0.42,
-      "theta_call": -12.3,
-      "theta_put": -14.8,
-      "probability_profit": 0.68
+      "payoff": 8500,
+      "probability": 0.72,
+      "risk_reward": 1.89,
+      "verdict": "MODERATE_BUY",
+      "confidence": 0.74
     },
     {
-      "underlying": "RELIANCE", 
-      "strike_call": 2950,
-      "strike_put": 2750,
-      "expiry": "2024-12-26",
-      "margin": 38000,
-      "payoff": {
-        "max_profit": 12500,
-        "max_loss": 38000,
-        "breakeven_upper": 2962.5,
-        "breakeven_lower": 2737.5
-      },
-      "premium_call": 72.25,
-      "premium_put": 68.75,
-      "iv_call": 16.8,
-      "iv_put": 17.1,
-      "delta_call": 0.38,
-      "delta_put": -0.35,
-      "theta_call": -10.5,
-      "theta_put": -11.2,
-      "probability_profit": 0.71
+      "underlying": "TCS",
+      "strike_call": 4200,
+      "strike_put": 4050,
+      "expiry": "2025-02-27",
+      "margin": 52000,
+      "payoff": 9200,
+      "probability": 0.68,
+      "risk_reward": 1.77,
+      "verdict": "BUY",
+      "confidence": 0.81
     }
   ],
-  "total_count": 2,
-  "generated_at": "2024-12-12T10:30:00Z"
+  "total_candidates": 2,
+  "generation_time_ms": 156,
+  "last_updated": "2025-01-12T10:30:00Z"
 }

@@ -1,173 +1,43 @@
-{
-  "last_updated_utc": "2025-08-11T10:15:34.736Z",
-  "timeframes": {
-    "All": {
-      "prediction_kpis": {
-        "brier": 0.195,
-        "hit_rate": 0.625,
-        "calibration_error": 0.0475,
-        "top_decile_hit_rate": 1.0,
-        "top_decile_avg_edge": 0.004
-      },
-      "financial_kpis": {
-        "sharpe_90d": 6.27,
-        "sortino_90d": 30.08,
-        "win_loss_expectancy": 0.0012,
-        "max_drawdown": 0.038
-      },
-      "risk_kpis": {
-        "var_95_1d": 0.0042,
-        "var_99_1d": 0.01,
-        "slippage_bps": 6,
-        "exposure_pct": 0.25
-      }
-    },
-    "3D": {
-      "prediction_kpis": {
-        "brier": 0.2194,
-        "hit_rate": 0.5,
-        "calibration_error": 0.13,
-        "top_decile_hit_rate": 1.0,
-        "top_decile_avg_edge": 0.0035
-      },
-      "financial_kpis": {
-        "sharpe_90d": 6.27,
-        "sortino_90d": 30.08,
-        "win_loss_expectancy": 0.0012,
-        "max_drawdown": 0.038
-      },
-      "risk_kpis": {
-        "var_95_1d": 0.0042,
-        "var_99_1d": 0.01,
-        "slippage_bps": 6,
-        "exposure_pct": 0.25
-      }
-    },
-    "5D": {
-      "prediction_kpis": {
-        "brier": 0.0819,
-        "hit_rate": 1.0,
-        "calibration_error": 0.285,
-        "top_decile_hit_rate": 1.0,
-        "top_decile_avg_edge": 0.004
-      },
-      "financial_kpis": {
-        "sharpe_90d": 6.27,
-        "sortino_90d": 30.08,
-        "win_loss_expectancy": 0.0012,
-        "max_drawdown": 0.038
-      },
-      "risk_kpis": {
-        "var_95_1d": 0.0042,
-        "var_99_1d": 0.01,
-        "slippage_bps": 6,
-        "exposure_pct": 0.25
-      }
-    },
-    "10D": {
-      "prediction_kpis": {
-        "brier": 0.2281,
-        "hit_rate": 0.5,
-        "calibration_error": 0.16,
-        "top_decile_hit_rate": 0.0,
-        "top_decile_avg_edge": -0.001
-      },
-      "financial_kpis": {
-        "sharpe_90d": 6.27,
-        "sortino_90d": 30.08,
-        "win_loss_expectancy": 0.0012,
-        "max_drawdown": 0.038
-      },
-      "risk_kpis": {
-        "var_95_1d": 0.0042,
-        "var_99_1d": 0.01,
-        "slippage_bps": 6,
-        "exposure_pct": 0.25
-      }
-    },
-    "15D": {
-      "prediction_kpis": {
-        "brier": 0.0784,
-        "hit_rate": 1.0,
-        "calibration_error": 0.28,
-        "top_decile_hit_rate": 1.0,
-        "top_decile_avg_edge": 0.003
-      },
-      "financial_kpis": {
-        "sharpe_90d": 6.27,
-        "sortino_90d": 30.08,
-        "win_loss_expectancy": 0.0012,
-        "max_drawdown": 0.038
-      },
-      "risk_kpis": {
-        "var_95_1d": 0.0042,
-        "var_99_1d": 0.01,
-        "slippage_bps": 6,
-        "exposure_pct": 0.25
-      }
-    },
-    "30D": {
-      "prediction_kpis": {
-        "brier": 0.4225,
-        "hit_rate": 0.0,
-        "calibration_error": 0.65,
-        "top_decile_hit_rate": 0.0,
-        "top_decile_avg_edge": -0.002
-      },
-      "financial_kpis": {
-        "sharpe_90d": 6.27,
-        "sortino_90d": 30.08,
-        "win_loss_expectancy": 0.0012,
-        "max_drawdown": 0.038
-      },
-      "risk_kpis": {
-        "var_95_1d": 0.0042,
-        "var_99_1d": 0.01,
-        "slippage_bps": 6,
-        "exposure_pct": 0.25
-      }
-    }
-  },
-  "kill_switch": {
-    "active": false,
-    "reasons": []
-  }
-}
+
 {
   "metrics": {
     "1D": {
-      "top_gainers": 45,
-      "top_losers": 38,
-      "market_momentum": 67.5,
-      "volatility_index": 23.4,
-      "sector_rotation": 8.2,
-      "risk_sentiment": 72.1
+      "total_signals": 25,
+      "buy_signals": 12,
+      "sell_signals": 8,
+      "hold_signals": 5,
+      "avg_confidence": 0.76,
+      "top_performer": "RELIANCE",
+      "generation_time_ms": 123
     },
     "5D": {
-      "top_gainers": 52,
-      "top_losers": 31,
-      "market_momentum": 74.2,
-      "volatility_index": 19.8,
-      "sector_rotation": 12.7,
-      "risk_sentiment": 78.5
+      "total_signals": 145,
+      "buy_signals": 68,
+      "sell_signals": 42,
+      "hold_signals": 35,
+      "avg_confidence": 0.73,
+      "top_performer": "TCS",
+      "generation_time_ms": 187
     },
     "10D": {
-      "top_gainers": 48,
-      "top_losers": 35,
-      "market_momentum": 71.8,
-      "volatility_index": 21.2,
-      "sector_rotation": 10.5,
-      "risk_sentiment": 75.3
+      "total_signals": 289,
+      "buy_signals": 134,
+      "sell_signals": 89,
+      "hold_signals": 66,
+      "avg_confidence": 0.71,
+      "top_performer": "INFY",
+      "generation_time_ms": 234
     },
     "30D": {
-      "top_gainers": 56,
-      "top_losers": 27,
-      "market_momentum": 82.1,
-      "volatility_index": 16.9,
-      "sector_rotation": 15.8,
-      "risk_sentiment": 84.2
+      "total_signals": 856,
+      "buy_signals": 398,
+      "sell_signals": 267,
+      "hold_signals": 191,
+      "avg_confidence": 0.69,
+      "top_performer": "HDFC",
+      "generation_time_ms": 345
     }
   },
-  "last_updated": "2024-12-12T10:30:00Z",
-  "calculation_time_ms": 125
+  "last_updated": "2025-01-12T10:30:00Z",
+  "generation_time_ms": 89
 }
