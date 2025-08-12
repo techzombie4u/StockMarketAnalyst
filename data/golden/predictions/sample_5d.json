@@ -1,0 +1,83 @@
+
+[
+  {
+    "predicted": 3450.5,
+    "actual": 3485.2,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "TCS",
+    "confidence": 78.0,
+    "timeframe": "5D"
+  },
+  {
+    "predicted": 2800.0,
+    "actual": 2775.8,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "RELIANCE",
+    "confidence": 82.0,
+    "timeframe": "5D"
+  },
+  {
+    "predicted": 1850.5,
+    "actual": 1870.3,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "HDFC",
+    "confidence": 73.0,
+    "timeframe": "5D"
+  },
+  {
+    "predicted": 2150.0,
+    "actual": 2140.5,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "INFY",
+    "confidence": 87.0,
+    "timeframe": "5D"
+  },
+  {
+    "predicted": 1650.8,
+    "actual": 1665.2,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "ICICI",
+    "confidence": 75.0,
+    "timeframe": "5D"
+  },
+  {
+    "predicted": 3200.0,
+    "actual": 3180.5,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "ITC",
+    "confidence": 79.0,
+    "timeframe": "5D"
+  },
+  {
+    "predicted": 2450.5,
+    "actual": 2490.1,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "SBIN",
+    "confidence": 77.0,
+    "timeframe": "5D"
+  },
+  {
+    "predicted": 1890.0,
+    "actual": 1905.4,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "AXIS",
+    "confidence": 76.0,
+    "timeframe": "5D"
+  },
+  {
+    "predicted": 1200.5,
+    "actual": 1195.2,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "WIPRO",
+    "confidence": 71.0,
+    "timeframe": "5D"
+  },
+  {
+    "predicted": 9800.0,
+    "actual": 9850.5,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "MARUTI",
+    "confidence": 83.0,
+    "timeframe": "5D"
+  }
+]

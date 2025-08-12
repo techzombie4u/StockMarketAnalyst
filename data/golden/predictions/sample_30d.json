@@ -1,0 +1,99 @@
+
+[
+  {
+    "predicted": 3450.5,
+    "actual": 3520.8,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "TCS",
+    "confidence": 68.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 2800.0,
+    "actual": 2750.2,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "RELIANCE",
+    "confidence": 72.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 1850.5,
+    "actual": 1920.7,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "HDFC",
+    "confidence": 65.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 2150.0,
+    "actual": 2080.5,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "INFY",
+    "confidence": 75.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 1650.8,
+    "actual": 1715.3,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "ICICI",
+    "confidence": 70.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 3200.0,
+    "actual": 3150.2,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "ITC",
+    "confidence": 73.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 2450.5,
+    "actual": 2520.8,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "SBIN",
+    "confidence": 69.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 1890.0,
+    "actual": 1945.6,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "AXIS",
+    "confidence": 71.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 1200.5,
+    "actual": 1180.2,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "WIPRO",
+    "confidence": 66.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 9800.0,
+    "actual": 9950.5,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "MARUTI",
+    "confidence": 74.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 1450.0,
+    "actual": 1425.8,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "TITAN",
+    "confidence": 67.0,
+    "timeframe": "30D"
+  },
+  {
+    "predicted": 520.5,
+    "actual": 535.2,
+    "timestamp": "2025-01-01T09:30:00",
+    "symbol": "TECHM",
+    "confidence": 72.0,
+    "timeframe": "30D"
+  }
+]
