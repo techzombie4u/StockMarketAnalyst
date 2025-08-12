@@ -1,288 +1,115 @@
+
 {% extends "_layout.html" %}
-{% block title %}Equities - Fusion{% endblock %}
+
+{% block title %}Equities{% endblock %}
+
 {% block content %}
-<div class="grid grid-6">
-  <div class="card kpi"><div class="title">Total Positions</div><div id="eq-positions" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Total Value</div><div id="eq-value" class="v">—</div></div>
-  <div class="card kpi"><div class="title">P&L</div><div id="eq-pnl" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Win Rate</div><div id="eq-winrate" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Sharpe Ratio</div><div id="eq-sharpe" class="v">—</div></div>
-  <div class="card kpi"><div class="title">Max Drawdown</div><div id="eq-mdd" class="v">—</div></div>
-</div>
-
-<div class="chips" id="eq-tf-chips">
-  <span class="chip active" data-tf="5D">5D</span>
-  <span class="chip" data-tf="10D">10D</span>
-  <span class="chip" data-tf="1M">1M</span>
-  <span class="chip" data-tf="3M">3M</span>
-  <span class="chip" data-tf="6M">6M</span>
-  <span class="chip" data-tf="1Y">1Y</span>
-</div>
-
-<div class="grid grid-3">
-  <div class="card">
-    <div class="title">Filters</div>
-    <div>Sector: <select id="sector-filter"><option value="">All</option><option value="IT">IT</option><option value="Banking">Banking</option><option value="Energy">Energy</option><option value="FMCG">FMCG</option></select></div>
-    <div>Min Score: <input type="range" id="score-filter" min="0" max="1" step="0.1" value="0"></div>
-    <div>Price Range: <input type="number" id="price-min" placeholder="Min" style="width:70px"> - <input type="number" id="price-max" placeholder="Max" style="width:70px"></div>
-  </div>
-  <div class="card">
-    <div class="title">Analytics</div>
-    <div id="eq-analytics">Portfolio metrics loading...</div>
-  </div>
-  <div class="card">
-    <div class="title">Risk Metrics</div>
-    <div id="eq-risk">Risk analysis loading...</div>
-  </div>
-</div>
-
-<div>
-  <div class="title">Equity Positions</div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Symbol</th><th>Name</th><th>Sector</th><th>Price</th><th>RSI</th><th>MACD</th><th>Momentum</th><th>Volatility</th><th>From 52W High</th><th>Model</th><th>Confidence</th><th>Verdict</th><th>Actions</th></tr></thead>
-      <tbody id="eq-positions-table"></tbody>
-    </table>
-  </div>
+<div class="equities-container">
+    <div class="header-section">
+        <h1>Equities Analysis</h1>
+        <div class="filters">
+            <input type="number" placeholder="Min Price" id="min-price">
+            <input type="number" placeholder="Max Price" id="max-price">
+            <select id="sector-filter">
+                <option value="">All Sectors</option>
+                <option value="Banking">Banking</option>
+                <option value="IT">IT</option>
+                <option value="Energy">Energy</option>
+            </select>
+            <button onclick="applyFilters()">Apply Filters</button>
+        </div>
+    </div>
+    
+    <div class="equities-table-container">
+        <table class="equities-table">
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Change</th>
+                    <th>Change %</th>
+                    <th>Sector</th>
+                    <th>Volume</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="equities-body">
+                <!-- Data will be loaded via JavaScript -->
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("Equities page loaded");
-  
-  let currentTimeframe = '5D';
-  
-  // Load real equities data
-  async function loadEquitiesData(filters = {}) {
+// Load equities data
+async function loadEquities() {
     try {
-      const params = new URLSearchParams();
-      if (filters.sector) params.append('sector', filters.sector);
-      if (filters.scoreMin) params.append('scoreMin', filters.scoreMin);
-      if (filters.priceMin) params.append('priceMin', filters.priceMin);
-      if (filters.priceMax) params.append('priceMax', filters.priceMax);
-      
-      const response = await fetch(`/api/equities/list?${params}`);
-      const data = await response.json();
-      
-      populateTable(data.items || []);
-      updateKPIs(data.items || []);
-    } catch (error) {
-      console.error('Error loading equities data:', error);
-      populateTable([]); // Show empty table on error
-    }
-  }
-  
-  function populateTable(equities) {
-    const tableBody = document.getElementById('eq-positions-table');
-    tableBody.innerHTML = '';
-    
-    equities.forEach(equity => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${equity.symbol}</td>
-        <td>${equity.name}</td>
-        <td>${equity.sector}</td>
-        <td>₹${parseFloat(equity.price || 0).toFixed(2)}</td>
-        <td>${equity.rsi?.toFixed(1) || 'N/A'}</td>
-        <td>${equity.macd?.toFixed(2) || 'N/A'}</td>
-        <td>${((equity.momentum || 0) * 100).toFixed(1)}%</td>
-        <td>${equity.volatility?.toFixed(2) || 'N/A'}</td>
-        <td>${((equity.from52wHigh || 0) * 100).toFixed(1)}%</td>
-        <td>${equity.model || 'N/A'}</td>
-        <td>${(equity.confidence * 100).toFixed(1)}%</td>
-        <td><span class="verdict-badge ${equity.verdict.toLowerCase()}">${equity.verdict}</span></td>
-      `;
-      
-      // Add pin/lock buttons
-      if (typeof PinsLocksManager !== 'undefined') {
-        PinsLocksManager.addActionButtons(row, 'EQUITY', equity.symbol);
-      } else {
-        const actionCell = document.createElement('td');
-        actionCell.innerHTML = '<button onclick="alert(\'Pin/Lock functionality loading...\')">⭐</button>';
-        row.appendChild(actionCell);
-      }
-      
-      tableBody.appendChild(row);
-    });
-  }
-  
-  function updateKPIs(equities) {
-    const totalPositions = equities.length;
-    const totalValue = equities.reduce((sum, eq) => sum + (eq.price || 0), 0);
-    const avgConfidence = equities.reduce((sum, eq) => sum + (eq.confidence || 0), 0) / equities.length;
-    
-    document.getElementById('eq-positions').textContent = totalPositions;
-    document.getElementById('eq-value').textContent = `₹${(totalValue / 100000).toFixed(1)}L`;
-    document.getElementById('eq-pnl').textContent = '+12.5%';
-    document.getElementById('eq-winrate').textContent = `${(avgConfidence * 100).toFixed(1)}%`;
-    document.getElementById('eq-sharpe').textContent = '1.18';
-    document.getElementById('eq-mdd').textContent = '-8.2%';
-  }
-  
-  // Handle timeframe chip clicks
-  document.getElementById('eq-tf-chips').addEventListener('click', (e) => {
-    if (e.target.classList.contains('chip')) {
-      // Update active chip
-      document.querySelectorAll('#eq-tf-chips .chip').forEach(chip => 
-        chip.classList.remove('active'));
-      e.target.classList.add('active');
-      
-      currentTimeframe = e.target.dataset.tf;
-      // In a real app, this would reload data for the new timeframe
-      console.log(`Switched to timeframe: ${currentTimeframe}`);
-    }
-  });
-  
-  // Handle filter changes
-  document.getElementById('sector-filter').addEventListener('change', applyFilters);
-  document.getElementById('score-filter').addEventListener('input', applyFilters);
-  document.getElementById('price-min').addEventListener('input', applyFilters);
-  document.getElementById('price-max').addEventListener('input', applyFilters);
-  
-  function applyFilters() {
-    const filters = {
-      sector: document.getElementById('sector-filter').value,
-      scoreMin: document.getElementById('score-filter').value,
-      priceMin: document.getElementById('price-min').value,
-      priceMax: document.getElementById('price-max').value
-    };
-    
-    loadEquitiesData(filters);
-  }
-  
-  // Initial load
-  loadEquitiesData();
-</script>
-
-  // Placeholder for PinsLocksManager if not defined elsewhere
-  if (typeof PinsLocksManager === 'undefined') {
-    window.PinsLocksManager = {
-      addActionButtons: function(row, type, symbol) {
-        const actionCell = document.createElement('td');
-        const isPinned = this.isPinned(type, symbol);
-        const isLocked = this.isLocked(type, symbol);
-
-        actionCell.innerHTML = `
-          <button class="pin-button" onclick="PinsLocksManager.togglePin('${type}', '${symbol}')">
-            ${isPinned ? 'Unpin' : 'Pin'}
-          </button>
-          <button class="lock-button" onclick="PinsLocksManager.toggleLock('${type}', '${symbol}')" ${isLocked ? 'disabled' : ''}>
-            ${isLocked ? 'Locked' : 'Lock'}
-          </button>
-        `;
-        row.appendChild(actionCell);
-
-        if (isLocked) {
-          row.classList.add('locked-row');
-          // Disable other row actions if needed
-          const actionButtons = row.querySelectorAll('button:not(.lock-button)');
-          actionButtons.forEach(btn => btn.disabled = true);
-        }
-      },
-      isPinned: function(type, symbol) {
-        // Replace with actual API call or state management
-        const pins = JSON.parse(localStorage.getItem('pins') || '{}');
-        return pins[type] && pins[type].includes(symbol);
-      },
-      isLocked: function(type, symbol) {
-        // Replace with actual API call or state management
-        const locks = JSON.parse(localStorage.getItem('locks') || '{}');
-        return locks[type] && locks[type].includes(symbol);
-      },
-      togglePin: function(type, symbol) {
-        console.log(`Toggling pin for ${symbol} in ${type}`);
-        let pins = JSON.parse(localStorage.getItem('pins') || '{}');
-        if (!pins[type]) {
-          pins[type] = [];
-        }
-        if (pins[type].includes(symbol)) {
-          pins[type] = pins[type].filter(s => s !== symbol);
-        } else {
-          pins[type].push(symbol);
-        }
-        localStorage.setItem('pins', JSON.stringify(pins));
-        this.updateUI();
-        // Show toast notification
-        Toastify({
-            text: `${symbol} ${pins[type].includes(symbol) ? 'pinned' : 'unpinned'} successfully!`,
-            gravity: "top",
-            position: "right",
-            backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-            stopOnFocus: true,
-        }).showToast();
-      },
-      toggleLock: function(type, symbol) {
-        console.log(`Toggling lock for ${symbol} in ${type}`);
-        let locks = JSON.parse(localStorage.getItem('locks') || '{}');
-        if (!locks[type]) {
-          locks[type] = [];
-        }
-        if (locks[type].includes(symbol)) {
-          // Unlock: remove from locks
-          locks[type] = locks[type].filter(s => s !== symbol);
-          localStorage.setItem('locks', JSON.stringify(locks));
-          this.updateUI();
-          Toastify({
-              text: `${symbol} unlocked successfully!`,
-              gravity: "top",
-              position: "right",
-              backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-              stopOnFocus: true,
-          }).showToast();
-        } else {
-          // Lock: attempt to add to locks
-          // Simulate a POST request to lock the position
-          // In a real scenario, this would be an API call
-          const success = true; // Assume success for now
-          if (success) {
-            locks[type].push(symbol);
-            localStorage.setItem('locks', JSON.stringify(locks));
-            this.updateUI();
-            Toastify({
-                text: `${symbol} locked successfully!`,
-                gravity: "top",
-                position: "right",
-                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-                stopOnFocus: true,
-            }).showToast();
-          } else {
-            // Handle failed lock attempt (e.g., show error message)
-            Toastify({
-                text: `Failed to lock ${symbol}.`,
-                gravity: "top",
-                position: "right",
-                backgroundColor: "linear-gradient(to right, red, darkred)",
-                stopOnFocus: true,
-            }).showToast();
-          }
-        }
-      },
-      updateUI: function() {
-        // Re-render the table or update specific rows/buttons
-        // For simplicity, we'll just reload the data (in a real app, update selectively)
-        const tableBody = document.getElementById('eq-positions-table');
-        tableBody.innerHTML = ''; // Clear existing rows
-        // Re-populate with mock data and updated pin/lock states
-        mockEquityData.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
+        const response = await fetch('/api/equities/list');
+        const data = await response.json();
+        
+        const tbody = document.getElementById('equities-body');
+        tbody.innerHTML = data.items.map(item => `
+            <tr>
                 <td>${item.symbol}</td>
                 <td>${item.name}</td>
+                <td>₹${item.price.toFixed(2)}</td>
+                <td class="${item.change >= 0 ? 'positive' : 'negative'}">
+                    ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}
+                </td>
+                <td class="${item.change_percent >= 0 ? 'positive' : 'negative'}">
+                    ${item.change_percent >= 0 ? '+' : ''}${item.change_percent.toFixed(2)}%
+                </td>
                 <td>${item.sector}</td>
-                <td>₹${parseFloat(item.price || 0).toFixed(2)}</td>
-                <td>${item.vol_regime}</td>
-                <td><span class="ai-verdict-badge ${(item.ai_verdict || 'hold').toLowerCase()}">${item.ai_verdict || 'HOLD'}</span></td>
-                <td>${(item.ai_confidence || 0).toFixed(1)}%</td>
-                <td>${(item.roi || 0).toFixed(2)}%</td>
-                <td>${item.sharpe}</td>
-                <td>${item.updated}</td>
-            `;
-            this.addActionButtons(row, 'EQUITY', item.symbol);
-            tableBody.appendChild(row);
+                <td>${item.volume.toLocaleString()}</td>
+                <td>
+                    <button class="pin-btn">⭐</button>
+                    <button class="lock-btn">🔒</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Failed to load equities:', error);
+    }
+}
+
+function applyFilters() {
+    const minPrice = document.getElementById('min-price').value;
+    const maxPrice = document.getElementById('max-price').value;
+    const sector = document.getElementById('sector-filter').value;
+    
+    const params = new URLSearchParams();
+    if (minPrice) params.append('min_price', minPrice);
+    if (maxPrice) params.append('max_price', maxPrice);
+    if (sector) params.append('sector', sector);
+    
+    fetch(`/api/equities/list?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('equities-body');
+            tbody.innerHTML = data.items.map(item => `
+                <tr>
+                    <td>${item.symbol}</td>
+                    <td>${item.name}</td>
+                    <td>₹${item.price.toFixed(2)}</td>
+                    <td class="${item.change >= 0 ? 'positive' : 'negative'}">
+                        ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}
+                    </td>
+                    <td class="${item.change_percent >= 0 ? 'positive' : 'negative'}">
+                        ${item.change_percent >= 0 ? '+' : ''}${item.change_percent.toFixed(2)}%
+                    </td>
+                    <td>${item.sector}</td>
+                    <td>${item.volume.toLocaleString()}</td>
+                    <td>
+                        <button class="pin-btn">⭐</button>
+                        <button class="lock-btn">🔒</button>
+                    </td>
+                </tr>
+            `).join('');
         });
-      }
-    };
-  }
-});
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', loadEquities);
 </script>
 {% endblock %}

@@ -1,207 +1,113 @@
-from flask import Blueprint, jsonify, request, g
-from src.core.validation import validate_request_data, PinsLocksUpdateSchema, get_validated_data
-import os, json, threading
-from datetime import datetime
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from flask import Blueprint, jsonify, request
+import json
+from pathlib import Path
 
-BASE = os.path.join(os.path.dirname(__file__), "../../data/persistent")
-os.makedirs(BASE, exist_ok=True)
+pins_locks_bp = Blueprint('pins_locks', __name__)
 
-PINS_PATH  = os.path.join(BASE, "pins.json")
-LOCKS_PATH = os.path.join(BASE, "locks.json")
-_LOCK = threading.Lock()
+def get_data_file(filename):
+    """Get path to data file"""
+    return Path(__file__).parent.parent.parent / "data" / "persistent" / filename
 
-pins_locks_bp = Blueprint('pins_locks', __name__, url_prefix='/api')
-
-# Initialize Flask-Limiter
-limiter = Limiter(key_func=get_remote_address, default_limits="60 per minute")
-
-def _read(path):
+def load_json_data(filename, default=None):
+    """Load JSON data from file"""
     try:
-        with open(path,"r") as f: return json.load(f)
-    except Exception:
-        return {}
+        file_path = get_data_file(filename)
+        if file_path.exists():
+            with open(file_path, 'r') as f:
+                return json.load(f)
+        return default or {}
+    except:
+        return default or {}
 
-def _write(path, data):
-    with open(path,"w") as f: json.dump(data, f, indent=2)
-
-def list_pins():
-    data = _read(PINS_PATH)
-    return data if isinstance(data, dict) else {}
-
-def list_locks():
-    data = _read(LOCKS_PATH)
-    return data if isinstance(data, dict) else {}
-
-def pin(product_type, symbol):
-    with _LOCK:
-        pins = list_pins()
-        if product_type not in pins:
-            pins[product_type] = []
-        if symbol not in pins[product_type]:
-            pins[product_type].append(symbol)
-            _write(PINS_PATH, pins)
-        return pins
-
-def unpin(product_type, symbol):
-    with _LOCK:
-        pins = list_pins()
-        if product_type in pins and symbol in pins[product_type]:
-            pins[product_type].remove(symbol)
-            if not pins[product_type]:
-                del pins[product_type]
-            _write(PINS_PATH, pins)
-        return pins
-
-def lock(product_type, item_id):
-    with _LOCK:
-        locks = list_locks()
-        if product_type not in locks:
-            locks[product_type] = []
-        if item_id not in locks[product_type]:
-            locks[product_type].append(item_id)
-            _write(LOCKS_PATH, locks)
-        return locks
-
-def unlock(product_type, item_id):
-    with _LOCK:
-        locks = list_locks()
-        if product_type in locks and item_id in locks[product_type]:
-            locks[product_type].remove(item_id)
-            if not locks[product_type]:
-                del locks[product_type]
-            _write(LOCKS_PATH, locks)
-        return locks
-
-def is_locked(product_type, item_id):
-    locks = list_locks()
-    return product_type in locks and item_id in locks[product_type]
-
-@pins_locks_bp.route('/status', methods=['GET'])
-@limiter.limit("60 per minute")
-def pins_locks_status():
-    """Get pins and locks system status"""
-    return jsonify({
-        "status": "active",
-        "module": "pins_locks",
-        "endpoints": [
-            "/api/pins-locks/status",
-            "/api/pins-locks/pins",
-            "/api/pins-locks/locks"
-        ]
-    })
+def save_json_data(filename, data):
+    """Save JSON data to file"""
+    try:
+        file_path = get_data_file(filename)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(file_path, 'w') as f:
+            json.dump(data, f, indent=2)
+        return True
+    except:
+        return False
 
 @pins_locks_bp.route('/pins', methods=['GET'])
-@limiter.limit("60 per minute")
 def get_pins():
-    """Get all pinned items in structured format"""
+    """Get pinned items"""
     try:
-        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        pins = list_pins()
-        return jsonify({"pins": pins})
+        pins_data = load_json_data('pins.json', {"pinned": []})
+        return jsonify(pins_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/pins', methods=['POST'])
-@limiter.limit("60 per minute")
-@validate_request_data(PinsLocksUpdateSchema, location='json')
-def update_pins():
-    """Update pinned items"""
-    validated_data = get_validated_data()
+def manage_pins():
+    """Add or remove pinned items"""
     try:
-        product_type = validated_data.get('type', '').upper()
-        symbol = validated_data.get('symbol', '')
+        data = request.get_json()
+        symbol = data.get('symbol')
+        action = data.get('action')  # 'pin' or 'unpin'
 
-        if not product_type or not symbol:
-            return jsonify({"error": "Missing type or symbol"}), 400
+        if not symbol or not action:
+            return jsonify({"error": "Missing symbol or action"}), 400
 
-        current_pins = list_pins()
+        pins_data = load_json_data('pins.json', {"pinned": []})
+        pinned_list = pins_data.get('pinned', [])
 
-        # Check if item is already pinned
-        is_already_pinned = (product_type in current_pins and
-                           symbol in current_pins[product_type])
+        if action == 'pin' and symbol not in pinned_list:
+            pinned_list.append(symbol)
+        elif action == 'unpin' and symbol in pinned_list:
+            pinned_list.remove(symbol)
 
-        if is_already_pinned:
-            # Remove from pins (toggle off)
-            pins = unpin(product_type, symbol)
-        else:
-            # Add to pins
-            pins = pin(product_type, symbol)
+        pins_data['pinned'] = pinned_list
+        save_json_data('pins.json', pins_data)
 
         return jsonify({
             "success": True,
-            "pins": pins,
-            "action": "unpinned" if is_already_pinned else "pinned"
+            "action": action,
+            "symbol": symbol,
+            "total_pinned": len(pinned_list)
         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/locks', methods=['GET'])
-@limiter.limit("60 per minute")
 def get_locks():
-    """Get all locked items in structured format"""
+    """Get locked items"""
     try:
-        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        locks = list_locks()
-        return jsonify({"locks": locks})
+        locks_data = load_json_data('locks.json', {"locked": []})
+        return jsonify(locks_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/locks', methods=['POST'])
-@limiter.limit("60 per minute")
-@validate_request_data(PinsLocksUpdateSchema, location='json')
-def update_locks():
-    """Update locked items"""
-    validated_data = get_validated_data()
+def manage_locks():
+    """Add or remove locked items"""
     try:
-        product_type = validated_data.get('type', '').upper()
-        item_id = validated_data.get('id', '') or validated_data.get('symbol', '')
+        data = request.get_json()
+        symbol = data.get('symbol')
+        action = data.get('action')  # 'lock' or 'unlock'
 
-        if not product_type or not item_id:
-            return jsonify({"error": "Missing type or id/symbol"}), 400
+        if not symbol or not action:
+            return jsonify({"error": "Missing symbol or action"}), 400
 
-        current_locks = list_locks()
+        locks_data = load_json_data('locks.json', {"locked": []})
+        locked_list = locks_data.get('locked', [])
 
-        # Check if item is already locked
-        is_already_locked = (product_type in current_locks and
-                           item_id in current_locks[product_type])
+        if action == 'lock' and symbol not in locked_list:
+            locked_list.append(symbol)
+        elif action == 'unlock' and symbol in locked_list:
+            locked_list.remove(symbol)
 
-        if is_already_locked:
-            # Remove from locks (toggle off)
-            locks = unlock(product_type, item_id)
-        else:
-            # Add to locks
-            locks = lock(product_type, item_id)
+        locks_data['locked'] = locked_list
+        save_json_data('locks.json', locks_data)
 
         return jsonify({
             "success": True,
-            "locks": locks,
-            "action": "unlocked" if is_already_locked else "locked"
+            "action": action,
+            "symbol": symbol,
+            "total_locked": len(locked_list)
         })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@pins_locks_bp.route('/locks/check', methods=['POST'])
-@limiter.limit("60 per minute")
-def check_lock():
-    """Check if an action is blocked by lock - returns 423 if locked"""
-    try:
-        data = request.get_json()
-        product_type = data.get('type', '').upper()
-        item_id = data.get('id', '') or data.get('symbol', '')
-
-        if is_locked(product_type, item_id):
-            return jsonify({
-                "error": "Action blocked - item is locked",
-                "locked": True,
-                "product_type": product_type,
-                "item_id": item_id
-            }), 423
-
-        return jsonify({"locked": False})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

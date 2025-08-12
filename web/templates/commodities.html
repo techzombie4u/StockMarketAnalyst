@@ -3,233 +3,130 @@
 {% block title %}Commodities{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-bold">Commodities</h2>
-        <div class="toolbar">
-            <button class="btn" onclick="refreshData()">Refresh</button>
+<div class="commodities-container">
+    <div class="header-section">
+        <h1>Commodities Analysis</h1>
+        <div class="analysis-tabs">
+            <button class="tab-btn active" data-section="signals">Signals</button>
+            <button class="tab-btn" data-section="correlations">Correlations</button>
         </div>
     </div>
 
-    <div class="grid grid-8 gap-3">
-          <div class="card p-4 col-span-6">
-            <div class="flex justify-between items-center mb-3">
-              <h3 class="text-sm font-medium text-muted">Commodities Signals</h3>
-              <div class="flex items-center gap-2">
-                <label class="flex items-center gap-1 text-xs text-muted">
-                  <input type="checkbox" id="seasonality-toggle" class="w-3 h-3">
-                  Seasonality overlay
-                </label>
-              </div>
-            </div>
-            <div class="space-y-2" id="commodities-table">
-              Loading...
-            </div>
-          </div>
+    <div id="signals-section" class="analysis-section">
+        <h2>Trading Signals</h2>
+        <table class="commodities-table">
+            <thead>
+                <tr>
+                    <th>Commodity</th>
+                    <th>Signal</th>
+                    <th>Strength</th>
+                    <th>Price</th>
+                    <th>Target</th>
+                    <th>Stop Loss</th>
+                    <th>Timeframe</th>
+                    <th>Confidence</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="signals-body">
+                <!-- Data will be loaded via JavaScript -->
+            </tbody>
+        </table>
+    </div>
 
-          <div class="card p-4 col-span-2">
-            <h3 class="text-sm font-medium text-muted mb-3">Correlations</h3>
-            <div id="correlations-panel" class="space-y-2">
-              Loading...
-            </div>
-          </div>
+    <div id="correlations-section" class="analysis-section" style="display: none;">
+        <h2>Correlation Matrix</h2>
+        <div id="correlation-matrix">
+            <!-- Correlation data will be loaded here -->
         </div>
+    </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-// Mock PinsLocksManager for demonstration purposes
-const PinsLocksManager = {
-    addActionButtons: function(row, type, item) {
-        const cell = document.createElement('td');
-        cell.innerHTML = `
-            <button class="pin-btn" onclick="togglePin('${type}', '${item}')">
-                ⭐
-            </button>
-            <button class="lock-btn" onclick="toggleLock('${type}', '${item}')">
-                🔒
-            </button>
-        `;
-        row.appendChild(cell);
-    },
-    togglePin: async function(type, item) {
-        console.log(`Toggling pin for ${type}: ${item}`);
-        // Replace with actual API call
-        try {
-            const response = await fetch(`/api/pins_locks/${type}/${item}/toggle`, { method: 'POST' });
-            if (!response.ok) throw new Error('Failed to toggle pin');
-            alert(`${item} pin toggled successfully!`);
-            // Update UI if needed, e.g., change star icon, update counts
-        } catch (error) {
-            console.error('Error toggling pin:', error);
-            alert('Failed to toggle pin.');
-        }
-    },
-    toggleLock: async function(type, item) {
-        console.log(`Toggling lock for ${type}: ${item}`);
-        // Replace with actual API call
-        try {
-            const response = await fetch(`/api/pins_locks/${type}/${item}/toggle_lock`, { method: 'POST' });
-            if (!response.ok) {
-                if (response.status === 423) {
-                    alert(`Cannot lock ${item}. It is currently pinned.`);
-                } else {
-                    throw new Error('Failed to toggle lock');
-                }
-            } else {
-                alert(`${item} lock toggled successfully!`);
-                // Update UI if needed, e.g., disable row actions
-            }
-        } catch (error) {
-            console.error('Error toggling lock:', error);
-            alert('Failed to toggle lock.');
-        }
-    }
-};
-
-// Load commodities data
-async function loadCommodities() {
+// Load commodity signals
+async function loadCommoditySignals() {
     try {
         const response = await fetch('/api/commodities/signals');
         const data = await response.json();
 
-        const tableBody = document.getElementById('commodities-table-body');
-        tableBody.innerHTML = ''; // Clear existing data
-
-        data.signals.forEach(signal => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
+        const tbody = document.getElementById('signals-body');
+        tbody.innerHTML = data.signals.map(signal => `
+            <tr>
                 <td>${signal.commodity}</td>
-                <td>₹${parseFloat(signal.price || 0).toFixed(2)}</td>
-                <td class="${parseFloat(signal.change || 0) >= 0 ? 'text-success' : 'text-danger'}">
-                    ${parseFloat(signal.change || 0).toFixed(2)}%
+                <td><span class="signal ${signal.signal.toLowerCase()}">${signal.signal}</span></td>
+                <td>${(signal.strength * 100).toFixed(0)}%</td>
+                <td>₹${signal.price.toLocaleString()}</td>
+                <td>₹${signal.target.toLocaleString()}</td>
+                <td>₹${signal.stop_loss.toLocaleString()}</td>
+                <td>${signal.timeframe}</td>
+                <td>${(signal.confidence * 100).toFixed(0)}%</td>
+                <td>
+                    <button class="action-btn">Trade</button>
                 </td>
-                <td><span class="badge badge-${signal.signal === 'BUY' ? 'ok' : signal.signal === 'SELL' ? 'danger' : 'warn'}">${signal.signal}</span></td>
-                <td>${parseFloat(signal.strength || 0).toFixed(1)}</td>
-                <td>${parseInt(signal.volume || 0).toLocaleString()}</td>
-            `;
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Failed to load commodity signals:', error);
+    }
+}
 
-            // Add pin/lock buttons
-            PinsLocksManager.addActionButtons(row, 'COMMODITY', signal.commodity);
+// Load correlation matrix
+async function loadCorrelations() {
+    try {
+        const response = await fetch('/api/commodities/correlations');
+        const data = await response.json();
 
-            const rowHtml = row.outerHTML;
-            tableBody.innerHTML += rowHtml;
+        const correlations = data.correlations;
+        const commodities = Object.keys(correlations);
+
+        let matrixHTML = '<table class="correlation-table"><thead><tr><th></th>';
+        commodities.forEach(commodity => {
+            matrixHTML += `<th>${commodity}</th>`;
         });
+        matrixHTML += '</tr></thead><tbody>';
+
+        commodities.forEach(rowCommodity => {
+            matrixHTML += `<tr><th>${rowCommodity}</th>`;
+            commodities.forEach(colCommodity => {
+                const correlation = correlations[rowCommodity] && correlations[rowCommodity][colCommodity];
+                const value = correlation !== undefined ? correlation.toFixed(2) : (rowCommodity === colCommodity ? '1.00' : '—');
+                const cellClass = correlation > 0.5 ? 'positive' : correlation < -0.5 ? 'negative' : 'neutral';
+                matrixHTML += `<td class="${cellClass}">${value}</td>`;
+            });
+            matrixHTML += '</tr>';
+        });
+        matrixHTML += '</tbody></table>';
+
+        document.getElementById('correlation-matrix').innerHTML = matrixHTML;
     } catch (error) {
-        console.error('Error loading commodities:', error);
+        console.error('Failed to load correlations:', error);
     }
 }
 
-async function loadCommodityDetail(symbol) {
-    try {
-        const response = await fetch(`/api/commodities/${symbol}/detail?tf=30D`);
-        const data = await response.json();
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Update active tab
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
 
-        // Seasonality overlay (placeholder for chart integration)
-        const seasonalityToggle = document.getElementById('seasonality-toggle');
-        if (seasonalityToggle.checked && data.seasonality) {
-            console.log(`Seasonality data for ${symbol}:`, data.seasonality);
-            // Here you would update a chart or display seasonality data
-        }
+        // Show/hide sections
+        const section = this.dataset.section;
+        document.querySelectorAll('.analysis-section').forEach(s => {
+            s.style.display = 'none';
+        });
+        document.getElementById(`${section}-section`).style.display = 'block';
 
-        // ATR regime bands (placeholder)
-        if (data.atr_regime_bands) {
-            console.log(`ATR regime bands for ${symbol}:`, data.atr_regime_bands);
-            // Display ATR data
-        }
-
-    } catch (error) {
-        console.error(`Error loading commodity detail for ${symbol}:`, error);
-    }
-}
-
-async function loadCorrelations(symbol) {
-    try {
-        const response = await fetch(`/api/commodities/correlations?symbol=${symbol}`);
-        const data = await response.json();
-
-        const correlationsPanel = document.getElementById('correlations-panel');
-        correlationsPanel.innerHTML = ''; // Clear existing data
-
-        for (const [commodity, correlation] of Object.entries(data)) {
-            const div = document.createElement('div');
-            div.className = 'flex justify-between text-xs';
-            div.innerHTML = `
-                <span>${commodity}</span>
-                <span>${correlation.toFixed(2)}</span>
-            `;
-            correlationsPanel.appendChild(div);
-        }
-    } catch (error) {
-        console.error(`Error loading correlations for ${symbol}:`, error);
-    }
-}
-
-
-function refreshData() {
-    loadCommodities();
-    // Assuming GOLD is the default symbol for correlations, or the currently viewed commodity
-    // This part might need adjustment based on how the user selects a commodity
-    const defaultSymbol = 'GOLD'; // Replace with actual logic to get current symbol
-    loadCorrelations(defaultSymbol);
-    // If a specific commodity is being viewed for detail, load its detail too
-    // e.g., if the user has clicked on a commodity row
-    // const selectedCommodity = getSelectedCommodity(); // Function to get selected commodity
-    // if (selectedCommodity) {
-    //     loadCommodityDetail(selectedCommodity);
-    // }
-}
-
-// Placeholder for the actual togglePin function that will interact with the backend
-async function togglePin(type, item) {
-    await PinsLocksManager.togglePin(type, item);
-    // Optionally refresh data or update UI elements related to pinned counts
-    loadCommodities(); // Simple refresh for now
-}
-
-async function toggleLock(type, item) {
-    await PinsLocksManager.toggleLock(type, item);
-    // Optionally refresh data or update UI elements related to locked states
-    loadCommodities(); // Simple refresh for now
-}
-
-
-// Load data on page load
-document.addEventListener('DOMContentLoaded', () => {
-    loadCommodities();
-    // Load correlations for a default commodity, e.g., GOLD
-    const defaultSymbol = 'GOLD'; // Replace with actual logic to get current symbol
-    loadCorrelations(defaultSymbol);
-
-    // Add event listener for seasonality toggle
-    const seasonalityToggle = document.getElementById('seasonality-toggle');
-    seasonalityToggle.addEventListener('change', () => {
-        // This would typically trigger a re-render or update of the chart
-        // For now, we'll just log the state. The actual data fetching is in loadCommodityDetail
-        console.log('Seasonality overlay:', seasonalityToggle.checked);
-        // If a commodity is already loaded, we might want to re-fetch or update its display
-        // For example:
-        // const currentlyDisplayedCommodity = getCurrentCommoditySymbol(); // Function to get current symbol
-        // if (currentlyDisplayedCommodity) {
-        //     loadCommodityDetail(currentlyDisplayedCommodity);
-        // }
-    });
-
-    // Add click listeners to commodity rows to load details and correlations
-    const tableBody = document.getElementById('commodities-table-body');
-    tableBody.addEventListener('click', (event) => {
-        const target = event.target;
-        // Find the closest table data cell that contains the commodity name
-        const commodityCell = target.closest('td');
-        if (commodityCell && commodityCell.parentNode && commodityCell.parentNode.cells) {
-            const commodityName = commodityCell.parentNode.cells[0].textContent; // Assuming commodity is in the first cell
-            if (commodityName) {
-                loadCommodityDetail(commodityName); // Load seasonality and ATR
-                loadCorrelations(commodityName);   // Load correlations
-            }
+        // Load appropriate data
+        if (section === 'signals') {
+            loadCommoditySignals();
+        } else if (section === 'correlations') {
+            loadCorrelations();
         }
     });
 });
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', loadCommoditySignals);
 </script>
 {% endblock %}

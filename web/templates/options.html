@@ -3,311 +3,139 @@
 {% block title %}Options{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-bold">Options Strategies</h2>
-        <div class="toolbar">
-            <button class="btn" onclick="refreshData()">Refresh</button>
+<div class="options-container">
+    <div class="header-section">
+        <h1>Options Strategies</h1>
+        <div class="strategy-tabs">
+            <button class="tab-btn active" data-strategy="strangle">Strangle</button>
+            <button class="tab-btn" data-strategy="positions">Positions</button>
         </div>
     </div>
 
-    <div class="table-wrap">
-        <table>
+    <div id="strangle-section" class="strategy-section">
+        <h2>Short Strangle Candidates</h2>
+        <table class="options-table">
             <thead>
                 <tr>
-                    <th>Symbol</th>
-                    <th>Strike</th>
-                    <th>Expiry</th>
-                    <th>Type</th>
-                    <th>Premium</th>
-                    <th>Delta</th>
-                    <th>Gamma</th>
-                    <th>Theta</th>
-                    <th>Vega</th>
+                    <th>Underlying</th>
+                    <th>Current Price</th>
+                    <th>Strike Call</th>
+                    <th>Strike Put</th>
+                    <th>Margin</th>
+                    <th>Max Profit</th>
+                    <th>Max Loss</th>
+                    <th>IV Rank</th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody id="options-table-body">
-                <!-- Data will be loaded here -->
+            <tbody id="strangle-body">
+                <!-- Data will be loaded via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="positions-section" class="strategy-section" style="display: none;">
+        <h2>Current Positions</h2>
+        <table class="options-table">
+            <thead>
+                <tr>
+                    <th>Strategy</th>
+                    <th>Underlying</th>
+                    <th>Quantity</th>
+                    <th>Entry Date</th>
+                    <th>Current P&L</th>
+                    <th>Margin</th>
+                    <th>DTE</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="positions-body">
+                <!-- Data will be loaded via JavaScript -->
             </tbody>
         </table>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-// Mock PinsLocksManager for frontend functionality
-class PinsLocksManager {
-    static async addActionButtons(row, category, symbol, positionId) {
-        const cell = row.insertCell(-1); // Add to the last cell
-        let isPinned = false;
-        let isLocked = false;
-
-        // Check current state (e.g., from a global variable or another API call)
-        // For this example, we'll simulate it. In a real app, you'd fetch this.
-        const currentState = this.getItemState(category, positionId);
-        isPinned = currentState.pinned;
-        isLocked = currentState.locked;
-
-        cell.innerHTML = `
-            <div class="flex items-center space-x-2">
-                <button class="${isPinned ? 'text-yellow-500' : 'text-gray-500'} pin-btn" onclick="PinsLocksManager.togglePin('${category}', '${positionId}', this)">⭐</button>
-                <button class="${isLocked ? 'text-red-500' : 'text-gray-500'} lock-btn" onclick="PinsLocksManager.toggleLock('${category}', '${positionId}', this)" ${isLocked ? 'disabled' : ''}>🔒</button>
-            </div>
-        `;
-    }
-
-    static async togglePin(category, positionId, button) {
-        const currentState = this.getItemState(category, positionId);
-        const newPinnedState = !currentState.pinned;
-        const apiEndpoint = `/api/${category.toLowerCase()}/pin`; // Assuming API endpoint for pinning
-        const method = newPinnedState ? 'POST' : 'DELETE';
-
-        try {
-            const response = await fetch(apiEndpoint, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ position_id: positionId })
-            });
-
-            if (response.ok) {
-                // Update UI
-                button.classList.toggle('text-yellow-500', newPinnedState);
-                button.classList.toggle('text-gray-500', !newPinnedState);
-                this.setItemState(category, positionId, { ...currentState, pinned: newPinnedState });
-                showToast(`${positionId} ${newPinnedState ? 'pinned' : 'unpinned'} successfully.`);
-                updatePinnedCounts(); // Update counts globally
-            } else {
-                showToast(`Failed to ${newPinnedState ? 'pin' : 'unpin'} ${positionId}.`, 'error');
-            }
-        } catch (error) {
-            console.error('Error toggling pin:', error);
-            showToast(`Error toggling pin for ${positionId}.`, 'error');
-        }
-    }
-
-    static async toggleLock(category, positionId, button) {
-        const currentState = this.getItemState(category, positionId);
-        const newLockedState = !currentState.locked;
-        const apiEndpoint = `/api/${category.toLowerCase()}/lock`; // Assuming API endpoint for locking
-        const method = newLockedState ? 'POST' : 'DELETE';
-
-        try {
-            const response = await fetch(apiEndpoint, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ position_id: positionId })
-            });
-
-            if (response.ok) {
-                // Update UI
-                button.classList.toggle('text-red-500', newLockedState);
-                button.classList.toggle('text-gray-500', !newLockedState);
-                this.setItemState(category, positionId, { ...currentState, locked: newLockedState });
-                showToast(`${positionId} ${newLockedState ? 'locked' : 'unlocked'} successfully.`);
-                // If locked, disable row actions (if any were present beyond pin/lock)
-                if (newLockedState) {
-                    button.disabled = true; // Disable lock button itself if locked
-                    // Find parent row and disable other actions if they exist
-                    const row = button.closest('tr');
-                    if (row) {
-                        row.querySelectorAll('.other-action-btn').forEach(btn => btn.disabled = true);
-                        row.classList.add('locked-row');
-                    }
-                } else {
-                    button.disabled = false; // Re-enable lock button
-                    const row = button.closest('tr');
-                    if (row) {
-                        row.querySelectorAll('.other-action-btn').forEach(btn => btn.disabled = false);
-                        row.classList.remove('locked-row');
-                    }
-                }
-            } else if (response.status === 423) {
-                showToast(`Operation blocked: ${positionId} is locked.`, 'warning');
-            } else {
-                showToast(`Failed to ${newLockedState ? 'lock' : 'unlock'} ${positionId}.`, 'error');
-            }
-        } catch (error) {
-            console.error('Error toggling lock:', error);
-            showToast(`Error toggling lock for ${positionId}.`, 'error');
-        }
-    }
-
-    // Simulate storing item states (in-memory for demo)
-    static itemStates = {};
-
-    static getItemState(category, positionId) {
-        if (!this.itemStates[category]) {
-            this.itemStates[category] = {};
-        }
-        if (!this.itemStates[category][positionId]) {
-            // Default state, you'd likely fetch this from backend on load
-            this.itemStates[category][positionId] = { pinned: false, locked: false };
-        }
-        return this.itemStates[category][positionId];
-    }
-
-    static setItemState(category, positionId, state) {
-        if (!this.itemStates[category]) {
-            this.itemStates[category] = {};
-        }
-        this.itemStates[category][positionId] = state;
-    }
-
-    static async fetchInitialStates(category, items) {
-        // In a real app, this would fetch states for all items at once
-        // For now, we'll rely on getItemState's default or simulate it
-        const positionIds = items.map(item => `${item.symbol}-${item.type}-${item.strike_price}`);
-        // Example: fetch('/api/states?category=' + category + '&ids=' + positionIds.join(','))
-        // For demo, we'll just ensure they have a default state if not present
-        items.forEach(item => {
-            const positionId = `${item.symbol}-${item.type}-${item.strike_price}`;
-            this.getItemState(category, positionId); // Ensures state exists
-        });
-    }
-}
-
-// Toast notification function
-function showToast(message, type = 'success') {
-    const toastContainer = document.getElementById('toast-container') || createToastContainer();
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
-}
-
-function createToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toast-container';
-    container.className = 'toast-container';
-    document.body.appendChild(container);
-    return container;
-}
-
-// Function to update pinned counts
-function updatePinnedCounts() {
-    // This would ideally fetch counts from backend or update based on current states
-    // For now, let's simulate updating some hypothetical global counts
-    console.log("Updating pinned counts...");
-    // Example: document.getElementById('pinned-options-count').textContent = currentPinnedOptionsCount;
-}
-
-// Load options data
-async function loadOptions() {
+// Load strangle candidates
+async function loadStrangleCandidates() {
     try {
         const response = await fetch('/api/options/strangle/candidates');
         const data = await response.json();
 
-        const tbody = document.getElementById('options-table-body');
-        tbody.innerHTML = ''; // Clear existing data
-
-        // Fetch initial states for all items
-        await PinsLocksManager.fetchInitialStates('OPTIONS', data.candidates);
-
-        data.candidates.forEach(candidate => {
-            const row = document.createElement('tr');
-            const positionId = `${candidate.symbol}-${candidate.type}-${candidate.strike_price}`;
-            row.innerHTML = `
-                <td>${candidate.symbol}</td>
-                <td>${candidate.strike_price}</td>
-                <td>${candidate.expiry}</td>
-                <td>${candidate.type}</td>
-                <td>₹${parseFloat(candidate.premium || 0).toFixed(2)}</td>
-                <td>${parseFloat(candidate.delta || 0).toFixed(3)}</td>
-                <td>${parseFloat(candidate.gamma || 0).toFixed(3)}</td>
-                <td>${parseFloat(candidate.theta || 0).toFixed(3)}</td>
-                <td>${parseFloat(candidate.vega || 0).toFixed(3)}</td>
-            `;
-
-            // Add pin/lock buttons
-            PinsLocksManager.addActionButtons(row, 'OPTIONS', candidate.symbol, positionId);
-
-            const rowHtml = row.outerHTML;
-            tbody.innerHTML += rowHtml;
-        });
+        const tbody = document.getElementById('strangle-body');
+        tbody.innerHTML = data.candidates.map(candidate => `
+            <tr>
+                <td>${candidate.underlying}</td>
+                <td>₹${candidate.current_price.toFixed(2)}</td>
+                <td>${candidate.strike_call}</td>
+                <td>${candidate.strike_put}</td>
+                <td>₹${candidate.margin.toLocaleString()}</td>
+                <td>₹${candidate.payoff.max_profit.toLocaleString()}</td>
+                <td>₹${candidate.payoff.max_loss.toLocaleString()}</td>
+                <td>${candidate.iv_rank}%</td>
+                <td>
+                    <button class="action-btn">Trade</button>
+                </td>
+            </tr>
+        `).join('');
     } catch (error) {
-        console.error('Error loading options:', error);
-        showToast('Error loading options data.', 'error');
+        console.error('Failed to load strangle candidates:', error);
     }
 }
 
-function refreshData() {
-    loadOptions();
+// Load positions
+async function loadPositions() {
+    try {
+        const response = await fetch('/api/options/positions');
+        const data = await response.json();
+
+        const tbody = document.getElementById('positions-body');
+        tbody.innerHTML = data.positions.map(position => `
+            <tr>
+                <td>${position.strategy}</td>
+                <td>${position.underlying}</td>
+                <td>${position.quantity}</td>
+                <td>${position.entry_date}</td>
+                <td class="${position.current_pnl >= 0 ? 'positive' : 'negative'}">
+                    ₹${position.current_pnl.toLocaleString()}
+                </td>
+                <td>₹${position.total_margin.toLocaleString()}</td>
+                <td>${position.days_to_expiry}</td>
+                <td>
+                    <button class="action-btn">Close</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Failed to load positions:', error);
+    }
 }
 
-// Initial load
-document.addEventListener('DOMContentLoaded', loadOptions);
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Update active tab
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        // Show/hide sections
+        const strategy = this.dataset.strategy;
+        document.querySelectorAll('.strategy-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        document.getElementById(`${strategy}-section`).style.display = 'block';
+
+        // Load appropriate data
+        if (strategy === 'strangle') {
+            loadStrangleCandidates();
+        } else if (strategy === 'positions') {
+            loadPositions();
+        }
+    });
+});
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', loadStrangleCandidates);
 </script>
-
-<style>
-.toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.toast {
-    padding: 10px 20px;
-    border-radius: 5px;
-    color: white;
-    font-weight: bold;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.toast-success {
-    background-color: #4CAF50; /* Green */
-}
-
-.toast-error {
-    background-color: #f44336; /* Red */
-}
-
-.toast-warning {
-    background-color: #ff9800; /* Orange */
-}
-
-/* Style for locked rows */
-.locked-row {
-    background-color: #f8f8f8; /* Light gray background */
-    opacity: 0.7; /* Slightly faded */
-    cursor: not-allowed; /* Indicate disabled interaction */
-}
-
-/* Ensure buttons are clickable even if row is visually styled as disabled */
-.locked-row .pin-btn,
-.locked-row .lock-btn {
-    cursor: pointer;
-}
-
-/* Default styles for pin/lock buttons */
-.pin-btn, .lock-btn {
-    background: none;
-    border: none;
-    padding: 5px;
-    cursor: pointer;
-    font-size: 1.2em;
-}
-
-.pin-btn:hover, .lock-btn:hover {
-    opacity: 0.8;
-}
-
-/* Specific hover for pin */
-.pin-btn:hover {
-    color: #e0e000; /* Yellow on hover */
-}
-
-/* Specific hover for lock */
-.lock-btn:hover {
-    color: #e53e3e; /* Red on hover */
-}
-</style>
+{% endblock %}

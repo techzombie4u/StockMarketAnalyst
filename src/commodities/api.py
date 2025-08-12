@@ -3,18 +3,92 @@ from src.core.cache import ttl_cache, now_iso
 from src.core.validation import validate_request_data, CommoditiesDetailSchema, CommoditiesCorrelationsSchema, get_validated_data
 import random
 import time
+from datetime import datetime, timedelta
 
 commodities_bp = Blueprint("commodities", __name__)
 _cache = ttl_cache(ttl_sec=30, namespace="commodities")
-
 _SIGS=[
   {"ticker":"GOLD","contract":"AUG","verdict":"HOLD","confidence":0.58,"atrPct":0.012,"rsi":51,"breakout":46,"updated":now_iso()},
   {"ticker":"SILVER","contract":"AUG","verdict":"BUY","confidence":0.62,"atrPct":0.016,"rsi":57,"breakout":61,"updated":now_iso()}
 ]
 
-@commodities_bp.get("/signals")
-def get_signals():
-  return jsonify(_SIGS)
+@commodities_bp.route('/signals')
+def commodity_signals():
+    """Get commodity trading signals"""
+    try:
+        signals_data = {
+            "signals": [
+                {
+                    "commodity": "GOLD",
+                    "signal": "BUY",
+                    "strength": 0.82,
+                    "price": 62500,
+                    "target": 65000,
+                    "stop_loss": 61000,
+                    "timeframe": "5D",
+                    "confidence": 0.78
+                },
+                {
+                    "commodity": "CRUDE_OIL",
+                    "signal": "SELL",
+                    "strength": 0.75,
+                    "price": 6850,
+                    "target": 6600,
+                    "stop_loss": 7000,
+                    "timeframe": "3D",
+                    "confidence": 0.71
+                },
+                {
+                    "commodity": "SILVER",
+                    "signal": "HOLD",
+                    "strength": 0.65,
+                    "price": 74500,
+                    "target": 76000,
+                    "stop_loss": 73000,
+                    "timeframe": "10D",
+                    "confidence": 0.68
+                }
+            ],
+            "total_signals": 3,
+            "last_updated": "2025-01-12T06:00:00Z"
+        }
+
+        return jsonify(signals_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@commodities_bp.route('/correlations')
+def commodity_correlations():
+    """Get commodity correlation matrix"""
+    try:
+        correlations_data = {
+            "correlations": {
+                "GOLD": {
+                    "SILVER": 0.78,
+                    "CRUDE_OIL": -0.12,
+                    "COPPER": 0.35,
+                    "USD_INDEX": -0.68
+                },
+                "CRUDE_OIL": {
+                    "GOLD": -0.12,
+                    "NATURAL_GAS": 0.45,
+                    "USD_INDEX": -0.32
+                },
+                "SILVER": {
+                    "GOLD": 0.78,
+                    "COPPER": 0.62,
+                    "USD_INDEX": -0.55
+                }
+            },
+            "timeframe": "30D",
+            "last_updated": "2025-01-12T06:00:00Z"
+        }
+
+        return jsonify(correlations_data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @commodities_bp.get("/kpis")
 def get_kpis():

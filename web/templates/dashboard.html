@@ -1,195 +1,109 @@
+
 {% extends "_layout.html" %}
 
-{% block title %}Fusion Dashboard{% endblock %}
-
-{% block extra_head %}
-<script src="/static/js/fusion_ui.js"></script>
-<script src="/static/js/dashboard.js"></script>
-{% endblock %}
+{% block title %}KPI Dashboard{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
-    <!-- Header Section -->
-    <div class="dashboard-header">
-        <h1 class="dashboard-title">Fusion Dashboard</h1>
-        <div class="dashboard-controls">
-            <select id="timeframe-select" class="timeframe-select">
-                <option value="all">All Time</option>
-                <option value="1D">1 Day</option>
-                <option value="5D">5 Days</option>
-                <option value="1M">1 Month</option>
-                <option value="3M">3 Months</option>
-            </select>
-            <button id="refresh-btn" class="btn-secondary">
-                <span>🔄</span> Refresh
-            </button>
-            <button id="force-refresh-btn" class="btn-primary">
-                <span>⚡</span> Force Refresh
-            </button>
+    <div class="header-section">
+        <h1>KPI Dashboard</h1>
+        <div id="timeframe-chips" class="timeframe-selector">
+            <button class="chip active" data-timeframe="1D">1D</button>
+            <button class="chip" data-timeframe="5D">5D</button>
+            <button class="chip" data-timeframe="10D">10D</button>
+            <button class="chip" data-timeframe="30D">30D</button>
         </div>
     </div>
-
-    <!-- Quick Stats Row -->
-    <div class="quick-stats-row">
-        <div class="stat-card">
-            <div class="stat-label">Portfolio Score</div>
-            <div class="stat-value" id="portfolio-score">-</div>
-            <div class="stat-change" id="portfolio-change">-</div>
+    
+    <div id="kpi-cards" class="kpi-grid">
+        <div class="kpi-card">
+            <h3>Portfolio Value</h3>
+            <div class="kpi-value" id="portfolio-value">$525,000</div>
+            <div class="kpi-change positive">+2.3%</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Active Positions</div>
-            <div class="stat-value" id="active-positions">-</div>
-            <div class="stat-change" id="positions-change">-</div>
+        
+        <div class="kpi-card">
+            <h3>Day P&L</h3>
+            <div class="kpi-value" id="day-pnl">$2,350</div>
+            <div class="kpi-change positive">+0.45%</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Hit Ratio</div>
-            <div class="stat-value" id="hit-ratio">-</div>
-            <div class="stat-change" id="hit-ratio-change">-</div>
+        
+        <div class="kpi-card">
+            <h3>Active Positions</h3>
+            <div class="kpi-value" id="active-positions">15</div>
+            <div class="kpi-change neutral">75% win rate</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">PnL Growth</div>
-            <div class="stat-value" id="pnl-growth">-</div>
-            <div class="stat-change" id="pnl-change">-</div>
+        
+        <div class="kpi-card">
+            <h3>Alerts</h3>
+            <div class="kpi-value" id="alerts-count">3</div>
+            <div class="kpi-change warning">2 new</div>
         </div>
-    </div>
-
-    <!-- Main Content Grid -->
-    <div class="main-grid">
-        <!-- Fusion Insights Panel -->
-        <div class="panel fusion-panel">
-            <div class="panel-header">
-                <h3>Fusion Insights</h3>
-                <span class="panel-badge" id="fusion-status">Loading...</span>
-            </div>
-            <div class="panel-content">
-                <div class="insight-item">
-                    <span class="insight-label">Market Sentiment:</span>
-                    <span class="insight-value" id="market-sentiment">-</span>
-                </div>
-                <div class="insight-item">
-                    <span class="insight-label">AI Verdict:</span>
-                    <span class="insight-value" id="ai-verdict">-</span>
-                </div>
-                <div class="insight-item">
-                    <span class="insight-label">Confidence:</span>
-                    <span class="insight-value" id="confidence-level">-</span>
-                </div>
-                <div class="insight-item">
-                    <span class="insight-label">Risk Regime:</span>
-                    <span class="insight-value" id="risk-regime">-</span>
-                </div>
-            </div>
+        
+        <div class="kpi-card">
+            <h3>Sharpe Ratio</h3>
+            <div class="kpi-value" id="sharpe-ratio">1.25</div>
+            <div class="kpi-change positive">Good</div>
         </div>
-
-        <!-- Agent Insights Panel -->
-        <div class="panel agent-insights-card">
-            <div class="panel-header">
-                <h3>Agent Insights</h3>
-                <span class="panel-badge">AI Powered</span>
-            </div>
-            <div class="panel-content">
-                <div class="loading">Loading agent insights...</div>
-            </div>
-        </div>
-
-        <!-- Performance Metrics -->
-        <div class="panel metrics-panel">
-            <div class="panel-header">
-                <h3>Performance Metrics</h3>
-                <span class="panel-badge" id="metrics-timeframe">5D</span>
-            </div>
-            <div class="panel-content">
-                <div class="metrics-grid">
-                    <div class="metric-item">
-                        <span class="metric-label">Sharpe Ratio</span>
-                        <span class="metric-value" id="sharpe-ratio">-</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-label">Sortino Ratio</span>
-                        <span class="metric-value" id="sortino-ratio">-</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-label">Max Drawdown</span>
-                        <span class="metric-value" id="max-drawdown">-</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-label">VaR (95%)</span>
-                        <span class="metric-value" id="var-95">-</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pinned Rollup -->
-        <div class="panel pinned-panel">
-            <div class="panel-header">
-                <h3>Pinned Rollup</h3>
-                <button class="btn-icon" onclick="refreshPinned()">🔄</button>
-            </div>
-            <div class="panel-content">
-                <div class="pinned-stats" id="pinned-rollup">
-                    <div class="pinned-item">
-                        <span class="pinned-label">Equities:</span>
-                        <span class="pinned-count" id="pinned-equities">0</span>
-                    </div>
-                    <div class="pinned-item">
-                        <span class="pinned-label">Options:</span>
-                        <span class="pinned-count" id="pinned-options">0</span>
-                    </div>
-                    <div class="pinned-item">
-                        <span class="pinned-label">Commodities:</span>
-                        <span class="pinned-count" id="pinned-commodities">0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Timeframe Analysis -->
-        <div class="panel timeframe-panel">
-            <div class="panel-header">
-                <h3>Timeframe Analysis</h3>
-                <div class="timeframe-chips" id="timeframe-chips">
-                    <span class="chip active" data-tf="5D">5D</span>
-                    <span class="chip" data-tf="1M">1M</span>
-                    <span class="chip" data-tf="3M">3M</span>
-                    <span class="chip" data-tf="6M">6M</span>
-                </div>
-            </div>
-            <div class="panel-content">
-                <div class="timeframe-grid" id="timeframe-analysis">
-                    <!-- Timeframe data will be populated here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="panel activity-panel">
-            <div class="panel-header">
-                <h3>Recent Activity</h3>
-                <span class="panel-badge" id="activity-count">0</span>
-            </div>
-            <div class="panel-content">
-                <div class="activity-list" id="recent-activity">
-                    <!-- Activity items will be populated here -->
-                </div>
-            </div>
+        
+        <div class="kpi-card">
+            <h3>Max Drawdown</h3>
+            <div class="kpi-value" id="max-drawdown">-2.1%</div>
+            <div class="kpi-change positive">Low risk</div>
         </div>
     </div>
-
-    <!-- Footer Info -->
-    <div class="dashboard-footer">
-        <div class="footer-item">
-            <span class="footer-label">Last Updated:</span>
-            <span class="footer-value" id="last-updated">-</span>
+    
+    <div class="insights-section">
+        <div class="section-header">
+            <h2>Pinned Rollup | Alerts | Agent Insights</h2>
         </div>
-        <div class="footer-item">
-            <span class="footer-label">Generation Time:</span>
-            <span class="footer-value" id="generation-time">-</span>
+        <div class="insights-content">
+            <div class="insight-item">📌 5 pinned stocks tracking well</div>
+            <div class="insight-item">🚨 TCS approaching resistance level</div>
+            <div class="insight-item">🤖 AI recommends rebalancing energy sector</div>
         </div>
-        <div class="footer-item">
-            <span class="footer-label">Data Source:</span>
-            <span class="footer-value">Fusion Engine</span>
-        </div>
+    </div>
+    
+    <div class="signals-section">
+        <h2>Top Signals</h2>
+        <table id="top-signals-table" class="signals-table">
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Signal</th>
+                    <th>Confidence</th>
+                    <th>Price</th>
+                    <th>Target</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="signals-body">
+                <tr>
+                    <td>TCS</td>
+                    <td><span class="signal buy">BUY</span></td>
+                    <td>85%</td>
+                    <td>₹3,950</td>
+                    <td>₹4,200</td>
+                    <td>
+                        <button class="pin-btn">⭐</button>
+                        <button class="lock-btn">🔒</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>RELIANCE</td>
+                    <td><span class="signal hold">HOLD</span></td>
+                    <td>72%</td>
+                    <td>₹2,450</td>
+                    <td>₹2,600</td>
+                    <td>
+                        <button class="pin-btn">⭐</button>
+                        <button class="lock-btn">🔒</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
+
+<script src="/static/js/dashboard.js"></script>
 {% endblock %}

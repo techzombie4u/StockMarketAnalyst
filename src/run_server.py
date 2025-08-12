@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
+"""
+Main server runner for Fusion Stock Analyst
+Starts the Flask application with proper configuration
+"""
 
-import sys
 import os
+import sys
+from pathlib import Path
 import gc
 import time
-from pathlib import Path
 import uuid
 from flask import Flask, jsonify, request, render_template
 from werkzeug.exceptions import HTTPException
 
 # Add src to Python path
-current_dir = Path(__file__).parent
-project_root = current_dir.parent
-sys.path.insert(0, str(project_root))
-sys.path.insert(0, str(current_dir))
+project_root = Path(__file__).parent.parent
+src_path = project_root / "src"
+sys.path.insert(0, str(src_path))
 
 # Import core components
 try:
-    from core.app import app
+    # Import create_app here to ensure path is set before importing other core modules
+    from core.app import create_app
+    app = create_app()
     from core.metrics import metrics
     from core.guardrails import guardrails
 except ImportError as e:
@@ -167,11 +172,15 @@ def handle_http_exception(e):
     """Handles generic HTTP exceptions, returning JSON."""
     return jsonify({"success":False,"error": e.name.lower().replace(" ", "_"), "message": e.description}), e.code
 
-# --- Application Startup ---
+def main():
+    """Main server entry point"""
+    # Get port from environment or use default
+    port = int(os.environ.get('PORT', 5000))
+    host = os.environ.get('HOST', '0.0.0.0')
+    debug = os.environ.get('DEBUG', 'false').lower() == 'true'
 
-if __name__ == "__main__":
-    print("🚀 Starting Fusion Stock Analyst Server...")
-    print(f"📁 Working directory: {os.getcwd()}")
+    print(f"🚀 Starting Fusion Stock Analyst on {host}:{port}")
+    print(f"📊 Debug mode: {debug}")
 
     # Import all route modules to register them
     try:
@@ -189,14 +198,23 @@ if __name__ == "__main__":
         # Decide if this is a fatal error or if the app can continue with partial functionality
         # For now, we'll print the error and continue, assuming some core functionality might still be available.
 
+    # Print registered routes for debugging
+    print("\n📝 Registered routes:")
+    for rule in app.url_map.iter_rules():
+        methods = ','.join(rule.methods - {'HEAD', 'OPTIONS'})
+        print(f"  {rule.rule} [{methods}]")
+
     # Attempt to start the server
     try:
-        # Use a port from environment variable or default to 5000
-        port = int(os.environ.get("PORT", 5000))
-        print(f"🌐 Server starting on http://0.0.0.0:{port}")
         # Run the Flask app. Debug=True is useful for development.
         # For production, consider Gunicorn or uWSGI and set debug=False.
-        app.run(host='0.0.0.0', port=port, debug=True, threaded=True)
+        app.run(
+            host=host,
+            port=port,
+            debug=debug,
+            threaded=True,
+            use_reloader=False  # Disable reloader for stability
+        )
     except OSError as e:
         print(f"❌ Failed to start server on port {port}: {e}")
         print("Please check if the port is already in use or try a different port.")
@@ -206,3 +224,6 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()
