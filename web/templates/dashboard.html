@@ -1,225 +1,195 @@
-
 {% extends "_layout.html" %}
 
-{% block title %}Dashboard - Fusion Stock Analyst{% endblock %}
+{% block title %}Fusion Dashboard{% endblock %}
 
-{% block content %}
-<div class="mb-4">
-    <h2 class="text-lg font-bold mb-2">KPI Overview</h2>
-    <div class="grid grid-6" id="kpi-grid">
-        <div class="kpi text-center">
-            <div class="text-xs muted">Prediction Accuracy</div>
-            <div class="text-lg font-bold" id="kpi-accuracy">--</div>
-        </div>
-        <div class="kpi text-center">
-            <div class="text-xs muted">Sharpe Ratio</div>
-            <div class="text-lg font-bold" id="kpi-sharpe">--</div>
-        </div>
-        <div class="kpi text-center">
-            <div class="text-xs muted">Sortino Ratio</div>
-            <div class="text-lg font-bold" id="kpi-sortino">--</div>
-        </div>
-        <div class="kpi text-center">
-            <div class="text-xs muted">Max Drawdown</div>
-            <div class="text-lg font-bold" id="kpi-drawdown">--</div>
-        </div>
-        <div class="kpi text-center">
-            <div class="text-xs muted">Win Expectancy</div>
-            <div class="text-lg font-bold" id="kpi-expectancy">--</div>
-        </div>
-        <div class="kpi text-center">
-            <div class="text-xs muted">Coverage</div>
-            <div class="text-lg font-bold" id="kpi-coverage">--</div>
-        </div>
-    </div>
-</div>
-
-<div class="mb-4">
-    <div class="flex justify-between items-center mb-2">
-        <h3 class="font-bold">Timeframe Analysis</h3>
-    </div>
-    <div class="chips" id="timeframe-chips">
-        <div class="chip active" data-timeframe="All">All</div>
-        <div class="chip" data-timeframe="30D">30D</div>
-        <div class="chip" data-timeframe="15D">15D</div>
-        <div class="chip" data-timeframe="10D">10D</div>
-        <div class="chip" data-timeframe="5D">5D</div>
-        <div class="chip" data-timeframe="3D">3D</div>
-    </div>
-</div>
-
-<div class="grid grid-5 mb-4">
-    <div class="card">
-        <h4 class="font-bold mb-2">Pinned Items</h4>
-        <div class="text-lg font-bold" id="pinned-count">--</div>
-        <div class="text-xs muted">Total: <span id="pinned-total">--</span></div>
-    </div>
-    <div class="card">
-        <h4 class="font-bold mb-2">Alerts</h4>
-        <div class="text-lg font-bold" id="alerts-count">--</div>
-        <div class="text-xs muted">Active alerts</div>
-    </div>
-    <div class="card">
-        <h4 class="font-bold mb-2">Agent Insights</h4>
-        <div class="text-lg font-bold" id="insights-count">--</div>
-        <div class="text-xs muted">AI recommendations</div>
-    </div>
-    <div class="card">
-        <h4 class="font-bold mb-2">Performance</h4>
-        <div class="text-lg font-bold" id="performance-score">--</div>
-        <div class="text-xs muted">Overall score</div>
-    </div>
-    <div class="card">
-        <h4 class="font-bold mb-2">Market Status</h4>
-        <div class="text-lg font-bold" id="market-status">--</div>
-        <div class="text-xs muted">Current session</div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="flex justify-between items-center mb-2">
-        <h3 class="font-bold">Top Signals</h3>
-        <div class="toolbar">
-            <button class="btn" onclick="refreshSignals()">Refresh</button>
-        </div>
-    </div>
-    <div class="table-wrap">
-        <table id="signals-table">
-            <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Product</th>
-                    <th>AI Verdict</th>
-                    <th>Confidence</th>
-                    <th>Score</th>
-                    <th>Rationale</th>
-                    <th>Updated</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="signals-tbody">
-                <tr>
-                    <td colspan="8" class="text-center muted">Loading signals...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+{% block extra_head %}
+<script src="/static/js/fusion_ui.js"></script>
+<script src="/static/js/dashboard.js"></script>
 {% endblock %}
 
-{% block scripts %}
-<script>
-let dashboardData = null;
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header Section -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">Fusion Dashboard</h1>
+        <div class="dashboard-controls">
+            <select id="timeframe-select" class="timeframe-select">
+                <option value="all">All Time</option>
+                <option value="1D">1 Day</option>
+                <option value="5D">5 Days</option>
+                <option value="1M">1 Month</option>
+                <option value="3M">3 Months</option>
+            </select>
+            <button id="refresh-btn" class="btn-secondary">
+                <span>🔄</span> Refresh
+            </button>
+            <button id="force-refresh-btn" class="btn-primary">
+                <span>⚡</span> Force Refresh
+            </button>
+        </div>
+    </div>
 
-async function loadDashboard(forceRefresh = false) {
-    try {
-        const url = `/api/fusion/dashboard${forceRefresh ? '?forceRefresh=true' : ''}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        dashboardData = data;
-        updateKPIs(data);
-        updatePinnedSummary(data);
-        updateTopSignals(data);
-        updateMetadata(data);
-        
-        console.log('Dashboard loaded successfully');
-    } catch (error) {
-        console.error('Failed to load dashboard:', error);
-    }
-}
+    <!-- Quick Stats Row -->
+    <div class="quick-stats-row">
+        <div class="stat-card">
+            <div class="stat-label">Portfolio Score</div>
+            <div class="stat-value" id="portfolio-score">-</div>
+            <div class="stat-change" id="portfolio-change">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Active Positions</div>
+            <div class="stat-value" id="active-positions">-</div>
+            <div class="stat-change" id="positions-change">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Hit Ratio</div>
+            <div class="stat-value" id="hit-ratio">-</div>
+            <div class="stat-change" id="hit-ratio-change">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">PnL Growth</div>
+            <div class="stat-value" id="pnl-growth">-</div>
+            <div class="stat-change" id="pnl-change">-</div>
+        </div>
+    </div>
 
-function updateKPIs(data) {
-    const timeframe = window.uiState?.timeframe || 'All';
-    const kpis = data.timeframes?.[timeframe] || data.kpis || {};
-    
-    document.getElementById('kpi-accuracy').textContent = 
-        (kpis.predictionAccuracy * 100).toFixed(1) + '%';
-    document.getElementById('kpi-sharpe').textContent = 
-        kpis.sharpe?.toFixed(2) || '--';
-    document.getElementById('kpi-sortino').textContent = 
-        kpis.sortino?.toFixed(2) || '--';
-    document.getElementById('kpi-drawdown').textContent = 
-        (kpis.maxDrawdown * 100).toFixed(1) + '%';
-    document.getElementById('kpi-expectancy').textContent = 
-        kpis.expectancy?.toFixed(2) || '--';
-    document.getElementById('kpi-coverage').textContent = 
-        (kpis.coverage * 100).toFixed(0) + '%';
-}
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+        <!-- Fusion Insights Panel -->
+        <div class="panel fusion-panel">
+            <div class="panel-header">
+                <h3>Fusion Insights</h3>
+                <span class="panel-badge" id="fusion-status">Loading...</span>
+            </div>
+            <div class="panel-content">
+                <div class="insight-item">
+                    <span class="insight-label">Market Sentiment:</span>
+                    <span class="insight-value" id="market-sentiment">-</span>
+                </div>
+                <div class="insight-item">
+                    <span class="insight-label">AI Verdict:</span>
+                    <span class="insight-value" id="ai-verdict">-</span>
+                </div>
+                <div class="insight-item">
+                    <span class="insight-label">Confidence:</span>
+                    <span class="insight-value" id="confidence-level">-</span>
+                </div>
+                <div class="insight-item">
+                    <span class="insight-label">Risk Regime:</span>
+                    <span class="insight-value" id="risk-regime">-</span>
+                </div>
+            </div>
+        </div>
 
-function updatePinnedSummary(data) {
-    const summary = data.pinned_summary || {};
-    document.getElementById('pinned-count').textContent = summary.met || 0;
-    document.getElementById('pinned-total').textContent = summary.total || 0;
-    
-    const alerts = data.alerts || [];
-    document.getElementById('alerts-count').textContent = alerts.length;
-    
-    const insights = data.agent_insights || [];
-    document.getElementById('insights-count').textContent = insights.length;
-    
-    document.getElementById('performance-score').textContent = 
-        ((data.kpis?.predictionAccuracy || 0) * 100).toFixed(0) + '%';
-    
-    document.getElementById('market-status').textContent = 
-        data.market_session || 'UNKNOWN';
-}
+        <!-- Agent Insights Panel -->
+        <div class="panel agent-insights-card">
+            <div class="panel-header">
+                <h3>Agent Insights</h3>
+                <span class="panel-badge">AI Powered</span>
+            </div>
+            <div class="panel-content">
+                <div class="loading">Loading agent insights...</div>
+            </div>
+        </div>
 
-function updateTopSignals(data) {
-    const signals = data.top_signals || [];
-    const tbody = document.getElementById('signals-tbody');
-    
-    if (signals.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center muted">No signals available</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = signals.map(signal => `
-        <tr>
-            <td class="font-bold">${signal.symbol}</td>
-            <td>${signal.product}</td>
-            <td><span class="badge badge-ok">${signal.ai_verdict_normalized}</span></td>
-            <td>${(signal.confidence * 100).toFixed(0)}%</td>
-            <td>${(signal.score * 100).toFixed(0)}</td>
-            <td class="text-sm">${signal.rationale || 'Analysis pending'}</td>
-            <td class="text-xs muted">${formatTime(signal.updated)}</td>
-            <td>
-                <button data-pin-symbol="${signal.symbol}">☆</button>
-                <button data-lock-symbol="${signal.symbol}">🔓</button>
-            </td>
-        </tr>
-    `).join('');
-    
-    // Update pin/lock icons
-    window.uiState?.updatePinnedIcons();
-    window.uiState?.updateLockedIcons();
-}
+        <!-- Performance Metrics -->
+        <div class="panel metrics-panel">
+            <div class="panel-header">
+                <h3>Performance Metrics</h3>
+                <span class="panel-badge" id="metrics-timeframe">5D</span>
+            </div>
+            <div class="panel-content">
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <span class="metric-label">Sharpe Ratio</span>
+                        <span class="metric-value" id="sharpe-ratio">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Sortino Ratio</span>
+                        <span class="metric-value" id="sortino-ratio">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Max Drawdown</span>
+                        <span class="metric-value" id="max-drawdown">-</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">VaR (95%)</span>
+                        <span class="metric-value" id="var-95">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-function updateMetadata(data) {
-    // Update last updated time or other metadata
-    console.log('Last updated:', data.last_updated_utc);
-    console.log('Generation time:', data.generation_time_ms + 'ms');
-}
+        <!-- Pinned Rollup -->
+        <div class="panel pinned-panel">
+            <div class="panel-header">
+                <h3>Pinned Rollup</h3>
+                <button class="btn-icon" onclick="refreshPinned()">🔄</button>
+            </div>
+            <div class="panel-content">
+                <div class="pinned-stats" id="pinned-rollup">
+                    <div class="pinned-item">
+                        <span class="pinned-label">Equities:</span>
+                        <span class="pinned-count" id="pinned-equities">0</span>
+                    </div>
+                    <div class="pinned-item">
+                        <span class="pinned-label">Options:</span>
+                        <span class="pinned-count" id="pinned-options">0</span>
+                    </div>
+                    <div class="pinned-item">
+                        <span class="pinned-label">Commodities:</span>
+                        <span class="pinned-count" id="pinned-commodities">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-function formatTime(timestamp) {
-    if (!timestamp) return '--';
-    return new Date(timestamp).toLocaleTimeString();
-}
+        <!-- Timeframe Analysis -->
+        <div class="panel timeframe-panel">
+            <div class="panel-header">
+                <h3>Timeframe Analysis</h3>
+                <div class="timeframe-chips" id="timeframe-chips">
+                    <span class="chip active" data-tf="5D">5D</span>
+                    <span class="chip" data-tf="1M">1M</span>
+                    <span class="chip" data-tf="3M">3M</span>
+                    <span class="chip" data-tf="6M">6M</span>
+                </div>
+            </div>
+            <div class="panel-content">
+                <div class="timeframe-grid" id="timeframe-analysis">
+                    <!-- Timeframe data will be populated here -->
+                </div>
+            </div>
+        </div>
 
-async function refreshSignals() {
-    await loadDashboard(true);
-}
+        <!-- Recent Activity -->
+        <div class="panel activity-panel">
+            <div class="panel-header">
+                <h3>Recent Activity</h3>
+                <span class="panel-badge" id="activity-count">0</span>
+            </div>
+            <div class="panel-content">
+                <div class="activity-list" id="recent-activity">
+                    <!-- Activity items will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
 
-// Listen for timeframe changes
-window.addEventListener('timeframeChanged', (event) => {
-    if (dashboardData) {
-        updateKPIs(dashboardData);
-    }
-});
-
-// Load dashboard on page ready
-document.addEventListener('DOMContentLoaded', () => {
-    loadDashboard();
-});
-</script>
+    <!-- Footer Info -->
+    <div class="dashboard-footer">
+        <div class="footer-item">
+            <span class="footer-label">Last Updated:</span>
+            <span class="footer-value" id="last-updated">-</span>
+        </div>
+        <div class="footer-item">
+            <span class="footer-label">Generation Time:</span>
+            <span class="footer-value" id="generation-time">-</span>
+        </div>
+        <div class="footer-item">
+            <span class="footer-label">Data Source:</span>
+            <span class="footer-value">Fusion Engine</span>
+        </div>
+    </div>
+</div>
 {% endblock %}

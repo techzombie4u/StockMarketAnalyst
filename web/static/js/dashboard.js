@@ -184,7 +184,7 @@ async function loadGoAheadPanel(tab = 'all') {
                 agents = ['dev', 'trainer', 'equity', 'options', 'comm', 'new', 'sentiment'];
         }
 
-        const promises = agents.map(agent => 
+        const promises = agents.map(agent =>
             fetch(`/api/agents/history?agent=${agent}&limit=1`)
                 .then(r => r.ok ? r.json() : null)
                 .catch(() => null)
@@ -574,3 +574,208 @@ async function runRetraining() {
         showToast('Error running retraining. Please check console.', 'error');
     }
 }
+
+// Dashboard JavaScript for Fusion Stock Analyst
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Dashboard] DOM loaded, initializing...');
+
+    // Initialize dashboard components
+    initializeDashboard();
+    loadAgentInsights();
+
+    // Auto-refresh every 30 seconds
+    setInterval(loadAgentInsights, 30000);
+});
+
+function initializeDashboard() {
+    console.log('[Dashboard] Initializing dashboard components...');
+
+    // Initialize any dashboard-specific components here
+    const agentInsightsCard = document.querySelector('.agent-insights-card');
+    if (agentInsightsCard) {
+        agentInsightsCard.innerHTML = '<div class="loading">Loading agent insights...</div>';
+    }
+}
+
+function loadAgentInsights() {
+    console.log('[Dashboard] Loading agent insights...');
+
+    // Run new_ai_analyzer and display results
+    fetch('/api/agents/new_ai_analyzer/run', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('[Dashboard] Agent insights response:', data);
+        displayAgentInsights(data);
+    })
+    .catch(error => {
+        console.error('[Dashboard] Failed to load agent insights:', error);
+        displayAgentInsightsError(error);
+    });
+}
+
+function displayAgentInsights(data) {
+    const agentInsightsCard = document.querySelector('.agent-insights-card');
+    if (!agentInsightsCard) {
+        console.warn('[Dashboard] Agent insights card not found');
+        return;
+    }
+
+    if (data.success && data.result) {
+        const result = data.result;
+        const summary = result.summary || 'AI analysis completed successfully';
+        const insights = result.insights || [];
+        const confidence = result.confidence || 0;
+
+        let insightsHtml = `
+            <div class="agent-insights-content">
+                <div class="insights-header">
+                    <h3>Agent Insights</h3>
+                    <span class="confidence-badge">Confidence: ${(confidence * 100).toFixed(1)}%</span>
+                </div>
+                <div class="insights-summary">
+                    <p>${summary}</p>
+                </div>
+        `;
+
+        if (insights.length > 0) {
+            insightsHtml += '<div class="insights-list"><ul>';
+            insights.slice(0, 3).forEach(insight => {
+                insightsHtml += `<li>${insight}</li>`;
+            });
+            insightsHtml += '</ul></div>';
+        }
+
+        insightsHtml += `
+                <div class="insights-footer">
+                    <small>Last updated: ${new Date().toLocaleTimeString()}</small>
+                </div>
+            </div>
+        `;
+
+        agentInsightsCard.innerHTML = insightsHtml;
+    } else {
+        displayAgentInsightsError(data.error || 'Failed to load insights');
+    }
+}
+
+function displayAgentInsightsError(error) {
+    const agentInsightsCard = document.querySelector('.agent-insights-card');
+    if (agentInsightsCard) {
+        agentInsightsCard.innerHTML = `
+            <div class="agent-insights-error">
+                <h3>Agent Insights</h3>
+                <p class="error-message">Unable to load insights: ${error}</p>
+                <button onclick="loadAgentInsights()" class="retry-btn">Retry</button>
+            </div>
+        `;
+    }
+}
+
+// Add CSS for agent insights styling
+const agentInsightsStyles = `
+.agent-insights-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.agent-insights-content {
+    color: var(--text);
+}
+
+.insights-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.insights-header h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 18px;
+}
+
+.confidence-badge {
+    background: var(--accent);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.insights-summary {
+    margin-bottom: 12px;
+}
+
+.insights-summary p {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.insights-list ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text);
+}
+
+.insights-list li {
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.insights-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+.insights-footer small {
+    color: var(--text-muted);
+}
+
+.agent-insights-error {
+    text-align: center;
+    padding: 20px;
+}
+
+.error-message {
+    color: var(--danger);
+    margin: 12px 0;
+}
+
+.retry-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.retry-btn:hover {
+    background: var(--accent-hover);
+}
+
+.loading {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 20px;
+}
+`;
+
+// Inject styles into the page
+const styleSheet = document.createElement('style');
+styleSheet.textContent = agentInsightsStyles;
+document.head.appendChild(styleSheet);
