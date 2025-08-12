@@ -4,102 +4,425 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Equities - Fusion Stock Analyst</title>
+    <title>Equities - Stock Market Analyst</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        :root {
+            --bg: #0b1220;
+            --bg-card: #0f172a;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --border: #1e293b;
+            --chip-bg: #111827;
+            --chip-active-bg: #f8fafc;
+            --chip-active-text: #0f172a;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --ok: #10b981;
+        }
+
+        * {
             margin: 0;
-            padding: 20px;
-            background-color: #1a1a1a;
-            color: #ffffff;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
         }
-        .section {
-            margin: 30px 0;
-            padding: 20px;
-            background-color: #2a2a2a;
-            border-radius: 8px;
+
+        .header-bar {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            backdrop-filter: blur(8px);
+            background: rgba(11, 18, 32, 0.8);
+            border-bottom: 1px solid var(--border);
         }
-        table {
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .brand {
+            font-weight: 800;
+            letter-spacing: 0.2px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-link {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .nav-link.active {
+            border-color: var(--text);
+            background: var(--text);
+            color: var(--chip-active-text);
+        }
+
+        .toolbar {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn:hover {
+            background: var(--border);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .search-input, .select-input {
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            min-width: 260px;
+        }
+
+        .select-input {
+            min-width: 150px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .grid-8 {
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .chips-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .chip.active {
+            border-color: var(--text);
+            background: var(--text);
+            color: var(--chip-active-text);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+
+        .table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            font-size: 14px;
         }
-        th, td {
-            padding: 10px;
+
+        .table th {
             text-align: left;
-            border-bottom: 1px solid #444;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+            background: #0c1628;
         }
-        th {
-            background-color: #333;
+
+        .table td {
+            padding: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 768px) {
+            .grid-8 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Equities</h1>
-        <p>Stock Analysis and Insights</p>
+    <div class="header-bar">
+        <div class="header-inner">
+            <div class="brand">Stock Market Analyst</div>
+            <nav class="nav">
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="/equities" class="nav-link active">Equities</a>
+                <a href="/options" class="nav-link">Options</a>
+                <a href="/commodities" class="nav-link">Commodities</a>
+            </nav>
+            <div class="toolbar">
+                <button class="btn" id="refresh-btn">Refresh</button>
+                <div style="color: var(--text-muted); font-size: 12px;">
+                    Updated (UTC): <span id="last-updated">Loading...</span>
+                </div>
+                <a href="/" class="btn">Home</a>
+            </div>
+        </div>
     </div>
 
-    <div class="section">
-        <h3>Equity List</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Name</th>
-                    <th>Sector</th>
-                    <th>Price</th>
-                    <th>Change %</th>
-                    <th>Verdict</th>
-                </tr>
-            </thead>
-            <tbody id="equities-table">
-                <tr>
-                    <td colspan="6" style="text-align: center;">Loading...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <main class="container">
+        <!-- Controls Row -->
+        <div class="controls-row">
+            <input type="text" class="search-input" placeholder="Search symbol or name" id="search-input">
+            <select class="select-input" id="sector-filter">
+                <option value="">All Sectors</option>
+                <option value="IT">IT</option>
+                <option value="Energy">Energy</option>
+                <option value="Financials">Financials</option>
+            </select>
+            <div style="margin-left: auto;">
+                <div class="chips-row">
+                    <button class="chip active" data-timeframe="All">All</button>
+                    <button class="chip" data-timeframe="3D">3D</button>
+                    <button class="chip" data-timeframe="5D">5D</button>
+                    <button class="chip" data-timeframe="10D">10D</button>
+                    <button class="chip" data-timeframe="15D">15D</button>
+                    <button class="chip" data-timeframe="30D">30D</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs Grid -->
+        <div class="grid grid-8">
+            <div class="kpi-card">
+                <div class="kpi-label">Momentum Score</div>
+                <div class="kpi-value">72</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Volatility</div>
+                <div class="kpi-value">MEDIUM</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Trend Strength (ADX)</div>
+                <div class="kpi-value">23</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Breakout Prob</div>
+                <div class="kpi-value">58%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Earnings Proximity</div>
+                <div class="kpi-value">12 d</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Model Accuracy</div>
+                <div class="kpi-value">67%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Avg Hold</div>
+                <div class="kpi-value">9 d</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Hit Rate (tf)</div>
+                <div class="kpi-value">64%</div>
+            </div>
+        </div>
+
+        <!-- Equities Table -->
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Name</th>
+                        <th>Sector</th>
+                        <th>Price</th>
+                        <th>Verdict</th>
+                        <th>Confidence</th>
+                        <th>Momentum</th>
+                        <th>Volatility</th>
+                        <th>RSI</th>
+                        <th>MACD</th>
+                        <th>52W from High</th>
+                        <th>Model</th>
+                        <th>Updated</th>
+                    </tr>
+                </thead>
+                <tbody id="equities-table">
+                    <tr>
+                        <td colspan="13" style="text-align: center; padding: 20px;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
 
     <script>
+        // Mock equities data
+        const mockEquities = [
+            { symbol: "TCS", name: "Tata Consultancy Services", sector: "IT", price: 4275.3, verdict: "STRONG_BUY", confidence: 0.74, momentum: 78, volatility: "MEDIUM", rsi: 59, macd: 1.2, from52wHigh: -0.06, model: "Ensemble", updated: new Date().toISOString() },
+            { symbol: "RELIANCE", name: "Reliance Industries", sector: "Energy", price: 2904.1, verdict: "BUY", confidence: 0.68, momentum: 71, volatility: "LOW", rsi: 55, macd: 0.8, from52wHigh: -0.04, model: "RF", updated: new Date().toISOString() },
+            { symbol: "INFY", name: "Infosys", sector: "IT", price: 1588.2, verdict: "HOLD", confidence: 0.61, momentum: 49, volatility: "MEDIUM", rsi: 47, macd: -0.2, from52wHigh: -0.12, model: "LSTM", updated: new Date().toISOString() },
+            { symbol: "SBIN", name: "State Bank of India", sector: "Financials", price: 820.6, verdict: "BUY", confidence: 0.64, momentum: 66, volatility: "MEDIUM", rsi: 58, macd: 0.6, from52wHigh: -0.03, model: "Ensemble", updated: new Date().toISOString() }
+        ];
+
+        let filteredEquities = [...mockEquities];
+
+        // Utility functions
+        const pct = (v, d = 1) => (typeof v === 'number' && Number.isFinite(v) ? `${(v * 100).toFixed(d)}%` : '—');
+        const num = (v, d = 2) => (typeof v === 'number' && Number.isFinite(v) ? v.toFixed(d) : '—');
+
+        // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
             loadEquitiesData();
+            updateLastUpdated();
         });
 
-        async function loadEquitiesData() {
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('search-input').addEventListener('input', filterEquities);
+            document.getElementById('sector-filter').addEventListener('change', filterEquities);
+
+            // Refresh button
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                loadEquitiesData(true);
+            });
+        }
+
+        async function loadEquitiesData(forceRefresh = false) {
             try {
                 const response = await fetch('/api/equities/list');
-                const data = await response.json();
-
-                const tbody = document.getElementById('equities-table');
-                tbody.innerHTML = '';
-                
-                if (data.items && data.items.length > 0) {
-                    data.items.forEach(item => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${item.symbol}</td>
-                            <td>${item.name}</td>
-                            <td>${item.sector}</td>
-                            <td>₹${item.price}</td>
-                            <td>${item.change_percent > 0 ? '+' : ''}${item.change_percent.toFixed(2)}%</td>
-                            <td>${item.verdict}</td>
-                        `;
-                        tbody.appendChild(row);
-                    });
+                if (response.ok) {
+                    const data = await response.json();
+                    // Use real data if available
+                    if (data.items && data.items.length > 0) {
+                        filteredEquities = data.items;
+                    } else {
+                        filteredEquities = mockEquities;
+                    }
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No equity data available</td></tr>';
+                    filteredEquities = mockEquities;
                 }
-
             } catch (error) {
-                console.error('Error loading equities data:', error);
-                document.getElementById('equities-table').innerHTML = 
-                    '<tr><td colspan="6" style="text-align: center;">Error loading data</td></tr>';
+                console.log('Using mock data:', error.message);
+                filteredEquities = mockEquities;
             }
+            updateEquitiesTable();
+        }
+
+        function filterEquities() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            const selectedSector = document.getElementById('sector-filter').value;
+
+            filteredEquities = mockEquities.filter(equity => {
+                const matchesSearch = !searchTerm || 
+                    equity.symbol.toLowerCase().includes(searchTerm) || 
+                    equity.name.toLowerCase().includes(searchTerm);
+                
+                const matchesSector = !selectedSector || equity.sector === selectedSector;
+
+                return matchesSearch && matchesSector;
+            });
+
+            updateEquitiesTable();
+        }
+
+        function updateEquitiesTable() {
+            const tbody = document.getElementById('equities-table');
+            tbody.innerHTML = '';
+
+            if (filteredEquities.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px;">No equities match your filters</td></tr>';
+                return;
+            }
+
+            filteredEquities.forEach(equity => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="font-weight: 600;">${equity.symbol}</td>
+                    <td>${equity.name}</td>
+                    <td>${equity.sector}</td>
+                    <td>${num(equity.price)}</td>
+                    <td>${equity.verdict}</td>
+                    <td>${pct(equity.confidence)}</td>
+                    <td>${equity.momentum}</td>
+                    <td>${equity.volatility}</td>
+                    <td>${equity.rsi}</td>
+                    <td>${equity.macd}</td>
+                    <td>${pct(equity.from52wHigh)}</td>
+                    <td>${equity.model}</td>
+                    <td>${new Date(equity.updated).toLocaleString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateLastUpdated() {
+            document.getElementById('last-updated').textContent = new Date().toISOString();
         }
     </script>
 </body>

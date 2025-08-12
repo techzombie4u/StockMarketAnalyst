@@ -105,8 +105,11 @@ def create_app():
     
     # UI Routes
     @app.route('/')
+    def main_dashboard():
+        return render_template('index.html')
+    
     @app.route('/dashboard')
-    def dashboard():
+    def kpi_dashboard():
         return render_template('dashboard.html')
     
     @app.route('/equities')

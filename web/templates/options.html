@@ -4,102 +4,400 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Options - Fusion Stock Analyst</title>
+    <title>Options - Stock Market Analyst</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        :root {
+            --bg: #0b1220;
+            --bg-card: #0f172a;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --border: #1e293b;
+            --chip-bg: #111827;
+            --chip-active-bg: #f8fafc;
+            --chip-active-text: #0f172a;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --ok: #10b981;
+        }
+
+        * {
             margin: 0;
-            padding: 20px;
-            background-color: #1a1a1a;
-            color: #ffffff;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
         }
-        .section {
-            margin: 30px 0;
-            padding: 20px;
-            background-color: #2a2a2a;
-            border-radius: 8px;
+
+        .header-bar {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            backdrop-filter: blur(8px);
+            background: rgba(11, 18, 32, 0.8);
+            border-bottom: 1px solid var(--border);
         }
-        table {
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .brand {
+            font-weight: 800;
+            letter-spacing: 0.2px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-link {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .nav-link.active {
+            border-color: var(--text);
+            background: var(--text);
+            color: var(--chip-active-text);
+        }
+
+        .toolbar {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn:hover {
+            background: var(--border);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .strategy-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: #0a2a1e;
+            color: #bbf7d0;
+        }
+
+        .grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .grid-6 {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .chips-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .chip.active {
+            border-color: var(--text);
+            background: var(--text);
+            color: var(--chip-active-text);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+
+        .table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            font-size: 14px;
         }
-        th, td {
-            padding: 10px;
+
+        .table th {
             text-align: left;
-            border-bottom: 1px solid #444;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+            background: #0c1628;
         }
-        th {
-            background-color: #333;
+
+        .table td {
+            padding: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .greeks-row {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+        }
+
+        .payoff-chart {
+            width: 100%;
+            height: 240px;
+            background: #0c1628;
+            border-radius: 12px;
+            padding: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-6 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Options</h1>
-        <p>Options Trading Strategies</p>
+    <div class="header-bar">
+        <div class="header-inner">
+            <div class="brand">Stock Market Analyst</div>
+            <nav class="nav">
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="/equities" class="nav-link">Equities</a>
+                <a href="/options" class="nav-link active">Options</a>
+                <a href="/commodities" class="nav-link">Commodities</a>
+            </nav>
+            <div class="toolbar">
+                <button class="btn" id="refresh-btn">Refresh</button>
+                <div style="color: var(--text-muted); font-size: 12px;">
+                    Updated (UTC): <span id="last-updated">Loading...</span>
+                </div>
+                <a href="/" class="btn">Home</a>
+            </div>
+        </div>
     </div>
 
-    <div class="section">
-        <h3>Strangle Candidates</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Underlying</th>
-                    <th>Call Strike</th>
-                    <th>Put Strike</th>
-                    <th>Margin</th>
-                    <th>Payoff</th>
-                    <th>Verdict</th>
-                </tr>
-            </thead>
-            <tbody id="options-table">
-                <tr>
-                    <td colspan="6" style="text-align: center;">Loading...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <main class="container">
+        <!-- Strategy Info Row -->
+        <div class="strategy-row">
+            <div style="color: var(--text-muted); font-size: 13px;">Strategy</div>
+            <span class="badge">Short Strangle</span>
+            <div style="color: var(--text-muted); font-size: 13px;">Underlying</div>
+            <span class="badge">TCS</span>
+            <div style="color: var(--text-muted); font-size: 13px;">Expiry</div>
+            <span class="badge">2025-08-28</span>
+            <div style="margin-left: auto;">
+                <div class="chips-row">
+                    <button class="chip active" data-timeframe="All">All</button>
+                    <button class="chip" data-timeframe="3D">3D</button>
+                    <button class="chip" data-timeframe="5D">5D</button>
+                    <button class="chip" data-timeframe="10D">10D</button>
+                    <button class="chip" data-timeframe="15D">15D</button>
+                    <button class="chip" data-timeframe="30D">30D</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs Grid -->
+        <div class="grid grid-6">
+            <div class="kpi-card">
+                <div class="kpi-label">Expected ROI</div>
+                <div class="kpi-value">6.2%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Prob. of Max Profit</div>
+                <div class="kpi-value">68%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Breakevens</div>
+                <div class="kpi-value">3860.5 / 4339.5</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Margin Required</div>
+                <div class="kpi-value">₹64,000</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Max Loss (theoretical)</div>
+                <div class="kpi-value">—</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Win Rate (bt)</div>
+                <div class="kpi-value">72%</div>
+            </div>
+        </div>
+
+        <!-- Strategy Table -->
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Underlying</th>
+                        <th>Spot</th>
+                        <th>CE Strike</th>
+                        <th>PE Strike</th>
+                        <th>Combined Credit</th>
+                        <th>IV %</th>
+                        <th>DTE</th>
+                        <th>Stop Loss</th>
+                        <th>Status</th>
+                        <th>ROI %</th>
+                        <th>Outcome</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>TCS</td>
+                        <td>4250</td>
+                        <td>4300</td>
+                        <td>3900</td>
+                        <td>39.5</td>
+                        <td>22.0%</td>
+                        <td>14</td>
+                        <td>SL at 1.8x credit per leg</td>
+                        <td>Open</td>
+                        <td>6.2%</td>
+                        <td>—</td>
+                        <td>Auto-picked ~±0.24Δ strikes</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Strategy Detail Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Strategy Detail: Greeks & Payoff</div>
+            </div>
+            <div class="grid grid-2">
+                <div>
+                    <div class="greeks-row">
+                        <div>Δ: <b>0.01</b></div>
+                        <div>Γ: <b>0.02</b></div>
+                        <div>Θ: <b>-0.23</b></div>
+                        <div>Vega: <b>0.17</b></div>
+                    </div>
+                </div>
+                <div>
+                    <svg class="payoff-chart" viewBox="0 0 800 240">
+                        <rect x="0" y="0" width="800" height="240" rx="12" fill="#0c1628" />
+                        <path d="M 20 230 L 120 190 L 220 150 L 320 120 L 420 110 L 520 150 L 620 120 L 720 150 L 780 190" 
+                              stroke="#e2e8f0" fill="none" stroke-width="2" />
+                        <text x="20" y="20" fill="#94a3b8" font-size="12">Payoff Diagram</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
+        // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            loadOptionsData();
+            setupEventListeners();
+            updateLastUpdated();
         });
 
-        async function loadOptionsData() {
-            try {
-                const response = await fetch('/api/options/strangle/candidates');
-                const data = await response.json();
+        function setupEventListeners() {
+            // Refresh button
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                updateLastUpdated();
+            });
+        }
 
-                const tbody = document.getElementById('options-table');
-                tbody.innerHTML = '';
-                
-                if (data.candidates && data.candidates.length > 0) {
-                    data.candidates.forEach(candidate => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${candidate.underlying}</td>
-                            <td>${candidate.strike_call}</td>
-                            <td>${candidate.strike_put}</td>
-                            <td>₹${candidate.margin.toLocaleString()}</td>
-                            <td>₹${candidate.payoff.toLocaleString()}</td>
-                            <td>${candidate.verdict}</td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No options data available</td></tr>';
-                }
-
-            } catch (error) {
-                console.error('Error loading options data:', error);
-                document.getElementById('options-table').innerHTML = 
-                    '<tr><td colspan="6" style="text-align: center;">Error loading data</td></tr>';
-            }
+        function updateLastUpdated() {
+            document.getElementById('last-updated').textContent = new Date().toISOString();
         }
     </script>
 </body>

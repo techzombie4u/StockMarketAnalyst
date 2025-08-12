@@ -1,19 +1,24 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Market Analyst Dashboard</title>
+    <title>Stock Market Analyst</title>
     <style>
         :root {
-            --primary-color: #2563eb;
-            --success-color: #16a34a;
-            --danger-color: #dc2626;
-            --warning-color: #d97706;
-            --info-color: #0891b2;
-            --light-bg: #f8fafc;
-            --dark-bg: #1e293b;
-            --border-color: #e2e8f0;
+            --bg: #0b1220;
+            --bg-card: #0f172a;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --border: #1e293b;
+            --chip-bg: #111827;
+            --chip-active-bg: #f8fafc;
+            --chip-active-text: #0f172a;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --ok: #10b981;
         }
 
         * {
@@ -23,970 +28,516 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--light-bg);
-            color: #1e293b;
-            line-height: 1.6;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
         }
 
-        .header {
-            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
-            color: white;
-            padding: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        .header-bar {
             position: sticky;
             top: 0;
-            z-index: 1000;
+            z-index: 30;
+            backdrop-filter: blur(8px);
+            background: rgba(11, 18, 32, 0.8);
+            border-bottom: 1px solid var(--border);
         }
 
-        .header h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* Pinned Stats Dashboard */
-        .pinned-stats-dashboard {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border: 1px solid var(--border-color);
-        }
-
-        .pinned-stats-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--dark-bg);
+        .header-inner {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
-        .stat-card {
-            background: var(--light-bg);
-            border-radius: 8px;
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .stat-label {
-            font-size: 0.875rem;
-            color: #64748b;
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--dark-bg);
-        }
-
-        .stat-positive { color: var(--success-color); }
-        .stat-negative { color: var(--danger-color); }
-
-        /* Control Panel */
-        .control-panel {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border: 1px solid var(--border-color);
-        }
-
-        .controls-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .refresh-btn {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .refresh-btn:hover {
-            background: #1d4ed8;
-            transform: translateY(-1px);
-        }
-
-        .refresh-btn:disabled {
-            background: #94a3b8;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .status-indicator {
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-weight: 500;
-            font-size: 0.875rem;
-        }
-
-        .status-loading {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .status-success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .status-error {
-            background: #fecaca;
-            color: #991b1b;
-        }
-
-        /* Virtual Table Container */
-        .table-container {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border: 1px solid var(--border-color);
-        }
-
-        .table-header {
-            background: var(--light-bg);
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .table-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: var(--dark-bg);
-        }
-
-        .table-stats {
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        /* Pinned Rows Section */
-        .pinned-section {
-            background: #fefce8;
-            border-bottom: 2px solid #eab308;
-        }
-
-        .pinned-header {
-            background: #fbbf24;
-            color: white;
-            padding: 0.5rem 1rem;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        /* Virtual Scroll Table */
-        .virtual-table {
-            position: relative;
-            height: 500px;
-            overflow-y: auto;
-            overflow-x: auto;
-        }
-
-        .table-viewport {
-            width: 100%;
-            min-width: 1000px;
-        }
-
-        .table-row {
-            display: grid;
-            grid-template-columns: 60px 100px 80px 120px 100px 100px 100px 150px 120px;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border-color);
-            transition: background-color 0.2s;
-            position: relative;
-        }
-
-        .table-row:hover {
-            background-color: var(--light-bg);
-        }
-
-        .table-header-row {
-            background: white;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        .pinned-row {
-            background: #fefce8;
-            border-left: 4px solid #eab308;
-        }
-
-        .pinned-row:hover {
-            background: #fef3c7;
-        }
-
-        /* Fixed Columns */
-        .col-pin {
-            position: sticky;
-            left: 0;
-            background: inherit;
-            z-index: 2;
-        }
-
-        .col-symbol {
-            position: sticky;
-            left: 60px;
-            background: inherit;
-            z-index: 2;
-            font-weight: 600;
-        }
-
-        .col-state {
-            position: sticky;
-            left: 160px;
-            background: inherit;
-            z-index: 2;
-        }
-
-        /* AI Verdict Styles */
-        .verdict-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-align: center;
-            cursor: help;
-        }
-
-        .verdict-strong-buy {
-            background: #166534;
-            color: white;
-        }
-
-        .verdict-buy {
-            background: #16a34a;
-            color: white;
-        }
-
-        .verdict-hold {
-            background: #64748b;
-            color: white;
-        }
-
-        .verdict-sell {
-            background: #d97706;
-            color: white;
-        }
-
-        .verdict-strong-sell {
-            background: #dc2626;
-            color: white;
-        }
-
-        /* Pin Button */
-        .pin-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            padding: 0.25rem;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-
-        .pin-btn:hover {
-            background: var(--border-color);
-        }
-
-        .pin-btn.pinned {
-            color: #eab308;
-        }
-
-        .pin-btn.unpinned {
-            color: #94a3b8;
-        }
-
-        /* Loading States */
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--border-color);
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-
-            .controls-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .table-row {
-                grid-template-columns: 50px 80px 60px 100px 80px 80px 80px 120px 100px;
-                font-size: 0.875rem;
-            }
-        }
-
-        .hidden { display: none; }
-
-        /* AI Verdict Column Styles */
-        .verdict-cell {
-            cursor: pointer;
-            min-width: 120px;
-            text-align: center;
-            padding: 8px 12px;
-        }
-
-        .verdict-content {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            font-weight: 500;
-        }
-
-        .verdict-positive {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .verdict-cautious {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .verdict-negative {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
-        .verdict-unknown {
-            background-color: #f8f9fa;
-            color: #6c757d;
-        }
-
-        /* GoAhead Panel Styles */
-        .goahead-panel {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin: 20px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .panel-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .panel-header h3 {
-            margin: 0;
-            color: #333;
-        }
-
-        .panel-tabs {
-            display: flex;
-            gap: 8px;
-        }
-
-        .tab-btn {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
-            background: #f8f9fa;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-
-        .tab-btn.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-
-        .panel-content {
-            padding: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .agent-card {
-            border: 1px solid #eee;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 12px;
-            background: #fafafa;
-        }
-
-        .agent-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .agent-name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .agent-timestamp {
-            font-size: 0.8em;
-            color: #666;
-        }
-
-        .agent-verdict {
-            font-size: 0.9em;
-            margin-bottom: 8px;
-            color: #555;
-        }
-
-        .agent-actions {
-            font-size: 0.85em;
-            color: #666;
-        }
-
-        .risk-badge {
-            background: #dc3545;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.75em;
-            margin-left: 8px;
-        }
-
-        /* Modal Styles */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #666;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 4px;
-            font-weight: 500;
-        }
-
-        .form-group select,
-        .form-group input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .modal-footer {
-            padding: 16px 20px;
-            border-top: 1px solid #eee;
-            display: flex;
-            justify-content: flex-end;
             gap: 12px;
+            padding: 12px 16px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        /* Verdict Drawer Styles */
-        .verdict-drawer {
-            position: fixed;
-            top: 0;
-            right: -400px;
-            width: 400px;
-            height: 100%;
-            background: white;
-            box-shadow: -2px 0 8px rgba(0,0,0,0.15);
-            z-index: 1001;
-            transition: right 0.3s ease;
-            display: flex;
-            flex-direction: column;
+        .brand {
+            font-weight: 800;
+            letter-spacing: 0.2px;
         }
 
-        .verdict-drawer.open {
-            right: 0;
-        }
-
-        .drawer-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        .drawer-content {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        .drawer-footer {
-            padding: 16px 20px;
-            border-top: 1px solid #eee;
-            flex-shrink: 0;
-        }
-
-        .verdict-detail {
-            margin-bottom: 16px;
-        }
-
-        .verdict-detail h4 {
-            margin: 0 0 8px 0;
-            color: #333;
-            font-size: 1em;
-        }
-
-        .verdict-detail .content {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-
-        .reasons-list,
-        .actions-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .reasons-list li,
-        .actions-list li {
-            padding: 4px 0;
-            border-bottom: 1px solid #eee;
-        }
-
-        .reasons-list li:last-child,
-        .actions-list li:last-child {
-            border-bottom: none;
-        }
-
-        /* Trainer Panel Styles */
-        .trainer-status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .trainer-status-card {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 16px;
-        }
-
-        .trainer-status-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .trainer-product-name {
-            font-weight: 600;
-            font-size: 1em;
-        }
-
-        .trainer-status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.75em;
-            font-weight: 500;
-        }
-
-        .trainer-status-healthy {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .trainer-status-watchlist {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .trainer-status-triggered {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .trainer-timeframe-info {
-            margin-bottom: 8px;
-            font-size: 0.9em;
-        }
-
-        .trainer-timeframe-label {
-            font-weight: 500;
-            color: #495057;
-        }
-
-        .trainer-last-retrain {
-            color: #6c757d;
-            font-size: 0.85em;
-        }
-
-        .trainer-history {
-            border-top: 1px solid #dee2e6;
-            padding-top: 20px;
-        }
-
-        .trainer-history h4 {
-            margin: 0 0 16px 0;
-            color: #495057;
-        }
-
-        .history-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .history-item {
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 12px;
-            margin-bottom: 8px;
-        }
-
-        .history-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .history-item-title {
-            font-weight: 500;
-            color: #495057;
-        }
-
-        .history-item-time {
-            font-size: 0.8em;
-            color: #6c757d;
-        }
-
-        .history-item-reason {
-            font-size: 0.9em;
-            color: #6c757d;
-            margin-bottom: 4px;
-        }
-
-        .history-item-actions {
+        .nav {
             display: flex;
             gap: 8px;
+            align-items: center;
         }
 
-        .history-action-badge {
-            background: #e9ecef;
-            color: #495057;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.75em;
+        .nav-link {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 13px;
+            cursor: pointer;
         }
 
-        .panel-actions {
+        .nav-link.active {
+            border-color: var(--text);
+            background: var(--text);
+            color: var(--chip-active-text);
+        }
+
+        .toolbar {
+            margin-left: auto;
             display: flex;
             gap: 8px;
+            align-items: center;
         }
 
         .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
             cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 500;
+            font-size: 13px;
         }
 
-        .btn-primary {
-            background: #007bff;
-            color: white;
+        .btn:hover {
+            background: var(--border);
         }
 
-        .btn-primary:hover {
-            background: #0056b3;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
         }
 
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
+        .grid {
+            display: grid;
+            gap: 12px;
         }
 
-        .btn-secondary:hover {
-            background: #545b62;
+        .grid-6 {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .kpi-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .chips-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 16px 0;
+        }
+
+        .chip {
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--chip-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .chip.active {
+            border-color: var(--text);
+            background: var(--text);
+            color: var(--chip-active-text);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+        }
+
+        .badge-ok {
+            background: #0a2a1e;
+            color: #bbf7d0;
+        }
+
+        .badge-warn {
+            background: #3b2a0a;
+            color: #fde68a;
+        }
+
+        .badge-danger {
+            background: #3b0a0a;
+            color: #fecaca;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-top: 16px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .table th {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+            background: #0c1628;
+        }
+
+        .table td {
+            padding: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .row {
+            display: flex;
+            gap: 24px;
+            color: var(--text);
+        }
+
+        .footer {
+            border-top: 1px solid var(--border);
+            margin-top: 16px;
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .content-section {
+            margin: 16px 0;
+        }
+
+        @media (max-width: 768px) {
+            .grid-6 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            .nav {
+                flex-wrap: wrap;
+            }
+            .toolbar {
+                margin-left: 0;
+                margin-top: 8px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>📊 Stock Market Analyst Dashboard</h1>
-    </div>
-
-    <div class="container">
-        <!-- Pinned Stats Dashboard -->
-        <div class="pinned-stats-dashboard" id="pinnedStatsContainer">
-            <div class="pinned-stats-title">
-                📌 Pinned Symbols Overview
-                <span id="statsLastUpdated" style="font-size: 0.75rem; color: #64748b; margin-left: auto;"></span>
-            </div>
-            <div class="stats-grid" id="statsGrid">
-                <!-- Stats cards will be populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Control Panel -->
-        <div class="control-panel">
-            <div class="controls-row">
-                <button class="refresh-btn" id="refreshBtn">
-                    <span>🔄</span>
-                    Manual Refresh
-                </button>
-                <div class="status-indicator" id="statusIndicator">
-                    Ready
+    <div class="header-bar">
+        <div class="header-inner">
+            <div class="brand">Stock Market Analyst</div>
+            <nav class="nav">
+                <a href="/" class="nav-link active">Dashboard</a>
+                <a href="/equities" class="nav-link">Equities</a>
+                <a href="/options" class="nav-link">Options</a>
+                <a href="/commodities" class="nav-link">Commodities</a>
+            </nav>
+            <div class="toolbar">
+                <button class="btn" id="refresh-btn">Refresh</button>
+                <div style="color: var(--text-muted); font-size: 12px;" id="updated-time">
+                    Updated (UTC): <span id="last-updated">Loading...</span>
                 </div>
-                <div style="margin-left: auto;">
-                    <span id="lastUpdated" style="font-size: 0.875rem; color: #64748b;"></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Table -->
-        <div class="table-container">
-            <div class="table-header">
-                <div class="table-title">Stock Analysis Results</div>
-                <div class="table-stats" id="tableStats">
-                    Loading...
-                </div>
-            </div>
-
-            <!-- Pinned Rows Section -->
-            <div class="pinned-section" id="pinnedSection">
-                <div class="pinned-header">📌 Pinned Symbols</div>
-                <div id="pinnedRows">
-                    <!-- Pinned rows will be rendered here -->
-                </div>
-            </div>
-
-            <!-- Virtual Table -->
-            <div class="virtual-table" id="virtualTable">
-                <div class="loading-overlay" id="loadingOverlay">
-                    <div class="spinner"></div>
-                </div>
-
-                <div class="table-viewport" id="tableViewport">
-                    <!-- Table header -->
-                    <div class="table-row table-header-row">
-                        <div class="col-pin">Pin</div>
-                        <div class="col-symbol">Symbol</div>
-                        <div class="col-state">State</div>
-                        <div>Score</div>
-                        <div>Price</div>
-                        <div>Target</div>
-                        <div>ROI %</div>
-                        <div>AI Verdict</div>
-                        <div>Confidence</div>
-                    </div>
-
-                    <!-- Virtual rows container -->
-                    <div id="virtualRows">
-                        <!-- Rows will be rendered here by JavaScript -->
-                    </div>
-                </div>
+                <a href="/" class="btn">Home</a>
             </div>
         </div>
     </div>
 
-        <!-- GoAhead Actions Panel -->
-        <div id="goaheadPanel" class="goahead-panel" style="display: none;">
-            <div class="panel-header">
-                <h3>GoAhead Agent — Recommendations</h3>
-                <div class="panel-tabs">
-                    <button class="tab-btn active" data-tab="all">All Agents</button>
-                    <button class="tab-btn" data-tab="product">Product Agents</button>
-                    <button class="tab-btn" data-tab="trainer">Trainer</button>
-                </div>
+    <main class="container">
+        <!-- 6 KPI Cards -->
+        <div class="grid grid-6">
+            <div class="kpi-card">
+                <div class="kpi-label">Prediction Accuracy</div>
+                <div class="kpi-value" id="accuracy-value">--</div>
+                <div class="kpi-hint" id="accuracy-hint">All window</div>
             </div>
-            <div class="panel-content" id="goaheadContent">
-                <div class="loading">Loading recommendations...</div>
+            <div class="kpi-card">
+                <div class="kpi-label">Sharpe (3M)</div>
+                <div class="kpi-value" id="sharpe-value">--</div>
             </div>
-        </div>
-
-        <!-- Trainer Agent Panel -->
-        <div id="trainerPanel" class="goahead-panel" style="display: none;">
-            <div class="panel-header">
-                <h3>Trainer AI Agent — Model Retraining</h3>
-                <div class="panel-actions">
-                    <button class="btn btn-primary" id="forceRetrainBtn">Force Retrain</button>
-                    <button class="btn btn-secondary" id="refreshTrainerBtn">Refresh</button>
-                </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Sortino (3M)</div>
+                <div class="kpi-value" id="sortino-value">--</div>
             </div>
-            <div class="panel-content" id="trainerContent">
-                <div class="trainer-status-grid" id="trainerStatusGrid">
-                    <!-- Status cards will be populated by JavaScript -->
-                </div>
-                <div class="trainer-history" id="trainerHistory">
-                    <h4>Recent Retraining History</h4>
-                    <div class="history-list" id="trainerHistoryList">
-                        <div class="loading">Loading history...</div>
-                    </div>
-                </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Max Drawdown (30D)</div>
+                <div class="kpi-value" id="mdd-value">--</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Win/Loss Expectancy</div>
+                <div class="kpi-value" id="expectancy-value">--</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Coverage</div>
+                <div class="kpi-value" id="coverage-value">34 syms</div>
             </div>
         </div>
 
-    <!-- AI Verdict Run Modal -->
-    <div id="verdictModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Run AI Verdicts</h3>
-                <button class="close-btn" onclick="closeVerdictModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="agentSelect">Agent:</label>
-                    <select id="agentSelect">
-                        <option value="equity">Equity Agent</option>
-                        <option value="options">Options Agent</option>
-                        <option value="all">All Agents</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="timeframeSelect">Timeframe:</label>
-                    <select id="timeframeSelect">
-                        <option value="5D">5 Days</option>
-                        <option value="30D">30 Days</option>
-                        <option value="all">All Timeframes</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="symbolInput">Symbol (Optional):</label>
-                    <input type="text" id="symbolInput" placeholder="e.g., RELIANCE">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeVerdictModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="runVerdicts()">Run Now</button>
-            </div>
+        <!-- Timeframe Chips -->
+        <div class="chips-row" id="timeframe-chips">
+            <button class="chip active" data-timeframe="All">All</button>
+            <button class="chip" data-timeframe="3D">3D</button>
+            <button class="chip" data-timeframe="5D">5D</button>
+            <button class="chip" data-timeframe="10D">10D</button>
+            <button class="chip" data-timeframe="15D">15D</button>
+            <button class="chip" data-timeframe="30D">30D</button>
         </div>
-    </div>
 
-    <!-- Verdict History Drawer -->
-    <div id="verdictDrawer" class="verdict-drawer" style="display: none;">
-        <div class="drawer-header">
-            <h3>AI Verdict Details</h3>
-            <button class="close-btn" onclick="closeVerdictDrawer()">&times;</button>
+        <!-- Three Info Cards -->
+        <div class="grid grid-3">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Pinned Rollup</div>
+                    <span class="badge badge-ok">All</span>
+                </div>
+                <div class="row">
+                    <div>Total: <b id="pinned-total">--</b></div>
+                    <div>Met: <b style="color: var(--ok);" id="pinned-met">--</b></div>
+                    <div>Not Met: <b style="color: var(--danger);" id="pinned-not-met">--</b></div>
+                    <div>In-Progress: <b style="color: var(--warn);" id="pinned-progress">--</b></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Alerts & Notices</div>
+                </div>
+                <ul style="margin: 0; padding-left: 18px; color: var(--text);" id="alerts-list">
+                    <li>Loading alerts...</li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">GoAhead Agent - Insights</div>
+                </div>
+                <div style="font-size: 14px;" id="agent-insights">
+                    Loading insights...
+                </div>
+            </div>
         </div>
-        <div class="drawer-content" id="drawerContent">
-            <div class="loading">Loading verdict details...</div>
-        </div>
-        <div class="drawer-footer">
-            <button class="btn btn-primary" onclick="runSingleVerdict()">Run Again</button>
-        </div>
-    </div>
 
-    <script src="/static/js/dashboard.js"></script>
+        <!-- Top Signals Table -->
+        <div class="content-section">
+            <div style="font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">Top Signals</div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Symbol</th>
+                            <th>Verdict</th>
+                            <th>Confidence</th>
+                            <th>Rationale</th>
+                            <th>Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody id="top-signals-table">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 20px;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            Fusion Stock Analyst • Powered by AI • &copy; 2024
+        </div>
+    </footer>
+
+    <script>
+        // Global state
+        let currentTimeframe = 'All';
+        let dashboardData = null;
+
+        // Mock data that matches the prototype
+        const mockKPIsByTf = {
+            All: { acc: 0.66, sharpe: 1.18, sortino: 1.95, mdd: -0.08, winExp: 0.0012 },
+            "3D": { acc: 0.61, sharpe: 1.02, sortino: 1.72, mdd: -0.05, winExp: 0.0008 },
+            "5D": { acc: 0.64, sharpe: 1.11, sortino: 1.84, mdd: -0.06, winExp: 0.0010 },
+            "10D": { acc: 0.67, sharpe: 1.23, sortino: 2.02, mdd: -0.07, winExp: 0.0013 },
+            "15D": { acc: 0.68, sharpe: 1.25, sortino: 2.05, mdd: -0.08, winExp: 0.0015 },
+            "30D": { acc: 0.70, sharpe: 1.31, sortino: 2.12, mdd: -0.09, winExp: 0.0016 }
+        };
+
+        const mockPinned = { total: 5, met: 3, notMet: 1, inProgress: 1 };
+
+        const mockTopSignals = [
+            { product: "Equity", symbol: "TCS", verdict: "STRONG_BUY", confidence: 0.74, rationale: "Momentum + ensemble alignment", updated: new Date().toISOString() },
+            { product: "Equity", symbol: "RELIANCE", verdict: "BUY", confidence: 0.68, rationale: "Breakout + improving EPS", updated: new Date().toISOString() },
+            { product: "Commodity", symbol: "GOLD", verdict: "HOLD", confidence: 0.58, rationale: "Seasonality mixed", updated: new Date().toISOString() },
+            { product: "Options", symbol: "TCS-STRANGLE", verdict: "BUY", confidence: 0.62, rationale: "Credit > margin target", updated: new Date().toISOString() }
+        ];
+
+        // Utility functions
+        const pct = (v, d = 1) => (typeof v === 'number' && Number.isFinite(v) ? `${(v * 100).toFixed(d)}%` : '—');
+        const num = (v, d = 2) => (typeof v === 'number' && Number.isFinite(v) ? v.toFixed(d) : '—');
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            loadDashboardData();
+            updateLastUpdated();
+        });
+
+        function setupEventListeners() {
+            // Timeframe chips
+            document.querySelectorAll('.chip').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    currentTimeframe = this.dataset.timeframe;
+                    updateKPIDisplay();
+                });
+            });
+
+            // Refresh button
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                loadDashboardData(true);
+            });
+        }
+
+        async function loadDashboardData(forceRefresh = false) {
+            try {
+                // Try to load real data from API
+                const response = await fetch('/api/fusion/dashboard');
+                if (response.ok) {
+                    dashboardData = await response.json();
+                    updateDashboardUI(dashboardData);
+                } else {
+                    throw new Error('API not available');
+                }
+            } catch (error) {
+                console.log('Using mock data:', error.message);
+                // Use mock data if API fails
+                updateDashboardUI({
+                    timeframes: mockKPIsByTf,
+                    pinned_summary: mockPinned,
+                    top_signals: mockTopSignals
+                });
+            }
+        }
+
+        function updateDashboardUI(data) {
+            updateKPIDisplay();
+            updatePinnedSummary(data.pinned_summary || mockPinned);
+            updateTopSignals(data.top_signals || mockTopSignals);
+            updateAlerts();
+            updateAgentInsights();
+            updateLastUpdated();
+        }
+
+        function updateKPIDisplay() {
+            const kpis = mockKPIsByTf[currentTimeframe];
+            
+            document.getElementById('accuracy-value').textContent = pct(kpis.acc);
+            document.getElementById('accuracy-hint').textContent = `${currentTimeframe} window`;
+            document.getElementById('sharpe-value').textContent = num(kpis.sharpe, 2);
+            document.getElementById('sortino-value').textContent = num(kpis.sortino, 2);
+            document.getElementById('mdd-value').textContent = pct(kpis.mdd);
+            document.getElementById('expectancy-value').textContent = pct(kpis.winExp, 2);
+        }
+
+        function updatePinnedSummary(pinned) {
+            document.getElementById('pinned-total').textContent = pinned.total;
+            document.getElementById('pinned-met').textContent = pinned.met;
+            document.getElementById('pinned-not-met').textContent = pinned.notMet;
+            document.getElementById('pinned-progress').textContent = pinned.inProgress;
+        }
+
+        function updateTopSignals(signals) {
+            const tbody = document.getElementById('top-signals-table');
+            tbody.innerHTML = '';
+
+            signals.forEach(signal => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${signal.product}</td>
+                    <td>${signal.symbol}</td>
+                    <td><span class="badge badge-ok">${signal.verdict}</span></td>
+                    <td>${pct(signal.confidence)}</td>
+                    <td>${signal.rationale}</td>
+                    <td>${new Date(signal.updated).toLocaleString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateAlerts() {
+            const alertsList = document.getElementById('alerts-list');
+            alertsList.innerHTML = `
+                <li>3 high-confidence equities available</li>
+                <li style="color: var(--warn);">Model drift rising for INFY (10D)</li>
+            `;
+        }
+
+        function updateAgentInsights() {
+            const insights = document.getElementById('agent-insights');
+            insights.innerHTML = `
+                • What changed: Confidence up on TCS (10D).<br/>
+                • Drift: INFY short-term precision down. Retrain hint queued.<br/>
+                • Coverage gap: 4 commodities missing RSI/ATR.
+            `;
+        }
+
+        function updateLastUpdated() {
+            document.getElementById('last-updated').textContent = new Date().toISOString();
+        }
+    </script>
 </body>
 </html>
