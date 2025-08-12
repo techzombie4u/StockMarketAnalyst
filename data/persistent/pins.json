@@ -7,11 +7,17 @@
       "reason": "High momentum"
     },
     {
-      "type": "EQUITY", 
+      "type": "EQUITY",
       "symbol": "TCS",
       "pinned_at": "2025-01-12T09:20:00Z",
       "reason": "Strong fundamentals"
+    },
+    {
+      "type": "EQUITY",
+      "symbol": "TEST",
+      "pinned_at": "2025-08-12T06:35:34.105420",
+      "reason": "User pinned"
     }
   ],
-  "last_updated": "2025-01-12T10:30:00Z"
+  "last_updated": "2025-08-12T06:36:13.515211"
 }
