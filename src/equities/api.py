@@ -1,10 +1,15 @@
-
 from flask import Blueprint, request, jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from marshmallow import Schema, fields, ValidationError
 from src.core.cache import ttl_cache, now_iso
 import random
 
 equities_bp = Blueprint("equities", __name__)
 _cache = ttl_cache(ttl_sec=30, namespace="equities")
+
+# Rate Limiter Setup
+limiter = Limiter(key_func=get_remote_address, default_limits="60 per minute")
 
 # Extended fixture data with 30+ Indian tickers and required fields
 _EQUITIES_DATA = [
@@ -23,7 +28,7 @@ _EQUITIES_DATA = [
     {"symbol":"HINDUNILVR","name":"Hindustan Unilever","sector":"FMCG","price":2385.7,"volRegime":"LOW","verdict":"HOLD","confidence":0.62,"rsi":54.8,"macd":5.6,"momentum":0.05,"volatility":0.12,"from52wHigh":-0.10,"model":"ensemble","kpis":{"winRate":0.58,"sharpe":0.95,"mdd":-0.13},"updated":now_iso()},
     {"symbol":"AXISBANK","name":"Axis Bank","sector":"Banking","price":1098.5,"volRegime":"HIGH","verdict":"CAUTIOUS","confidence":0.56,"rsi":46.9,"macd":-6.8,"momentum":-0.07,"volatility":0.26,"from52wHigh":-0.19,"model":"lstm","kpis":{"winRate":0.49,"sharpe":0.72,"mdd":-0.21},"updated":now_iso()},
     {"symbol":"MARUTI","name":"Maruti Suzuki","sector":"Auto","price":11245.8,"volRegime":"MEDIUM","verdict":"BUY","confidence":0.69,"rsi":61.7,"macd":13.9,"momentum":0.13,"volatility":0.19,"from52wHigh":-0.06,"model":"ensemble","kpis":{"winRate":0.67,"sharpe":1.31,"mdd":-0.08},"updated":now_iso()},
-    {"symbol":"SUNPHARMA","name":"Sun Pharmaceutical","sector":"Pharma","price":1789.3,"volRegime":"MEDIUM","verdict":"BUY","confidence":0.65,"rsi":58.9,"macd":10.2,"momentum":0.09,"volatility":0.18,"from52wHigh":-0.11,"model":"random_forest","kpis":{"winRate":0.63,"sharpe":1.15,"mdd":-0.12},"updated":now_iso()},
+    {"symbol":"SUNPHARMA","name":"Sun Pharmaceutical","sector":"Pharma","price":1789.3,"volRegime":"MEDIUM","verdict":"BUY","confidence":0.65,"rsi":58.9,"macd":10.2,"momentum":0.09,"volatility":0.17,"from52wHigh":-0.11,"model":"random_forest","kpis":{"winRate":0.63,"sharpe":1.15,"mdd":-0.12},"updated":now_iso()},
     {"symbol":"NTPC","name":"NTPC Limited","sector":"Power","price":332.4,"volRegime":"HIGH","verdict":"HOLD","confidence":0.57,"rsi":49.6,"macd":-3.5,"momentum":-0.03,"volatility":0.24,"from52wHigh":-0.16,"model":"lstm","kpis":{"winRate":0.53,"sharpe":0.82,"mdd":-0.17},"updated":now_iso()},
     {"symbol":"ASIANPAINT","name":"Asian Paints","sector":"Paints","price":2456.7,"volRegime":"MEDIUM","verdict":"HOLD","confidence":0.60,"rsi":52.8,"macd":2.8,"momentum":0.02,"volatility":0.17,"from52wHigh":-0.13,"model":"ensemble","kpis":{"winRate":0.57,"sharpe":0.91,"mdd":-0.14},"updated":now_iso()},
     {"symbol":"POWERGRID","name":"Power Grid Corp","sector":"Power","price":245.6,"volRegime":"LOW","verdict":"CAUTIOUS","confidence":0.54,"rsi":44.2,"macd":-7.1,"momentum":-0.06,"volatility":0.15,"from52wHigh":-0.20,"model":"random_forest","kpis":{"winRate":0.46,"sharpe":0.68,"mdd":-0.22},"updated":now_iso()},
@@ -46,17 +51,17 @@ def _generate_chart_data(symbol, timeframe="10D"):
     """Generate mock OHLC and technical indicator data"""
     import datetime
     from datetime import timedelta
-    
+
     # Generate date range
     end_date = datetime.datetime.now()
     days = {"5D": 5, "10D": 10, "1M": 30, "3M": 90, "6M": 180, "1Y": 365}.get(timeframe, 10)
     start_date = end_date - timedelta(days=days)
-    
+
     # Generate OHLC data
     prices = []
     base_price = next((eq["price"] for eq in _EQUITIES_DATA if eq["symbol"] == symbol), 1000)
     current_price = base_price
-    
+
     for i in range(days):
         date = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
         # Mock price movement
@@ -64,7 +69,7 @@ def _generate_chart_data(symbol, timeframe="10D"):
         current_price = current_price * (1 + change)
         high = current_price * (1 + random.uniform(0, 0.02))
         low = current_price * (1 - random.uniform(0, 0.02))
-        
+
         prices.append({
             "t": date,
             "o": round(current_price * (1 + random.uniform(-0.01, 0.01)), 2),
@@ -72,10 +77,10 @@ def _generate_chart_data(symbol, timeframe="10D"):
             "l": round(low, 2),
             "c": round(current_price, 2)
         })
-    
+
     # Generate RSI data
     rsi = [round(50 + random.uniform(-20, 20), 1) for _ in range(days)]
-    
+
     # Generate MACD data
     macd = []
     for i in range(days):
@@ -84,7 +89,7 @@ def _generate_chart_data(symbol, timeframe="10D"):
             "signal": round(random.uniform(-10, 10), 2),
             "hist": round(random.uniform(-5, 5), 2)
         })
-    
+
     # Generate Bollinger Bands
     bbands = []
     for price in prices:
@@ -94,7 +99,7 @@ def _generate_chart_data(symbol, timeframe="10D"):
             "mid": round(mid, 2),
             "lower": round(mid * 0.98, 2)
         })
-    
+
     return {
         "symbol": symbol,
         "tf": timeframe,
@@ -104,55 +109,139 @@ def _generate_chart_data(symbol, timeframe="10D"):
         "bbands": bbands
     }
 
-@equities_bp.get("/list")
-def list_equities():
-    force = request.args.get("forceRefresh","").lower() in ("1","true","yes")
+# Marshmallow Schemas
+class EquitiesListSchema(Schema):
+    sector = fields.Str(required=False)
+    minPrice = fields.Float(required=False, allow_none=True)
+    maxPrice = fields.Float(required=False, allow_none=True)
+    scoreMin = fields.Float(required=False, default=0.0)
+    forceRefresh = fields.Boolean(required=False, default=False, missing=False)
+    limit = fields.Int(required=False, default=50)
+    page = fields.Int(required=False, default=1)
+
+class OptionsPositionsSchema(Schema):
+    # Define schema for options/positions if needed
+    pass
+
+class AgentsConfigSchema(Schema):
+    # Define schema for agents/config if needed
+    pass
+
+# Helper function to handle validation errors
+def handle_validation_error(err: ValidationError):
+    return jsonify(err.messages), 400
+
+# Decorator to validate request data
+def validate_request_data(schema, location='json'):
+    def decorator(func):
+        import functools
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            data = {}
+            if location == 'json':
+                data = request.get_json()
+            elif location == 'args':
+                data = request.args
+            elif location == 'form':
+                data = request.form
+
+            try:
+                schema.load(data)
+                # If schema validation passes, store validated data in Flask's config for easy access
+                # Use a global or context variable if Flask's config is not suitable
+                # For simplicity, we'll pass it directly as an argument here
+                return func(*args, validated_data=schema.load(data), **kwargs)
+            except ValidationError as err:
+                return handle_validation_error(err)
+        return wrapper
+    return decorator
+
+# Helper to get validated data (assuming it's set in wrapper)
+def get_validated_data():
+    # This is a placeholder. In a real app, you'd pass validated_data from the wrapper.
+    # For this example, we'll re-run the load if needed, or rely on the wrapper passing it.
+    # A better approach involves context variables or passing directly.
+    # Since the prompt implies direct use, we'll assume the wrapper passes it.
+    pass # This function itself is not directly called in the modified route as shown in the changes.
+
+@equities_bp.route("/list", methods=["GET"])
+@validate_request_data(EquitiesListSchema, location='args')
+@limiter.limit("60 per minute")
+def list_equities(validated_data):
+    """List equities with optional filtering"""
+    force = validated_data.get("forceRefresh")
     if not force:
-        c=_cache.get("list"); 
+        c=_cache.get("list");
         if c is not None: return jsonify(c)
-    
-    sector = request.args.get("sector","")
-    price_min = float(request.args.get("priceMin","0") or 0)
-    price_max = float(request.args.get("priceMax","999999") or 999999)
-    scoreMin = float(request.args.get("scoreMin","0") or 0)
-    
-    items = [x for x in _EQUITIES_DATA if 
-             (not sector or x["sector"]==sector) and 
+
+    sector = validated_data.get("sector")
+    price_min = validated_data.get("minPrice")
+    price_max = validated_data.get("maxPrice")
+    scoreMin = validated_data.get("scoreMin", 0.0)
+    limit = validated_data.get("limit", 50)
+
+    # Ensure price_min and price_max are handled correctly if None
+    price_min = price_min if price_min is not None else 0
+    price_max = price_max if price_max is not None else float('inf')
+
+
+    items = [x for x in _EQUITIES_DATA if
+             (not sector or x["sector"]==sector) and
              (x["confidence"]>=scoreMin) and
              (price_min <= x["price"] <= price_max)]
-    
-    payload = {"page":1,"pageSize":len(items),"total":len(items),"items":items}
+
+    # Apply limit if provided and valid
+    items = items[:limit]
+
+    payload = {"page": validated_data.get("page", 1),"pageSize":len(items),"total":len(items),"items":items}
     _cache.set("list", payload)
     return jsonify(payload)
 
 @equities_bp.get("/charts/<symbol>")
+@limiter.limit("60 per minute")
 def get_equity_charts(symbol):
     """Get OHLC and technical indicator data for charting"""
     timeframe = request.args.get("tf", "10D")
-    
+
     # Check cache first
     cache_key = f"charts_{symbol}_{timeframe}"
     cached = _cache.get(cache_key)
     if cached:
         return jsonify(cached)
-    
+
     # Generate chart data
     chart_data = _generate_chart_data(symbol, timeframe)
-    
+
     # Cache for 5 minutes
     _cache.set(cache_key, chart_data)
-    
+
     return jsonify(chart_data)
 
 @equities_bp.get("/positions")
+@limiter.limit("60 per minute")
 def get_positions():
+    # Placeholder for Marshmallow schema validation if needed for this route
     return jsonify({"items": _EQUITIES_DATA[:10]})  # Return subset for positions
 
 @equities_bp.get("/kpis")
+@limiter.limit("60 per minute")
 def eq_kpis():
+    # Placeholder for Marshmallow schema validation if needed for this route
     tf = request.args.get("timeframe","All")
     return jsonify({"timeframe":tf,"momentum":72,"volatility":"MEDIUM","trendADX":23,"breakoutProb":0.58,"earningsDays":12,"modelAcc":0.67,"avgHoldDays":9,"hitRate":0.64})
 
 @equities_bp.get("/analytics")
+@limiter.limit("60 per minute")
 def get_analytics():
+    # Placeholder for Marshmallow schema validation if needed for this route
     return jsonify({"portfolioValue": 1250000, "totalPnL": 85000, "winRate": 0.65, "sharpeRatio": 1.12})
+
+# Example of how to register the blueprint with the app and apply the limiter globally
+# from flask import Flask
+# app = Flask(__name__)
+# app.config["RATELIMIT_STORAGE_URL"] = "redis://localhost:6379" # Example storage
+# limiter.init_app(app)
+# app.register_blueprint(equities_bp)
+
+# Set MAX_CONTENT_LENGTH in Flask config (example)
+# app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB limit

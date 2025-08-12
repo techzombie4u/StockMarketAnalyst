@@ -1,6 +1,6 @@
-
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from src.core.cache import ttl_cache, now_iso
+from src.core.validation import validate_request_data, OptionsPositionsSchema, get_validated_data
 from .engine import options_engine
 import logging
 
@@ -15,16 +15,16 @@ def get_strangle_candidates():
         # Sample candidates with real calculations
         symbols = ['TCS', 'RELIANCE', 'HDFCBANK', 'INFY', 'ICICIBANK']
         candidates = []
-        
+
         for symbol in symbols:
             # Mock spot prices (in real implementation, fetch from market data)
             spot_prices = {'TCS': 4250, 'RELIANCE': 1390, 'HDFCBANK': 1995, 'INFY': 1800, 'ICICIBANK': 1205}
             spot = spot_prices.get(symbol, 1000)
-            
+
             # Calculate strategy metrics
             call_strike = round(spot * 1.05 / 50) * 50  # 5% OTM, rounded to nearest 50
             put_strike = round(spot * 0.95 / 50) * 50   # 5% OTM, rounded to nearest 50
-            
+
             metrics = options_engine.calculate_strangle_metrics(
                 symbol=symbol,
                 spot=spot,
@@ -33,7 +33,7 @@ def get_strangle_candidates():
                 days_to_expiry=30,
                 implied_vol=0.25
             )
-            
+
             candidate = {
                 "symbol": metrics['symbol'],
                 "underlying_price": metrics['spot_price'],
@@ -54,7 +54,7 @@ def get_strangle_candidates():
                 "payoff": metrics['payoff']
             }
             candidates.append(candidate)
-        
+
         return jsonify({
             "candidates": candidates,
             "metadata": {
@@ -64,7 +64,7 @@ def get_strangle_candidates():
             },
             "last_updated_utc": now_iso()
         })
-        
+
     except Exception as e:
         logger.error(f"Error getting strangle candidates: {e}")
         return jsonify({"error": "Failed to calculate candidates"}), 500
@@ -74,17 +74,17 @@ def create_strangle_plan():
     """Create a new strangle plan and save as position"""
     try:
         data = request.get_json() or {}
-        
+
         symbol = data.get('symbol', 'TCS')
         call_strike = float(data.get('call_strike', 4300))
         put_strike = float(data.get('put_strike', 3900))
         quantity = int(data.get('quantity', 1))
         days_to_expiry = int(data.get('days_to_expiry', 30))
-        
+
         # Mock spot price
         spot_prices = {'TCS': 4250, 'RELIANCE': 1390, 'HDFCBANK': 1995}
         spot = spot_prices.get(symbol, 4250)
-        
+
         # Calculate metrics
         metrics = options_engine.calculate_strangle_metrics(
             symbol=symbol,
@@ -93,16 +93,16 @@ def create_strangle_plan():
             put_strike=put_strike,
             days_to_expiry=days_to_expiry
         )
-        
+
         # Save as position
         position_data = {
             **metrics,
             'strategy_type': 'short_strangle',
             'quantity': quantity
         }
-        
+
         position_id = options_engine.save_position(position_data)
-        
+
         return jsonify({
             "success": True,
             "plan_id": position_id,
@@ -114,55 +114,56 @@ def create_strangle_plan():
             "greeks": metrics['greeks'],
             "payoff": metrics['payoff']
         })
-        
+
     except Exception as e:
         logger.error(f"Error creating strangle plan: {e}")
         return jsonify({"error": "Failed to create plan"}), 500
 
 @options_bp.get("/positions")
+@validate_request_data(OptionsPositionsSchema, location='args')
+@_cache
 def get_positions():
-    """Get all positions with complete data"""
-    try:
-        status = request.args.get("status", "all").lower()
-        positions = options_engine.get_positions(status)
-        
-        # Format for API response
-        formatted_positions = []
-        for pos in positions:
-            formatted_pos = {
-                "position_id": pos.get('position_id'),
-                "symbol": pos.get('symbol'),
-                "strategy_type": pos.get('strategy_type'),
-                "entry_date": pos.get('entry_date'),
-                "status": pos.get('status'),
-                "pnl": pos.get('pnl', 0.0),
-                "current_value": pos.get('current_value', 0.0),
-                "roi_pct": pos.get('roi_pct', 0.0),
-                "margin": pos.get('margin', 0.0),
-                "payoff": pos.get('payoff', {'x': [], 'y': []}),
-                "greeks": pos.get('greeks', {}),
-                "call_strike": pos.get('call_strike', 0.0),
-                "put_strike": pos.get('put_strike', 0.0),
-                "credit": pos.get('credit', 0.0),
-                "breakeven_low": pos.get('breakeven_low', 0.0),
-                "breakeven_high": pos.get('breakeven_high', 0.0)
-            }
-            formatted_positions.append(formatted_pos)
-        
-        return jsonify({
-            "positions": formatted_positions,
-            "summary": {
-                "total_positions": len(formatted_positions),
-                "open_positions": len([p for p in positions if p.get('status') == 'open']),
-                "total_pnl": sum(p.get('pnl', 0) for p in positions),
-                "total_margin": sum(p.get('margin', 0) for p in positions)
-            },
-            "last_updated_utc": now_iso()
-        })
-        
-    except Exception as e:
-        logger.error(f"Error getting positions: {e}")
-        return jsonify({"error": "Failed to get positions"}), 500
+    """Get options positions with filtering"""
+    validated_data = get_validated_data()
+    symbol = validated_data.get("symbol")
+    strategy = validated_data.get("strategy")
+    status = validated_data.get("status", "open")
+    limit = validated_data.get("limit", 20)
+    positions = options_engine.get_positions(status, limit=limit, symbol=symbol, strategy=strategy)
+
+    # Format for API response
+    formatted_positions = []
+    for pos in positions:
+        formatted_pos = {
+            "position_id": pos.get('position_id'),
+            "symbol": pos.get('symbol'),
+            "strategy_type": pos.get('strategy_type'),
+            "entry_date": pos.get('entry_date'),
+            "status": pos.get('status'),
+            "pnl": pos.get('pnl', 0.0),
+            "current_value": pos.get('current_value', 0.0),
+            "roi_pct": pos.get('roi_pct', 0.0),
+            "margin": pos.get('margin', 0.0),
+            "payoff": pos.get('payoff', {'x': [], 'y': []}),
+            "greeks": pos.get('greeks', {}),
+            "call_strike": pos.get('call_strike', 0.0),
+            "put_strike": pos.get('put_strike', 0.0),
+            "credit": pos.get('credit', 0.0),
+            "breakeven_low": pos.get('breakeven_low', 0.0),
+            "breakeven_high": pos.get('breakeven_high', 0.0)
+        }
+        formatted_positions.append(formatted_pos)
+
+    return jsonify({
+        "positions": formatted_positions,
+        "summary": {
+            "total_positions": len(formatted_positions),
+            "open_positions": len([p for p in positions if p.get('status') == 'open']),
+            "total_pnl": sum(p.get('pnl', 0) for p in positions),
+            "total_margin": sum(p.get('margin', 0) for p in positions)
+        },
+        "last_updated_utc": now_iso()
+    })
 
 @options_bp.get("/positions/<pid>")
 def get_position_detail(pid):
@@ -170,12 +171,12 @@ def get_position_detail(pid):
     try:
         positions = options_engine.get_positions()
         position = next((p for p in positions if p.get('position_id') == pid), None)
-        
+
         if not position:
             return jsonify({"error": "Position not found"}), 404
-        
+
         return jsonify(position)
-        
+
     except Exception as e:
         logger.error(f"Error getting position detail: {e}")
         return jsonify({"error": "Failed to get position"}), 500
@@ -186,17 +187,17 @@ def update_position(pid):
     try:
         data = request.get_json() or {}
         current_spot = float(data.get('current_spot', 0))
-        
+
         if current_spot <= 0:
             return jsonify({"error": "Invalid spot price"}), 400
-        
+
         success = options_engine.update_position_pnl(pid, current_spot)
-        
+
         if success:
             return jsonify({"success": True, "message": "Position updated"})
         else:
             return jsonify({"error": "Failed to update position"}), 500
-            
+
     except Exception as e:
         logger.error(f"Error updating position: {e}")
         return jsonify({"error": "Failed to update position"}), 500
@@ -207,14 +208,14 @@ def get_kpis():
     try:
         positions = options_engine.get_positions()
         open_positions = [p for p in positions if p.get('status') == 'open']
-        
+
         total_margin = sum(p.get('margin', 0) for p in open_positions)
         total_credit = sum(p.get('credit', 0) for p in open_positions)
         avg_roi = (total_credit / total_margin * 100) if total_margin > 0 else 0
-        
+
         # Calculate average PoP (simplified)
         avg_pop = sum(p.get('probability_profit', 0.5) for p in open_positions) / len(open_positions) if open_positions else 0.5
-        
+
         return jsonify({
             "expectedRoi": round(avg_roi, 2),
             "pop": round(avg_pop, 3),
@@ -223,7 +224,7 @@ def get_kpis():
             "activePositions": len(open_positions),
             "totalPnl": round(sum(p.get('pnl', 0) for p in positions), 2)
         })
-        
+
     except Exception as e:
         logger.error(f"Error getting KPIs: {e}")
         return jsonify({"error": "Failed to get KPIs"}), 500

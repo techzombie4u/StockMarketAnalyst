@@ -1,13 +1,18 @@
-
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from ..registry import REGISTRY, Agent
 from ..builtin_agents import run_new_ai_analyzer, run_sentiment_analyzer
+from src.core.validation import validate_request_data, AgentsConfigSchema, AgentsRunSchema, get_validated_data
 import json
 import os
 import time
 from datetime import datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 agents_bp = Blueprint("agents_api", __name__)
+
+# Initialize Flask-Limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Ensure logs directory exists
 LOG_DIR = "logs/agents"
@@ -43,10 +48,10 @@ def _persist_agent_run(agent_key, started_at, finished_at, success, items, summa
         "summary": summary,
         "duration_ms": int((finished_at - started_at) * 1000) if finished_at and started_at else 0
     }
-    
+
     history_file = os.path.join(LOG_DIR, f"{agent_key}_history.json")
     history = []
-    
+
     # Load existing history
     if os.path.exists(history_file):
         try:
@@ -54,11 +59,11 @@ def _persist_agent_run(agent_key, started_at, finished_at, success, items, summa
                 history = json.load(f)
         except:
             history = []
-    
+
     # Add new entry and keep last 100 entries
     history.append(history_entry)
     history = history[-100:]
-    
+
     # Save updated history
     with open(history_file, 'w') as f:
         json.dump(history, f, indent=2)
@@ -77,44 +82,52 @@ def list_agents():
     except Exception as e:
         return _json_error(f"Failed to list agents: {str(e)}")
 
-@agents_bp.route("/<agent_key>/run", methods=["POST"])
-def run_agent(agent_key):
+@agents_bp.route("/run", methods=["POST"])
+@validate_request_data(AgentsRunSchema, location='json')
+def run_agent():
     """Run a specific agent"""
+    validated_data = get_validated_data()
     try:
-        agent = REGISTRY.get(agent_key)
+        agent_id = validated_data.get("agent_id")
+        force_refresh = validated_data.get("force_refresh", False)
+        timeout_seconds = validated_data.get("timeout_seconds")
+
+        agent = REGISTRY.get(agent_id)
         if not agent:
-            return _json_error(f"Agent '{agent_key}' not found", 404)
-        
+            return _json_error(f"Agent '{agent_id}' not found", 404)
+
         started_at = time.time()
-        result = REGISTRY.run(agent_key)
+        # Pass timeout_seconds to the run function if it accepts it
+        result = REGISTRY.run(agent_id, force_refresh=force_refresh, timeout=timeout_seconds)
         finished_at = time.time()
-        
+
         success = result.get("success", False)
         items = result.get("result", {}).get("items", [])
-        summary = result.get("result", {}).get("summary", f"Agent {agent_key} executed")
-        
+        summary = result.get("result", {}).get("summary", f"Agent {agent_id} executed")
+
         # Persist run history
-        _persist_agent_run(agent_key, started_at, finished_at, success, items, summary)
-        
+        _persist_agent_run(agent_id, started_at, finished_at, success, items, summary)
+
         if success:
             return jsonify({
                 "success": True,
                 "result": result.get("result"),
-                "agent": agent_key,
+                "agent": agent_id,
                 "timestamp": datetime.utcnow().isoformat() + "Z"
             })
         else:
             return _json_error(result.get("error", "Agent execution failed"), 400)
-            
+
     except Exception as e:
-        return _json_error(f"Failed to run agent {agent_key}: {str(e)}")
+        return _json_error(f"Failed to run agent {agent_id}: {str(e)}")
+
 
 @agents_bp.route("/run_all", methods=["POST"])
 def run_all_agents():
     """Run all enabled agents"""
     try:
         result = REGISTRY.run_all()
-        
+
         # Persist run history for each agent
         for agent_key, agent_result in result.get("results", {}).items():
             started_at = time.time()
@@ -123,7 +136,7 @@ def run_all_agents():
             items = agent_result.get("result", {}).get("items", [])
             summary = f"Batch run of {agent_key}"
             _persist_agent_run(agent_key, started_at, finished_at, success, items, summary)
-        
+
         return jsonify({
             "success": True,
             "results": result.get("results", {}),
@@ -181,14 +194,28 @@ def get_config():
         return _json_error(f"Failed to get config: {str(e)}")
 
 @agents_bp.route("/config", methods=["POST"])
-def set_config():
-    """Set agent configuration"""
+@validate_request_data(AgentsConfigSchema, location='json')
+def update_agent_config():
+    """Update agent configuration"""
+    validated_data = get_validated_data()
     try:
-        payload = request.get_json()
-        if not payload:
-            return _json_error("Invalid JSON payload", 400)
-        
-        result = REGISTRY.set_config(payload)
+        agent_id = validated_data.get("agent_id")
+        config = validated_data.get("config", {})
+        enabled = validated_data.get("enabled")
+        interval_minutes = validated_data.get("interval_minutes")
+
+        update_params = {}
+        if agent_id:
+            update_params["agent_id"] = agent_id
+        if config is not None:
+            update_params["config"] = config
+        if enabled is not None:
+            update_params["enabled"] = enabled
+        if interval_minutes is not None:
+            update_params["interval_minutes"] = interval_minutes
+
+        result = REGISTRY.set_config(**update_params)
+
         if result.get("success"):
             return jsonify({
                 "success": True,
@@ -206,17 +233,17 @@ def get_agent_history(agent_key):
     try:
         history_file = os.path.join(LOG_DIR, f"{agent_key}_history.json")
         history = []
-        
+
         if os.path.exists(history_file):
             try:
                 with open(history_file, 'r') as f:
                     history = json.load(f)
             except:
                 history = []
-        
+
         # Also get from registry
         registry_history = REGISTRY.history(agent_key)
-        
+
         return jsonify({
             "success": True,
             "agent": agent_key,
@@ -235,7 +262,7 @@ def get_all_history():
         agent_key = request.args.get("agent", "").strip()
         if agent_key:
             return get_agent_history(agent_key)
-        
+
         # Get history for all agents
         all_history = {}
         for agent_data in REGISTRY.list():
@@ -249,7 +276,7 @@ def get_all_history():
                     all_history[agent_key] = []
             else:
                 all_history[agent_key] = []
-        
+
         return jsonify({
             "success": True,
             "history": all_history,
@@ -265,12 +292,12 @@ def get_agent_kpis():
         agents_list = REGISTRY.list()
         total_agents = len(agents_list)
         active_agents = len([a for a in agents_list if a.get("enabled", True)])
-        
+
         # Calculate performance metrics from history
         total_runs = 0
         successful_runs = 0
         avg_duration = 0
-        
+
         for agent_data in agents_list:
             agent_key = agent_data["key"]
             history_file = os.path.join(LOG_DIR, f"{agent_key}_history.json")
@@ -284,10 +311,10 @@ def get_agent_kpis():
                             avg_duration += sum(h.get("duration_ms", 0) for h in history) / len(history)
                 except:
                     pass
-        
+
         success_rate = (successful_runs / total_runs * 100) if total_runs > 0 else 0
         avg_duration = avg_duration / total_agents if total_agents > 0 else 0
-        
+
         return jsonify({
             "success": True,
             "kpis": {
@@ -312,10 +339,10 @@ def get_agents_status():
     try:
         agents_list = REGISTRY.list()
         agents_status = []
-        
+
         for agent_data in agents_list:
             agent_key = agent_data["key"]
-            
+
             # Get last run info
             last_run = None
             performance = 0
@@ -329,17 +356,17 @@ def get_agents_status():
                             last_run = last_entry.get("finished_at")
                             if isinstance(last_run, (int, float)):
                                 last_run = datetime.fromtimestamp(last_run).isoformat() + "Z"
-                            
+
                             # Calculate performance as success rate
                             recent_history = history[-10:]  # Last 10 runs
                             successful = len([h for h in recent_history if h.get("success", False)])
                             performance = (successful / len(recent_history) * 100) if recent_history else 0
                 except:
                     pass
-            
+
             if not last_run:
                 last_run = datetime.utcnow().isoformat() + "Z"
-            
+
             agents_status.append({
                 "name": agent_data.get("name", agent_key),
                 "key": agent_key,
@@ -347,7 +374,7 @@ def get_agents_status():
                 "last_run": last_run,
                 "performance": round(performance, 1)
             })
-        
+
         return jsonify({
             "success": True,
             "agents": agents_status,
@@ -355,3 +382,7 @@ def get_agents_status():
         })
     except Exception as e:
         return _json_error(f"Failed to get agents status: {str(e)}")
+
+# Apply rate limiting to all routes in the blueprint
+# 60 requests per minute per IP address
+limiter.limit("60/minute")(agents_bp)

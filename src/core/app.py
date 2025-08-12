@@ -194,6 +194,30 @@ def create_app():
                     "details": str(e)
                 }), 500
 
+        # Swagger UI integration
+        try:
+            from flask_swagger_ui import get_swaggerui_blueprint
+            
+            # Swagger UI Blueprint
+            SWAGGER_URL = '/docs'
+            API_URL = '/api'
+            
+            swaggerui_blueprint = get_swaggerui_blueprint(
+                SWAGGER_URL,
+                API_URL,
+                config={
+                    'app_name': "Fusion Stock Analyst API",
+                    'dom_id': '#swagger-ui',
+                    'layout': "StandaloneLayout"
+                }
+            )
+            
+            app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+            print("✅ Registered Swagger UI at /docs")
+            
+        except ImportError:
+            print("⚠️  flask-swagger-ui not available. Install with: pip install flask-swagger-ui")
+
         print("✅ Flask app created successfully")
         return app
 

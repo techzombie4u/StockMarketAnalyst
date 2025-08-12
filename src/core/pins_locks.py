@@ -1,6 +1,9 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
+from src.core.validation import validate_request_data, PinsLocksUpdateSchema, get_validated_data
 import os, json, threading
 from datetime import datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 BASE = os.path.join(os.path.dirname(__file__), "../../data/persistent")
 os.makedirs(BASE, exist_ok=True)
@@ -10,6 +13,9 @@ LOCKS_PATH = os.path.join(BASE, "locks.json")
 _LOCK = threading.Lock()
 
 pins_locks_bp = Blueprint('pins_locks', __name__, url_prefix='/api')
+
+# Initialize Flask-Limiter
+limiter = Limiter(key_func=get_remote_address, default_limits="60 per minute")
 
 def _read(path):
     try:
@@ -73,6 +79,7 @@ def is_locked(product_type, item_id):
     return product_type in locks and item_id in locks[product_type]
 
 @pins_locks_bp.route('/status', methods=['GET'])
+@limiter.limit("60 per minute")
 def pins_locks_status():
     """Get pins and locks system status"""
     return jsonify({
@@ -86,6 +93,7 @@ def pins_locks_status():
     })
 
 @pins_locks_bp.route('/pins', methods=['GET'])
+@limiter.limit("60 per minute")
 def get_pins():
     """Get all pinned items in structured format"""
     try:
@@ -96,14 +104,14 @@ def get_pins():
         return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/pins', methods=['POST'])
-def add_pin():
-    """Add or toggle a pinned item"""
+@limiter.limit("60 per minute")
+@validate_request_data(PinsLocksUpdateSchema, location='json')
+def update_pins():
+    """Update pinned items"""
+    validated_data = get_validated_data()
     try:
-        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        data = request.get_json()
-
-        product_type = data.get('type', '').upper()
-        symbol = data.get('symbol', '')
+        product_type = validated_data.get('type', '').upper()
+        symbol = validated_data.get('symbol', '')
 
         if not product_type or not symbol:
             return jsonify({"error": "Missing type or symbol"}), 400
@@ -111,7 +119,7 @@ def add_pin():
         current_pins = list_pins()
 
         # Check if item is already pinned
-        is_already_pinned = (product_type in current_pins and 
+        is_already_pinned = (product_type in current_pins and
                            symbol in current_pins[product_type])
 
         if is_already_pinned:
@@ -131,6 +139,7 @@ def add_pin():
         return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/locks', methods=['GET'])
+@limiter.limit("60 per minute")
 def get_locks():
     """Get all locked items in structured format"""
     try:
@@ -141,14 +150,14 @@ def get_locks():
         return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/locks', methods=['POST'])
-def add_lock():
-    """Add or toggle a locked item"""
+@limiter.limit("60 per minute")
+@validate_request_data(PinsLocksUpdateSchema, location='json')
+def update_locks():
+    """Update locked items"""
+    validated_data = get_validated_data()
     try:
-        force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        data = request.get_json()
-
-        product_type = data.get('type', '').upper()
-        item_id = data.get('id', '') or data.get('symbol', '')
+        product_type = validated_data.get('type', '').upper()
+        item_id = validated_data.get('id', '') or validated_data.get('symbol', '')
 
         if not product_type or not item_id:
             return jsonify({"error": "Missing type or id/symbol"}), 400
@@ -156,7 +165,7 @@ def add_lock():
         current_locks = list_locks()
 
         # Check if item is already locked
-        is_already_locked = (product_type in current_locks and 
+        is_already_locked = (product_type in current_locks and
                            item_id in current_locks[product_type])
 
         if is_already_locked:
@@ -176,6 +185,7 @@ def add_lock():
         return jsonify({"error": str(e)}), 500
 
 @pins_locks_bp.route('/locks/check', methods=['POST'])
+@limiter.limit("60 per minute")
 def check_lock():
     """Check if an action is blocked by lock - returns 423 if locked"""
     try:
