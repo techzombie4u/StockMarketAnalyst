@@ -1,28 +1,38 @@
 
-<!doctype html><html><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>{{ title or "Stock Market Analyst" }}</title>
-<link rel="stylesheet" href="/static/css/proto.css"/>
-<script defer src="/static/js/proto.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Fusion Stock Analyst{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    {% block head %}{% endblock %}
 </head>
-<body class="bg">
-  <header class="topbar">
-    <div class="wrap">
-      <div class="brand">Stock Market Analyst</div>
-      <nav class="nav">
-        <a href="/dashboard" class="navlink">Dashboard</a>
-        <a href="/equities" class="navlink">Equities</a>
-        <a href="/options" class="navlink">Options</a>
-        <a href="/commodities" class="navlink">Commodities</a>
-      </nav>
-      <div class="tools">
-        <button id="refresh" class="btn">Refresh</button>
-        <div class="stamp">Updated (UTC): <span id="updated"></span></div>
-      </div>
-    </div>
-  </header>
-  <main class="wrap">
-    {% block content %}{% endblock %}
-  </main>
-  <footer class="footer"><div class="wrap small">Static shell • © {{ 2025 }}</div></footer>
-</body></html>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <h1 class="text-lg font-bold">Fusion Stock Analyst</h1>
+                </div>
+                <div class="flex gap-8">
+                    <a href="/dashboard" class="{% if request.endpoint == 'dashboard' %}text-accent{% else %}text-muted{% endif %}">Dashboard</a>
+                    <a href="/equities" class="{% if request.endpoint == 'equities' %}text-accent{% else %}text-muted{% endif %}">Equities</a>
+                    <a href="/options" class="{% if request.endpoint == 'options' %}text-accent{% else %}text-muted{% endif %}">Options</a>
+                    <a href="/commodities" class="{% if request.endpoint == 'commodities' %}text-accent{% else %}text-muted{% endif %}">Commodities</a>
+                </div>
+                <div class="toolbar">
+                    <button class="btn" onclick="location.reload()">Refresh</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/ui_state.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
