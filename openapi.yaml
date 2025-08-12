@@ -46,16 +46,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  kpis:
-                    type: object
-                  timeframes:
-                    type: object
-                  top_signals:
-                    type: array
-                  pinned_rollup:
-                    type: object
+                $ref: '#/components/schemas/DashboardData'
 
   /api/equities/list:
     get:
@@ -188,20 +179,146 @@ paths:
           in: query
           schema:
             type: string
+            enum: [All, 3D, 5D, 10D, 15D, 30D]
+            default: All
       responses:
         '200':
           description: KPI metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KPIMetrics'
+
+  /docs:
+    get:
+      summary: Swagger UI Documentation
+      description: Interactive API documentation using Swagger UI
+      responses:
+        '200':
+          description: Swagger UI HTML page
+          content:
+            text/html:
+              schema:
+                type: string
 
 components:
   schemas:
+    Error:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "not_found"
+        message:
+          type: string
+          example: "Resource not found"
+
+    KPIMetrics:
+      type: object
+      properties:
+        timeframe:
+          type: string
+          example: "30D"
+        prediction_accuracy:
+          type: number
+          format: float
+          example: 0.72
+        sharpe_ratio:
+          type: number
+          format: float
+          example: 1.35
+        sortino_ratio:
+          type: number
+          format: float
+          example: 1.48
+        max_drawdown:
+          type: number
+          format: float
+          example: -0.08
+        expectancy:
+          type: number
+          format: float
+          example: 1.42
+        coverage:
+          type: number
+          format: float
+          example: 0.89
+        last_updated:
+          type: string
+          format: date-time
+          example: "2024-08-11T16:45:00Z"
+
+    DashboardData:
+      type: object
+      properties:
+        kpis:
+          type: object
+        timeframes:
+          type: object
+        top_signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Signal'
+        pinned_rollup:
+          type: object
+        alerts:
+          type: array
+          items:
+            type: string
+        insights:
+          type: string
+
     Signal:
       type: object
       properties:
         symbol:
           type: string
+          example: "TCS"
+        product:
+          type: string
+          example: "Equity"
         signal_score:
           type: number
+          format: float
+          example: 8.7
+        current_price:
+          type: number
+          format: float
+          example: 4275.30
+        target_price:
+          type: number
+          format: float
+          example: 4500.00
+        potential_roi:
+          type: number
+          format: float
+          example: 0.0526
         ai_verdict:
           type: string
+          enum: [STRONG_BUY, BUY, HOLD, CAUTIOUS, AVOID]
+          example: "STRONG_BUY"
         confidence:
           type: number
+          format: float
+          example: 0.87
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

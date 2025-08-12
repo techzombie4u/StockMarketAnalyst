@@ -1,4 +1,3 @@
-
 # run_regression.py
 import os
 import sys
@@ -107,7 +106,7 @@ def run_backend_tests():
     """Run backend contract tests"""
     import subprocess
     import sys
-    
+
     print("🧪 Running backend contract tests...")
     try:
         result = subprocess.run([sys.executable, "-m", "pytest", "-q", "tests/backend"], 
@@ -124,7 +123,7 @@ def run_backend_tests():
 
 if __name__ == "__main__":
     main()
-    
+
     # Run backend tests after main regression
     print("\n" + "="*60)
     run_backend_tests()
