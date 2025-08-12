@@ -9,6 +9,27 @@ logger = logging.getLogger(__name__)
 
 agents_api_bp = Blueprint('agents_api', __name__)
 
+@agents_api_bp.route('/', methods=['GET'])
+def get_agents():
+    """Get list of agents"""
+    try:
+        registry = load_agents_registry()
+        agents = registry.get('agents', {})
+
+        return jsonify({
+            "agents": agents,
+            "total_agents": len(agents),
+            "active_agents": len([a for a in agents.values() if a.get('enabled', False)])
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting agents: {e}")
+        return jsonify({
+            "error": "internal_server_error",
+            "message": str(e),
+            "agents": {}
+        }), 500
+
 def load_agents_registry():
     """Load agents registry data"""
     try:
