@@ -9,6 +9,16 @@
   --chip-bg: #111827; 
   --chip-active-bg: #f8fafc; 
   --chip-active-text: #0f172a;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --primary: #6366f1;
+  --secondary: #64748b;
+  --surface: #1e293b;
+  --on-surface: #cbd5e1;
+  --outline: #475569;
+  --shadow: rgba(0,0,0,0.25);
 }
 
 body { 
@@ -168,3 +178,26 @@ td {
 .text-lg { font-size: 18px; }
 .text-sm { font-size: 14px; }
 .text-xs { font-size: 12px; }
+
+/* Navigation active state */
+.text-accent { color: var(--accent); }
+
+/* Status indicators */
+.status-active { color: var(--success); }
+.status-warning { color: var(--warning); }
+.status-error { color: var(--danger); }
+
+/* Interactive elements */
+.hover\:bg-surface:hover { background-color: var(--surface); }
+.hover\:text-accent:hover { color: var(--accent); }
+
+/* Responsive grid adjustments */
+@media (max-width: 768px) {
+  .grid-6 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .grid-5 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .grid-8 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+
+@media (max-width: 480px) {
+  .grid-6, .grid-5, .grid-8 { grid-template-columns: 1fr; }
+}
