@@ -15,37 +15,62 @@ def _read(path):
     try:
         with open(path,"r") as f: return json.load(f)
     except Exception:
-        return []
+        return {}
 
 def _write(path, data):
     with open(path,"w") as f: json.dump(data, f, indent=2)
 
-def list_pins():  return _read(PINS_PATH)
-def list_locks(): return _read(LOCKS_PATH)
+def list_pins():
+    data = _read(PINS_PATH)
+    return data if isinstance(data, dict) else {}
 
-def pin(item):
+def list_locks():
+    data = _read(LOCKS_PATH)
+    return data if isinstance(data, dict) else {}
+
+def pin(product_type, symbol):
     with _LOCK:
         pins = list_pins()
-        if item not in pins:
-            pins.append(item); _write(PINS_PATH, pins)
+        if product_type not in pins:
+            pins[product_type] = []
+        if symbol not in pins[product_type]:
+            pins[product_type].append(symbol)
+            _write(PINS_PATH, pins)
         return pins
 
-def unpin(item):
+def unpin(product_type, symbol):
     with _LOCK:
-        pins = [x for x in list_pins() if x != item]
-        _write(PINS_PATH, pins); return pins
+        pins = list_pins()
+        if product_type in pins and symbol in pins[product_type]:
+            pins[product_type].remove(symbol)
+            if not pins[product_type]:
+                del pins[product_type]
+            _write(PINS_PATH, pins)
+        return pins
 
-def lock(item):
+def lock(product_type, item_id):
     with _LOCK:
         locks = list_locks()
-        if item not in locks:
-            locks.append(item); _write(LOCKS_PATH, locks)
+        if product_type not in locks:
+            locks[product_type] = []
+        if item_id not in locks[product_type]:
+            locks[product_type].append(item_id)
+            _write(LOCKS_PATH, locks)
         return locks
 
-def unlock(item):
+def unlock(product_type, item_id):
     with _LOCK:
-        locks = [x for x in list_locks() if x != item]
-        _write(LOCKS_PATH, locks); return locks
+        locks = list_locks()
+        if product_type in locks and item_id in locks[product_type]:
+            locks[product_type].remove(item_id)
+            if not locks[product_type]:
+                del locks[product_type]
+            _write(LOCKS_PATH, locks)
+        return locks
+
+def is_locked(product_type, item_id):
+    locks = list_locks()
+    return product_type in locks and item_id in locks[product_type]
 
 @pins_locks_bp.route('/status', methods=['GET'])
 def pins_locks_status():
@@ -62,10 +87,11 @@ def pins_locks_status():
 
 @pins_locks_bp.route('/pins', methods=['GET'])
 def get_pins():
-    """Get all pinned items"""
+    """Get all pinned items in structured format"""
     try:
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        return jsonify({"items": list_pins()})
+        pins = list_pins()
+        return jsonify({"pins": pins})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -76,54 +102,29 @@ def add_pin():
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
         data = request.get_json()
 
-        # Handle single item or bulk items
-        if 'items' in data:
-            items = data['items']
-            current_pins = list_pins()
-            
-            for item in items:
-                item_key = f"{item.get('type')}_{item.get('symbol')}"
-                
-                # Check if item is already pinned
-                is_already_pinned = any(
-                    isinstance(p, dict) and p.get('type') == item.get('type') and p.get('symbol') == item.get('symbol')
-                    for p in current_pins
-                )
-                
-                if is_already_pinned:
-                    # Remove from pins (toggle off)
-                    unpin(item_key)
-                else:
-                    # Add to pins
-                    new_pin = {
-                        "type": item.get('type'),
-                        "symbol": item.get('symbol'),
-                        "timestamp": datetime.utcnow().isoformat() + "Z"
-                    }
-                    pin(new_pin)
+        product_type = data.get('type', '').upper()
+        symbol = data.get('symbol', '')
+
+        if not product_type or not symbol:
+            return jsonify({"error": "Missing type or symbol"}), 400
+
+        current_pins = list_pins()
+
+        # Check if item is already pinned
+        is_already_pinned = (product_type in current_pins and 
+                           symbol in current_pins[product_type])
+
+        if is_already_pinned:
+            # Remove from pins (toggle off)
+            pins = unpin(product_type, symbol)
         else:
-            item_key = f"{data.get('type')}_{data.get('symbol')}"
-            current_pins = list_pins()
-            
-            # Check if item is already pinned
-            is_already_pinned = any(
-                isinstance(p, dict) and p.get('type') == data.get('type') and p.get('symbol') == data.get('symbol')
-                for p in current_pins
-            )
-            
-            if is_already_pinned:
-                unpin(item_key)
-            else:
-                new_pin = {
-                    "type": data.get('type'),
-                    "symbol": data.get('symbol'),
-                    "timestamp": datetime.utcnow().isoformat() + "Z"
-                }
-                pin(new_pin)
+            # Add to pins
+            pins = pin(product_type, symbol)
 
         return jsonify({
             "success": True,
-            "items": list_pins()
+            "pins": pins,
+            "action": "unpinned" if is_already_pinned else "pinned"
         })
 
     except Exception as e:
@@ -131,10 +132,11 @@ def add_pin():
 
 @pins_locks_bp.route('/locks', methods=['GET'])
 def get_locks():
-    """Get all locked items"""
+    """Get all locked items in structured format"""
     try:
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
-        return jsonify({"items": list_locks()})
+        locks = list_locks()
+        return jsonify({"locks": locks})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -145,55 +147,51 @@ def add_lock():
         force_refresh = request.args.get('forceRefresh', 'false').lower() == 'true'
         data = request.get_json()
 
-        # Handle single item or bulk items
-        if 'items' in data:
-            items = data['items']
-            current_locks = list_locks()
-            
-            for item in items:
-                item_key = f"{item.get('type')}_{item.get('symbol')}"
-                
-                # Check if item is already locked
-                is_already_locked = any(
-                    isinstance(l, dict) and l.get('type') == item.get('type') and l.get('symbol') == item.get('symbol')
-                    for l in current_locks
-                )
-                
-                if is_already_locked:
-                    # Remove from locks (toggle off)
-                    unlock(item_key)
-                else:
-                    # Add to locks
-                    new_lock = {
-                        "type": item.get('type'),
-                        "symbol": item.get('symbol'),
-                        "timestamp": datetime.utcnow().isoformat() + "Z"
-                    }
-                    lock(new_lock)
+        product_type = data.get('type', '').upper()
+        item_id = data.get('id', '') or data.get('symbol', '')
+
+        if not product_type or not item_id:
+            return jsonify({"error": "Missing type or id/symbol"}), 400
+
+        current_locks = list_locks()
+
+        # Check if item is already locked
+        is_already_locked = (product_type in current_locks and 
+                           item_id in current_locks[product_type])
+
+        if is_already_locked:
+            # Remove from locks (toggle off)
+            locks = unlock(product_type, item_id)
         else:
-            item_key = f"{data.get('type')}_{data.get('symbol')}"
-            current_locks = list_locks()
-            
-            # Check if item is already locked
-            is_already_locked = any(
-                isinstance(l, dict) and l.get('type') == data.get('type') and l.get('symbol') == data.get('symbol')
-                for l in current_locks
-            )
-            
-            if is_already_locked:
-                unlock(item_key)
-            else:
-                new_lock = {
-                    "type": data.get('type'),
-                    "symbol": data.get('symbol'),
-                    "timestamp": datetime.utcnow().isoformat() + "Z"
-                }
-                lock(new_lock)
+            # Add to locks
+            locks = lock(product_type, item_id)
 
         return jsonify({
             "success": True,
-            "items": list_locks()
+            "locks": locks,
+            "action": "unlocked" if is_already_locked else "locked"
         })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@pins_locks_bp.route('/locks/check', methods=['POST'])
+def check_lock():
+    """Check if an action is blocked by lock - returns 423 if locked"""
+    try:
+        data = request.get_json()
+        product_type = data.get('type', '').upper()
+        item_id = data.get('id', '') or data.get('symbol', '')
+
+        if is_locked(product_type, item_id):
+            return jsonify({
+                "error": "Action blocked - item is locked",
+                "locked": True,
+                "product_type": product_type,
+                "item_id": item_id
+            }), 423
+
+        return jsonify({"locked": False})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

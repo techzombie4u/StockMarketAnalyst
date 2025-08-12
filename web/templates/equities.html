@@ -32,7 +32,7 @@
   <div class="title">Equity Positions</div>
   <div class="tablewrap">
     <table>
-      <thead><tr><th>Symbol</th><th>Name</th><th>Sector</th><th>Price</th><th>Vol Regime</th><th>Verdict</th><th>Confidence</th><th>Win Rate</th><th>Sharpe</th><th>Updated</th></tr></thead>
+      <thead><tr><th>Symbol</th><th>Name</th><th>Sector</th><th>Price</th><th>Vol Regime</th><th>Verdict</th><th>Confidence</th><th>Win Rate</th><th>Sharpe</th><th>Updated</th><th>Actions</th></tr></thead>
       <tbody id="eq-positions-table"></tbody>
     </table>
   </div>
@@ -42,6 +42,166 @@
 document.addEventListener("DOMContentLoaded", () => {
   // Load equities data and populate tables
   console.log("Equities page loaded");
+
+  // Mock data for demonstration
+  const mockEquityData = [
+    { symbol: 'TCS', name: 'Tata Consultancy Services', sector: 'IT', price: 3200.50, change: 1.2, volume: 1500000, ai_verdict: 'BUY', ai_confidence: 85.5, roi: 5.2, vol_regime: 'Low', verdict: 'Positive', confidence: 0.85, sharpe: 1.5, updated: '2023-10-26' },
+    { symbol: 'RELIANCE', name: 'Reliance Industries', sector: 'Energy', price: 2450.75, change: -0.5, volume: 2000000, ai_verdict: 'SELL', ai_confidence: 70.2, roi: -2.1, vol_regime: 'Medium', verdict: 'Negative', confidence: 0.70, sharpe: 0.8, updated: '2023-10-26' },
+    { symbol: 'INFY', name: 'Infosys', sector: 'IT', price: 1400.20, change: 0.8, volume: 1800000, ai_verdict: 'BUY', ai_confidence: 90.1, roi: 7.5, vol_regime: 'Low', verdict: 'Positive', confidence: 0.90, sharpe: 1.7, updated: '2023-10-26' },
+  ];
+
+  const tableBody = document.getElementById('eq-positions-table');
+
+  mockEquityData.forEach(item => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>${item.symbol}</td>
+        <td>${item.name}</td>
+        <td>${item.sector}</td>
+        <td>₹${parseFloat(item.price || 0).toFixed(2)}</td>
+        <td>${item.vol_regime}</td>
+        <td><span class="ai-verdict-badge ${(item.ai_verdict || 'hold').toLowerCase()}">${item.ai_verdict || 'HOLD'}</span></td>
+        <td>${(item.ai_confidence || 0).toFixed(1)}%</td>
+        <td>${(item.roi || 0).toFixed(2)}%</td>
+        <td>${item.sharpe}</td>
+        <td>${item.updated}</td>
+    `;
+
+    // Add pin/lock buttons
+    PinsLocksManager.addActionButtons(row, 'EQUITY', item.symbol);
+
+    tableBody.appendChild(row);
+  });
+
+  // Placeholder for PinsLocksManager if not defined elsewhere
+  if (typeof PinsLocksManager === 'undefined') {
+    window.PinsLocksManager = {
+      addActionButtons: function(row, type, symbol) {
+        const actionCell = document.createElement('td');
+        const isPinned = this.isPinned(type, symbol);
+        const isLocked = this.isLocked(type, symbol);
+
+        actionCell.innerHTML = `
+          <button class="pin-button" onclick="PinsLocksManager.togglePin('${type}', '${symbol}')">
+            ${isPinned ? 'Unpin' : 'Pin'}
+          </button>
+          <button class="lock-button" onclick="PinsLocksManager.toggleLock('${type}', '${symbol}')" ${isLocked ? 'disabled' : ''}>
+            ${isLocked ? 'Locked' : 'Lock'}
+          </button>
+        `;
+        row.appendChild(actionCell);
+
+        if (isLocked) {
+          row.classList.add('locked-row');
+          // Disable other row actions if needed
+          const actionButtons = row.querySelectorAll('button:not(.lock-button)');
+          actionButtons.forEach(btn => btn.disabled = true);
+        }
+      },
+      isPinned: function(type, symbol) {
+        // Replace with actual API call or state management
+        const pins = JSON.parse(localStorage.getItem('pins') || '{}');
+        return pins[type] && pins[type].includes(symbol);
+      },
+      isLocked: function(type, symbol) {
+        // Replace with actual API call or state management
+        const locks = JSON.parse(localStorage.getItem('locks') || '{}');
+        return locks[type] && locks[type].includes(symbol);
+      },
+      togglePin: function(type, symbol) {
+        console.log(`Toggling pin for ${symbol} in ${type}`);
+        let pins = JSON.parse(localStorage.getItem('pins') || '{}');
+        if (!pins[type]) {
+          pins[type] = [];
+        }
+        if (pins[type].includes(symbol)) {
+          pins[type] = pins[type].filter(s => s !== symbol);
+        } else {
+          pins[type].push(symbol);
+        }
+        localStorage.setItem('pins', JSON.stringify(pins));
+        this.updateUI();
+        // Show toast notification
+        Toastify({
+            text: `${symbol} ${pins[type].includes(symbol) ? 'pinned' : 'unpinned'} successfully!`,
+            gravity: "top",
+            position: "right",
+            backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+            stopOnFocus: true,
+        }).showToast();
+      },
+      toggleLock: function(type, symbol) {
+        console.log(`Toggling lock for ${symbol} in ${type}`);
+        let locks = JSON.parse(localStorage.getItem('locks') || '{}');
+        if (!locks[type]) {
+          locks[type] = [];
+        }
+        if (locks[type].includes(symbol)) {
+          // Unlock: remove from locks
+          locks[type] = locks[type].filter(s => s !== symbol);
+          localStorage.setItem('locks', JSON.stringify(locks));
+          this.updateUI();
+          Toastify({
+              text: `${symbol} unlocked successfully!`,
+              gravity: "top",
+              position: "right",
+              backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+              stopOnFocus: true,
+          }).showToast();
+        } else {
+          // Lock: attempt to add to locks
+          // Simulate a POST request to lock the position
+          // In a real scenario, this would be an API call
+          const success = true; // Assume success for now
+          if (success) {
+            locks[type].push(symbol);
+            localStorage.setItem('locks', JSON.stringify(locks));
+            this.updateUI();
+            Toastify({
+                text: `${symbol} locked successfully!`,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                stopOnFocus: true,
+            }).showToast();
+          } else {
+            // Handle failed lock attempt (e.g., show error message)
+            Toastify({
+                text: `Failed to lock ${symbol}.`,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "linear-gradient(to right, red, darkred)",
+                stopOnFocus: true,
+            }).showToast();
+          }
+        }
+      },
+      updateUI: function() {
+        // Re-render the table or update specific rows/buttons
+        // For simplicity, we'll just reload the data (in a real app, update selectively)
+        const tableBody = document.getElementById('eq-positions-table');
+        tableBody.innerHTML = ''; // Clear existing rows
+        // Re-populate with mock data and updated pin/lock states
+        mockEquityData.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.symbol}</td>
+                <td>${item.name}</td>
+                <td>${item.sector}</td>
+                <td>₹${parseFloat(item.price || 0).toFixed(2)}</td>
+                <td>${item.vol_regime}</td>
+                <td><span class="ai-verdict-badge ${(item.ai_verdict || 'hold').toLowerCase()}">${item.ai_verdict || 'HOLD'}</span></td>
+                <td>${(item.ai_confidence || 0).toFixed(1)}%</td>
+                <td>${(item.roi || 0).toFixed(2)}%</td>
+                <td>${item.sharpe}</td>
+                <td>${item.updated}</td>
+            `;
+            this.addActionButtons(row, 'EQUITY', item.symbol);
+            tableBody.appendChild(row);
+        });
+      }
+    };
+  }
 });
 </script>
 {% endblock %}

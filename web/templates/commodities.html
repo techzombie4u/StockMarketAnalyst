@@ -19,8 +19,9 @@
                     <th>Price</th>
                     <th>Change</th>
                     <th>Signal</th>
-                    <th>Correlation</th>
-                    <th>Action</th>
+                    <th>Strength</th>
+                    <th>Volume</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="commodities-table-body">
@@ -33,33 +34,83 @@
 
 {% block scripts %}
 <script>
+// Mock PinsLocksManager for demonstration purposes
+const PinsLocksManager = {
+    addActionButtons: function(row, type, item) {
+        const cell = document.createElement('td');
+        cell.innerHTML = `
+            <button class="pin-btn" onclick="togglePin('${type}', '${item}')">
+                ⭐
+            </button>
+            <button class="lock-btn" onclick="toggleLock('${type}', '${item}')">
+                🔒
+            </button>
+        `;
+        row.appendChild(cell);
+    },
+    togglePin: async function(type, item) {
+        console.log(`Toggling pin for ${type}: ${item}`);
+        // Replace with actual API call
+        try {
+            const response = await fetch(`/api/pins_locks/${type}/${item}/toggle`, { method: 'POST' });
+            if (!response.ok) throw new Error('Failed to toggle pin');
+            alert(`${item} pin toggled successfully!`);
+            // Update UI if needed, e.g., change star icon, update counts
+        } catch (error) {
+            console.error('Error toggling pin:', error);
+            alert('Failed to toggle pin.');
+        }
+    },
+    toggleLock: async function(type, item) {
+        console.log(`Toggling lock for ${type}: ${item}`);
+        // Replace with actual API call
+        try {
+            const response = await fetch(`/api/pins_locks/${type}/${item}/toggle_lock`, { method: 'POST' });
+            if (!response.ok) {
+                if (response.status === 423) {
+                    alert(`Cannot lock ${item}. It is currently pinned.`);
+                } else {
+                    throw new Error('Failed to toggle lock');
+                }
+            } else {
+                alert(`${item} lock toggled successfully!`);
+                // Update UI if needed, e.g., disable row actions
+            }
+        } catch (error) {
+            console.error('Error toggling lock:', error);
+            alert('Failed to toggle lock.');
+        }
+    }
+};
+
 // Load commodities data
 async function loadCommodities() {
     try {
         const response = await fetch('/api/commodities/signals');
         const data = await response.json();
 
-        const tbody = document.getElementById('commodities-table-body');
-        tbody.innerHTML = data.signals.map(item => `
-            <tr>
-                <td>${item.symbol}</td>
-                <td>${item.price}</td>
-                <td class="${item.change >= 0 ? 'status-active' : 'status-error'}">
-                    ${item.change}%
+        const tableBody = document.getElementById('commodities-table-body');
+        tableBody.innerHTML = ''; // Clear existing data
+
+        data.signals.forEach(signal => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${signal.commodity}</td>
+                <td>₹${parseFloat(signal.price || 0).toFixed(2)}</td>
+                <td class="${parseFloat(signal.change || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                    ${parseFloat(signal.change || 0).toFixed(2)}%
                 </td>
-                <td>
-                    <span class="badge ${item.signal === 'BUY' ? 'badge-ok' : item.signal === 'SELL' ? 'badge-danger' : 'badge-warn'}">
-                        ${item.signal}
-                    </span>
-                </td>
-                <td>${item.correlation}</td>
-                <td>
-                    <button class="pin-btn" onclick="togglePin('${item.symbol}')">
-                        ⭐
-                    </button>
-                </td>
-            </tr>
-        `).join('');
+                <td><span class="badge badge-${signal.signal === 'BUY' ? 'ok' : signal.signal === 'SELL' ? 'danger' : 'warn'}">${signal.signal}</span></td>
+                <td>${parseFloat(signal.strength || 0).toFixed(1)}</td>
+                <td>${parseInt(signal.volume || 0).toLocaleString()}</td>
+            `;
+
+            // Add pin/lock buttons
+            PinsLocksManager.addActionButtons(row, 'COMMODITY', signal.commodity);
+
+            const rowHtml = row.outerHTML;
+            tableBody.innerHTML += rowHtml;
+        });
     } catch (error) {
         console.error('Error loading commodities:', error);
     }
@@ -69,10 +120,19 @@ function refreshData() {
     loadCommodities();
 }
 
-function togglePin(symbol) {
-    // Pin/unpin functionality
-    console.log('Toggle pin for:', symbol);
+// Placeholder for the actual togglePin function that will interact with the backend
+async function togglePin(type, item) {
+    await PinsLocksManager.togglePin(type, item);
+    // Optionally refresh data or update UI elements related to pinned counts
+    loadCommodities(); // Simple refresh for now
 }
+
+async function toggleLock(type, item) {
+    await PinsLocksManager.toggleLock(type, item);
+    // Optionally refresh data or update UI elements related to locked states
+    loadCommodities(); // Simple refresh for now
+}
+
 
 // Load data on page load
 document.addEventListener('DOMContentLoaded', loadCommodities);
