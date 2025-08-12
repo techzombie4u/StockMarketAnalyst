@@ -1,0 +1,51 @@
+{
+  "timestamp": 1754979385.347593,
+  "validations": [
+    {
+      "name": "Data Structures",
+      "status": "FAIL",
+      "timestamp": 1754979385.3477662
+    },
+    {
+      "name": "API Contracts",
+      "status": "FAIL",
+      "timestamp": 1754979385.3501623
+    },
+    {
+      "name": "UI Components",
+      "status": "FAIL",
+      "timestamp": 1754979385.3515172
+    },
+    {
+      "name": "Agents System",
+      "status": "FAIL",
+      "timestamp": 1754979385.3530757
+    },
+    {
+      "name": "KPI System",
+      "status": "FAIL",
+      "timestamp": 1754979385.3543248
+    },
+    {
+      "name": "Options Engine",
+      "status": "FAIL",
+      "timestamp": 1754979385.3555412
+    },
+    {
+      "name": "Pins & Locks",
+      "status": "FAIL",
+      "timestamp": 1754979385.3567321
+    },
+    {
+      "name": "Performance Guardrails",
+      "status": "FAIL",
+      "timestamp": 1754979385.3581333
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "passed": 0,
+    "failed": 8,
+    "success_rate": 0.0
+  }
+}
