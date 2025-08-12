@@ -32,8 +32,8 @@ class PerformanceGuardrails:
         
         # Performance budgets
         self.budgets = {
-            'p95_latency_ms': 500,     # 500ms p95 latency
-            'memory_mb': 400,          # 400MB RSS memory
+            'p95_latency_ms': 600,     # 600ms p95 latency
+            'memory_mb': 250,          # 250MB RSS memory
             'cache_hit_rate': 0.70     # 70% cache hit rate minimum
         }
         

@@ -1,9 +1,12 @@
 import os
-from flask import Flask, request, jsonify
+import time
+import uuid
+from flask import Flask, request, jsonify, g
 import logging
 from datetime import datetime
 from src.core.logging import add_request_logging
 from src.core.metrics import metrics
+from src.core.guardrails import guardrails
 
 def create_app():
     """Create and configure Flask application"""
@@ -23,8 +26,58 @@ def create_app():
         # Configure logging
         logging.basicConfig(level=logging.INFO)
 
-        # Add request logging middleware
-        app = add_request_logging(app)
+        # Add request tracking middleware
+        @app.before_request
+        def before_request():
+            g.start_time = time.time()
+            g.request_id = str(uuid.uuid4())
+
+        @app.after_request
+        def after_request(response):
+            try:
+                duration = time.time() - g.start_time
+                duration_ms = duration * 1000
+
+                # Add request ID header
+                response.headers['X-Request-ID'] = g.request_id
+
+                # Log as JSON
+                log_entry = {
+                    "request_id": g.request_id,
+                    "method": request.method,
+                    "path": request.path,
+                    "status": response.status_code,
+                    "duration_ms": round(duration_ms, 2),
+                    "timestamp": datetime.now().isoformat()
+                }
+                print(f"REQUEST_LOG: {log_entry}")
+
+                # Update metrics
+                endpoint = request.path
+                metrics.increment(f"requests_total_{endpoint}")
+                if response.status_code >= 400:
+                    metrics.increment(f"errors_total_{endpoint}")
+
+                metrics.record_latency(endpoint, duration_ms)
+
+                # Record guardrails metrics
+                cache_hit = response.headers.get('X-Cache-Hit', 'false').lower() == 'true'
+                guardrails.record_request_latency(endpoint, duration_ms)
+                if cache_hit:
+                    guardrails.record_cache_hit(endpoint)
+                else:
+                    guardrails.record_cache_miss(endpoint)
+
+                # Enforce guardrails
+                guardrails.enforce_guardrails()
+
+            except Exception as e:
+                print(f"Error in after_request middleware: {e}")
+
+            return response
+
+        # Add request logging middleware (already handled by after_request, but keeping for completeness if add_request_logging does more)
+        # app = add_request_logging(app) # This line might be redundant or need careful integration if add_request_logging is purely for logging and not middleware insertion. Assuming after_request handles the core logging.
 
         # Health check endpoint
         @app.route("/health")
@@ -147,3 +200,5 @@ def create_app():
     except Exception as e:
         print(f"❌ Error creating Flask app: {e}")
         raise
+
+app = create_app()

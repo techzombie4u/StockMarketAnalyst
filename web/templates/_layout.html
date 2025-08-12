@@ -27,6 +27,13 @@
         </div>
     </header>
 
+    <!-- Degraded mode banner -->
+    <div id="degraded-banner" class="degraded-banner" style="display: none;">
+        <div class="container">
+            ⚠️ Performance guardrail active - Some features may be disabled
+        </div>
+    </div>
+
     <main class="container">
         {% block content %}{% endblock %}
     </main>
@@ -34,6 +41,29 @@
     <script src="{{ url_for('static', filename='js/ui_state.js') }}"></script>
     <script src="/static/js/pins_locks.js"></script>
     <script src="/static/js/fusion_ui.js"></script>
+    <script>
+        // Check for degraded mode on page load
+        async function checkDegradedMode() {
+            try {
+                const response = await fetch('/api/metrics/guardrails');
+                const data = await response.json();
+                
+                const banner = document.getElementById('degraded-banner');
+                if (data.degraded) {
+                    banner.style.display = 'block';
+                    console.log('Degraded mode active:', data.reason);
+                } else {
+                    banner.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Failed to check degraded mode:', error);
+            }
+        }
+
+        // Check immediately and every 30 seconds
+        document.addEventListener('DOMContentLoaded', checkDegradedMode);
+        setInterval(checkDegradedMode, 30000);
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
