@@ -1,0 +1,284 @@
+{
+  "timestamp": 1754978775.8902354,
+  "duration_seconds": 250.13718581199646,
+  "summary": {
+    "total_tests": 30,
+    "passed": 6,
+    "failed": 24,
+    "success_rate": 20.0
+  },
+  "categories": {
+    "INFRASTRUCTURE": {
+      "pass": 3,
+      "fail": 1,
+      "error": 0
+    },
+    "FUSION API": {
+      "pass": 0,
+      "fail": 2,
+      "error": 0
+    },
+    "EQUITIES API": {
+      "pass": 0,
+      "fail": 3,
+      "error": 0
+    },
+    "OPTIONS API": {
+      "pass": 0,
+      "fail": 2,
+      "error": 0
+    },
+    "COMMODITIES API": {
+      "pass": 0,
+      "fail": 2,
+      "error": 0
+    },
+    "KPI SYSTEM": {
+      "pass": 0,
+      "fail": 2,
+      "error": 0
+    },
+    "AGENTS SYSTEM": {
+      "pass": 0,
+      "fail": 2,
+      "error": 0
+    },
+    "PINS & LOCKS": {
+      "pass": 0,
+      "fail": 2,
+      "error": 0
+    },
+    "USER INTERFACE": {
+      "pass": 0,
+      "fail": 4,
+      "error": 0
+    },
+    "DATA INTEGRITY": {
+      "pass": 3,
+      "fail": 0,
+      "error": 0
+    },
+    "PERFORMANCE": {
+      "pass": 0,
+      "fail": 2,
+      "error": 0
+    },
+    "GUARDRAILS": {
+      "pass": 0,
+      "fail": 2,
+      "error": 0
+    }
+  },
+  "detailed_results": [
+    {
+      "category": "INFRASTRUCTURE",
+      "test": "Server Startup",
+      "status": "PASS",
+      "timestamp": 1754978530.5583444,
+      "details": {}
+    },
+    {
+      "category": "INFRASTRUCTURE",
+      "test": "Health Endpoint",
+      "status": "PASS",
+      "timestamp": 1754978530.5617354,
+      "details": {}
+    },
+    {
+      "category": "INFRASTRUCTURE",
+      "test": "OpenAPI Spec",
+      "status": "PASS",
+      "timestamp": 1754978530.571507,
+      "details": {}
+    },
+    {
+      "category": "INFRASTRUCTURE",
+      "test": "Metrics Endpoint",
+      "status": "FAIL",
+      "timestamp": 1754978540.5839312,
+      "details": {}
+    },
+    {
+      "category": "FUSION API",
+      "test": "Dashboard API",
+      "status": "FAIL",
+      "timestamp": 1754978555.6000988,
+      "details": {}
+    },
+    {
+      "category": "FUSION API",
+      "test": "Timeframe Filtering",
+      "status": "FAIL",
+      "timestamp": 1754978565.6121018,
+      "details": {}
+    },
+    {
+      "category": "EQUITIES API",
+      "test": "List API",
+      "status": "FAIL",
+      "timestamp": 1754978575.6230767,
+      "details": {}
+    },
+    {
+      "category": "EQUITIES API",
+      "test": "KPIs API",
+      "status": "FAIL",
+      "timestamp": 1754978585.634692,
+      "details": {}
+    },
+    {
+      "category": "EQUITIES API",
+      "test": "Filtering",
+      "status": "FAIL",
+      "timestamp": 1754978595.6461315,
+      "details": {}
+    },
+    {
+      "category": "OPTIONS API",
+      "test": "Strangle Candidates",
+      "status": "FAIL",
+      "timestamp": 1754978610.6620896,
+      "details": {}
+    },
+    {
+      "category": "OPTIONS API",
+      "test": "Positions API",
+      "status": "FAIL",
+      "timestamp": 1754978620.6730905,
+      "details": {}
+    },
+    {
+      "category": "COMMODITIES API",
+      "test": "Signals API",
+      "status": "FAIL",
+      "timestamp": 1754978630.6843557,
+      "details": {}
+    },
+    {
+      "category": "COMMODITIES API",
+      "test": "Correlations API",
+      "status": "FAIL",
+      "timestamp": 1754978640.6955907,
+      "details": {}
+    },
+    {
+      "category": "KPI SYSTEM",
+      "test": "Metrics API",
+      "status": "FAIL",
+      "timestamp": 1754978650.7072637,
+      "details": {}
+    },
+    {
+      "category": "KPI SYSTEM",
+      "test": "Timeframe Metrics",
+      "status": "FAIL",
+      "timestamp": 1754978660.718043,
+      "details": {}
+    },
+    {
+      "category": "AGENTS SYSTEM",
+      "test": "Config API",
+      "status": "FAIL",
+      "timestamp": 1754978670.7290359,
+      "details": {}
+    },
+    {
+      "category": "AGENTS SYSTEM",
+      "test": "Run API",
+      "status": "FAIL",
+      "timestamp": 1754978680.7400215,
+      "details": {}
+    },
+    {
+      "category": "PINS & LOCKS",
+      "test": "Pins API",
+      "status": "FAIL",
+      "timestamp": 1754978690.7510612,
+      "details": {}
+    },
+    {
+      "category": "PINS & LOCKS",
+      "test": "Locks API",
+      "status": "FAIL",
+      "timestamp": 1754978700.7627165,
+      "details": {}
+    },
+    {
+      "category": "USER INTERFACE",
+      "test": "Dashboard UI",
+      "status": "FAIL",
+      "timestamp": 1754978710.774039,
+      "details": {}
+    },
+    {
+      "category": "USER INTERFACE",
+      "test": "Equities UI",
+      "status": "FAIL",
+      "timestamp": 1754978720.7852545,
+      "details": {}
+    },
+    {
+      "category": "USER INTERFACE",
+      "test": "Options UI",
+      "status": "FAIL",
+      "timestamp": 1754978720.821776,
+      "details": {}
+    },
+    {
+      "category": "USER INTERFACE",
+      "test": "Commodities UI",
+      "status": "FAIL",
+      "timestamp": 1754978730.8331048,
+      "details": {}
+    },
+    {
+      "category": "DATA INTEGRITY",
+      "test": "Data Files",
+      "status": "PASS",
+      "timestamp": 1754978730.8333676,
+      "details": {}
+    },
+    {
+      "category": "DATA INTEGRITY",
+      "test": "Historical Data",
+      "status": "PASS",
+      "timestamp": 1754978730.833814,
+      "details": {}
+    },
+    {
+      "category": "DATA INTEGRITY",
+      "test": "KPI Data",
+      "status": "PASS",
+      "timestamp": 1754978730.8348014,
+      "details": {}
+    },
+    {
+      "category": "PERFORMANCE",
+      "test": "Response Times",
+      "status": "FAIL",
+      "timestamp": 1754978750.856023,
+      "details": {}
+    },
+    {
+      "category": "PERFORMANCE",
+      "test": "Concurrent Requests",
+      "status": "FAIL",
+      "timestamp": 1754978760.8723886,
+      "details": {}
+    },
+    {
+      "category": "GUARDRAILS",
+      "test": "Input Validation",
+      "status": "FAIL",
+      "timestamp": 1754978770.8843174,
+      "details": {}
+    },
+    {
+      "category": "GUARDRAILS",
+      "test": "Rate Limiting",
+      "status": "FAIL",
+      "timestamp": 1754978775.890202,
+      "details": {}
+    }
+  ]
+}
