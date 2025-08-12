@@ -1,50 +1,44 @@
 
 {
-  "items": [
+  "equities": [
     {
       "symbol": "RELIANCE",
       "name": "Reliance Industries Ltd",
-      "sector": "Energy",
-      "price": 2850.75,
-      "change": 45.20,
-      "change_percent": 1.61,
+      "sector": "Oil & Gas",
+      "current_price": 2450.75,
+      "change_percent": 2.3,
       "volume": 1250000,
-      "market_cap": 1925000000000,
-      "pe_ratio": 24.5,
-      "verdict": "BUY",
-      "confidence": 0.85,
-      "last_updated": "2025-01-12T10:30:00Z"
+      "market_cap": 1650000000000,
+      "pe_ratio": 18.5,
+      "predictions": {
+        "pred_24h": 1.2,
+        "pred_5d": 3.5,
+        "pred_1mo": 8.2
+      },
+      "confidence": 78,
+      "score": 72
     },
     {
       "symbol": "TCS",
       "name": "Tata Consultancy Services",
-      "sector": "IT",
-      "price": 4125.30,
-      "change": -12.45,
-      "change_percent": -0.30,
+      "sector": "IT Services",
+      "current_price": 3650.25,
+      "change_percent": 1.8,
       "volume": 890000,
-      "market_cap": 1510000000000,
-      "pe_ratio": 28.2,
-      "verdict": "HOLD",
-      "confidence": 0.72,
-      "last_updated": "2025-01-12T10:30:00Z"
-    },
-    {
-      "symbol": "INFY",
-      "name": "Infosys Limited",
-      "sector": "IT",
-      "price": 1750.65,
-      "change": 25.10,
-      "change_percent": 1.45,
-      "volume": 1100000,
-      "market_cap": 740000000000,
-      "pe_ratio": 26.8,
-      "verdict": "BUY",
-      "confidence": 0.78,
-      "last_updated": "2025-01-12T10:30:00Z"
+      "market_cap": 1320000000000,
+      "pe_ratio": 24.2,
+      "predictions": {
+        "pred_24h": 0.8,
+        "pred_5d": 2.1,
+        "pred_1mo": 6.5
+      },
+      "confidence": 75,
+      "score": 68
     }
   ],
-  "total_count": 3,
-  "generation_time_ms": 45,
-  "last_updated": "2025-01-12T10:30:00Z"
+  "metadata": {
+    "last_updated": "2025-08-12T06:00:00Z",
+    "total_count": 2,
+    "market_status": "open"
+  }
 }

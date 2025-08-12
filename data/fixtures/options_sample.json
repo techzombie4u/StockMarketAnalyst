@@ -1,32 +1,47 @@
 
 {
-  "candidates": [
+  "strangle_candidates": [
     {
-      "underlying": "RELIANCE",
-      "strike_call": 2900,
-      "strike_put": 2800,
-      "expiry": "2025-02-27",
-      "margin": 45000,
-      "payoff": 8500,
-      "probability": 0.72,
-      "risk_reward": 1.89,
-      "verdict": "MODERATE_BUY",
-      "confidence": 0.74
-    },
-    {
-      "underlying": "TCS",
-      "strike_call": 4200,
-      "strike_put": 4050,
-      "expiry": "2025-02-27",
-      "margin": 52000,
-      "payoff": 9200,
-      "probability": 0.68,
-      "risk_reward": 1.77,
-      "verdict": "BUY",
-      "confidence": 0.81
+      "underlying": "NIFTY",
+      "expiry": "2025-08-28",
+      "call_strike": 25000,
+      "put_strike": 24000,
+      "call_premium": 120.5,
+      "put_premium": 98.75,
+      "total_premium": 219.25,
+      "breakeven_upper": 25219.25,
+      "breakeven_lower": 23780.75,
+      "max_profit_potential": "unlimited",
+      "max_loss": 219.25,
+      "probability_profit": 65,
+      "days_to_expiry": 16,
+      "implied_volatility": 18.5,
+      "delta_call": 0.35,
+      "delta_put": -0.28,
+      "margin_required": 45000,
+      "payoff_ratio": 2.1,
+      "risk_rating": "medium"
     }
   ],
-  "total_candidates": 2,
-  "generation_time_ms": 156,
-  "last_updated": "2025-01-12T10:30:00Z"
+  "positions": [
+    {
+      "id": "pos_001",
+      "underlying": "BANKNIFTY",
+      "strategy": "short_strangle",
+      "call_strike": 52000,
+      "put_strike": 48000,
+      "quantity": 25,
+      "entry_date": "2025-08-05",
+      "premium_collected": 5500,
+      "current_value": 4200,
+      "pnl": 1300,
+      "pnl_percent": 23.6,
+      "status": "active"
+    }
+  ],
+  "metadata": {
+    "last_updated": "2025-08-12T06:00:00Z",
+    "total_candidates": 1,
+    "active_positions": 1
+  }
 }

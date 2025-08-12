@@ -8,73 +8,57 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class TTLCache:
-    def __init__(self, default_ttl: int = 300):
-        self.cache = {}
-        self.timestamps = {}
-        self.default_ttl = default_ttl
-        self.lock = threading.Lock()
+class Cache:
+    def __init__(self):
+        self._cache = {}
+        self._timestamps = {}
 
-    def get(self, key: str) -> Optional[Any]:
-        with self.lock:
-            if key not in self.cache:
-                return None
+    def get(self, key: str):
+        return self._cache.get(key)
 
-            if time.time() - self.timestamps[key] > self.default_ttl:
-                del self.cache[key]
-                del self.timestamps[key]
-                return None
+    def set(self, key: str, value: Any, ttl: int = 300):
+        self._cache[key] = value
+        self._timestamps[key] = time.time() + ttl
 
-            return self.cache[key]
+    def invalidate(self, key: str):
+        if key in self._cache:
+            del self._cache[key]
+        if key in self._timestamps:
+            del self._timestamps[key]
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None):
-        with self.lock:
-            self.cache[key] = value
-            self.timestamps[key] = time.time()
-
-    def clear(self):
-        with self.lock:
-            self.cache.clear()
-            self.timestamps.clear()
+    def is_expired(self, key: str) -> bool:
+        if key not in self._timestamps:
+            return True
+        return time.time() > self._timestamps[key]
 
 # Global cache instance
-_cache = TTLCache()
+cache = Cache()
 
 def ttl_cache(ttl: int = 300):
-    """
-    TTL cache decorator
-    """
-    def decorator(func: Callable) -> Callable:
+    """TTL cache decorator"""
+    def decorator(func: Callable):
+        cache_dict = {}
+        cache_times = {}
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Create cache key from function name and arguments
-            cache_key = f"{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
+            key = f"{func.__name__}_{hash(str(args) + str(sorted(kwargs.items())))}"
 
-            # Try to get from cache
-            cached_result = _cache.get(cache_key)
-            if cached_result is not None:
-                return cached_result
+            # Check if cached result exists and is not expired
+            if key in cache_dict and key in cache_times:
+                if time.time() < cache_times[key]:
+                    return cache_dict[key]
 
-            # Execute function and cache result
+            # Call function and cache result
             result = func(*args, **kwargs)
-            _cache.set(cache_key, result, ttl)
+            cache_dict[key] = result
+            cache_times[key] = time.time() + ttl
 
             return result
+
         return wrapper
     return decorator
-
-def get_cache_stats() -> Dict[str, Any]:
-    """Get cache statistics"""
-    with _cache.lock:
-        return {
-            "cache_size": len(_cache.cache),
-            "cache_keys": list(_cache.cache.keys())
-        }
-
-def clear_cache():
-    """Clear all cached data"""
-    _cache.clear()
-    logger.info("Cache cleared")
 
 # File-based cache for persistent data
 class FileCache:

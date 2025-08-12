@@ -3,37 +3,46 @@
   "signals": [
     {
       "commodity": "GOLD",
-      "signal": "BUY",
-      "confidence": 0.82,
-      "price": 62500,
-      "change": 450,
-      "change_percent": 0.72,
-      "volume": 125000,
-      "last_updated": "2025-01-12T10:30:00Z"
+      "signal_type": "bullish",
+      "strength": 78,
+      "price_target": 72500,
+      "current_price": 70250,
+      "expected_move": 3.2,
+      "timeframe": "1M",
+      "confidence": 82,
+      "factors": ["inflation_hedge", "geopolitical_tension", "currency_weakness"],
+      "generated_at": "2025-08-12T06:00:00Z"
     },
     {
-      "commodity": "SILVER",
-      "signal": "HOLD",
-      "confidence": 0.65,
-      "price": 75200,
-      "change": -120,
-      "change_percent": -0.16,
-      "volume": 89000,
-      "last_updated": "2025-01-12T10:30:00Z"
+      "commodity": "CRUDE_OIL",
+      "signal_type": "neutral",
+      "strength": 45,
+      "price_target": 6850,
+      "current_price": 6820,
+      "expected_move": 0.4,
+      "timeframe": "2W",
+      "confidence": 58,
+      "factors": ["supply_balance", "demand_uncertainty"],
+      "generated_at": "2025-08-12T06:00:00Z"
     }
   ],
-  "correlations": {
-    "GOLD": {
-      "SILVER": 0.78,
-      "CRUDE": 0.23,
-      "USD_INR": -0.45
+  "correlations": [
+    {
+      "pair": ["GOLD", "SILVER"],
+      "correlation": 0.85,
+      "strength": "strong",
+      "timeframe": "30D"
     },
-    "SILVER": {
-      "GOLD": 0.78,
-      "CRUDE": 0.19,
-      "USD_INR": -0.38
+    {
+      "pair": ["CRUDE_OIL", "NATURAL_GAS"],
+      "correlation": 0.42,
+      "strength": "moderate",
+      "timeframe": "30D"
     }
-  },
-  "generation_time_ms": 89,
-  "last_updated": "2025-01-12T10:30:00Z"
+  ],
+  "metadata": {
+    "last_updated": "2025-08-12T06:00:00Z",
+    "total_signals": 2,
+    "active_correlations": 2
+  }
 }
