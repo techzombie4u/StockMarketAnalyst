@@ -1,6 +1,6 @@
 
 from marshmallow import Schema, fields, ValidationError, validates_schema
-from flask import jsonify
+from flask import jsonify, request, g
 
 class EquitiesListSchema(Schema):
     """Schema for /api/equities/list endpoint"""

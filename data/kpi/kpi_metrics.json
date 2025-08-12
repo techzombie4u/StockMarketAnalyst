@@ -133,3 +133,41 @@
     "reasons": []
   }
 }
+{
+  "metrics": {
+    "1D": {
+      "top_gainers": 45,
+      "top_losers": 38,
+      "market_momentum": 67.5,
+      "volatility_index": 23.4,
+      "sector_rotation": 8.2,
+      "risk_sentiment": 72.1
+    },
+    "5D": {
+      "top_gainers": 52,
+      "top_losers": 31,
+      "market_momentum": 74.2,
+      "volatility_index": 19.8,
+      "sector_rotation": 12.7,
+      "risk_sentiment": 78.5
+    },
+    "10D": {
+      "top_gainers": 48,
+      "top_losers": 35,
+      "market_momentum": 71.8,
+      "volatility_index": 21.2,
+      "sector_rotation": 10.5,
+      "risk_sentiment": 75.3
+    },
+    "30D": {
+      "top_gainers": 56,
+      "top_losers": 27,
+      "market_momentum": 82.1,
+      "volatility_index": 16.9,
+      "sector_rotation": 15.8,
+      "risk_sentiment": 84.2
+    }
+  },
+  "last_updated": "2024-12-12T10:30:00Z",
+  "calculation_time_ms": 125
+}

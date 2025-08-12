@@ -55,7 +55,7 @@ def fusion_dashboard():
         force_refresh = request.args.get("forceRefresh", "false").lower() == "true"
 
         print(f"🔄 Fusion dashboard request - force refresh: {force_refresh}")
-        
+
         start_time = time.time()
 
         # Check cache
@@ -74,40 +74,40 @@ def fusion_dashboard():
         timeframes = {}
         for tf in VALID_TIMEFRAMES:
             kpi_data = get_kpi_summary(tf)
-            
+
             # Prediction KPIs
             prediction_accuracy = round(kpi_data.get("acc", 0.72), 3)
             coverage = round(kpi_data.get("coverage", 0.89), 2)
-            
+
             # Financial KPIs  
             sharpe = round(kpi_data.get("sharpe", 1.35), 2)
             sortino = round(kpi_data.get("sortino", 1.48), 2)
             expectancy = round(kpi_data.get("winExp", 1.42), 3)
-            
+
             # Risk KPIs
             max_drawdown = round(kpi_data.get("mdd", -0.08), 3)
             volatility = round(kpi_data.get("volatility", 0.15), 3)
             var_95 = round(kpi_data.get("var_95", -0.12), 3)
-            
+
             timeframes[tf] = {
                 # Prediction Family
                 "predictionAccuracy": prediction_accuracy,
                 "coverage": coverage,
                 "signalQuality": round(prediction_accuracy * coverage, 3),
-                
+
                 # Financial Family
                 "sharpe": sharpe,
                 "sortino": sortino,
                 "expectancy": expectancy,
                 "calmarRatio": round(abs(sharpe / max_drawdown) if max_drawdown != 0 else 0, 2),
-                
+
                 # Risk Family
                 "maxDrawdown": max_drawdown,
                 "volatility": volatility,
                 "var95": var_95,
                 "riskScore": round((1 + max_drawdown) * (1 - volatility), 3)
             }
-        
+
         # Use KPI data for main dashboard metrics as well
         default_kpis = get_kpi_summary("All")
         kpis = {
@@ -145,7 +145,7 @@ def fusion_dashboard():
         # Complete top signals with strict validation
         def validate_verdict(verdict):
             return verdict if verdict in VALID_VERDICTS else "HOLD"
-        
+
         def generate_rationale(symbol, verdict, score):
             if score > 0.85:
                 return f"Strong technical momentum in {symbol} with high conviction AI signals"
@@ -155,7 +155,7 @@ def fusion_dashboard():
                 return f"Moderate signals for {symbol}, suitable for conservative allocation"
             else:
                 return f"Mixed signals for {symbol}, requires careful monitoring"
-        
+
         raw_signals = [
             {"symbol": "TCS", "product": "equity", "score": 0.87, "verdict": "BUY", "confidence": 0.85},
             {"symbol": "INFY", "product": "equity", "score": 0.91, "verdict": "STRONG_BUY", "confidence": 0.91},
@@ -164,7 +164,7 @@ def fusion_dashboard():
             {"symbol": "ICICIBANK", "product": "equity", "score": 0.69, "verdict": "HOLD", "confidence": 0.65},
             {"symbol": "WIPRO", "product": "equity", "score": 0.58, "verdict": "CAUTIOUS", "confidence": 0.55}
         ]
-        
+
         top_signals = []
         for signal in raw_signals:
             validated_verdict = validate_verdict(signal["verdict"])
@@ -191,7 +191,7 @@ def fusion_dashboard():
         ]
 
         generation_time_ms = round((time.time() - start_time) * 1000, 1)
-        
+
         payload = {
             "last_updated_utc": now_iso(),
             "market_session": "CLOSED",

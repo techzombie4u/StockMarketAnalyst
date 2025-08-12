@@ -5,3 +5,14 @@
     "timestamp": "2025-08-11T12:24:24.026052Z"
   }
 ]
+{
+  "locks": [
+    {
+      "symbol": "VOLATILE_STOCK",
+      "type": "EQUITY",
+      "locked_at": "2024-12-12T09:00:00Z",
+      "reason": "High volatility warning"
+    }
+  ],
+  "last_updated": "2024-12-12T10:30:00Z"
+}

@@ -4,3 +4,62 @@
   {"ticker":"SILVER","contract":"AUG","verdict":"BUY","confidence":0.62,"atr14":0.016,"rsi":57,"breakout":61,"trendScore":60,"volRegime":"MEDIUM","seasonality":0.47,"corrUSDINR":-0.18,"corrNIFTY":-0.09},
   {"ticker":"CRUDEOIL","contract":"SEP","verdict":"CAUTIOUS","confidence":0.49,"atr14":0.028,"rsi":44,"breakout":39,"trendScore":45,"volRegime":"HIGH","seasonality":0.33,"corrUSDINR":0.06,"corrNIFTY":0.18}
 ]
+{
+  "signals": [
+    {
+      "symbol": "GOLD",
+      "name": "Gold Futures",
+      "price": 63250.50,
+      "change": 125.25,
+      "change_percent": 0.20,
+      "signal": "BUY",
+      "strength": 78.5,
+      "volume": 45200,
+      "open_interest": 152000,
+      "last_updated": "2024-12-12T10:30:00Z"
+    },
+    {
+      "symbol": "CRUDE",
+      "name": "Crude Oil",
+      "price": 6850.75,
+      "change": -45.25,
+      "change_percent": -0.66,
+      "signal": "SELL",
+      "strength": 72.1,
+      "volume": 38500,
+      "open_interest": 89500,
+      "last_updated": "2024-12-12T10:30:00Z"
+    },
+    {
+      "symbol": "SILVER",
+      "name": "Silver Futures",
+      "price": 78520.25,
+      "change": 285.50,
+      "change_percent": 0.37,
+      "signal": "BUY",
+      "strength": 81.2,
+      "volume": 28750,
+      "open_interest": 95200,
+      "last_updated": "2024-12-12T10:30:00Z"
+    }
+  ],
+  "correlations": {
+    "GOLD": {
+      "SILVER": 0.85,
+      "CRUDE": -0.12,
+      "USD_INR": -0.68
+    },
+    "CRUDE": {
+      "GOLD": -0.12,
+      "SILVER": -0.08,
+      "USD_INR": 0.45
+    },
+    "SILVER": {
+      "GOLD": 0.85,
+      "CRUDE": -0.08,
+      "USD_INR": -0.62
+    }
+  },
+  "total_count": 3,
+  "generated_at": "2024-12-12T10:30:00Z"
+}

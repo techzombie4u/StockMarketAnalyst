@@ -16,3 +16,32 @@
     "last_result": null
   }
 }
+{
+  "agents": {
+    "equity_analyzer": {
+      "id": "equity_analyzer",
+      "name": "Equity Analysis Agent",
+      "description": "Analyzes equity trends and provides recommendations",
+      "enabled": true,
+      "last_run": "2024-12-12T10:00:00Z",
+      "status": "active"
+    },
+    "options_strategist": {
+      "id": "options_strategist", 
+      "name": "Options Strategy Agent",
+      "description": "Identifies profitable options strategies",
+      "enabled": true,
+      "last_run": "2024-12-12T10:00:00Z",
+      "status": "active"
+    },
+    "sentiment_tracker": {
+      "id": "sentiment_tracker",
+      "name": "Market Sentiment Agent", 
+      "description": "Tracks market sentiment and news",
+      "enabled": true,
+      "last_run": "2024-12-12T10:00:00Z",
+      "status": "active"
+    }
+  },
+  "last_updated": "2024-12-12T10:30:00Z"
+}
