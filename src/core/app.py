@@ -91,8 +91,8 @@ def create_app():
 
     try:
         # Agents API
-        from src.agents.api.agents import agents_api_bp
-        app.register_blueprint(agents_api_bp, url_prefix='/api/agents')
+        from src.agents.api.agents import agents_bp
+        app.register_blueprint(agents_bp, url_prefix='/api/agents')
         logger.info("✅ Registered Agents API at /api/agents")
     except Exception as e:
         logger.warning(f"⚠️ Could not register Agents API: {e}")

@@ -7,7 +7,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-agents_api_bp = Blueprint('agents_api', __name__)
+agents_bp = Blueprint('agents_api', __name__)
+agents_api_bp = agents_bp  # Alias for backward compatibility
 
 @agents_api_bp.route('/', methods=['GET'])
 def get_agents():

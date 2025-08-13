@@ -98,3 +98,14 @@ class FileCache:
 
 # Global file cache instance
 file_cache = FileCache()
+
+def get_cached_data(key: str, default=None):
+    """Get cached data with fallback to default value"""
+    try:
+        result = cache.get(key)
+        if result is None or cache.is_expired(key):
+            return default
+        return result
+    except Exception as e:
+        logger.error(f"Error getting cached data for key {key}: {e}")
+        return default
