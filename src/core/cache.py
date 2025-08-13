@@ -109,3 +109,12 @@ def get_cached_data(key: str, default=None):
     except Exception as e:
         logger.error(f"Error getting cached data for key {key}: {e}")
         return default
+
+def cache_data(key: str, value: Any, ttl: int = 300):
+    """Cache data with TTL"""
+    try:
+        cache.set(key, value, ttl)
+        return True
+    except Exception as e:
+        logger.error(f"Error caching data for key {key}: {e}")
+        return False
