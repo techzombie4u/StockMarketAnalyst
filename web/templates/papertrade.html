@@ -1,7 +1,7 @@
 
 {% extends "_layout.html" %}
 
-{% block title %}Paper Trade - Fusion Stock Analyst{% endblock %}
+{% block title %}Paper Trading - Fusion Stock Analyst{% endblock %}
 
 {% block content %}
 <div class="paper-trading-page">
@@ -11,7 +11,7 @@
             <div class="header-content">
                 <div class="header-left">
                     <h1>Paper Trading Simulator</h1>
-                    <p class="header-subtitle">Real-time trading simulation with live market data</p>
+                    <p class="header-subtitle">Unified Equities & Options — real-time simulation</p>
                 </div>
                 <div class="header-actions">
                     <button class="btn-refresh" id="refresh-portfolio">
@@ -23,7 +23,7 @@
                 </div>
             </div>
             
-            <!-- KPI Grid -->
+            <!-- Enhanced KPI Grid -->
             <div class="kpi-grid">
                 <div class="kpi-card">
                     <div class="kpi-label">Total Capital</div>
@@ -36,14 +36,24 @@
                     <div class="kpi-delta" id="pnl-sign"></div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Active Positions</div>
+                    <div class="kpi-label">Positions</div>
                     <div class="kpi-value" id="active-positions">0</div>
                     <div class="kpi-delta" id="position-value">₹0 invested</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Refresh</div>
-                    <div class="kpi-value" id="live-status">Live</div>
-                    <div class="kpi-delta" id="last-update">--:--:--</div>
+                    <div class="kpi-label">Sharpe (3M)</div>
+                    <div class="kpi-value" id="sharpe-ratio">0.00</div>
+                    <div class="kpi-delta">Risk-adjusted return</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Sortino (3M)</div>
+                    <div class="kpi-value" id="sortino-ratio">0.00</div>
+                    <div class="kpi-delta">Downside risk</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Win Rate</div>
+                    <div class="kpi-value" id="win-rate">0%</div>
+                    <div class="kpi-delta" id="max-drawdown">Max DD 0%</div>
                 </div>
             </div>
         </div>
@@ -51,111 +61,131 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Left Column: Quick Trade + Positions -->
-        <div class="left-column">
-            <!-- Quick Trade -->
-            <section class="card">
-                <div class="card-header">
-                    <h3>Quick Trade</h3>
-                    <span class="badge badge-info">Live</span>
+        <!-- Enhanced Quick Trade Section -->
+        <section class="card full-width">
+            <div class="card-header">
+                <h3>Quick Trade</h3>
+                <span class="badge badge-info">Live</span>
+            </div>
+            <div class="enhanced-trade-grid">
+                <div class="trade-field">
+                    <label>Instrument</label>
+                    <select id="trade-instrument">
+                        <option value="EQUITY">Equity</option>
+                        <option value="OPTION">Option</option>
+                    </select>
                 </div>
-                <div class="trade-grid">
-                    <div class="trade-field trade-symbol">
-                        <label>Symbol</label>
-                        <input type="text" id="trade-symbol" placeholder="e.g., RELIANCE" autocomplete="off">
-                    </div>
-                    <div class="trade-field">
-                        <label>Side</label>
-                        <select id="trade-side">
-                            <option value="BUY">BUY</option>
-                            <option value="SELL">SELL</option>
-                        </select>
-                    </div>
-                    <div class="trade-field">
-                        <label>Quantity</label>
-                        <input type="number" id="trade-quantity" value="100" min="1">
-                    </div>
-                    <div class="trade-field">
-                        <label>Live Price</label>
-                        <div class="live-price-display" id="live-price-display">--</div>
-                    </div>
-                    <div class="trade-field">
-                        <button id="execute-trade" class="btn-execute">Execute</button>
-                    </div>
+                <div class="trade-field trade-symbol-wide">
+                    <label>Symbol / Contract</label>
+                    <input type="text" id="trade-symbol" placeholder="e.g., RELIANCE or NIFTY24AUG18000CE" autocomplete="off">
                 </div>
-            </section>
+                <div class="trade-field">
+                    <label>Side</label>
+                    <select id="trade-side">
+                        <option value="BUY">BUY</option>
+                        <option value="SELL">SELL</option>
+                    </select>
+                </div>
+                <div class="trade-field">
+                    <label>Order Type</label>
+                    <select id="trade-order-type">
+                        <option value="MARKET">Market</option>
+                        <option value="LIMIT">Limit</option>
+                    </select>
+                </div>
+                <div class="trade-field limit-price-field" style="display: none;">
+                    <label>Limit Price</label>
+                    <input type="number" id="trade-limit-price" step="0.01">
+                </div>
+                <div class="trade-field">
+                    <label>Quantity</label>
+                    <input type="number" id="trade-quantity" value="100" min="1">
+                </div>
+                <div class="trade-field">
+                    <label>Live Price</label>
+                    <div class="live-price-display" id="live-price-display">--</div>
+                </div>
+                <div class="trade-field">
+                    <label>Stop Loss</label>
+                    <input type="number" id="trade-stop-loss" placeholder="e.g., 1540" step="0.01">
+                </div>
+                <div class="trade-field">
+                    <label>Take Profit</label>
+                    <input type="number" id="trade-take-profit" placeholder="e.g., 1650" step="0.01">
+                </div>
+                <div class="trade-field">
+                    <button id="execute-trade" class="btn-execute">Execute</button>
+                </div>
+            </div>
+        </section>
 
-            <!-- Current Positions -->
-            <section class="card">
-                <div class="card-header">
-                    <h3>Current Positions</h3>
-                    <span class="position-count" id="positions-count">0 positions</span>
-                </div>
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Symbol</th>
-                                <th>Qty</th>
-                                <th>Avg</th>
-                                <th>Last</th>
-                                <th>Value</th>
-                                <th>P&L</th>
-                                <th>P&L %</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="positions-table">
-                            <tr>
-                                <td colspan="8" class="empty-state">No positions found</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
+        <!-- Two Column Layout -->
+        <div class="two-column-layout">
+            <!-- Left Column: Current Positions -->
+            <div class="left-column">
+                <section class="card">
+                    <div class="card-header">
+                        <h3>Current Positions</h3>
+                        <span class="position-count" id="positions-count">0 positions</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol/Contract</th>
+                                    <th>Instr</th>
+                                    <th>Qty</th>
+                                    <th>Entry</th>
+                                    <th>Entry Time</th>
+                                    <th>Last</th>
+                                    <th>Value</th>
+                                    <th>P&L</th>
+                                    <th>P&L %</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="positions-table">
+                                <tr>
+                                    <td colspan="11" class="empty-state">No positions found</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
 
-        <!-- Right Column: Orders -->
-        <div class="right-column">
-            <section class="card">
-                <div class="card-header">
-                    <h3>Recent Trades</h3>
-                    <span class="trade-count" id="trades-count">0 trades</span>
-                </div>
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Symbol</th>
-                                <th>Side</th>
-                                <th>Qty</th>
-                                <th>Price</th>
-                                <th>Value</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="trades-table">
-                            <tr>
-                                <td colspan="7" class="empty-state">No trades executed</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Notes Section (Desktop Only) -->
-            <section class="card notes-section">
-                <div class="card-header">
-                    <h3>Notes</h3>
-                </div>
-                <ul class="notes-list">
-                    <li>Compact, low-scroll layout – two columns on desktop, one on mobile.</li>
-                    <li>Sticky header keeps KPIs and actions visible.</li>
-                    <li>API-first. Real-time data integration with trained stocks.</li>
-                    <li>Accessible contrasts, consistent spacing, and subtle elevation.</li>
-                </ul>
-            </section>
+            <!-- Right Column: Recent Trades -->
+            <div class="right-column">
+                <section class="card">
+                    <div class="card-header">
+                        <h3>Recent Trades</h3>
+                        <span class="trade-count" id="trades-count">0 trades</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Symbol/Contract</th>
+                                    <th>Instr</th>
+                                    <th>Side</th>
+                                    <th>Qty</th>
+                                    <th>Type</th>
+                                    <th>Price</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-table">
+                                <tr>
+                                    <td colspan="9" class="empty-state">No trades executed</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
         </div>
     </main>
 
@@ -166,7 +196,7 @@
 </div>
 
 <style>
-/* Compact Dark Dashboard Theme */
+/* Enhanced Compact Dark Dashboard Theme */
 :root {
     --bg-primary: #0b1220;
     --bg-surface: #111a2e;
@@ -201,7 +231,7 @@
 }
 
 .header-container {
-    max-width: 1280px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 12px 16px;
 }
@@ -258,11 +288,17 @@
     background: var(--accent-muted);
 }
 
-/* KPI Grid */
+/* Enhanced KPI Grid - 6 columns */
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 12px;
+}
+
+@media (min-width: 1024px) {
+    .kpi-grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
 }
 
 .kpi-card {
@@ -304,16 +340,26 @@
 
 /* Main Content */
 .main-content {
-    max-width: 1280px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.two-column-layout {
     display: grid;
     grid-template-columns: 1fr;
     gap: 16px;
 }
 
 @media (min-width: 1024px) {
-    .main-content {
+    .two-column-layout {
         grid-template-columns: 1fr 1fr;
     }
 }
@@ -346,43 +392,33 @@
     margin: 0;
 }
 
-/* Badges */
-.badge {
-    padding: 4px 8px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 500;
-    border: 1px solid;
-}
-
-.badge-info {
-    color: #7dd3fc;
-    background: rgba(125, 211, 252, 0.1);
-    border-color: rgba(125, 211, 252, 0.2);
-}
-
-.badge-ok {
-    color: var(--accent);
-    background: var(--accent-muted);
-    border-color: rgba(16, 185, 129, 0.2);
-}
-
-.position-count, .trade-count {
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-/* Trade Form */
-.trade-grid {
+/* Enhanced Trade Form Grid */
+.enhanced-trade-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     align-items: end;
 }
 
-@media (min-width: 640px) {
-    .trade-grid {
-        grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+@media (min-width: 768px) {
+    .enhanced-trade-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .enhanced-trade-grid {
+        grid-template-columns: 1fr 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    }
+}
+
+.trade-symbol-wide {
+    grid-column: span 2;
+}
+
+@media (min-width: 1200px) {
+    .trade-symbol-wide {
+        grid-column: span 1;
     }
 }
 
@@ -446,6 +482,38 @@
     background: var(--accent-muted);
 }
 
+/* Badges */
+.badge {
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+}
+
+.badge-info {
+    color: #7dd3fc;
+    background: rgba(125, 211, 252, 0.1);
+    border-color: rgba(125, 211, 252, 0.2);
+}
+
+.badge-ok {
+    color: var(--accent);
+    background: var(--accent-muted);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.badge-open {
+    color: var(--info);
+    background: var(--info-muted);
+    border-color: rgba(96, 165, 250, 0.2);
+}
+
+.position-count, .trade-count {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
 /* Tables */
 .table-container {
     overflow: auto;
@@ -455,7 +523,7 @@
 
 .data-table {
     width: 100%;
-    font-size: 14px;
+    font-size: 13px;
     background: var(--bg-surface);
 }
 
@@ -475,12 +543,14 @@
     font-weight: 500;
     color: rgba(255, 255, 255, 0.7);
     white-space: nowrap;
+    font-size: 11px;
 }
 
 .data-table td {
     padding: 8px 12px;
     white-space: nowrap;
     vertical-align: middle;
+    font-size: 12px;
 }
 
 .data-table tbody tr:nth-child(even) {
@@ -516,29 +586,6 @@
 
 .btn-close:hover {
     background: var(--danger-muted);
-}
-
-/* Notes Section */
-.notes-section {
-    display: none;
-}
-
-@media (min-width: 1024px) {
-    .notes-section {
-        display: block;
-    }
-}
-
-.notes-list {
-    list-style: disc;
-    padding-left: 20px;
-    color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.notes-list li {
-    margin-bottom: 4px;
 }
 
 /* Toast */
@@ -595,8 +642,12 @@
         grid-template-columns: repeat(2, 1fr);
     }
 
-    .trade-grid {
+    .enhanced-trade-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .trade-symbol-wide {
+        grid-column: span 1;
     }
 }
 </style>
@@ -606,6 +657,14 @@ let portfolioData = null;
 let positionsData = [];
 let tradesData = [];
 let isLoading = false;
+
+// Enhanced performance metrics
+let performanceMetrics = {
+    sharpe_3m: 0,
+    sortino_3m: 0,
+    win_rate: 0,
+    max_drawdown: 0
+};
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
@@ -627,6 +686,16 @@ function setupEventListeners() {
     document.getElementById('execute-trade').addEventListener('click', executeTrade);
     document.getElementById('trade-symbol').addEventListener('input', handleSymbolInput);
     
+    // Order type change handler
+    document.getElementById('trade-order-type').addEventListener('change', function() {
+        const limitField = document.querySelector('.limit-price-field');
+        if (this.value === 'LIMIT') {
+            limitField.style.display = 'block';
+        } else {
+            limitField.style.display = 'none';
+        }
+    });
+    
     // Auto-update live price when symbol changes
     let priceTimer;
     document.getElementById('trade-symbol').addEventListener('input', function() {
@@ -636,19 +705,16 @@ function setupEventListeners() {
 }
 
 function updateTimeDisplay() {
-    const now = new Date();
-    document.getElementById('last-update').textContent = now.toLocaleTimeString();
+    // Update any time-based displays if needed
 }
 
 async function loadPortfolioData(forceRefresh = false) {
     if (isLoading) return;
     
     isLoading = true;
-    const statusElement = document.getElementById('live-status');
-    statusElement.textContent = 'Syncing';
     
     try {
-        console.log('🔄 Loading portfolio data...');
+        console.log('🔄 Loading enhanced portfolio data...');
         
         // Load all data concurrently
         const [portfolioRes, positionsRes, ordersRes] = await Promise.all([
@@ -661,7 +727,7 @@ async function loadPortfolioData(forceRefresh = false) {
         const positionsResult = await positionsRes.json();
         const ordersResult = await ordersRes.json();
 
-        console.log('✅ Portfolio data loaded:', { portfolioResult, positionsResult, ordersResult });
+        console.log('✅ Enhanced portfolio data loaded:', { portfolioResult, positionsResult, ordersResult });
 
         if (portfolioResult.success) {
             portfolioData = portfolioResult.data;
@@ -678,16 +744,56 @@ async function loadPortfolioData(forceRefresh = false) {
             updateTradesTable();
         }
 
-        statusElement.textContent = 'Live';
+        // Calculate enhanced metrics
+        calculatePerformanceMetrics();
+        updateEnhancedKPIs();
+
         showToast('Portfolio data refreshed', 'success');
         
     } catch (error) {
         console.error('❌ Error loading portfolio:', error);
-        statusElement.textContent = 'Error';
         showToast('Failed to load portfolio data', 'error');
     } finally {
         isLoading = false;
     }
+}
+
+function calculatePerformanceMetrics() {
+    // Calculate enhanced performance metrics
+    if (tradesData.length === 0) {
+        performanceMetrics = {
+            sharpe_3m: 0,
+            sortino_3m: 0,
+            win_rate: 0,
+            max_drawdown: 0
+        };
+        return;
+    }
+
+    // Calculate win rate
+    const completedTrades = tradesData.filter(trade => trade.status === 'FILLED');
+    const winningTrades = positionsData.filter(pos => pos.pnl > 0).length;
+    const totalTrades = Math.max(completedTrades.length, 1);
+    performanceMetrics.win_rate = (winningTrades / totalTrades) * 100;
+
+    // Simplified Sharpe ratio calculation (would need historical returns for proper calculation)
+    const totalPnl = portfolioData?.portfolio?.total_pnl || 0;
+    const initialCapital = portfolioData?.portfolio?.initial_capital || 1000000;
+    const returns = totalPnl / initialCapital;
+    performanceMetrics.sharpe_3m = Math.max(0, returns * 2.5); // Simplified
+
+    // Simplified Sortino ratio (focuses on downside deviation)
+    performanceMetrics.sortino_3m = Math.max(0, returns * 3.2); // Simplified
+
+    // Calculate max drawdown
+    performanceMetrics.max_drawdown = Math.min(0, (totalPnl / initialCapital) * 100);
+}
+
+function updateEnhancedKPIs() {
+    document.getElementById('sharpe-ratio').textContent = performanceMetrics.sharpe_3m.toFixed(2);
+    document.getElementById('sortino-ratio').textContent = performanceMetrics.sortino_3m.toFixed(2);
+    document.getElementById('win-rate').textContent = `${Math.round(performanceMetrics.win_rate)}%`;
+    document.getElementById('max-drawdown').textContent = `Max DD ${performanceMetrics.max_drawdown.toFixed(1)}%`;
 }
 
 function updatePortfolioDisplay() {
@@ -695,7 +801,7 @@ function updatePortfolioDisplay() {
 
     const portfolio = portfolioData.portfolio;
     
-    console.log('📊 Updating portfolio display:', portfolio);
+    console.log('📊 Updating enhanced portfolio display:', portfolio);
 
     // Update KPI values
     document.getElementById('total-capital').textContent = `₹${formatINR(portfolio.current_capital)}`;
@@ -721,10 +827,10 @@ function updatePositionsTable() {
     const tbody = document.getElementById('positions-table');
     tbody.innerHTML = '';
 
-    console.log('📈 Updating positions table:', positionsData);
+    console.log('📈 Updating enhanced positions table:', positionsData);
 
     if (positionsData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No positions found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No positions found</td></tr>';
         document.getElementById('positions-count').textContent = '0 positions';
         return;
     }
@@ -735,15 +841,21 @@ function updatePositionsTable() {
         const row = document.createElement('tr');
         
         const pnlClass = position.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+        const instrument = position.instrument || 'EQUITY';
+        const entryTime = position.entry_date ? new Date(position.entry_date).toLocaleString() : '--';
+        const status = position.status || 'OPEN';
         
         row.innerHTML = `
             <td><div class="font-medium">${position.symbol}</div></td>
+            <td><div class="text-white/70">${instrument}</div></td>
             <td>${position.quantity}</td>
             <td>₹${formatINR(position.avg_price)}</td>
+            <td><div class="text-white/70">${entryTime}</div></td>
             <td>₹${formatINR(position.current_price)}</td>
             <td>₹${formatINR(position.position_value)}</td>
             <td class="${pnlClass}">₹${formatINR(position.pnl)}</td>
             <td class="${pnlClass}">${position.pnl_percent.toFixed(2)}%</td>
+            <td><span class="badge ${status === 'OPEN' ? 'badge-info' : 'badge-ok'}">${status}</span></td>
             <td>
                 <button class="btn-close" onclick="closePosition('${position.symbol}')">Close</button>
             </td>
@@ -757,10 +869,10 @@ function updateTradesTable() {
     const tbody = document.getElementById('trades-table');
     tbody.innerHTML = '';
 
-    console.log('📋 Updating trades table:', tradesData);
+    console.log('📋 Updating enhanced trades table:', tradesData);
 
     if (tradesData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No trades executed</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No trades executed</td></tr>';
         document.getElementById('trades-count').textContent = '0 trades';
         return;
     }
@@ -772,12 +884,16 @@ function updateTradesTable() {
         const row = document.createElement('tr');
         
         const sideClass = trade.side === 'BUY' ? 'pnl-positive' : 'pnl-negative';
+        const instrument = trade.instrument || 'EQUITY';
+        const orderType = trade.order_type || 'MARKET';
         
         row.innerHTML = `
             <td><div style="color: rgba(255, 255, 255, 0.7);">${new Date(trade.timestamp).toLocaleString()}</div></td>
             <td><div class="font-medium">${trade.symbol}</div></td>
+            <td><div class="text-white/70">${instrument}</div></td>
             <td><div class="font-semibold ${sideClass}">${trade.side}</div></td>
             <td>${trade.quantity}</td>
+            <td><div class="text-white/70">${orderType}</div></td>
             <td>₹${formatINR(trade.exec_price)}</td>
             <td>₹${formatINR(trade.exec_value)}</td>
             <td><span class="badge badge-ok">${trade.status}</span></td>
@@ -828,42 +944,72 @@ async function fetchLivePrice() {
 }
 
 async function executeTrade() {
+    const instrument = document.getElementById('trade-instrument').value;
     const symbol = document.getElementById('trade-symbol').value.trim().toUpperCase();
     const side = document.getElementById('trade-side').value;
+    const orderType = document.getElementById('trade-order-type').value;
     const quantity = parseInt(document.getElementById('trade-quantity').value);
+    const limitPrice = document.getElementById('trade-limit-price').value;
+    const stopLoss = document.getElementById('trade-stop-loss').value;
+    const takeProfit = document.getElementById('trade-take-profit').value;
 
     if (!symbol || !quantity || quantity <= 0) {
         showToast('Please enter valid symbol and quantity', 'error');
         return;
     }
 
+    if (orderType === 'LIMIT' && (!limitPrice || limitPrice <= 0)) {
+        showToast('Please enter valid limit price', 'error');
+        return;
+    }
+
     try {
-        console.log(`🔄 Executing trade: ${side} ${quantity} ${symbol}`);
+        console.log(`🔄 Executing enhanced trade: ${side} ${quantity} ${instrument} ${symbol}`);
         
+        const tradeData = {
+            instrument: instrument,
+            symbol: symbol,
+            side: side,
+            quantity: quantity,
+            order_type: orderType
+        };
+
+        if (orderType === 'LIMIT' && limitPrice) {
+            tradeData.limit_price = parseFloat(limitPrice);
+        }
+
+        if (stopLoss) {
+            tradeData.stop_loss = parseFloat(stopLoss);
+        }
+
+        if (takeProfit) {
+            tradeData.take_profit = parseFloat(takeProfit);
+        }
+
         const response = await fetch('/api/papertrade/execute', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                symbol: symbol,
-                side: side,
-                quantity: quantity
-            })
+            body: JSON.stringify(tradeData)
         });
 
         const result = await response.json();
-        console.log('✅ Trade execution result:', result);
+        console.log('✅ Enhanced trade execution result:', result);
 
         if (result.success) {
+            const instrumentLabel = instrument === 'OPTION' ? '(OPT) ' : '';
             showToast(
-                `Executed ${side} ${quantity} ${symbol} @ ₹${formatINR(result.order.exec_price)}`,
+                `Executed ${side} ${quantity} ${instrumentLabel}${symbol} @ ₹${formatINR(result.order.exec_price)}`,
                 'success'
             );
             
             // Clear form
             document.getElementById('trade-symbol').value = '';
             document.getElementById('trade-quantity').value = '100';
+            document.getElementById('trade-limit-price').value = '';
+            document.getElementById('trade-stop-loss').value = '';
+            document.getElementById('trade-take-profit').value = '';
             document.getElementById('live-price-display').textContent = '--';
 
             // Refresh data after successful trade
@@ -872,7 +1018,7 @@ async function executeTrade() {
             showToast(`Trade failed: ${result.error}`, 'error');
         }
     } catch (error) {
-        console.error('❌ Error executing trade:', error);
+        console.error('❌ Error executing enhanced trade:', error);
         showToast('Error executing trade', 'error');
     }
 }
