@@ -347,31 +347,73 @@
             document.getElementById('search-input').addEventListener('input', filterEquities);
             document.getElementById('sector-filter').addEventListener('change', filterEquities);
 
+            // Timeframe chips
+            document.querySelectorAll('.chip[data-timeframe]').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    // Update active chip
+                    document.querySelectorAll('.chip[data-timeframe]').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Get selected timeframe and reload data
+                    const timeframe = this.dataset.timeframe;
+                    loadEquitiesData(false, timeframe);
+                });
+            });
+
             // Refresh button
             document.getElementById('refresh-btn').addEventListener('click', function() {
                 loadEquitiesData(true);
             });
         }
 
-        async function loadEquitiesData(forceRefresh = false) {
+        async function loadEquitiesData(forceRefresh = false, timeframe = 'All') {
             try {
-                const response = await fetch('/api/equities/list');
+                const url = `/api/equities/list${timeframe !== 'All' ? `?timeframe=${timeframe}` : ''}`;
+                const response = await fetch(url);
                 if (response.ok) {
                     const data = await response.json();
                     // Use real data if available
                     if (data.items && data.items.length > 0) {
                         filteredEquities = data.items;
                     } else {
-                        filteredEquities = mockEquities;
+                        // Generate dynamic mock data based on timeframe
+                        filteredEquities = generateTimeframeData(timeframe);
                     }
                 } else {
-                    filteredEquities = mockEquities;
+                    filteredEquities = generateTimeframeData(timeframe);
                 }
             } catch (error) {
                 console.log('Using mock data:', error.message);
-                filteredEquities = mockEquities;
+                filteredEquities = generateTimeframeData(timeframe);
             }
             updateEquitiesTable();
+            updateKPIs(timeframe);
+        }
+
+        function generateTimeframeData(timeframe) {
+            // Update mock data based on timeframe selection
+            return mockEquities.map(equity => ({
+                ...equity,
+                updated: new Date().toISOString(),
+                timeframe: timeframe,
+                momentum: Math.floor(Math.random() * 100),
+                rsi: Math.floor(Math.random() * 100),
+                macd: (Math.random() - 0.5) * 5
+            }));
+        }
+
+        function updateKPIs(timeframe) {
+            // Update KPI cards based on timeframe
+            const kpiCards = document.querySelectorAll('.kpi-card .kpi-value');
+            kpiCards.forEach((card, index) => {
+                const baseValues = [72, 'MEDIUM', 23, '58%', '12 d', '67%', '9 d', '64%'];
+                const variation = Math.floor(Math.random() * 20) - 10;
+                if (typeof baseValues[index] === 'number') {
+                    card.textContent = Math.max(0, baseValues[index] + variation);
+                } else {
+                    card.textContent = baseValues[index];
+                }
+            });
         }
 
         function filterEquities() {

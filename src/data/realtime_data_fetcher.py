@@ -43,7 +43,10 @@ class RealTimeDataFetcher:
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.nseindia.com/'
         })
         self.cache = {}
         self.cache_timeout = 60  # 1 minute cache
@@ -284,7 +287,7 @@ def get_sample_price(symbol: str) -> Dict[str, Any]:
 def get_enhanced_sample_price(symbol: str) -> Dict[str, Any]:
     """Enhanced fallback with more realistic market data including trained stocks"""
     logger.info(f"Using enhanced sample price for {symbol}")
-    
+
     # Enhanced price database with more trained stocks
     enhanced_prices = {
         # Large Cap IT
@@ -302,17 +305,17 @@ def get_enhanced_sample_price(symbol: str) -> Dict[str, Any]:
         "NESTLEIND": 2200, "BRITANNIA": 4800, "DABUR": 505, "GODREJCP": 1180, "MARICO": 630,
         "EICHERMOT": 4900, "HEROMOTOCO": 4650, "BAJAJHLDNG": 9500, "GRASIM": 2480, "ULTRACEMCO": 10800
     }
-    
+
     base_price = enhanced_prices.get(symbol.upper(), 1000.0)
-    
+
     # Simulate realistic intraday movement
     market_volatility = random.uniform(0.005, 0.025)  # 0.5% to 2.5% volatility
     direction = random.choice([-1, 1])
     price_change = base_price * market_volatility * direction
-    
+
     current_price = base_price + price_change
     change_percent = (price_change / base_price) * 100
-    
+
     return {
         "symbol": symbol,
         "current_price": round(current_price, 2),
@@ -334,14 +337,14 @@ def get_realtime_price(symbol: str) -> Dict[str, Any]:
     """
     try:
         logger.info(f"📊 Fetching real-time price for {symbol}")
-        
+
         # Try different ticker formats for Indian stocks
         ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
 
         for ticker_format in ticker_formats:
             try:
                 ticker = yf.Ticker(ticker_format)
-                
+
                 # Try to get current info first
                 info = ticker.info
                 if info and 'currentPrice' in info and info['currentPrice'] > 0:
@@ -349,7 +352,7 @@ def get_realtime_price(symbol: str) -> Dict[str, Any]:
                     previous_close = float(info.get('previousClose', current_price))
                     change = current_price - previous_close
                     change_percent = (change / previous_close * 100) if previous_close != 0 else 0
-                    
+
                     logger.info(f"✅ Got real-time price for {symbol}: ₹{current_price}")
                     return {
                         "symbol": symbol,
@@ -362,7 +365,7 @@ def get_realtime_price(symbol: str) -> Dict[str, Any]:
                         "source": "yahoo_info",
                         "ticker_used": ticker_format
                     }
-                
+
                 # Fallback to historical data
                 data = ticker.history(period="5d", interval="1d")
                 if not data.empty and len(data) > 0:
@@ -396,7 +399,7 @@ def get_realtime_price(symbol: str) -> Dict[str, Any]:
                         "source": "yahoo_historical",
                         "ticker_used": ticker_format
                     }
-                    
+
             except Exception as e:
                 logger.warning(f"Failed to get data for {ticker_format}: {str(e)}")
                 continue
@@ -410,63 +413,70 @@ def get_realtime_price(symbol: str) -> Dict[str, Any]:
         return get_enhanced_sample_price(symbol)
 
 
-def get_multiple_realtime_prices(symbols: List[str]) -> Dict[str, Dict]:
+def get_multiple_realtime_prices(symbols: List[str]) -> Dict[str, Any]:
     """
-    Get real-time prices for multiple symbols efficiently with enhanced batching
+    Fetch real-time prices for multiple symbols efficiently
+    Returns dict with symbol as key and price data as value
     """
-    results = {}
+    logger.info(f"📊 Fetching real-time prices for {len(symbols)} symbols")
 
-    try:
-        logger.info(f"📊 Fetching real-time prices for {len(symbols)} symbols")
+    result = {}
+    realtime_count = 0
+    fallback_count = 0
 
-        # Process symbols in optimized batches
-        batch_size = 5  # Smaller batches for better real-time performance
-        successful_count = 0
+    # Batch process to avoid overwhelming the system
+    batch_size = 5
+    for i in range(0, len(symbols), batch_size):
+        batch = symbols[i:i + batch_size]
 
-        for i in range(0, len(symbols), batch_size):
-            batch = symbols[i:i + batch_size]
-            logger.info(f"🔄 Processing batch {i//batch_size + 1}: {batch}")
+        for symbol in batch:
+            try:
+                price_data = get_realtime_price(symbol)
+                if price_data and price_data.get('current_price', 0) > 0:
+                    result[symbol] = price_data
+                    if price_data.get('is_realtime', False):
+                        realtime_count += 1
+                    else:
+                        fallback_count += 1
+                else:
+                    # Create fallback data if no price available
+                    result[symbol] = create_fallback_price_data(symbol)
+                    fallback_count += 1
 
-            for symbol in batch:
-                try:
-                    price_data = get_realtime_price(symbol)
-                    results[symbol] = price_data
+            except Exception as e:
+                logger.warning(f"Failed to get price for {symbol}: {e}")
+                # Create fallback data for failed requests
+                result[symbol] = create_fallback_price_data(symbol)
+                fallback_count += 1
+                continue
 
-                    if price_data.get("is_realtime"):
-                        successful_count += 1
+        # Small delay between batches to be respectful
+        if i + batch_size < len(symbols):
+            time.sleep(0.1)
 
-                    # Small delay to avoid overwhelming the API
-                    time.sleep(0.2)
+    logger.info(f"✅ Completed: {realtime_count}/{len(symbols)} real-time, {fallback_count} fallback")
+    return result
 
-                except Exception as e:
-                    logger.error(f"❌ Error getting price for {symbol}: {e}")
-                    results[symbol] = {
-                        "symbol": symbol,
-                        "current_price": 0.0,
-                        "error": str(e),
-                        "is_realtime": False,
-                        "timestamp": datetime.now().isoformat(),
-                        "source": "error"
-                    }
+def create_fallback_price_data(symbol: str) -> Dict[str, Any]:
+    """Create fallback price data when real-time fetch fails"""
+    import random
 
-            # Delay between batches to respect rate limits
-            if i + batch_size < len(symbols):
-                time.sleep(0.5)
+    # Base prices for known symbols
+    base_prices = {
+        'TCS': 4200, 'RELIANCE': 2900, 'INFY': 1600, 'HDFCBANK': 1700,
+        'ICICIBANK': 1200, 'BHARTIARTL': 1100, 'LT': 3600, 'ASIANPAINT': 3200,
+        'MARUTI': 11000, 'TITAN': 3400, 'KOTAKBANK': 1800, 'WIPRO': 650
+    }
 
-        logger.info(f"✅ Completed: {successful_count}/{len(symbols)} real-time, {len(symbols)-successful_count} fallback")
+    base_price = base_prices.get(symbol, random.uniform(100, 5000))
+    change = random.uniform(-0.05, 0.05)  # -5% to +5%
 
-    except Exception as e:
-        logger.error(f"❌ Critical error in batch price fetching: {e}")
-        # Return error results for all symbols
-        for symbol in symbols:
-            if symbol not in results:
-                results[symbol] = {
-                    "symbol": symbol,
-                    "current_price": 0.0,
-                    "error": str(e),
-                    "is_realtime": False,
-                    "timestamp": datetime.now().isoformat(),
-                    "source": "batch_error"
-                }
-
-    return results
+    return {
+        'symbol': symbol,
+        'current_price': round(base_price * (1 + change), 2),
+        'change': round(base_price * change, 2),
+        'change_percent': round(change * 100, 2),
+        'is_realtime': False,
+        'source': 'fallback',
+        'timestamp': datetime.now().isoformat()
+    }

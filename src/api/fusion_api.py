@@ -154,7 +154,23 @@ def fusion_dashboard():
         
         # Get real-time prices for analysis
         try:
-            realtime_data = get_multiple_realtime_prices(trained_stocks[:10])  # Top 10 for signals
+            print(f"🔄 Fetching real-time data for {len(trained_stocks)} stocks...")
+            realtime_data = get_multiple_realtime_prices(trained_stocks)
+            print(f"✅ Retrieved real-time data for {len(realtime_data)} stocks")
+            
+            # If no real-time data, try individual fetches
+            if not realtime_data:
+                from src.data.realtime_data_fetcher import get_realtime_price
+                realtime_data = {}
+                for symbol in trained_stocks[:10]:  # Limit to prevent timeout
+                    try:
+                        data = get_realtime_price(symbol)
+                        if data and data.get('current_price'):
+                            realtime_data[symbol] = data
+                    except Exception as e:
+                        print(f"Failed to get data for {symbol}: {e}")
+                        continue
+                        
         except Exception as e:
             print(f"Error fetching real-time data: {e}")
             realtime_data = {}

@@ -3,13 +3,23 @@
 {% block title %}Paper Trade - Fusion Stock Analyst{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>Paper Trading Simulator</h1>
-    <div class="toolbar">
-        <button class="btn" id="refresh-portfolio">Refresh Portfolio</button>
-        <button class="btn btn-primary" id="new-trade-btn">New Trade</button>
+<div class="container">
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1>Paper Trading Simulator</h1>
+                <p class="page-subtitle">Real-time trading simulation with live market data</p>
+            </div>
+            <div class="header-right">
+                <button class="btn" id="refresh-portfolio">
+                    <span class="btn-icon">🔄</span>Refresh
+                </button>
+                <button class="btn btn-primary" id="new-trade-btn">
+                    <span class="btn-icon">+</span>New Trade
+                </button>
+            </div>
+        </div>
     </div>
-</div>
 
 <!-- Portfolio Summary KPIs -->
 <div class="grid grid-3">
@@ -135,10 +145,46 @@
     </div>
 </div>
 
+</div>
+</div>
+
 <style>
 /* Enhanced Paper Trade Styling */
 .page-header {
     margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.header-left h1 {
+    margin: 0 0 4px 0;
+    color: var(--text);
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.page-subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0;
+}
+
+.header-right {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn-icon {
+    margin-right: 8px;
+    font-size: 14px;
 }
 
 .header-content {
