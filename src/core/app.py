@@ -25,6 +25,9 @@ def create_app():
         r"/metrics": {"origins": "*"}
     })
 
+    # Configure app
+    app.config['DEBUG'] = os.getenv('DEBUG', 'True').lower() == 'true'
+
     # Basic health endpoint
     @app.route('/health')
     def health():

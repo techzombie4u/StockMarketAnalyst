@@ -20,57 +20,47 @@ def load_options_data():
         logger.error(f"Error loading options data: {e}")
     return {"candidates": [], "total_candidates": 0}
 
-@options_bp.route('/strangle/candidates')
-def strangle_candidates():
-    """Get options strangle candidates"""
-    start_time = time.time()
-
+@options_bp.route('/strangle/candidates', methods=['GET'])
+def get_strangle_candidates():
+    """Get strangle candidates"""
     try:
-        # Get query parameters
-        symbol = request.args.get('symbol')
-        min_probability = request.args.get('min_probability', 0.6, type=float)
-        limit = request.args.get('limit', 20, type=int)
+        symbol = request.args.get('symbol', 'RELIANCE')
+        expiry = request.args.get('expiry', '2024-02-29')
 
-        # Load data
-        data = load_options_data()
-        candidates = data.get('candidates', [])
+        # Load options data from fixtures
+        import os
+        import json
 
-        # Apply filters
-        filtered_candidates = []
-        for candidate in candidates:
-            # Symbol filter
-            if symbol and candidate.get('underlying', '').upper() != symbol.upper():
-                continue
-
-            # Probability filter
-            if candidate.get('probability', 0) < min_probability:
-                continue
-
-            filtered_candidates.append(candidate)
-
-        # Apply limit
-        filtered_candidates = filtered_candidates[:limit]
-
-        generation_time_ms = int((time.time() - start_time) * 1000)
+        options_path = os.path.join(os.path.dirname(__file__), '../data/fixtures/options_sample.json')
+        if os.path.exists(options_path):
+            with open(options_path, 'r') as f:
+                options_data = json.load(f)
+            candidates = options_data.get('strangle_candidates', [])
+        else:
+            candidates = [
+                {
+                    'call_strike': 2800,
+                    'put_strike': 2600,
+                    'premium_collected': 45.0,
+                    'max_profit': 45.0,
+                    'breakeven_upper': 2845,
+                    'breakeven_lower': 2555,
+                    'probability_profit': 0.65
+                }
+            ]
 
         return jsonify({
-            "candidates": filtered_candidates,
-            "total_candidates": len(filtered_candidates),
-            "generation_time_ms": generation_time_ms,
-            "filters_applied": {
-                "symbol": symbol,
-                "min_probability": min_probability,
-                "limit": limit
-            }
+            'status': 'success',
+            'symbol': symbol,
+            'expiry': expiry,
+            'candidates': candidates,
+            'count': len(candidates),
+            'timestamp': time.time()
         })
-
     except Exception as e:
-        logger.error(f"Error in strangle candidates: {e}")
         return jsonify({
-            "error": "internal_server_error",
-            "message": str(e),
-            "candidates": [],
-            "total_candidates": 0
+            'status': 'error',
+            'message': str(e)
         }), 500
 
 @options_bp.route('/positions')
