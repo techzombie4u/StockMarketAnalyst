@@ -484,3 +484,9 @@ def download_historical_data_bulk(symbols):
     """Download historical data for multiple symbols"""
     fetcher = HistoricalDataFetcher()
     return fetcher.fetch_multiple_stocks(symbols)
+
+def get_stock_data(symbol, period="1y"):
+    """Get stock data for Paper Trade API compatibility"""
+    fetcher = HistoricalDataFetcher()
+    data = fetcher.fetch_historical_data(symbol, save_to_csv=False)
+    return data

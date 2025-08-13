@@ -6,14 +6,14 @@
 {% block extra_css %}
 <style>
 .papertrade-container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 16px;
 }
 
 .portfolio-summary {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
     margin-bottom: 24px;
 }
@@ -35,7 +35,7 @@
 
 .portfolio-card .value {
     color: #e2e8f0;
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 600;
     margin: 0;
 }
@@ -47,6 +47,7 @@
 
 .positive { color: #22c55e; }
 .negative { color: #ef4444; }
+.neutral { color: #94a3b8; }
 
 .trade-form {
     background: #0f172a;
@@ -118,69 +119,73 @@
     background: #dc2626;
 }
 
-.btn-secondary {
-    background: #374151;
+.live-price {
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 6px;
+    padding: 12px;
+    margin-left: 8px;
+    font-size: 14px;
     color: #e2e8f0;
+    min-width: 120px;
 }
 
-.btn-secondary:hover {
-    background: #4b5563;
-}
-
-.section {
+.positions-table,
+.orders-table {
     background: #0f172a;
     border: 1px solid #1e293b;
     border-radius: 8px;
     margin-bottom: 24px;
+    overflow: hidden;
 }
 
-.section-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid #1e293b;
-    display: flex;
-    justify-content: between;
-    align-items: center;
+.table-header {
+    background: #1e293b;
+    padding: 16px 20px;
+    border-bottom: 1px solid #334155;
 }
 
-.section-header h2 {
+.table-header h2 {
     color: #e2e8f0;
-    font-size: 18px;
-    font-weight: 600;
     margin: 0;
+    font-size: 18px;
 }
 
-.section-content {
-    padding: 0;
-}
-
-.table-container {
+.table-content {
     overflow-x: auto;
 }
 
-.data-table {
+table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.data-table th,
-.data-table td {
-    padding: 12px 16px;
+th, td {
     text-align: left;
+    padding: 12px 16px;
     border-bottom: 1px solid #1e293b;
 }
 
-.data-table th {
+th {
     background: #111827;
     color: #94a3b8;
+    font-weight: 500;
     font-size: 12px;
-    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
-.data-table td {
+td {
     color: #e2e8f0;
     font-size: 14px;
+}
+
+.status-executing { color: #f59e0b; }
+.status-executed { color: #22c55e; }
+.status-failed { color: #ef4444; }
+
+.close-btn {
+    padding: 6px 12px;
+    font-size: 12px;
 }
 
 .loading {
@@ -189,49 +194,40 @@
     color: #94a3b8;
 }
 
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    color: #94a3b8;
-}
-
-.refresh-btn {
-    background: none;
-    border: 1px solid #1e293b;
-    color: #94a3b8;
-    padding: 8px 16px;
+.error {
+    background: #7f1d1d;
+    border: 1px solid #dc2626;
+    color: #fca5a5;
+    padding: 12px;
     border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
+    margin: 16px 0;
 }
 
-.refresh-btn:hover {
-    border-color: #22c55e;
-    color: #22c55e;
-}
-
-.live-price {
-    display: inline-block;
-    padding: 4px 8px;
-    background: #111827;
-    border: 1px solid #1e293b;
-    border-radius: 4px;
-    font-family: 'Monaco', 'Menlo', monospace;
-    font-size: 12px;
-}
-
-.trade-actions {
-    display: flex;
-    gap: 8px;
+.success {
+    background: #14532d;
+    border: 1px solid #22c55e;
+    color: #86efac;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 16px 0;
 }
 
 @media (max-width: 768px) {
     .form-row {
         grid-template-columns: 1fr;
+        gap: 12px;
     }
     
     .portfolio-summary {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    table {
+        font-size: 12px;
+    }
+    
+    th, td {
+        padding: 8px 12px;
     }
 }
 </style>
@@ -243,27 +239,29 @@
     <div class="portfolio-summary" id="portfolioSummary">
         <div class="portfolio-card">
             <h3>Portfolio Value</h3>
-            <div class="value" id="portfolioValue">₹0</div>
-            <div class="change" id="portfolioChange">+₹0 (0%)</div>
+            <div class="value" id="portfolioValue">₹10,00,000</div>
+            <div class="change neutral" id="portfolioChange">Initial Capital</div>
         </div>
         <div class="portfolio-card">
             <h3>Total P&L</h3>
             <div class="value" id="totalPnL">₹0</div>
-            <div class="change" id="totalPnLPercent">0%</div>
+            <div class="change neutral" id="totalPnLPercent">0.00%</div>
         </div>
         <div class="portfolio-card">
             <h3>Open Positions</h3>
             <div class="value" id="openPositions">0</div>
+            <div class="change neutral" id="positionsChange">No positions</div>
         </div>
         <div class="portfolio-card">
             <h3>Total Trades</h3>
             <div class="value" id="totalTrades">0</div>
+            <div class="change neutral" id="tradesChange">Ready to trade</div>
         </div>
     </div>
 
     <!-- Trade Form -->
     <div class="trade-form">
-        <h2 style="color: #e2e8f0; margin-bottom: 20px;">Place Trade</h2>
+        <h2 style="color: #e2e8f0; margin-bottom: 20px;">🚀 Place Trade</h2>
         <form id="tradeForm">
             <div class="form-row">
                 <div class="form-group">
@@ -273,82 +271,71 @@
                 <div class="form-group">
                     <label for="side">Side</label>
                     <select id="side" name="side" required>
-                        <option value="BUY">Buy</option>
-                        <option value="SELL">Sell</option>
+                        <option value="BUY">BUY</option>
+                        <option value="SELL">SELL</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label for="quantity">Quantity</label>
-                    <input type="number" id="quantity" name="quantity" min="1" placeholder="100" required>
+                    <input type="number" id="quantity" name="quantity" min="1" placeholder="10" required>
                 </div>
-                <button type="submit" class="btn btn-primary" id="executeBtn">Execute Trade</button>
-            </div>
-            <div style="margin-top: 16px; display: flex; align-items: center; gap: 16px;">
-                <span style="color: #94a3b8; font-size: 14px;">Live Price:</span>
-                <span class="live-price" id="livePrice">-</span>
-                <button type="button" class="refresh-btn" id="refreshPrice">Refresh</button>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Execute Trade</button>
+                </div>
             </div>
         </form>
+        <div class="live-price" id="livePrice">Enter symbol for live price</div>
+        <div id="tradeMessage"></div>
     </div>
 
     <!-- Current Positions -->
-    <div class="section">
-        <div class="section-header">
-            <h2>Current Positions</h2>
-            <button class="refresh-btn" id="refreshPositions">Refresh</button>
+    <div class="positions-table">
+        <div class="table-header">
+            <h2>📊 Current Positions</h2>
         </div>
-        <div class="section-content">
-            <div class="table-container">
-                <table class="data-table" id="positionsTable">
-                    <thead>
-                        <tr>
-                            <th>Symbol</th>
-                            <th>Quantity</th>
-                            <th>Avg Price</th>
-                            <th>Current Price</th>
-                            <th>P&L</th>
-                            <th>P&L %</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="positionsBody">
-                        <tr>
-                            <td colspan="7" class="loading">Loading positions...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="table-content">
+            <div id="positionsLoading" class="loading">Loading positions...</div>
+            <table id="positionsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Quantity</th>
+                        <th>Avg Price</th>
+                        <th>Current Price</th>
+                        <th>Position Value</th>
+                        <th>P&L</th>
+                        <th>P&L %</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="positionsBody">
+                </tbody>
+            </table>
         </div>
     </div>
 
     <!-- Order History -->
-    <div class="section">
-        <div class="section-header">
-            <h2>Order History</h2>
-            <button class="refresh-btn" id="refreshOrders">Refresh</button>
+    <div class="orders-table">
+        <div class="table-header">
+            <h2>📋 Order History</h2>
         </div>
-        <div class="section-content">
-            <div class="table-container">
-                <table class="data-table" id="ordersTable">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Symbol</th>
-                            <th>Side</th>
-                            <th>Quantity</th>
-                            <th>Price</th>
-                            <th>Value</th>
-                            <th>Time</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ordersBody">
-                        <tr>
-                            <td colspan="8" class="loading">Loading orders...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="table-content">
+            <div id="ordersLoading" class="loading">Loading orders...</div>
+            <table id="ordersTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Symbol</th>
+                        <th>Side</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersBody">
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -357,206 +344,81 @@
 class PaperTradeManager {
     constructor() {
         this.currentSymbol = '';
-        this.autoRefreshInterval = null;
+        this.livePriceInterval = null;
+        this.refreshInterval = null;
         this.init();
     }
 
     init() {
-        this.bindEvents();
-        this.loadInitialData();
+        this.setupEventListeners();
+        this.loadPortfolioData();
         this.startAutoRefresh();
     }
 
-    bindEvents() {
-        // Trade form
+    setupEventListeners() {
+        // Trade form submission
         document.getElementById('tradeForm').addEventListener('submit', (e) => {
             e.preventDefault();
             this.executeTrade();
         });
 
-        // Symbol input change
+        // Symbol input for live price
         document.getElementById('symbol').addEventListener('input', (e) => {
-            this.currentSymbol = e.target.value.toUpperCase();
-            if (this.currentSymbol.length >= 3) {
-                this.updateLivePrice();
+            const symbol = e.target.value.toUpperCase();
+            if (symbol && symbol.length >= 2) {
+                this.currentSymbol = symbol;
+                this.updateLivePrice(symbol);
+            } else {
+                this.clearLivePrice();
             }
         });
-
-        // Refresh buttons
-        document.getElementById('refreshPrice').addEventListener('click', () => {
-            this.updateLivePrice();
-        });
-
-        document.getElementById('refreshPositions').addEventListener('click', () => {
-            this.loadPositions();
-        });
-
-        document.getElementById('refreshOrders').addEventListener('click', () => {
-            this.loadOrders();
-        });
     }
 
-    async loadInitialData() {
-        await Promise.all([
-            this.loadPortfolio(),
-            this.loadPositions(),
-            this.loadOrders()
-        ]);
-    }
-
-    startAutoRefresh() {
-        // Refresh every 10 seconds
-        this.autoRefreshInterval = setInterval(() => {
-            this.loadPortfolio();
-            this.loadPositions();
-        }, 10000);
-    }
-
-    async loadPortfolio() {
+    async updateLivePrice(symbol) {
         try {
-            const response = await fetch('/api/papertrade/portfolio');
+            const response = await fetch(`/api/papertrade/live-price/${symbol}`);
             const data = await response.json();
-
+            
             if (data.success) {
-                const portfolio = data.data.portfolio || {};
-                const positionsCount = data.data.positions_count || 0;
-                const totalTrades = data.data.total_trades || 0;
-
-                document.getElementById('portfolioValue').textContent = 
-                    `₹${this.formatNumber(portfolio.current_capital || 0)}`;
+                const priceElement = document.getElementById('livePrice');
+                const change = data.change || 0;
+                const changeClass = change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
                 
-                const totalPnL = portfolio.total_pnl || 0;
-                const totalPnLPercent = portfolio.initial_capital ? 
-                    ((totalPnL / portfolio.initial_capital) * 100).toFixed(2) : 0;
-
-                document.getElementById('totalPnL').textContent = 
-                    `₹${this.formatNumber(totalPnL)}`;
-                document.getElementById('totalPnL').className = 
-                    `value ${totalPnL >= 0 ? 'positive' : 'negative'}`;
-
-                document.getElementById('totalPnLPercent').textContent = 
-                    `${totalPnLPercent}%`;
-                document.getElementById('totalPnLPercent').className = 
-                    `change ${totalPnL >= 0 ? 'positive' : 'negative'}`;
-
-                document.getElementById('openPositions').textContent = positionsCount;
-                document.getElementById('totalTrades').textContent = totalTrades;
+                priceElement.innerHTML = `
+                    <strong>₹${data.price.toFixed(2)}</strong>
+                    <span class="${changeClass}">
+                        ${change >= 0 ? '+' : ''}${change.toFixed(2)} (${(data.change_percent || 0).toFixed(2)}%)
+                    </span>
+                `;
+                priceElement.className = `live-price ${changeClass}`;
+            } else {
+                this.clearLivePrice();
             }
         } catch (error) {
-            console.error('Error loading portfolio:', error);
+            console.error('Error fetching live price:', error);
+            this.clearLivePrice();
         }
     }
 
-    async loadPositions() {
-        try {
-            const response = await fetch('/api/papertrade/positions');
-            const data = await response.json();
-
-            const tbody = document.getElementById('positionsBody');
-
-            if (data.success && data.positions.length > 0) {
-                tbody.innerHTML = data.positions.map(pos => `
-                    <tr>
-                        <td><strong>${pos.symbol}</strong></td>
-                        <td>${pos.quantity}</td>
-                        <td>₹${this.formatNumber(pos.avg_price)}</td>
-                        <td>₹${this.formatNumber(pos.current_price || 0)}</td>
-                        <td class="${(pos.pnl || 0) >= 0 ? 'positive' : 'negative'}">
-                            ₹${this.formatNumber(pos.pnl || 0)}
-                        </td>
-                        <td class="${(pos.pnl_percent || 0) >= 0 ? 'positive' : 'negative'}">
-                            ${(pos.pnl_percent || 0).toFixed(2)}%
-                        </td>
-                        <td>
-                            <div class="trade-actions">
-                                <button class="btn btn-danger btn-sm" onclick="paperTrade.closePosition('${pos.symbol}')">
-                                    Close
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('');
-            } else {
-                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No open positions</td></tr>';
-            }
-        } catch (error) {
-            console.error('Error loading positions:', error);
-            document.getElementById('positionsBody').innerHTML = 
-                '<tr><td colspan="7" class="empty-state">Error loading positions</td></tr>';
-        }
-    }
-
-    async loadOrders() {
-        try {
-            const response = await fetch('/api/papertrade/orders?limit=20');
-            const data = await response.json();
-
-            const tbody = document.getElementById('ordersBody');
-
-            if (data.success && data.orders.length > 0) {
-                tbody.innerHTML = data.orders.map(order => `
-                    <tr>
-                        <td><code>${order.order_id}</code></td>
-                        <td><strong>${order.symbol}</strong></td>
-                        <td class="${order.side === 'BUY' ? 'positive' : 'negative'}">
-                            ${order.side}
-                        </td>
-                        <td>${order.quantity}</td>
-                        <td>₹${this.formatNumber(order.exec_price)}</td>
-                        <td>₹${this.formatNumber(order.exec_value)}</td>
-                        <td>${this.formatDateTime(order.timestamp)}</td>
-                        <td><span style="color: #22c55e;">${order.status}</span></td>
-                    </tr>
-                `).join('');
-            } else {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No orders yet</td></tr>';
-            }
-        } catch (error) {
-            console.error('Error loading orders:', error);
-            document.getElementById('ordersBody').innerHTML = 
-                '<tr><td colspan="8" class="empty-state">Error loading orders</td></tr>';
-        }
-    }
-
-    async updateLivePrice() {
-        if (!this.currentSymbol) return;
-
-        try {
-            const response = await fetch(`/api/papertrade/live-price/${this.currentSymbol}`);
-            const data = await response.json();
-
-            if (data.success) {
-                document.getElementById('livePrice').textContent = `₹${this.formatNumber(data.price)}`;
-            } else {
-                document.getElementById('livePrice').textContent = 'N/A';
-            }
-        } catch (error) {
-            console.error('Error getting live price:', error);
-            document.getElementById('livePrice').textContent = 'Error';
-        }
+    clearLivePrice() {
+        document.getElementById('livePrice').innerHTML = 'Enter symbol for live price';
+        document.getElementById('livePrice').className = 'live-price';
     }
 
     async executeTrade() {
         const form = document.getElementById('tradeForm');
         const formData = new FormData(form);
-        const executeBtn = document.getElementById('executeBtn');
-
+        const messageEl = document.getElementById('tradeMessage');
+        
         const tradeData = {
             symbol: formData.get('symbol').toUpperCase(),
             side: formData.get('side'),
             quantity: parseInt(formData.get('quantity'))
         };
 
-        // Validation
-        if (!tradeData.symbol || !tradeData.side || tradeData.quantity <= 0) {
-            alert('Please fill all fields correctly');
-            return;
-        }
-
-        executeBtn.disabled = true;
-        executeBtn.textContent = 'Executing...';
-
         try {
+            messageEl.innerHTML = '<div class="loading">Executing trade...</div>';
+            
             const response = await fetch('/api/papertrade/execute', {
                 method: 'POST',
                 headers: {
@@ -566,32 +428,152 @@ class PaperTradeManager {
             });
 
             const result = await response.json();
-
+            
             if (result.success) {
-                alert(`Trade executed successfully!\n${tradeData.side} ${tradeData.quantity} ${tradeData.symbol} @ ₹${this.formatNumber(result.live_price)}`);
+                messageEl.innerHTML = `
+                    <div class="success">
+                        ✅ Trade executed: ${tradeData.side} ${tradeData.quantity} ${tradeData.symbol} 
+                        @ ₹${result.live_price.toFixed(2)}
+                        (Total: ₹${result.exec_value.toFixed(2)})
+                    </div>
+                `;
                 form.reset();
-                document.getElementById('livePrice').textContent = '-';
-                this.currentSymbol = '';
-                
-                // Refresh data
-                this.loadInitialData();
+                this.clearLivePrice();
+                this.loadPortfolioData(); // Refresh data
             } else {
-                alert(`Trade failed: ${result.error}`);
+                messageEl.innerHTML = `<div class="error">❌ ${result.error}</div>`;
             }
         } catch (error) {
-            console.error('Error executing trade:', error);
-            alert('Error executing trade. Please try again.');
-        } finally {
-            executeBtn.disabled = false;
-            executeBtn.textContent = 'Execute Trade';
+            messageEl.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
         }
     }
 
-    async closePosition(symbol) {
-        if (!confirm(`Are you sure you want to close your ${symbol} position?`)) {
+    async loadPortfolioData() {
+        try {
+            // Load portfolio summary
+            const portfolioResponse = await fetch('/api/papertrade/portfolio');
+            const portfolioData = await portfolioResponse.json();
+            
+            if (portfolioData.success) {
+                this.updatePortfolioSummary(portfolioData.data);
+            }
+
+            // Load positions
+            const positionsResponse = await fetch('/api/papertrade/positions');
+            const positionsData = await positionsResponse.json();
+            
+            if (positionsData.success) {
+                this.updatePositionsTable(positionsData.positions);
+            }
+
+            // Load orders
+            const ordersResponse = await fetch('/api/papertrade/orders?limit=20');
+            const ordersData = await ordersResponse.json();
+            
+            if (ordersData.success) {
+                this.updateOrdersTable(ordersData.orders);
+            }
+
+        } catch (error) {
+            console.error('Error loading portfolio data:', error);
+        }
+    }
+
+    updatePortfolioSummary(data) {
+        const portfolio = data.portfolio || {};
+        
+        document.getElementById('portfolioValue').textContent = 
+            `₹${(portfolio.current_capital || 1000000).toLocaleString('en-IN')}`;
+        
+        const totalPnL = portfolio.total_pnl || 0;
+        document.getElementById('totalPnL').textContent = 
+            `₹${totalPnL.toLocaleString('en-IN')}`;
+        
+        const pnlPercent = ((totalPnL / (portfolio.initial_capital || 1000000)) * 100);
+        document.getElementById('totalPnLPercent').textContent = 
+            `${pnlPercent.toFixed(2)}%`;
+        document.getElementById('totalPnLPercent').className = 
+            `change ${totalPnL > 0 ? 'positive' : totalPnL < 0 ? 'negative' : 'neutral'}`;
+        
+        document.getElementById('openPositions').textContent = 
+            data.positions_count || 0;
+        
+        document.getElementById('totalTrades').textContent = 
+            data.total_trades || 0;
+    }
+
+    updatePositionsTable(positions) {
+        const tbody = document.getElementById('positionsBody');
+        const table = document.getElementById('positionsTable');
+        const loading = document.getElementById('positionsLoading');
+        
+        if (positions.length === 0) {
+            loading.textContent = 'No positions found';
+            table.style.display = 'none';
             return;
         }
 
+        tbody.innerHTML = positions.map(pos => {
+            const pnl = pos.pnl || 0;
+            const pnlClass = pnl > 0 ? 'positive' : pnl < 0 ? 'negative' : 'neutral';
+            
+            return `
+                <tr>
+                    <td><strong>${pos.symbol}</strong></td>
+                    <td>${pos.quantity}</td>
+                    <td>₹${pos.avg_price.toFixed(2)}</td>
+                    <td>₹${(pos.current_price || 0).toFixed(2)}</td>
+                    <td>₹${(pos.position_value || 0).toLocaleString('en-IN')}</td>
+                    <td class="${pnlClass}">₹${pnl.toLocaleString('en-IN')}</td>
+                    <td class="${pnlClass}">${(pos.pnl_percent || 0).toFixed(2)}%</td>
+                    <td>
+                        <button class="btn btn-danger close-btn" onclick="paperTrade.closePosition('${pos.symbol}')">
+                            Close
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        loading.style.display = 'none';
+        table.style.display = 'table';
+    }
+
+    updateOrdersTable(orders) {
+        const tbody = document.getElementById('ordersBody');
+        const table = document.getElementById('ordersTable');
+        const loading = document.getElementById('ordersLoading');
+        
+        if (orders.length === 0) {
+            loading.textContent = 'No orders found';
+            table.style.display = 'none';
+            return;
+        }
+
+        tbody.innerHTML = orders.map(order => {
+            const timestamp = new Date(order.timestamp).toLocaleString('en-IN');
+            const statusClass = `status-${order.status.toLowerCase()}`;
+            
+            return `
+                <tr>
+                    <td>${timestamp}</td>
+                    <td><strong>${order.symbol}</strong></td>
+                    <td class="${order.side === 'BUY' ? 'positive' : 'negative'}">${order.side}</td>
+                    <td>${order.quantity}</td>
+                    <td>₹${order.exec_price.toFixed(2)}</td>
+                    <td>₹${order.exec_value.toLocaleString('en-IN')}</td>
+                    <td class="${statusClass}">${order.status}</td>
+                </tr>
+            `;
+        }).join('');
+        
+        loading.style.display = 'none';
+        table.style.display = 'table';
+    }
+
+    async closePosition(symbol) {
+        if (!confirm(`Close entire ${symbol} position?`)) return;
+        
         try {
             const response = await fetch('/api/papertrade/close', {
                 method: 'POST',
@@ -602,40 +584,44 @@ class PaperTradeManager {
             });
 
             const result = await response.json();
-
+            
             if (result.success) {
-                alert(`Position closed successfully!`);
-                this.loadInitialData();
+                alert(`✅ ${symbol} position closed successfully`);
+                this.loadPortfolioData();
             } else {
-                alert(`Failed to close position: ${result.error}`);
+                alert(`❌ Error: ${result.error}`);
             }
         } catch (error) {
-            console.error('Error closing position:', error);
-            alert('Error closing position. Please try again.');
+            alert(`❌ Error closing position: ${error.message}`);
         }
     }
 
-    formatNumber(num) {
-        if (typeof num !== 'number') return '0';
-        return new Intl.NumberFormat('en-IN', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(num);
+    startAutoRefresh() {
+        // Refresh portfolio data every 30 seconds
+        this.refreshInterval = setInterval(() => {
+            this.loadPortfolioData();
+        }, 30000);
+
+        // Update live price every 5 seconds if symbol is selected
+        this.livePriceInterval = setInterval(() => {
+            if (this.currentSymbol) {
+                this.updateLivePrice(this.currentSymbol);
+            }
+        }, 5000);
     }
 
-    formatDateTime(isoString) {
-        const date = new Date(isoString);
-        return date.toLocaleString('en-IN', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+    destroy() {
+        if (this.refreshInterval) clearInterval(this.refreshInterval);
+        if (this.livePriceInterval) clearInterval(this.livePriceInterval);
     }
 }
 
-// Initialize when page loads
+// Initialize Paper Trade Manager
 const paperTrade = new PaperTradeManager();
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    paperTrade.destroy();
+});
 </script>
 {% endblock %}
