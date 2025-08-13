@@ -287,28 +287,48 @@
             </div>
         </div>
 
+        <!-- Enhanced Filters Row -->
+        <div class="strategy-row" style="margin-bottom: 16px; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
+            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                    <input type="checkbox" id="hideEventsFilter" style="accent-color: var(--accent);">
+                    Hide Events
+                </label>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+                    <label>Max Breakout Prob:</label>
+                    <input type="range" id="breakoutProbSlider" min="20" max="100" value="100" 
+                           style="width: 120px; accent-color: var(--accent);">
+                    <span id="breakoutProbValue">100%</span>
+                </div>
+                <button class="btn" onclick="applyFilters()" style="background: var(--accent); color: white; border-color: var(--accent);">
+                    Apply Filters
+                </button>
+            </div>
+        </div>
+
         <!-- Options Strategy Table -->
         <div class="table-wrap">
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Stock</th>
-                        <th>₹ Current Price</th>
-                        <th>Call Strike</th>
-                        <th>Put Strike</th>
-                        <th>DTE</th>
-                        <th>IV %</th>
-                        <th>IV Rank</th>
-                        <th>₹ Total Premium</th>
-                        <th>Theta/Day</th>
-                        <th>ROI on Margin</th>
-                        <th>Breakout Prob.</th>
-                        <th>Market Stability</th>
-                        <th>Event Risk</th>
-                        <th>Max Loss (2σ)</th>
-                        <th>Stop Loss %</th>
-                        <th>Verdict</th>
-                        <th>AI Options Agent</th>
+                        <th title="Stock Symbol">Stock</th>
+                        <th title="Current Spot Price">Spot</th>
+                        <th title="Call Strike Price">Call</th>
+                        <th title="Put Strike Price">Put</th>
+                        <th title="Days to Expiry">DTE</th>
+                        <th title="Implied Volatility %">IV%</th>
+                        <th title="IV Rank (0-100)">IV Rank</th>
+                        <th title="Net Credit Per Lot">Net Credit</th>
+                        <th title="Theta Decay Per Day (from Greeks)">Theta/Day</th>
+                        <th title="ROI on Margin Required">ROI on Margin</th>
+                        <th title="Breakeven Price Range">Breakeven Range</th>
+                        <th title="Monte Carlo Breakout Probability">Breakout Prob</th>
+                        <th title="Market Stability Score (0-100)">Market Stability</th>
+                        <th title="Event Risk Flag">Event</th>
+                        <th title="Max Loss at 2-Sigma Move">Max Loss (2σ)</th>
+                        <th title="Dynamic Stop Loss % of Credit">Stop Loss %</th>
+                        <th title="Trading Verdict">Verdict</th>
+                        <th title="AI Agent Enhanced Verdict">AI Agent</th>
                     </tr>
                 </thead>
                 <tbody id="options-table-body">
@@ -374,9 +394,12 @@
             try {
                 showLoading();
                 
-                // Use the enhanced short strangle engine API
-                const url = `/api/options/strategies?timeframe=${currentTimeframe}&force_refresh=${forceRefresh}&enhanced=true`;
-                console.log(`🔄 Loading enhanced options data from: ${url}`);
+                // Use the new v2 strangle recommendations API
+                const hideEvents = document.getElementById('hideEventsFilter')?.checked || false;
+                const maxBreakoutProb = document.getElementById('breakoutProbSlider')?.value || 100;
+                
+                const url = `/api/options/strangle/recommendations?timeframe=${currentTimeframe}&force_refresh=${forceRefresh}&hide_events=${hideEvents}&max_breakout_prob=${maxBreakoutProb}`;
+                console.log(`🔄 Loading v2 options data from: ${url}`);
                 
                 const response = await fetch(url);
                 
@@ -385,12 +408,12 @@
                 }
                 
                 const data = await response.json();
-                console.log('📊 Enhanced options data loaded:', data);
+                console.log('📊 V2 options data loaded:', data);
                 
                 if (data.strategies && Array.isArray(data.strategies)) {
                     optionsData = data.strategies;
                     updateOptionsTable(data.strategies);
-                    updateSummaryStats(data.strategies);
+                    updateSummaryStats(data.summary || {});
                 } else {
                     throw new Error('Invalid data format received');
                 }
@@ -422,72 +445,64 @@
             }
 
             tbody.innerHTML = strategies.map(strategy => {
-                // Enhanced calculations
-                const dte = strategy.days_to_expiry || 30;
-                const ivPercent = strategy.implied_volatility * 100 || 25;
+                // V2 data format with proper calculations
+                const dte = strategy.dte_days || 30;
+                const ivPercent = strategy.iv_percent || 25;
                 const ivRank = strategy.iv_rank || 50;
-                const thetaPerDay = strategy.theta_per_day || (strategy.total_premium * 0.03);
-                const roiOnMargin = strategy.roi_on_margin || ((strategy.total_premium / strategy.margin_required) * 100);
-                const breakoutProb = strategy.breakout_probability || 0.35;
-                const marketStability = strategy.market_stability_score || 75;
-                const maxLoss2Sigma = strategy.max_loss_2_sigma || (strategy.total_premium * 3);
-                const stopLossPct = strategy.stop_loss_percent || 180;
+                const thetaPerDay = strategy.theta_per_day_per_lot || 0;
+                const roiOnMargin = strategy.roi_on_margin_percent || 0;
+                const breakoutProb = strategy.breakout_prob_percent || 50;
+                const marketStability = strategy.market_stability_score || 50;
+                const maxLoss2Sigma = strategy.max_loss_two_sigma || 0;
+                const stopLossPct = strategy.stop_loss_percent_of_credit || 180;
+                const netCredit = strategy.net_credit_per_lot || 0;
+                const breakevenLower = strategy.breakeven_lower || 0;
+                const breakevenUpper = strategy.breakeven_upper || 0;
                 
                 // Determine CSS classes for styling
                 const ivClass = getIVClass(ivPercent, ivRank);
                 const thetaClass = getThetaClass(thetaPerDay);
                 const stabilityClass = getStabilityClass(marketStability);
                 const verdictClass = getVerdictClass(strategy.verdict);
+                const aiVerdictClass = getVerdictClass(strategy.ai_agent_verdict);
                 
-                // Event risk assessment
-                const eventRisk = assessEventRisk(strategy);
+                // Event risk display
+                const eventRisk = getEventRiskDisplay(strategy.event_flag);
                 
-                // Generate enhanced AI verdict
-                const aiVerdict = generateEnhancedAIVerdict(strategy);
-                const aiVerdictClass = getVerdictClass(aiVerdict);
+                // Breakeven range display
+                const breakevenRange = `${breakevenLower.toFixed(0)}-${breakevenUpper.toFixed(0)}`;
 
                 return `
                     <tr>
                         <td><strong>${strategy.symbol}</strong></td>
-                        <td>₹${strategy.current_price?.toFixed(2) || 'N/A'}</td>
+                        <td>₹${strategy.spot?.toFixed(2) || 'N/A'}</td>
                         <td>${strategy.call_strike?.toFixed(0) || 'N/A'}</td>
                         <td>${strategy.put_strike?.toFixed(0) || 'N/A'}</td>
                         <td>${dte}d</td>
                         <td class="${ivClass}">${ivPercent.toFixed(1)}%</td>
                         <td class="${ivClass}">${ivRank.toFixed(0)}</td>
-                        <td>₹${strategy.total_premium?.toFixed(2) || 'N/A'}</td>
+                        <td>₹${netCredit.toFixed(2)}</td>
                         <td class="${thetaClass}">₹${thetaPerDay.toFixed(2)}</td>
-                        <td>${roiOnMargin.toFixed(1)}%</td>
-                        <td class="${breakoutProb > 0.4 ? 'risk-high' : breakoutProb > 0.3 ? 'risk-medium' : 'risk-low'}">${(breakoutProb * 100).toFixed(1)}%</td>
+                        <td class="${roiOnMargin > 2 ? 'confidence-high' : roiOnMargin > 1 ? 'confidence-medium' : 'confidence-low'}">${roiOnMargin.toFixed(2)}%</td>
+                        <td title="Breakeven Range">${breakevenRange}</td>
+                        <td class="${breakoutProb > 40 ? 'risk-high' : breakoutProb > 30 ? 'risk-medium' : 'risk-low'}">${breakoutProb.toFixed(1)}%</td>
                         <td class="${stabilityClass}">${marketStability.toFixed(0)}</td>
-                        <td>${eventRisk.html}</td>
-                        <td>₹${maxLoss2Sigma.toFixed(0)}</td>
-                        <td>${stopLossPct}%</td>
-                        <td class="${verdictClass}">${strategy.verdict || 'N/A'}</td>
-                        <td class="${aiVerdictClass}">${aiVerdict}</td>
+                        <td>${eventRisk}</td>
+                        <td class="${maxLoss2Sigma < 0 ? 'risk-high' : 'risk-low'}">₹${Math.abs(maxLoss2Sigma).toFixed(0)}</td>
+                        <td>${stopLossPct.toFixed(0)}%</td>
+                        <td class="${verdictClass}">${strategy.verdict || 'Hold'}</td>
+                        <td class="${aiVerdictClass}">${strategy.ai_agent_verdict || 'Hold'}</td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function updateSummaryStats(strategies) {
-            if (!strategies || strategies.length === 0) {
-                document.getElementById('total-strategies').textContent = '0';
-                document.getElementById('avg-roi').textContent = '0%';
-                document.getElementById('high-iv-count').textContent = '0';
-                document.getElementById('event-free-count').textContent = '0';
-                return;
-            }
-
-            const totalStrategies = strategies.length;
-            const avgROI = strategies.reduce((sum, s) => sum + (s.roi_on_margin || 0), 0) / totalStrategies;
-            const highIVCount = strategies.filter(s => (s.implied_volatility || 0) * 100 >= 30 && (s.iv_rank || 0) >= 70).length;
-            const eventFreeCount = strategies.filter(s => !s.has_event_risk).length;
-
-            document.getElementById('total-strategies').textContent = totalStrategies;
-            document.getElementById('avg-roi').textContent = `${avgROI.toFixed(1)}%`;
-            document.getElementById('high-iv-count').textContent = highIVCount;
-            document.getElementById('event-free-count').textContent = eventFreeCount;
+        function updateSummaryStats(summary) {
+            // Use summary from v2 API response
+            document.getElementById('total-strategies').textContent = summary.total_strategies || '0';
+            document.getElementById('avg-roi').textContent = `${summary.avg_roi || 0}%`;
+            document.getElementById('high-iv-count').textContent = summary.high_iv_opportunities || '0';
+            document.getElementById('event-free-count').textContent = summary.event_free_trades || '0';
         }
 
         function getIVClass(ivPercent, ivRank) {
@@ -539,54 +554,37 @@
             }
         }
 
-        function generateEnhancedAIVerdict(strategy) {
-            // Enhanced AI Options Agent logic with volatility filtering and risk considerations
-            const roi = strategy.roi_on_margin || 0;
-            const ivPercent = (strategy.implied_volatility || 0) * 100;
-            const ivRank = strategy.iv_rank || 50;
-            const stability = strategy.market_stability_score || 75;
-            const breakoutProb = strategy.breakout_probability || 0.35;
-            const dte = strategy.days_to_expiry || 30;
-            const hasEventRisk = strategy.has_event_risk || false;
-            
-            // Multi-factor enhanced analysis
-            let score = 0;
-            
-            // IV conditions (high IV = good for selling)
-            if (ivPercent >= 30 && ivRank >= 70) score += 30;
-            else if (ivPercent >= 20 && ivRank >= 50) score += 15;
-            else score -= 10;
-            
-            // ROI conditions
-            if (roi > 25) score += 25;
-            else if (roi > 15) score += 15;
-            else if (roi < 10) score -= 15;
-            
-            // Market stability
-            if (stability >= 80) score += 20;
-            else if (stability >= 60) score += 10;
-            else score -= 10;
-            
-            // Breakout probability (lower is better for short strangle)
-            if (breakoutProb < 0.25) score += 20;
-            else if (breakoutProb < 0.35) score += 10;
-            else score -= 15;
-            
-            // Days to expiry (sweet spot 20-40 days)
-            if (dte >= 20 && dte <= 40) score += 15;
-            else if (dte >= 15 && dte <= 50) score += 5;
-            else score -= 10;
-            
-            // Event risk penalty
-            if (hasEventRisk) score -= 20;
-            
-            // Generate verdict based on score
-            if (score >= 70) return 'Strong Buy';
-            else if (score >= 50) return 'Buy';
-            else if (score >= 30) return 'Hold';
-            else if (score >= 10) return 'Cautious';
-            else return 'Avoid';
+        function getEventRiskDisplay(eventFlag) {
+            """Generate event risk display HTML"""
+            switch(eventFlag) {
+                case 'EARNINGS':
+                    return '<span class="event-risk-flag event-earnings">EARNINGS</span>';
+                case 'DIV':
+                    return '<span class="event-risk-flag event-dividend">DIV</span>';
+                case 'OTHER':
+                    return '<span class="event-risk-flag event-dividend">OTHER</span>';
+                case 'CLEAR':
+                default:
+                    return '<span class="event-risk-flag event-clear">CLEAR</span>';
+            }
         }
+
+        function applyFilters() {
+            """Apply filters and reload data"""
+            loadOptionsData(false);
+        }
+
+        // Update breakout probability slider display
+        document.addEventListener('DOMContentLoaded', function() {
+            const slider = document.getElementById('breakoutProbSlider');
+            const display = document.getElementById('breakoutProbValue');
+            
+            if (slider && display) {
+                slider.addEventListener('input', function() {
+                    display.textContent = this.value + '%';
+                });
+            }
+        });
 
         function updateLastUpdated() {
             const now = new Date();
