@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Fusion Dashboard</title>
+</head>
+<body>
+  <h1>Fusion Dashboard</h1>
+
+  <!-- Agents Control Panel (minimal) -->
+  <div id="agentsPanel" style="margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:8px;">
+    <strong>Agents Control</strong>
+    <button id="runAllAgentsBtn">Run All</button>
+    <div id="agentsList" style="margin-top:8px; font-size:14px;">Loading agents…</div>
+  </div>
+
+  <div id="timeframeFilter">
+    <select>
+      <option>All</option><option>3D</option><option>5D</option>
+      <option>10D</option><option>15D</option><option>30D</option>
+    </select>
+    <button id="refreshBtn" onclick="refresh()">Refresh</button>
+  </div>
+
+  <table id="topSignalsTable" border="1">
+    <thead><tr><th>Symbol</th><th>Verdict</th><th>Confidence</th><th>5D Pred (%)</th>
+                    <th>Signal Strength</th>
+                    <th>Recommendation</th>
+                    <th class="ai-verdict-column" style="display: none;">AI Verdict</th>
+                </tr></thead>
+    <tbody id="signalsTbody"></tbody>
+  </table>
+
+  <script>
+    async function refresh(force=false){
+      const url = '/api/fusion/dashboard' + (force ? '?forceRefresh=true' : '');
+      const res = await fetch(url);
+      const data = await res.json();
+      const tbody = document.getElementById('signalsTbody');
+      tbody.innerHTML = '';
+      (data.top_signals || []).forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${s.symbol}</td><td>${s.ai_verdict_normalized}</td><td>${(s.confidence||0).toFixed(1)}%</td>
+                        <td class="recommendation-cell"></td>
+                        <td class="ai-verdict-cell" style="display: none;"></td>
+                    </tr>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function fetchAgents(){
+      try{
+        const r = await fetch('/api/agents');
+        const j = await r.json();
+        if(!j.success){ throw new Error(j.error || 'failed'); }
+        const wrap = document.getElementById('agentsList');
+        wrap.innerHTML = j.data.map(a => `
+          <div style="margin:6px 0;">
+            <b>${a.name}</b> (${a.id}) — ${a.enabled ? 'ENABLED' : 'DISABLED'}
+            <button onclick="runAgent('${a.id}')">Run</button>
+            <button onclick="toggleAgent('${a.id}', ${a.enabled ? 'false' : 'true'})">
+              ${a.enabled ? 'Disable' : 'Enable'}
+            </button>
+          </div>
+        `).join('');
+      }catch(e){
+        document.getElementById('agentsList').innerText='Failed to load agents';
+      }
+    }
+    async function runAgent(id){
+      await fetch(`/api/agents/${id}/run`, {method:'POST', headers:{'Content-Type':'application/json'}});
+      alert('Run triggered for ' + id);
+    }
+    async function toggleAgent(id, enable){
+      await fetch(`/api/agents/${id}/${enable?'enable':'disable'}`, {method:'POST'});
+      fetchAgents();
+    }
+    document.getElementById('runAllAgentsBtn').onclick = async () => {
+      await fetch('/api/agents/run_all', {method:'POST'});
+      alert('All agents run triggered');
+    };
+    
+    refresh();
+    fetchAgents();
+  </script>
+</body>
+</html>

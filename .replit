@@ -3,7 +3,7 @@ modules = ["nodejs-20", "python-3.11"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["glibcLocales", "libxcrypt", "libyaml", "pkg-config", "xsimd"]
+packages = ["glibcLocales", "libxcrypt", "libyaml", "pkg-config", "xsimd", "nano"]
 
 [unitTest]
 language = "python3"

@@ -1,0 +1,12 @@
+
+{
+  "locks": [
+    {
+      "type": "EQUITY",
+      "symbol": "YESBANK",
+      "locked_at": "2025-01-12T08:45:00Z",
+      "reason": "High risk"
+    }
+  ],
+  "last_updated": "2025-01-12T10:30:00Z"
+}

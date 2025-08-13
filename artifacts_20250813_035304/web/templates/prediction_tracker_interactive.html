@@ -1,0 +1,1844 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Interactive Prediction Tracker - Advanced Charts</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --bg-color: #ecf0f1;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stocks-sidebar {
+            width: 300px;
+            flex-shrink: 0;
+        }
+
+        .chart-section {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .nav-links {
+            margin: 20px 0;
+        }
+
+        .nav-links a, .btn {
+            background: var(--secondary-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .nav-links a:hover, .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .controls-section {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .view-btn {
+            padding: 10px 20px;
+            border: 2px solid var(--secondary-color);
+            background: transparent;
+            color: var(--secondary-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn.active {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .stock-selector {
+            padding: 10px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 8px;
+            font-size: 16px;
+            min-width: 200px;
+        }
+
+        .lock-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .lock-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lock-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .batch-lock-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .batch-lock-btn {
+            width: 100%;
+            font-size: 0.9rem !important;
+            padding: 8px 12px !important;
+            margin: 0 !important;
+            transition: all 0.3s ease;
+        }
+
+        .batch-lock-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .chart-container.locked {
+            border: 3px solid #ffd700;
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(135deg, #ffffff 0%, #fffef7 100%);
+        }
+
+        .chart-container {
+            position: relative;
+        }
+
+        .chart-container.locked::before {
+            content: "🔒 DATES LOCKED";
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #ffd700;
+            color: #8b6914;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 500px;
+            margin: 20px 0;
+        }
+
+        .chart-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .predictions-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .prediction-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .prediction-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .prediction-card.selected {
+            border: 3px solid var(--secondary-color);
+            box-shadow: 0 8px 32px rgba(52, 152, 219, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stock-symbol {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .lock-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .locked {
+            background: #ffd700;
+            color: #8b6914;
+        }
+
+        .unlocked {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .card-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .detail-item {
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-bottom: 3px;
+        }
+
+        .detail-value {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--secondary-color);
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px;
+            color: #7f8c8d;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .stocks-sidebar {
+                width: 100%;
+                order: 2;
+            }
+
+            .chart-section {
+                order: 1;
+            }
+
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .view-toggle {
+                justify-content: center;
+            }
+
+            .chart-wrapper {
+                height: 400px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .predictions-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Interactive Prediction Tracker</h1>
+            <p>Advanced Charts with Lock Feature & Progressive Tracking</p>
+
+            <div class="nav-links">
+                <a href="/">🏠 Main Dashboard</a>
+                <a href="/analysis">📈 Analysis</a>
+                <a href="/lookup">🔍 Stock Lookup</a>
+                <a href="/prediction-tracker">📋 Simple Tracker</a>
+                <button class="btn" onclick="refreshData()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="control-group">
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="5d" onclick="switchView('5d')">📍 5D View</button>
+                    <button class="view-btn" data-view="30d" onclick="switchView('30d')">📍 30D View</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="stocks-sidebar">
+                <div class="controls-section" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: var(--primary-color);">📊 Select Stock</h3>
+                    <select id="stockSelector" class="stock-selector" onchange="selectStock()" style="width: 100%; margin-bottom: 15px;">
+                        <option value="">Select a stock to chart...</option>
+                    </select>
+                    
+                    <div class="lock-controls" style="justify-content: center; margin-bottom: 15px;">
+                        <div class="lock-toggle">
+                            <input type="checkbox" id="lockToggle" class="lock-checkbox" onchange="toggleLock()">
+                            <label for="lockToggle">🔐 Lock Prediction</label>
+                        </div>
+                    </div>
+
+                    <div class="batch-lock-section" style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
+                        <h4 style="margin-bottom: 10px; color: var(--primary-color); font-size: 1rem;">🔒 Batch Lock Controls</h4>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <button class="btn batch-lock-btn" onclick="lockAllStocks('5d')" style="padding: 8px 12px; font-size: 0.9rem;">
+                                🔒 Lock All 5D
+                            </button>
+                            <button class="btn batch-lock-btn" onclick="lockAllStocks('30d')" style="padding: 8px 12px; font-size: 0.9rem; background: var(--warning-color);">
+                                🔒 Lock All 30D
+                            </button>
+                            <button class="btn batch-lock-btn" onclick="unlockAllStocks()" style="padding: 8px 12px; font-size: 0.9rem; background: var(--danger-color);">
+                                🔓 Unlock All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="loadingIndicator" class="loading" style="padding: 20px;">
+                    <h4>⏳ Loading...</h4>
+                    <p>Fetching stock data...</p>
+                </div>
+
+                <div id="predictionsGrid" class="predictions-grid" style="display: none;">
+                    <!-- Dynamic prediction cards will be loaded here -->
+                </div>
+
+                <div id="noData" class="no-data" style="display: none; padding: 20px;">
+                    <h4>📋 No Data</h4>
+                    <p>No predictions available.</p>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <div id="chartContainer" class="chart-container" style="display: none;">
+                    <h3 id="chartTitle">📈 Stock Prediction Chart</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="predictionChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-info">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Current Day</div>
+                                <div id="currentDay" class="info-value">--</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Prediction Change</div>
+                                <div id="predictionChange" class="info-value">--</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Target Progress</div>
+                                <div id="targetProgress" class="info-value">--</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Lock Status</div>
+                                <div id="lockStatus" class="info-value">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chartPlaceholder" class="chart-container" style="display: block;">
+                    <div style="text-align: center; padding: 60px 20px; color: #7f8c8d;">
+                        <h3>📊 Interactive Chart View</h3>
+                        <p>Select a stock from the left sidebar to view its prediction chart</p>
+                        <p>Charts show original predictions, actual progress, and updated predictions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentView = '5d';
+        let selectedStock = null;
+        let predictionData = {};
+        let chart = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Interactive Prediction Tracker initialized');
+            restoreSessionState();
+            loadPredictionData();
+        });
+
+        // Session persistence functions
+        function saveSessionState() {
+            try {
+                const sessionState = {
+                    selectedStock: selectedStock,
+                    currentView: currentView,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem('predictionTracker_session', JSON.stringify(sessionState));
+                console.log('📱 Session state saved:', sessionState);
+            } catch (e) {
+                console.warn('Could not save session state:', e);
+            }
+        }
+
+        function restoreSessionState() {
+            try {
+                const saved = localStorage.getItem('predictionTracker_session');
+                if (saved) {
+                    const sessionState = JSON.parse(saved);
+                    
+                    // Restore view preference
+                    if (sessionState.currentView && ['5d', '30d'].includes(sessionState.currentView)) {
+                        currentView = sessionState.currentView;
+                        switchView(currentView);
+                        console.log('🔄 Restored view preference:', currentView);
+                    }
+                    
+                    // Selected stock will be restored after data loads
+                    if (sessionState.selectedStock) {
+                        // Set a flag to restore selection after data loads
+                        window.pendingStockSelection = sessionState.selectedStock;
+                        console.log('📋 Will restore stock selection:', sessionState.selectedStock);
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not restore session state:', e);
+            }
+        }
+
+        function switchView(view) {
+            currentView = view;
+            
+            // Update button appearance
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-view="${view}"]`).classList.add('active');
+            
+            // Update chart if stock is selected
+            if (selectedStock) {
+                updateChart();
+                updateLockToggle(); // Update lock toggle for new view
+            }
+            
+            saveSessionState(); // Save session when view changes
+            console.log(`Switched to ${view} view`);
+        }
+
+        function selectStock() {
+            const selector = document.getElementById('stockSelector');
+            selectedStock = selector.value;
+            
+            if (selectedStock && predictionData[selectedStock]) {
+                showChart();
+                updateChart();
+                updateLockToggle();
+                highlightSelectedCard();
+                saveSessionState(); // Save session when stock is selected
+            } else {
+                hideChart();
+            }
+        }
+
+        function toggleLock() {
+            if (!selectedStock) return;
+            
+            const lockToggle = document.getElementById('lockToggle');
+            const isLocked = lockToggle.checked;
+            
+            // If unlocking, show confirmation
+            if (!isLocked && predictionData[selectedStock] && predictionData[selectedStock][`locked_${currentView}`]) {
+                showUnlockConfirmation([{symbol: selectedStock, period: currentView}]);
+                // Reset toggle until confirmation
+                lockToggle.checked = true;
+                return;
+            }
+            
+            // If locking, proceed immediately
+            if (isLocked) {
+                executeLockAction(selectedStock, currentView, true);
+            }
+        }
+
+        function showUnlockConfirmation(stocksToUnlock) {
+            // Create confirmation modal
+            const modalHtml = `
+                <div id="unlockConfirmationModal" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                ">
+                    <div style="
+                        background: white;
+                        border-radius: 15px;
+                        padding: 30px;
+                        max-width: 500px;
+                        width: 90%;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    ">
+                        <h3 style="margin-top: 0; color: #e74c3c; text-align: center;">
+                            🔓 Confirm Unlock Action
+                        </h3>
+                        <p style="text-align: center; margin-bottom: 20px; color: #555;">
+                            Select which predictions you want to unlock:
+                        </p>
+                        <div id="stockCheckboxes" style="max-height: 300px; overflow-y: auto;">
+                            ${stocksToUnlock.map(item => `
+                                <div style="
+                                    display: flex;
+                                    align-items: center;
+                                    padding: 10px;
+                                    border: 1px solid #ddd;
+                                    border-radius: 8px;
+                                    margin-bottom: 10px;
+                                    background: #f9f9f9;
+                                ">
+                                    <input type="checkbox" 
+                                           id="unlock_${item.symbol}_${item.period}" 
+                                           value="${item.symbol}_${item.period}"
+                                           style="margin-right: 10px; transform: scale(1.2);">
+                                    <label for="unlock_${item.symbol}_${item.period}" style="
+                                        flex: 1;
+                                        font-weight: 500;
+                                        color: #333;
+                                        cursor: pointer;
+                                    ">
+                                        ${item.symbol} - ${item.period.toUpperCase()} View
+                                        <small style="display: block; color: #666; font-weight: normal;">
+                                            Lock will be removed and dates will become dynamic
+                                        </small>
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="
+                            display: flex;
+                            gap: 15px;
+                            margin-top: 25px;
+                            justify-content: center;
+                        ">
+                            <button onclick="confirmUnlock()" style="
+                                background: #e74c3c;
+                                color: white;
+                                border: none;
+                                padding: 12px 25px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: 600;
+                                font-size: 16px;
+                            ">
+                                🔓 Unlock Selected
+                            </button>
+                            <button onclick="cancelUnlock()" style="
+                                background: #95a5a6;
+                                color: white;
+                                border: none;
+                                padding: 12px 25px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: 600;
+                                font-size: 16px;
+                            ">
+                                ❌ Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function confirmUnlock() {
+            const modal = document.getElementById('unlockConfirmationModal');
+            const checkboxes = modal.querySelectorAll('input[type="checkbox"]:checked');
+            
+            checkboxes.forEach(checkbox => {
+                const [symbol, period] = checkbox.value.split('_');
+                console.log(`🔓 Confirming unlock: ${symbol} ${period}`);
+                executeLockAction(symbol, period, false);
+            });
+            
+            modal.remove();
+            
+            // Update UI after unlocking
+            setTimeout(() => {
+                updatePredictionCards();
+                if (selectedStock) {
+                    updateLockToggle();
+                    updateChart();
+                }
+            }, 500);
+            
+            console.log(`✅ Unlock confirmation completed for ${checkboxes.length} selections`);
+        }
+
+        function cancelUnlock() {
+            const modal = document.getElementById('unlockConfirmationModal');
+            modal.remove();
+            console.log('❌ Unlock action cancelled by user');
+        }
+
+        function executeLockAction(symbol, period, isLocked) {
+            const lockKey = `locked_${period}`;
+            const lockStartDateKey = `lock_start_date_${period}`;
+            const persistentKey = `persistent_lock_${period}`;
+            
+            // Update prediction data
+            if (!predictionData[symbol]) {
+                predictionData[symbol] = {};
+            }
+            
+            // Set all lock-related fields
+            predictionData[symbol][lockKey] = isLocked;
+            predictionData[symbol][persistentKey] = isLocked; // Mark as persistent
+            predictionData[symbol][`lock_date_${period}`] = isLocked ? new Date().toISOString().split('T')[0] : null;
+            
+            // Store lock start date for fixed date ranges
+            if (isLocked) {
+                predictionData[symbol][lockStartDateKey] = new Date().toISOString().split('T')[0];
+                console.log(`🔒 Locking ${symbol} ${period} with start date: ${predictionData[symbol][lockStartDateKey]}`);
+                console.log(`📊 Lock state set:`, {
+                    [lockKey]: predictionData[symbol][lockKey],
+                    [persistentKey]: predictionData[symbol][persistentKey],
+                    [lockStartDateKey]: predictionData[symbol][lockStartDateKey]
+                });
+            } else {
+                predictionData[symbol][lockStartDateKey] = null;
+                predictionData[symbol][persistentKey] = false;
+                console.log(`🔓 Unlocking ${symbol} ${period} - dates will revert to dynamic`);
+            }
+            
+            // Save to backend with persistence flag
+            saveLockStatus(symbol, period, isLocked, true);
+            
+            // Update UI and chart
+            updateLockStatus();
+            updatePredictionCards();
+            updateLockToggle(); // Update toggle state
+            updateChart(); // Refresh chart to show new date behavior
+            
+            console.log(`${isLocked ? 'Locked' : 'Unlocked'} ${symbol} for ${period}`);
+        }
+
+        function refreshData() {
+            console.log('Refreshing prediction data...');
+            loadPredictionData();
+        }
+
+        function loadPredictionData() {
+            console.log('🔄 Starting loadPredictionData...');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const predictionsGrid = document.getElementById('predictionsGrid');
+            const noData = document.getElementById('noData');
+
+            // Show loading
+            loadingIndicator.style.display = 'block';
+            predictionsGrid.style.display = 'none';
+            noData.style.display = 'none';
+            hideChart();
+
+            // Load enhanced prediction data
+            Promise.all([
+                fetch('/api/predictions-tracker').then(response => response.json()),
+                fetch('/api/interactive-tracker-data').then(response => response.json().catch(() => ({status: 'no_data'})))
+            ])
+            .then(([basicData, enhancedData]) => {
+                console.log('📊 Loading prediction data - Basic:', basicData?.status, 'Enhanced:', enhancedData?.status);
+
+                // Process and merge data with lock state preservation
+                processTrackingData(basicData, enhancedData);
+                
+                // Verify and log lock states after processing
+                verifyLockStates();
+                
+                loadingIndicator.style.display = 'none';
+                
+                if (Object.keys(predictionData).length > 0) {
+                    populateStockSelector();
+                    updatePredictionCards();
+                    predictionsGrid.style.display = 'grid';
+                    
+                    // Restore selected stock from session if available
+                    if (window.pendingStockSelection && predictionData[window.pendingStockSelection]) {
+                        const selector = document.getElementById('stockSelector');
+                        selector.value = window.pendingStockSelection;
+                        selectedStock = window.pendingStockSelection;
+                        window.pendingStockSelection = null; // Clear the flag
+                        
+                        // Show and update chart for restored selection
+                        showChart();
+                        updateChart();
+                        
+                        // Ensure lock toggle reflects actual lock status with comprehensive verification
+                        setTimeout(() => {
+                            updateLockToggle();
+                            highlightSelectedCard();
+                            
+                            // Comprehensive lock status verification
+                            const stockData = predictionData[selectedStock];
+                            const lockKey = `locked_${currentView}`;
+                            const persistentKey = `persistent_lock_${currentView}`;
+                            const lockStartDateKey = `lock_start_date_${currentView}`;
+                            
+                            const actualLockStatus = stockData[lockKey] || false;
+                            const isPersistent = stockData[persistentKey] || false;
+                            const lockStartDate = stockData[lockStartDateKey];
+                            
+                            console.log(`🔍 Comprehensive lock verification for ${selectedStock} ${currentView}:`);
+                            console.log(`  - Locked: ${actualLockStatus}`);
+                            console.log(`  - Persistent: ${isPersistent}`);
+                            console.log(`  - Start Date: ${lockStartDate}`);
+                            
+                            // Force UI update to match backend state
+                            const lockToggle = document.getElementById('lockToggle');
+                            if (lockToggle.checked !== actualLockStatus) {
+                                lockToggle.checked = actualLockStatus;
+                                console.log(`🔧 Corrected lock toggle from ${!actualLockStatus} to ${actualLockStatus}`);
+                            }
+                            
+                            // Update chart container styling
+                            const chartContainer = document.getElementById('chartContainer');
+                            if (actualLockStatus) {
+                                chartContainer.classList.add('locked');
+                            } else {
+                                chartContainer.classList.remove('locked');
+                            }
+                        }, 300);
+                        
+                        console.log('🔄 Restored stock selection:', selectedStock);
+                    }
+                } else {
+                    noData.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error loading prediction data:', error);
+                loadingIndicator.style.display = 'none';
+                noData.style.display = 'block';
+            });
+        }
+
+        function verifyLockStates() {
+            let locked5dCount = 0;
+            let locked30dCount = 0;
+            let persistentCount = 0;
+            
+            for (const [symbol, data] of Object.entries(predictionData)) {
+                const locked5d = data.locked_5d || false;
+                const locked30d = data.locked_30d || false;
+                const persistent5d = data.persistent_lock_5d || false;
+                const persistent30d = data.persistent_lock_30d || false;
+                
+                if (locked5d) locked5dCount++;
+                if (locked30d) locked30dCount++;
+                if (persistent5d || persistent30d) persistentCount++;
+                
+                // Log any inconsistencies
+                if ((locked5d && !data.lock_start_date_5d) || (locked30d && !data.lock_start_date_30d)) {
+                    console.warn(`⚠️ Lock inconsistency for ${symbol}: locked but no start date`);
+                }
+            }
+            
+            console.log(`🔒 Lock state verification: ${locked5dCount} 5D locks, ${locked30dCount} 30D locks, ${persistentCount} persistent locks`);
+        }
+
+        function processTrackingData(basicData, enhancedData) {
+            // Store existing lock states before processing with deep copy
+            const existingLockStates = {};
+            for (const [symbol, data] of Object.entries(predictionData)) {
+                existingLockStates[symbol] = {
+                    locked_5d: data.locked_5d || false,
+                    locked_30d: data.locked_30d || false,
+                    lock_date_5d: data.lock_date_5d,
+                    lock_date_30d: data.lock_date_30d,
+                    lock_start_date_5d: data.lock_start_date_5d,
+                    lock_start_date_30d: data.lock_start_date_30d,
+                    persistent_lock_5d: data.persistent_lock_5d || false,
+                    persistent_lock_30d: data.persistent_lock_30d || false
+                };
+            }
+            
+            // Clear current data but preserve structure
+            const newPredictionData = {};
+            
+            // Process enhanced data FIRST (this contains the authoritative lock states from backend)
+            if (enhancedData.status === 'success' && enhancedData.tracking_data) {
+                console.log('📡 Processing enhanced tracking data with persistent lock states');
+                for (const [symbol, backendData] of Object.entries(enhancedData.tracking_data)) {
+                    // Deep copy backend data to avoid reference issues
+                    newPredictionData[symbol] = JSON.parse(JSON.stringify(backendData));
+                    
+                    // Ensure lock persistence flags are properly set
+                    const locked5d = backendData.locked_5d || false;
+                    const locked30d = backendData.locked_30d || false;
+                    
+                    // Verify persistent lock flags
+                    if (locked5d && !backendData.persistent_lock_5d) {
+                        newPredictionData[symbol].persistent_lock_5d = true;
+                    }
+                    if (locked30d && !backendData.persistent_lock_30d) {
+                        newPredictionData[symbol].persistent_lock_30d = true;
+                    }
+                    
+                    if (locked5d || locked30d) {
+                        console.log(`🔒 Persistent lock state for ${symbol}: 5d=${locked5d} (persistent: ${newPredictionData[symbol].persistent_lock_5d}), 30d=${locked30d} (persistent: ${newPredictionData[symbol].persistent_lock_30d})`);
+                    }
+                }
+            }
+            
+            // Process basic prediction data and merge without overwriting persistent locks
+            if (basicData.status === 'success' && basicData.predictions) {
+                basicData.predictions.forEach(pred => {
+                    const symbol = pred.symbol;
+                    if (!newPredictionData[symbol]) {
+                        // Stock not in enhanced data, create basic structure with no locks
+                        newPredictionData[symbol] = {
+                            symbol: symbol,
+                            current_price: pred.current_price || 0,
+                            confidence: pred.confidence || 0,
+                            score: pred.score || 0,
+                            timestamp: pred.timestamp,
+                            locked_5d: false,
+                            locked_30d: false,
+                            persistent_lock_5d: false,
+                            persistent_lock_30d: false,
+                            lock_date_5d: null,
+                            lock_date_30d: null,
+                            lock_start_date_5d: null,
+                            lock_start_date_30d: null
+                        };
+                        
+                        // Generate sample tracking data for new stocks
+                        generateSampleTrackingData(symbol, pred, newPredictionData[symbol]);
+                    } else {
+                        // Stock exists in enhanced data, update basic info without touching lock states
+                        newPredictionData[symbol].current_price = pred.current_price || newPredictionData[symbol].current_price;
+                        newPredictionData[symbol].confidence = pred.confidence || newPredictionData[symbol].confidence;
+                        newPredictionData[symbol].score = pred.score || newPredictionData[symbol].score;
+                        newPredictionData[symbol].timestamp = pred.timestamp || newPredictionData[symbol].timestamp;
+                        
+                        // Preserve all lock-related fields from backend
+                        const lockFields = ['locked_5d', 'locked_30d', 'persistent_lock_5d', 'persistent_lock_30d', 
+                                          'lock_date_5d', 'lock_date_30d', 'lock_start_date_5d', 'lock_start_date_30d'];
+                        lockFields.forEach(field => {
+                            if (newPredictionData[symbol].hasOwnProperty(field)) {
+                                // Keep the backend value
+                            } else if (existingLockStates[symbol] && existingLockStates[symbol].hasOwnProperty(field)) {
+                                newPredictionData[symbol][field] = existingLockStates[symbol][field];
+                            } else {
+                                newPredictionData[symbol][field] = field.includes('locked') || field.includes('persistent') ? false : null;
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // Update global prediction data
+            predictionData = newPredictionData;
+            
+            // Final verification and logging of persistent lock states
+            let totalLocked5d = 0;
+            let totalLocked30d = 0;
+            let totalPersistent = 0;
+            
+            for (const [symbol, data] of Object.entries(predictionData)) {
+                const locked5d = data.locked_5d || false;
+                const locked30d = data.locked_30d || false;
+                const persistent5d = data.persistent_lock_5d || false;
+                const persistent30d = data.persistent_lock_30d || false;
+                
+                if (locked5d) totalLocked5d++;
+                if (locked30d) totalLocked30d++;
+                if (persistent5d || persistent30d) totalPersistent++;
+                
+                if (locked5d || locked30d) {
+                    console.log(`✅ Final persistent lock state for ${symbol}: 5d=${locked5d} (p:${persistent5d}), 30d=${locked30d} (p:${persistent30d})`);
+                }
+            }
+            
+            console.log(`🔒 Lock summary: ${totalLocked5d} 5D locks, ${totalLocked30d} 30D locks, ${totalPersistent} persistent locks`);
+        }
+
+        function generateSampleTrackingData(symbol, pred, existingData = null) {
+            const basePrice = parseFloat(pred.current_price) || 100;
+            const pred5d = parseFloat(pred.pred_5d) || 2;
+            const pred30d = parseFloat(pred.pred_1mo) || 5;
+            
+            console.log(`🔧 Generating sample data for ${symbol}: base=${basePrice}, 5d=${pred5d}%, 30d=${pred30d}%`);
+            
+            // Calculate predicted final prices
+            const predicted5dFinalPrice = basePrice * (1 + pred5d/100);
+            const predicted30dFinalPrice = basePrice * (1 + pred30d/100);
+            
+            // Generate 5D predicted data - STRAIGHT line
+            const predicted5d = [];
+            for (let i = 0; i < 5; i++) {
+                if (i === 0) {
+                    predicted5d.push(basePrice);
+                } else {
+                    const progress = i / 4; // Linear progression 0 to 1
+                    const price = basePrice + (predicted5dFinalPrice - basePrice) * progress;
+                    predicted5d.push(parseFloat(price.toFixed(2)));
+                }
+            }
+            
+            // Generate 30D predicted data - STRAIGHT line
+            const predicted30d = [];
+            for (let i = 0; i < 30; i++) {
+                if (i === 0) {
+                    predicted30d.push(basePrice);
+                } else {
+                    const progress = i / 29; // Linear progression 0 to 1
+                    const price = basePrice + (predicted30dFinalPrice - basePrice) * progress;
+                    predicted30d.push(parseFloat(price.toFixed(2)));
+                }
+            }
+            
+            // Generate actual progress data (progressive)
+            const actual5d = [basePrice, null, null, null, null];
+            const actual30d = [basePrice].concat(Array(29).fill(null));
+            
+            // Simulate some actual data for demonstration
+            const stockHash = symbol.charCodeAt(0) % 4;
+            if (stockHash === 0) {
+                actual5d[1] = parseFloat((basePrice * (0.98 + Math.random() * 0.04)).toFixed(2));
+                actual30d[1] = actual5d[1];
+            }
+            
+            // Generate updated predictions (incremental from change day)
+            const updated5d = Array(5).fill(null);
+            const updated30d = Array(30).fill(null);
+            
+            // Some stocks get prediction updates
+            if (stockHash === 1) {
+                const changeDay = 1;
+                const newFinal = predicted5dFinalPrice * 1.05;
+                for (let i = changeDay; i < 5; i++) {
+                    const progress = (i - changeDay) / (4 - changeDay);
+                    updated5d[i] = parseFloat((basePrice + (newFinal - basePrice) * progress).toFixed(2));
+                }
+            }
+            
+            if (stockHash === 2) {
+                const changeDay = 2;
+                const newFinal = predicted30dFinalPrice * 0.95;
+                for (let i = changeDay; i < 30; i++) {
+                    const progress = (i - changeDay) / (29 - changeDay);
+                    updated30d[i] = parseFloat((basePrice + (newFinal - basePrice) * progress).toFixed(2));
+                }
+            }
+            
+            // Merge with existing data preserving lock states
+            const baseData = existingData || predictionData[symbol] || {};
+            
+            predictionData[symbol] = {
+                symbol: symbol,
+                current_price: basePrice,
+                confidence: pred.confidence || 75,
+                score: pred.score || 65,
+                pred_5d: pred5d,
+                pred_1mo: pred30d,
+                predicted_5d: predicted5d,
+                predicted_30d: predicted30d,
+                actual_progress_5d: actual5d,
+                actual_progress_30d: actual30d,
+                updated_prediction_5d: updated5d,
+                updated_prediction_30d: updated30d,
+                changed_on_5d: updated5d.some(val => val !== null) ? 1 : null,
+                changed_on_30d: updated30d.some(val => val !== null) ? 2 : null,
+                // Preserve lock states
+                locked_5d: baseData.locked_5d || false,
+                locked_30d: baseData.locked_30d || false,
+                persistent_lock_5d: baseData.persistent_lock_5d || false,
+                persistent_lock_30d: baseData.persistent_lock_30d || false,
+                lock_date_5d: baseData.lock_date_5d || null,
+                lock_date_30d: baseData.lock_date_30d || null,
+                lock_start_date_5d: baseData.lock_start_date_5d || null,
+                lock_start_date_30d: baseData.lock_start_date_30d || null,
+                start_date: new Date().toISOString().split('T')[0],
+                last_updated: new Date().toISOString(),
+                timestamp: new Date().toISOString()
+            };
+            
+            console.log(`✅ Generated complete sample data for ${symbol}:`, {
+                predicted_5d: predicted5d.slice(0, 3),
+                predicted_30d: predicted30d.slice(0, 3),
+                actual_5d: actual5d.slice(0, 3),
+                valid_predicted_5d: predicted5d.filter(v => v !== null && !isNaN(v)).length,
+                valid_predicted_30d: predicted30d.filter(v => v !== null && !isNaN(v)).length
+            });
+        }
+
+        function populateStockSelector() {
+            const selector = document.getElementById('stockSelector');
+            selector.innerHTML = '<option value="">Select a stock to chart...</option>';
+            
+            Object.keys(predictionData).forEach(symbol => {
+                const option = document.createElement('option');
+                option.value = symbol;
+                option.textContent = symbol;
+                selector.appendChild(option);
+            });
+        }
+
+        function updatePredictionCards() {
+            const grid = document.getElementById('predictionsGrid');
+            
+            grid.innerHTML = Object.keys(predictionData).map(symbol => {
+                const data = predictionData[symbol];
+                const locked5d = data.locked_5d || false;
+                const locked30d = data.locked_30d || false;
+                
+                return `
+                    <div class="prediction-card ${selectedStock === symbol ? 'selected' : ''}" 
+                         onclick="selectStockFromCard('${symbol}')">
+                        <div class="card-header">
+                            <div class="stock-symbol">${symbol}</div>
+                            <div class="lock-status ${locked5d || locked30d ? 'locked' : 'unlocked'}">
+                                ${locked5d || locked30d ? '🔒 Locked' : '🔓 Unlocked'}
+                            </div>
+                        </div>
+                        <div class="card-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Current Price</div>
+                                <div class="detail-value">₹${(data.current_price || 0).toFixed(2)}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">5D Progress</div>
+                                <div class="detail-value">${getActualDaysCount(data.actual_progress_5d)}/5</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">30D Progress</div>
+                                <div class="detail-value">${getActualDaysCount(data.actual_progress_30d)}/30</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Confidence</div>
+                                <div class="detail-value">${(data.confidence || 0).toFixed(0)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectStockFromCard(symbol) {
+            const selector = document.getElementById('stockSelector');
+            selector.value = symbol;
+            selectStock();
+        }
+
+        function highlightSelectedCard() {
+            document.querySelectorAll('.prediction-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            if (selectedStock) {
+                const selectedCard = Array.from(document.querySelectorAll('.prediction-card'))
+                    .find(card => card.textContent.includes(selectedStock));
+                if (selectedCard) {
+                    selectedCard.classList.add('selected');
+                }
+            }
+        }
+
+        function showChart() {
+            document.getElementById('chartContainer').style.display = 'block';
+            document.getElementById('chartPlaceholder').style.display = 'none';
+        }
+
+        function hideChart() {
+            document.getElementById('chartContainer').style.display = 'none';
+            document.getElementById('chartPlaceholder').style.display = 'block';
+        }
+
+        function updateChart() {
+            if (!selectedStock || !predictionData[selectedStock]) {
+                console.warn('Cannot update chart: no selected stock or data');
+                return;
+            }
+            
+            const data = predictionData[selectedStock];
+            const chartTitle = document.getElementById('chartTitle');
+            
+            // Check if prediction is locked for current view
+            const isLocked = data[`locked_${currentView}`] || false;
+            const lockStartDate = data[`lock_start_date_${currentView}`];
+            
+            // Update title with lock indicator
+            const lockIndicator = isLocked ? ' 🔒 LOCKED' : '';
+            chartTitle.textContent = `📈 ${selectedStock} - ${currentView.toUpperCase()} Prediction Tracking${lockIndicator}`;
+            
+            // Prepare chart data
+            const days = currentView === '5d' ? 5 : 30;
+            
+            console.log(`📊 Updating chart for ${selectedStock} ${currentView}:`, {
+                dataAvailable: !!data,
+                isLocked: isLocked,
+                daysExpected: days
+            });
+            
+            let labels = [];
+            
+            // Generate date labels based on lock status
+            if (isLocked && lockStartDate) {
+                // Use FIXED dates from lock start date
+                const startDate = new Date(lockStartDate);
+                let currentDate = new Date(startDate);
+                let addedDays = 0;
+                
+                while (addedDays < days) {
+                    // Only add trading days (Monday to Friday)
+                    if (currentDate.getDay() >= 1 && currentDate.getDay() <= 5) {
+                        labels.push(currentDate.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric'
+                        })); // e.g., "Aug 4"
+                        addedDays++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                console.log(`🔒 Using LOCKED dates for ${selectedStock} ${currentView}: ${lockStartDate} -> ${labels[0]} to ${labels[labels.length-1]}`);
+            } else {
+                // Use DYNAMIC dates from current date (normal behavior)
+                const startDate = new Date(data.start_date || new Date());
+                let currentDate = new Date(startDate);
+                let addedDays = 0;
+                
+                while (addedDays < days) {
+                    // Only add trading days (Monday to Friday)
+                    if (currentDate.getDay() >= 1 && currentDate.getDay() <= 5) {
+                        labels.push(currentDate.toLocaleDateString('en-IN', { 
+                            month: 'short', 
+                            day: 'numeric'
+                        }));
+                        addedDays++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                console.log(`🔓 Using DYNAMIC dates for ${selectedStock} ${currentView}`);
+            }
+            
+            // CRITICAL FIX: Force generate all data arrays with correct structure
+            const currentPrice = parseFloat(data.current_price) || 100;
+            let prediction = 2; // default 2%
+            
+            if (currentView === '5d') {
+                prediction = parseFloat(data.pred_5d) || 2;
+            } else {
+                prediction = parseFloat(data.pred_1mo) || 8;
+            }
+            
+            const finalPrice = currentPrice * (1 + prediction / 100);
+            
+            console.log(`🔧 Chart calculation: ${currentPrice} -> ${finalPrice} (${prediction}%)`);
+            
+            // GREEN LINE: Generate predicted data array (STRAIGHT LINE from start to end)
+            const predictedData = [];
+            for (let i = 0; i < days; i++) {
+                const progress = days === 1 ? 1 : i / (days - 1);
+                const predictedPrice = currentPrice + (finalPrice - currentPrice) * progress;
+                predictedData.push(parseFloat(predictedPrice.toFixed(2)));
+            }
+            
+            // BLUE LINE: Generate actual data array (INCREMENTAL - only for days that have passed)
+            const actualData = [];
+            const currentDate = new Date();
+            const startDate = isLocked && lockStartDate ? new Date(lockStartDate) : new Date(data.start_date || currentDate);
+            
+            // Calculate how many trading days have actually passed
+            let tradingDaysPassed = 0;
+            let checkDate = new Date(startDate);
+            
+            while (checkDate <= currentDate) {
+                // Only count trading days (Monday to Friday)
+                if (checkDate.getDay() >= 1 && checkDate.getDay() <= 5) {
+                    tradingDaysPassed++;
+                }
+                checkDate.setDate(checkDate.getDate() + 1);
+                
+                // Don't count more than our chart period
+                if (tradingDaysPassed >= days) break;
+            }
+            
+            // Limit to maximum days in our chart period
+            tradingDaysPassed = Math.min(tradingDaysPassed, days);
+            
+            console.log(`📅 Trading days passed: ${tradingDaysPassed} out of ${days} total days`);
+            
+            // Generate actual data - only for days that have actually occurred
+            for (let i = 0; i < days; i++) {
+                if (i === 0) {
+                    // First day is always the starting price
+                    actualData.push(currentPrice);
+                } else if (i < tradingDaysPassed) {
+                    // Days that have passed - use actual or simulated data
+                    const actualKey = `actual_progress_${currentView}`;
+                    const actualFromData = data[actualKey];
+                    
+                    if (actualFromData && actualFromData[i] !== null && actualFromData[i] !== undefined) {
+                        actualData.push(parseFloat(actualFromData[i]));
+                    } else {
+                        // Simulate actual price for demo (small variance from predicted)
+                        const baseVariance = 0.98 + (0.04 * (selectedStock.charCodeAt(0) % 100) / 100);
+                        const dailyVariance = 0.995 + (0.01 * Math.sin(i + selectedStock.charCodeAt(0)));
+                        const simulatedPrice = predictedData[i] * baseVariance * dailyVariance;
+                        actualData.push(parseFloat(simulatedPrice.toFixed(2)));
+                    }
+                } else {
+                    // Future days - no actual data yet
+                    actualData.push(null);
+                }
+            }
+            
+            // RED LINE: Generate updated predictions (starts from green line, changes only on prediction updates)
+            const updatedData = Array(days).fill(null);
+            
+            // Check if this stock has prediction updates
+            const updatedKey = `updated_prediction_${currentView}`;
+            const updatedFromData = data[updatedKey];
+            const changeDay = data[`changed_on_${currentView}`];
+            
+            if (changeDay !== null && changeDay !== undefined && updatedFromData) {
+                // Use actual update data if available
+                for (let i = 0; i < days; i++) {
+                    if (updatedFromData[i] !== null && updatedFromData[i] !== undefined) {
+                        updatedData[i] = parseFloat(updatedFromData[i]);
+                    }
+                }
+            } else {
+                // Generate sample update for some stocks for demonstration
+                const stockHash = selectedStock.charCodeAt(0) % 4;
+                if (stockHash === 0 && tradingDaysPassed > 1) {
+                    const updateStartDay = Math.min(1, tradingDaysPassed - 1); // Start update from day 1 or earlier
+                    const newFinalPrice = finalPrice * 1.08; // 8% higher prediction
+                    
+                    for (let i = updateStartDay; i < days; i++) {
+                        const progress = (i - updateStartDay) / (days - 1 - updateStartDay);
+                        const startPrice = actualData[updateStartDay] || predictedData[updateStartDay];
+                        updatedData[i] = parseFloat((startPrice + (newFinalPrice - startPrice) * progress).toFixed(2));
+                    }
+                }
+            }
+            
+            console.log(`✅ Generated chart data arrays:`, {
+                predicted_length: predictedData.length,
+                actual_length: actualData.length,
+                updated_length: updatedData.length,
+                labels_length: labels.length,
+                predicted_sample: predictedData.slice(0, 3),
+                actual_sample: actualData.slice(0, 3),
+                all_arrays_same_length: predictedData.length === actualData.length && actualData.length === updatedData.length && updatedData.length === labels.length
+            });
+            
+            // Validate all arrays have the same length
+            if (predictedData.length !== labels.length || actualData.length !== labels.length || updatedData.length !== labels.length) {
+                console.error('❌ Array length mismatch detected!', {
+                    predicted: predictedData.length,
+                    actual: actualData.length,
+                    updated: updatedData.length,
+                    labels: labels.length,
+                    expected: days
+                });
+                return;
+            }
+            
+            // Update chart container styling based on lock status
+            const chartContainer = document.getElementById('chartContainer');
+            if (isLocked) {
+                chartContainer.classList.add('locked');
+            } else {
+                chartContainer.classList.remove('locked');
+            }
+            
+            // Destroy existing chart
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+            
+            // Create new chart with validated data
+            const ctx = document.getElementById('predictionChart');
+            if (!ctx) {
+                console.error('❌ Chart canvas element not found');
+                return;
+            }
+            
+            const chartContext = ctx.getContext('2d');
+            if (!chartContext) {
+                console.error('❌ Could not get 2D context from canvas');
+                return;
+            }
+            
+            console.log(`📈 Creating chart with validated data:`, {
+                labels_count: labels.length,
+                predicted_valid: predictedData.filter(v => v !== null && !isNaN(v)).length,
+                actual_valid: actualData.filter(v => v !== null && !isNaN(v)).length,
+                updated_valid: updatedData.filter(v => v !== null && !isNaN(v)).length,
+                price_range: `${Math.min(...predictedData).toFixed(2)} - ${Math.max(...predictedData).toFixed(2)}`
+            });
+
+            try {
+                chart = new Chart(chartContext, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Original Prediction (Straight Line)',
+                                data: predictedData,
+                                borderColor: '#27ae60',
+                                backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                                borderWidth: 3,
+                                fill: false,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                spanGaps: false,
+                                tension: 0,
+                                hidden: false
+                            },
+                            {
+                                label: 'Actual Price (Progressive)',
+                                data: actualData,
+                                borderColor: '#3498db',
+                                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                                borderWidth: 4,
+                                fill: false,
+                                pointRadius: 6,
+                                pointHoverRadius: 8,
+                                spanGaps: false,
+                                tension: 0.1,
+                                hidden: false
+                            },
+                            {
+                                label: 'Updated Prediction (Incremental)',
+                                data: updatedData,
+                                borderColor: '#e74c3c',
+                                backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                                borderWidth: 3,
+                                fill: false,
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                                spanGaps: true,
+                                tension: 0,
+                                hidden: false
+                            }
+                        ]
+                    },
+                options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeInOutQuart'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed.y;
+                                        if (value !== null && !isNaN(value)) {
+                                            return `${context.dataset.label}: ₹${value.toFixed(2)}`;
+                                        }
+                                        return null;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: 'Price (₹)',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₹' + value.toFixed(0);
+                                    },
+                                    font: {
+                                        size: 11
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0,0,0,0.1)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Trading Days',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 11
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0,0,0,0.1)'
+                                }
+                            }
+                        },
+                        elements: {
+                            point: {
+                                hoverBackgroundColor: '#ffffff',
+                                hoverBorderWidth: 3
+                            },
+                            line: {
+                                borderJoinStyle: 'round'
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+                
+                // Force chart update and validate
+                if (chart) {
+                    chart.update('active');
+                    console.log(`✅ Chart created successfully for ${selectedStock} ${currentView}:`, {
+                        datasets: chart.data.datasets.length,
+                        labels: chart.data.labels.length,
+                        predicted_data_points: predictedData.filter(v => v !== null && !isNaN(v)).length,
+                        chart_instance: !!chart
+                    });
+                } else {
+                    console.error('❌ Chart creation failed - chart instance is null');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error creating Chart.js instance:', error);
+                console.log('📊 Chart data that failed:', {
+                    labels: labels,
+                    predictedData: predictedData,
+                    actualData: actualData,
+                    updatedData: updatedData
+                });
+                return;
+            }
+            
+            updateChartInfo();
+        }
+
+        function updateChartInfo() {
+            if (!selectedStock || !predictionData[selectedStock]) return;
+            
+            const data = predictionData[selectedStock];
+            const actualKey = `actual_progress_${currentView}`;
+            const changedKey = `changed_on_${currentView}`;
+            const lockKey = `locked_${currentView}`;
+            
+            const actualData = data[actualKey] || [];
+            const actualDays = getActualDaysCount(actualData);
+            const totalDays = currentView === '5d' ? 5 : 30;
+            const changedOn = data[changedKey];
+            const isLocked = data[lockKey] || false;
+            
+            document.getElementById('currentDay').textContent = `${actualDays} of ${totalDays}`;
+            document.getElementById('predictionChange').textContent = changedOn ? `YES on Day ${changedOn + 1}` : 'NO';
+            document.getElementById('targetProgress').textContent = `${Math.round((actualDays / totalDays) * 100)}%`;
+            document.getElementById('lockStatus').textContent = isLocked ? '🔒 Locked' : '🔓 Unlocked';
+        }
+
+        function updateLockToggle() {
+            if (!selectedStock || !predictionData[selectedStock]) {
+                console.log('❌ Cannot update lock toggle: no selected stock or data');
+                return;
+            }
+            
+            const lockToggle = document.getElementById('lockToggle');
+            const lockKey = `locked_${currentView}`;
+            const stockData = predictionData[selectedStock];
+            
+            // Read lock status from backend data with multiple fallbacks
+            let isLocked = false;
+            if (stockData.hasOwnProperty(lockKey)) {
+                isLocked = Boolean(stockData[lockKey]);
+            } else if (stockData.hasOwnProperty(`persistent_lock_${currentView}`)) {
+                isLocked = Boolean(stockData[`persistent_lock_${currentView}`]);
+            }
+            
+            // Additional check for lock start date as indicator
+            const lockStartDateKey = `lock_start_date_${currentView}`;
+            if (!isLocked && stockData[lockStartDateKey]) {
+                isLocked = true;
+                console.log(`🔧 Lock detected via start date: ${stockData[lockStartDateKey]}`);
+            }
+            
+            lockToggle.checked = isLocked;
+            
+            console.log(`🔒 Lock toggle updated for ${selectedStock} ${currentView}: ${isLocked}`);
+            console.log(`📊 Stock data lock keys:`, {
+                [lockKey]: stockData[lockKey],
+                [`persistent_lock_${currentView}`]: stockData[`persistent_lock_${currentView}`],
+                [lockStartDateKey]: stockData[lockStartDateKey]
+            });
+            
+            // Also update the visual lock status in chart info
+            updateChartInfo();
+        }
+
+        function updateLockStatus() {
+            updateChartInfo();
+            updatePredictionCards();
+        }
+
+        function getActualDaysCount(actualData) {
+            if (!actualData) return 0;
+            return actualData.filter(val => val !== null && val !== undefined).length;
+        }
+
+        function lockAllStocks(period) {
+            if (!predictionData || Object.keys(predictionData).length === 0) {
+                alert('⚠️ No stocks available to lock. Please load data first.');
+                return;
+            }
+
+            const stockSymbols = Object.keys(predictionData);
+            console.log(`🔒 Starting batch lock for ${stockSymbols.length} stocks (${period})`);
+
+            // Show loading indicator
+            const loadingMessage = `🔄 Locking all stocks for ${period.toUpperCase()}...`;
+            showLoadingMessage(loadingMessage);
+
+            // Process locks sequentially to avoid concurrent write issues
+            let successCount = 0;
+            let failCount = 0;
+            
+            const processNextStock = (index) => {
+                if (index >= stockSymbols.length) {
+                    // All stocks processed
+                    hideLoadingMessage();
+                    
+                    const message = `🔒 Batch Lock ${period.toUpperCase()} Complete:\n✅ ${successCount} stocks locked\n${failCount > 0 ? `❌ ${failCount} failed` : ''}`;
+                    alert(message);
+                    
+                    // Force UI refresh
+                    setTimeout(() => {
+                        updatePredictionCards();
+                        if (selectedStock) {
+                            updateLockToggle();
+                            updateChart();
+                        }
+                        console.log(`🎉 Batch lock ${period} completed: ${successCount} successful, ${failCount} failed`);
+                    }, 500);
+                    
+                    return;
+                }
+
+                const symbol = stockSymbols[index];
+                const lockKey = `locked_${period}`;
+                const lockStartDateKey = `lock_start_date_${period}`;
+                const persistentKey = `persistent_lock_${period}`;
+                
+                // Update local data immediately
+                if (!predictionData[symbol]) {
+                    predictionData[symbol] = {};
+                }
+                
+                predictionData[symbol][lockKey] = true;
+                predictionData[symbol][persistentKey] = true;
+                predictionData[symbol][`lock_date_${period}`] = new Date().toISOString().split('T')[0];
+                predictionData[symbol][lockStartDateKey] = new Date().toISOString().split('T')[0];
+                
+                console.log(`🔒 Locking ${symbol} ${period} with start date: ${predictionData[symbol][lockStartDateKey]}`);
+
+                // Save to backend with persistence
+                fetch('/api/update-lock-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        period: period,
+                        locked: true,
+                        persistent: true,
+                        timestamp: new Date().toISOString()
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        successCount++;
+                        console.log(`✅ ${symbol} ${period} locked successfully`);
+                    } else {
+                        failCount++;
+                        console.error(`❌ ${symbol} ${period} lock failed:`, data.message);
+                    }
+                })
+                .catch(error => {
+                    failCount++;
+                    console.error(`❌ Error locking ${symbol} ${period}:`, error);
+                })
+                .finally(() => {
+                    // Process next stock after a short delay
+                    setTimeout(() => processNextStock(index + 1), 200);
+                });
+            };
+
+            // Start processing from first stock
+            processNextStock(0);
+        }
+
+        function showLoadingMessage(message) {
+            const existingModal = document.getElementById('loadingModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const modalHtml = `
+                <div id="loadingModal" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.7);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10001;
+                ">
+                    <div style="
+                        background: white;
+                        border-radius: 15px;
+                        padding: 30px;
+                        text-align: center;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    ">
+                        <h3 style="margin: 0; color: #3498db;">${message}</h3>
+                        <p style="margin: 10px 0 0 0; color: #666;">Please wait...</p>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function hideLoadingMessage() {
+            const modal = document.getElementById('loadingModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function unlockAllStocks() {
+            if (!predictionData || Object.keys(predictionData).length === 0) {
+                alert('⚠️ No stocks available to unlock. Please load data first.');
+                return;
+            }
+
+            // Find all locked stocks
+            const lockedStocks = [];
+            Object.keys(predictionData).forEach(symbol => {
+                const data = predictionData[symbol];
+                if (data.locked_5d) {
+                    lockedStocks.push({symbol: symbol, period: '5d'});
+                }
+                if (data.locked_30d) {
+                    lockedStocks.push({symbol: symbol, period: '30d'});
+                }
+            });
+
+            if (lockedStocks.length === 0) {
+                alert('ℹ️ No locked predictions found to unlock.');
+                return;
+            }
+
+            // Show confirmation with all locked stocks
+            showUnlockConfirmation(lockedStocks);
+        }
+
+        function saveLockStatus(symbol, period, isLocked, persistent = true) {
+            // Save lock status to backend with persistence flag
+            fetch('/api/update-lock-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    symbol: symbol,
+                    period: period,
+                    locked: isLocked,
+                    persistent: persistent, // Flag for indefinite persistence
+                    timestamp: new Date().toISOString()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Lock status saved:', data);
+                if (persistent) {
+                    console.log(`🔒 ${symbol} ${period} lock will persist across restarts`);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving lock status:', error);
+            });
+        }
+    </script>
+</body>
+</html>

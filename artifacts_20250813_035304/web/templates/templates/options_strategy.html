@@ -1,0 +1,542 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Income Strategy - Stock Market Analyst</title>
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #4a5568;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        select, button {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        select {
+            background: white;
+            color: #4a5568;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+        
+        .refresh-btn:hover:not(:disabled) {
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+        }
+        
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            min-height: 400px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px 20px;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .summary-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .summary-item h3 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .summary-item p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .strategies-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .strategies-table th,
+        .strategies-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .strategies-table th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .strategies-table tr:hover {
+            background: #f7fafc;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #718096;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #4a5568;
+        }
+        
+        .navigation {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        
+        .nav-button {
+            background: rgba(255, 255, 255, 0.9);
+            color: #4a5568;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .nav-button:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .error-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #e53e3e;
+        }
+        
+        .error-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .risk-low { color: #38a169; font-weight: 600; }
+        .risk-medium { color: #d69e2e; font-weight: 600; }
+        .risk-high { color: #e53e3e; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="navigation">
+        <a href="/" class="nav-button">← Back to Dashboard</a>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Options Income Strategy</h1>
+            <p>Short Strangle Strategies for Tier 1 Stocks</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="timeframeSelect">Timeframe:</label>
+                <select id="timeframeSelect">
+                    <option value="5D">5 Days</option>
+                    <option value="10D">10 Days</option>
+                    <option value="30D" selected>30 Days</option>
+                </select>
+            </div>
+            <button id="generateBtn" onclick="loadOptionsData()">Generate Strategies</button>
+            <button id="refreshBtn" class="refresh-btn" onclick="manualRefresh()">Refresh Data</button>
+        </div>
+        
+        <div class="content" id="content">
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading options strategies...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isLoading = false;
+
+        function setButtonState(loading) {
+            const generateBtn = document.getElementById('generateBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            
+            generateBtn.disabled = loading;
+            refreshBtn.disabled = loading;
+            
+            if (loading) {
+                generateBtn.textContent = 'Generating...';
+                refreshBtn.textContent = 'Refreshing...';
+            } else {
+                generateBtn.textContent = 'Generate Strategies';
+                refreshBtn.textContent = 'Refresh Data';
+            }
+        }
+
+        function setManualButtonState(loading) {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.disabled = loading;
+            refreshBtn.textContent = loading ? 'Refreshing...' : 'Refresh Data';
+        }
+
+        function showLoading() {
+            document.getElementById('content').innerHTML = `
+                <div class="loading" id="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading options strategies...</p>
+                </div>
+            `;
+        }
+
+        function showEmpty() {
+            document.getElementById('content').innerHTML = `
+                <div class="empty-state">
+                    <h3>No Strategies Available</h3>
+                    <p>No suitable options strategies found for the current timeframe.</p>
+                    <p>Try a different timeframe or refresh the data.</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            document.getElementById('content').innerHTML = `
+                <div class="error-state">
+                    <h3>Error Loading Strategies</h3>
+                    <p>${message}</p>
+                    <button onclick="loadOptionsData()" style="margin-top: 15px;">Try Again</button>
+                </div>
+            `;
+        }
+
+        function displayStrategies(data) {
+            const strategies = data.strategies || [];
+            const summary = data.summary || {};
+            
+            let html = '';
+            
+            // Summary cards with safe number handling
+            if (summary.total_opportunities || summary.high_confidence_count || summary.average_roi || summary.total_premium_potential) {
+                const avgRoi = Number(summary.average_roi || 0);
+                const totalPremium = Number(summary.total_premium_potential || 0);
+                
+                html += `
+                    <div class="summary">
+                        <div class="summary-item">
+                            <h3>${summary.total_opportunities || 0}</h3>
+                            <p>Total Opportunities</p>
+                        </div>
+                        <div class="summary-item">
+                            <h3>${summary.high_confidence_count || 0}</h3>
+                            <p>High Confidence</p>
+                        </div>
+                        <div class="summary-item">
+                            <h3>${avgRoi.toFixed(1)}%</h3>
+                            <p>Average ROI</p>
+                        </div>
+                        <div class="summary-item">
+                            <h3>₹${totalPremium.toLocaleString()}</h3>
+                            <p>Total Premium Potential</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (strategies.length > 0) {
+                html += `
+                    <table class="strategies-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Current Price</th>
+                                <th>Call Strike</th>
+                                <th>Put Strike</th>
+                                <th>Total Premium</th>
+                                <th>Breakeven Range</th>
+                                <th>Margin Required</th>
+                                <th>Expected ROI</th>
+                                <th>Confidence</th>
+                                <th>Risk Level</th>
+                            </tr>
+                        </thead>
+                        <tbody id="strategiesTableBody">
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('content').innerHTML = html;
+                
+                const tbody = document.getElementById('strategiesTableBody');
+                strategies.forEach(strategy => {
+                    // Safe number conversion with fallbacks
+                    const currentPrice = Number(strategy.current_price || 0);
+                    const callStrike = Number(strategy.call_strike || 0);
+                    const putStrike = Number(strategy.put_strike || 0);
+                    const totalPremium = Number(strategy.total_premium || 0);
+                    const breakevenLower = Number(strategy.breakeven_lower || putStrike);
+                    const breakevenUpper = Number(strategy.breakeven_upper || callStrike);
+                    const marginRequired = Number(strategy.margin_required || 20000);
+                    const expectedRoi = Number(strategy.expected_roi || 0);
+                    const confidence = Number(strategy.confidence || 75);
+                    const riskLevel = strategy.risk_level || 'Medium';
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td style="font-weight: 600;">${strategy.symbol || 'N/A'}</td>
+                        <td>₹${currentPrice.toFixed(2)}</td>
+                        <td>₹${callStrike.toFixed(2)}</td>
+                        <td>₹${putStrike.toFixed(2)}</td>
+                        <td style="font-weight: 600; color: #38a169;">₹${totalPremium.toFixed(2)}</td>
+                        <td>₹${breakevenLower.toFixed(2)} - ₹${breakevenUpper.toFixed(2)}</td>
+                        <td>₹${marginRequired.toLocaleString()}</td>
+                        <td style="font-weight: 600; color: #38a169;">${expectedRoi.toFixed(1)}%</td>
+                        <td style="font-weight: 600;">${confidence.toFixed(0)}%</td>
+                        <td class="risk-${riskLevel.toLowerCase()}">${riskLevel}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                html += `
+                    <div class="empty-state">
+                        <h3>No Strategies Available</h3>
+                        <p>No suitable options strategies found for the current timeframe.</p>
+                        <p>Try a different timeframe or refresh the data.</p>
+                    </div>
+                `;
+                document.getElementById('content').innerHTML = html;
+            }
+        }
+
+        async function loadOptionsData() {
+            if (isLoading) return;
+
+            isLoading = true;
+            setButtonState(true);
+            showLoading();
+
+            const timeframe = document.getElementById('timeframeSelect').value;
+
+            try {
+                console.log('🔄 Loading options data for timeframe:', timeframe);
+                
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&refresh=true&t=${Date.now()}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+
+                console.log('📡 Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('✅ Options API response:', result);
+
+                if (result.status === 'success') {
+                    displayStrategies(result);
+                } else {
+                    showError(result.message || 'Unknown error occurred');
+                }
+
+            } catch (error) {
+                console.error('Error loading options data:', error);
+                showError(error.message);
+            } finally {
+                isLoading = false;
+                setButtonState(false);
+            }
+        }
+
+        async function manualRefresh() {
+            if (isLoading) return;
+
+            setManualButtonState(true);
+
+            try {
+                console.log('🔄 Manual refresh triggered');
+                const timeframe = document.getElementById('timeframeSelect').value;
+                
+                const response = await fetch(`/api/options-strategies?timeframe=${timeframe}&manual_refresh=true&t=${Date.now()}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        displayStrategies(result);
+                    } else {
+                        showEmpty();
+                    }
+                    
+                    // Show feedback
+                    const refreshBtn = document.getElementById('refreshBtn');
+                    refreshBtn.textContent = 'Data Refreshed!';
+                    setTimeout(() => {
+                        refreshBtn.textContent = 'Refresh Data';
+                    }, 3000);
+                } else {
+                    showEmpty();
+                }
+
+            } catch (error) {
+                console.error('Error in manual refresh:', error);
+                showEmpty();
+            } finally {
+                isLoading = false;
+                setManualButtonState(false);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Options Strategy page loaded');
+            setTimeout(loadOptionsData, 1000);
+        });
+
+        document.getElementById('timeframeSelect').addEventListener('change', () => {
+            if (!isLoading) {
+                loadOptionsData();
+            }
+        });
+    </script>
+</body>
+</html>

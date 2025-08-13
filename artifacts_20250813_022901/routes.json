@@ -1,0 +1,256 @@
+{
+  "routes": [
+    {
+      "rule": "/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "main_dashboard",
+      "function": "main_dashboard",
+      "source_file": "/home/runner/workspace/src/core/app.py"
+    },
+    {
+      "rule": "/api",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "api_docs",
+      "function": "api_docs",
+      "source_file": "/home/runner/workspace/src/core/app.py"
+    },
+    {
+      "rule": "/api/agents/",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "agents_api.get_agents",
+      "function": "get_agents",
+      "source_file": "/home/runner/workspace/src/agents/api/agents.py"
+    },
+    {
+      "rule": "/api/agents/config",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "agents_api.get_config",
+      "function": "get_config",
+      "source_file": "/home/runner/workspace/src/agents/api/agents.py"
+    },
+    {
+      "rule": "/api/agents/config",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "agents_api.update_config",
+      "function": "update_config",
+      "source_file": "/home/runner/workspace/src/agents/api/agents.py"
+    },
+    {
+      "rule": "/api/agents/run",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "agents_api.run_agent",
+      "function": "run_agent",
+      "source_file": "/home/runner/workspace/src/agents/api/agents.py"
+    },
+    {
+      "rule": "/api/commodities/correlations",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "commodities.correlations",
+      "function": "correlations",
+      "source_file": "/home/runner/workspace/src/commodities/api.py"
+    },
+    {
+      "rule": "/api/commodities/signals",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "commodities.signals",
+      "function": "signals",
+      "source_file": "/home/runner/workspace/src/commodities/api.py"
+    },
+    {
+      "rule": "/api/equities/kpis",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "equities.equities_kpis",
+      "function": "equities_kpis",
+      "source_file": "/home/runner/workspace/src/equities/api.py"
+    },
+    {
+      "rule": "/api/equities/list",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "equities.list_equities",
+      "function": "list_equities",
+      "source_file": "/home/runner/workspace/src/equities/api.py"
+    },
+    {
+      "rule": "/api/fusion/dashboard",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "fusion.dashboard",
+      "function": "dashboard",
+      "source_file": "/home/runner/workspace/src/fusion/api/fusion.py"
+    },
+    {
+      "rule": "/api/fusion/timeframes",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "fusion.timeframes",
+      "function": "timeframes",
+      "source_file": "/home/runner/workspace/src/fusion/api/fusion.py"
+    },
+    {
+      "rule": "/api/kpi/metrics",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "kpi.metrics",
+      "function": "metrics",
+      "source_file": "/home/runner/workspace/src/kpi/api.py"
+    },
+    {
+      "rule": "/api/kpi/status",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "kpi.status",
+      "function": "status",
+      "source_file": "/home/runner/workspace/src/kpi/api.py"
+    },
+    {
+      "rule": "/api/locks",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "pins_locks.get_locks",
+      "function": "get_locks",
+      "source_file": "/home/runner/workspace/src/core/pins_locks.py"
+    },
+    {
+      "rule": "/api/locks",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "pins_locks.update_locks",
+      "function": "update_locks",
+      "source_file": "/home/runner/workspace/src/core/pins_locks.py"
+    },
+    {
+      "rule": "/api/options/positions",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "options.positions",
+      "function": "positions",
+      "source_file": "/home/runner/workspace/src/options/api.py"
+    },
+    {
+      "rule": "/api/options/strangle/candidates",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "options.strangle_candidates",
+      "function": "strangle_candidates",
+      "source_file": "/home/runner/workspace/src/options/api.py"
+    },
+    {
+      "rule": "/api/pins",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "pins_locks.get_pins",
+      "function": "get_pins",
+      "source_file": "/home/runner/workspace/src/core/pins_locks.py"
+    },
+    {
+      "rule": "/api/pins",
+      "methods": [
+        "POST"
+      ],
+      "endpoint": "pins_locks.update_pins",
+      "function": "update_pins",
+      "source_file": "/home/runner/workspace/src/core/pins_locks.py"
+    },
+    {
+      "rule": "/commodities",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "commodities",
+      "function": "commodities",
+      "source_file": "/home/runner/workspace/src/core/app.py"
+    },
+    {
+      "rule": "/dashboard",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "kpi_dashboard",
+      "function": "kpi_dashboard",
+      "source_file": "/home/runner/workspace/src/core/app.py"
+    },
+    {
+      "rule": "/docs",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "api_docs",
+      "function": "api_docs",
+      "source_file": "/home/runner/workspace/src/core/app.py"
+    },
+    {
+      "rule": "/equities",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "equities",
+      "function": "equities",
+      "source_file": "/home/runner/workspace/src/core/app.py"
+    },
+    {
+      "rule": "/health",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "health",
+      "function": "health",
+      "source_file": "/home/runner/workspace/src/core/app.py"
+    },
+    {
+      "rule": "/metrics",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "metrics",
+      "function": "metrics",
+      "source_file": "/home/runner/workspace/src/core/app.py"
+    },
+    {
+      "rule": "/options",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "options",
+      "function": "options",
+      "source_file": "/home/runner/workspace/src/core/app.py"
+    },
+    {
+      "rule": "/static/<path:filename>",
+      "methods": [
+        "GET"
+      ],
+      "endpoint": "static",
+      "function": "<lambda>",
+      "source_file": "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py"
+    }
+  ]
+}

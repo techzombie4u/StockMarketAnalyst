@@ -1,0 +1,9 @@
+
+{
+  "agents": {
+    "equity_analyzer": {"enabled": true, "schedule": "*/5 * * * *"},
+    "options_strategist": {"enabled": true, "schedule": "*/10 * * * *"},
+    "commodity_tracker": {"enabled": true, "schedule": "*/15 * * * *"},
+    "risk_manager": {"enabled": true, "schedule": "*/3 * * * *"}
+  }
+}

@@ -2620,3 +2620,6 @@ Extract a specific metric value from soup"""
             logger.error(
                 f"Error calculating support and resistance levels: {str(e)}")
             return {}
+
+
+# Fixing the syntax error at line 324 in interactive_tracker_manager.py

@@ -1,0 +1,12 @@
+{
+  "charts_enabled": true,
+  "agents_run_enabled": true,
+  "enable_ai_agents": true,
+  "enable_advanced_charting": true,
+  "enable_realtime_agents": true,
+  "enable_all_timeframes_concurrent": false,
+  "enable_background_kpi_jobs": true,
+  "degraded_mode": false,
+  "degraded_reason": null,
+  "last_updated": "2025-08-11T10:00:43.498274"
+}

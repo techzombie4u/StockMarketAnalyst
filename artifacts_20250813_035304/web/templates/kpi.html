@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>KPI Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 20px; }
+    .banner{ padding:10px; border-radius:8px; margin-bottom:12px;}
+    .danger{ background:#ffe6e6; color:#a40000; }
+    .grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap:12px;}
+    .card{ border:1px solid #eee; border-radius:10px; padding:12px; box-shadow:0 2px 6px rgba(0,0,0,.05);}
+    .h{font-weight:700; margin-bottom:6px;}
+  </style>
+</head>
+<body>
+  <h1>KPI Dashboard</h1>
+  <div id="kill"></div>
+  <div>
+    <label>Timeframe:</label>
+    <select id="tfSel">
+      <option>All</option><option>3D</option><option>5D</option>
+      <option>10D</option><option>15D</option><option>30D</option>
+    </select>
+    <button id="refresh">Recompute</button>
+  </div>
+
+  <div class="grid" style="margin-top:12px;">
+    <div class="card">
+      <div class="h">Prediction KPIs</div>
+      <pre id="pred" style="white-space:pre-wrap"></pre>
+    </div>
+    <div class="card">
+      <div class="h">Financial KPIs</div>
+      <pre id="fin" style="white-space:pre-wrap"></pre>
+    </div>
+    <div class="card">
+      <div class="h">Risk KPIs</div>
+      <pre id="risk" style="white-space:pre-wrap"></pre>
+    </div>
+  </div>
+
+<script>
+async function loadKPI(force=false){
+  const url = force ? "/api/kpi/recompute" : "/api/kpi/metrics";
+  const method = force ? "POST" : "GET";
+  const res = await fetch(url, {method});
+  const data = await res.json();
+  const tf = document.getElementById("tfSel").value;
+  const sec = data.timeframes[tf] || {};
+  document.getElementById("pred").textContent = JSON.stringify(sec.prediction_kpis||{}, null, 2);
+  document.getElementById("fin").textContent = JSON.stringify(sec.financial_kpis||{}, null, 2);
+  document.getElementById("risk").textContent = JSON.stringify(sec.risk_kpis||{}, null, 2);
+
+  const kill = data.kill_switch || {};
+  if (kill.active){
+    document.getElementById("kill").innerHTML =
+      `<div class="banner danger"><b>Kill‑Switch ACTIVE</b> — ${ (kill.reasons||[]).join(", ") }</div>`;
+  } else {
+    document.getElementById("kill").innerHTML = "";
+  }
+}
+document.getElementById("tfSel").addEventListener("change", ()=>loadKPI(false));
+document.getElementById("refresh").addEventListener("click", ()=>loadKPI(true));
+loadKPI(false);
+</script>
+</body>
+</html>

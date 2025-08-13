@@ -1,0 +1,29 @@
+{
+  "base": "http://localhost:5000",
+  "routes": [
+    {
+      "url": "http://localhost:5000/__routes__",
+      "error": "<urlopen error [Errno 99] Cannot assign requested address>"
+    },
+    {
+      "url": "http://localhost:5000/api/fusion/dashboard?timeframe=All",
+      "error": "<urlopen error [Errno 99] Cannot assign requested address>"
+    },
+    {
+      "url": "http://localhost:5000/api/kpi/summary?timeframe=All",
+      "error": "<urlopen error [Errno 99] Cannot assign requested address>"
+    },
+    {
+      "url": "http://localhost:5000/api/equity/recommendations?count=1",
+      "error": "<urlopen error [Errno 99] Cannot assign requested address>"
+    },
+    {
+      "url": "http://localhost:5000/api/options/short-strangle/RELIANCE",
+      "error": "<urlopen error [Errno 99] Cannot assign requested address>"
+    },
+    {
+      "url": "http://localhost:5000/api/agents",
+      "error": "<urlopen error [Errno 99] Cannot assign requested address>"
+    }
+  ]
+}

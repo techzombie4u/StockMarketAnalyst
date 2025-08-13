@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPI Dashboard - Stock Market Analyst</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .kpi-card {
+            @apply bg-white rounded-lg shadow-md p-6 border-l-4;
+            transition: all 0.3s ease;
+        }
+        .kpi-card:hover {
+            @apply shadow-lg transform -translate-y-1;
+        }
+        .kpi-good { @apply border-green-500; }
+        .kpi-warn { @apply border-yellow-500; }
+        .kpi-bad { @apply border-red-500; }
+        .kpi-neutral { @apply border-gray-300; }
+
+        .trend-up { @apply text-green-600; }
+        .trend-down { @apply text-red-600; }
+        .trend-flat { @apply text-gray-500; }
+
+        .tab-active {
+            @apply bg-blue-600 text-white border-blue-600;
+        }
+
+        .trigger-card {
+            @apply bg-white rounded-lg shadow-md p-4 border-l-4 mb-3;
+        }
+        .trigger-high { @apply border-red-500; }
+        .trigger-medium { @apply border-yellow-500; }
+        .trigger-low { @apply border-blue-500; }
+
+        .loading-spinner {
+            @apply inline-block w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-xl font-bold">📊 KPI Dashboard</h1>
+                <a href="/" class="text-blue-200 hover:text-white">← Back to Main</a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="last-updated" class="text-sm text-blue-200">Loading...</span>
+                <button id="refresh-btn" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Refresh KPIs</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <!-- Top Controls -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <!-- Timeframe Selector -->
+                <div class="flex items-center space-x-2">
+                    <label class="font-medium text-gray-700">Timeframe:</label>
+                    <div id="timeframe-tabs" class="flex space-x-1">
+                        <button class="timeframe-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-timeframe="All">All</button>
+                        <button class="timeframe-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-timeframe="3D">3D</button>
+                        <button class="timeframe-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-timeframe="5D">5D</button>
+                        <button class="timeframe-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-timeframe="10D">10D</button>
+                        <button class="timeframe-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-timeframe="15D">15D</button>
+                        <button class="timeframe-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-timeframe="30D">30D</button>
+                    </div>
+                </div>
+
+                <!-- Product Tabs -->
+                <div class="flex items-center space-x-2">
+                    <label class="font-medium text-gray-700">Product:</label>
+                    <div id="product-tabs" class="flex space-x-1">
+                        <button class="product-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-product="all">All Products</button>
+                        <button class="product-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-product="equities">Equities</button>
+                        <button class="product-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-product="options">Options</button>
+                        <button class="product-tab px-4 py-2 border rounded-lg hover:bg-gray-50" data-product="commodities">Commodities</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="text-center py-8">
+            <div class="loading-spinner w-8 h-8 mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading KPI data...</p>
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content" class="hidden">
+            <!-- GoAhead Triggers -->
+            <div id="triggers-section" class="mb-6 hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                    GoAhead Triggers
+                </h2>
+                <div id="triggers-container">
+                    <!-- Triggers will be populated here -->
+                </div>
+            </div>
+
+            <!-- Pinned Stats Summary -->
+            <div id="pinned-stats" class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-thumbtack text-blue-500"></i>
+                    Pinned Symbols Summary
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="pinned-stats-grid">
+                    <!-- Pinned stats will be populated here -->
+                </div>
+            </div>
+
+            <!-- KPI Sections -->
+            <div class="space-y-6">
+                <!-- Prediction Quality KPIs -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-chart-line text-green-500"></i>
+                        Prediction Quality
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="prediction-kpis">
+                        <!-- Prediction KPIs will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Financial KPIs -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-dollar-sign text-blue-500"></i>
+                        Financial Performance
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="financial-kpis">
+                        <!-- Financial KPIs will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Risk KPIs -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-shield-alt text-red-500"></i>
+                        Risk Management
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="risk-kpis">
+                        <!-- Risk KPIs will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini Table Summary -->
+            <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">KPI Summary by Timeframe</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm" id="kpi-summary-table">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th>Timeframe</th>
+                                <th>Accuracy</th>
+                                <th>Predictions</th>
+                                <th>Confidence</th>
+                                <th>AI Verdict</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kpi-summary-tbody">
+                            <!-- Summary rows will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- GoAhead Triggers Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">GoAhead AI Triggers</h5>
+                            <button id="goaheadTrigger" class="btn btn-primary btn-sm" onclick="triggerGoAheadAnalysis()">
+                                Trigger Analysis
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">
+                                AI-driven decisions based on KPI thresholds and performance trends
+                            </p>
+                            <div id="goaheadDecisions">
+                                <p class="text-muted">Loading decisions...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/kpi_dashboard.js"></script>
+</body>
+</html>
