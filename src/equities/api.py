@@ -29,6 +29,8 @@ def now_iso():
 @equities_bp.route("/list", methods=["GET"])
 def list_equities():
     """List equity positions and analytics with real-time data"""
+    start_time = time.time()  # Initialize start_time at the beginning
+    
     try:
         from src.data.realtime_data_fetcher import get_multiple_realtime_prices
 
@@ -59,11 +61,11 @@ def list_equities():
         # Get real-time prices
         symbols = [stock["symbol"] for stock in major_stocks[:limit]]
         try:
-            print(f"🔄 Fetching real-time data for equities API: {symbols}")
+            logger.info(f"🔄 Fetching real-time data for equities API: {symbols}")
             realtime_data = get_multiple_realtime_prices(symbols)
-            print(f"✅ Got real-time data for {len(realtime_data)} symbols")
+            logger.info(f"✅ Got real-time data for {len(realtime_data)} symbols")
         except Exception as e:
-            print(f"Error fetching real-time equity data: {e}")
+            logger.error(f"Error fetching real-time equity data: {e}")
             realtime_data = {}
 
         # Generate equity data with real prices
@@ -75,17 +77,26 @@ def list_equities():
             if sector and stock["sector"].lower() != sector.lower():
                 continue
 
-            # Get real-time data or use fallback
+            # Get real-time data - ALWAYS use real-time price if available
             price_data = realtime_data.get(symbol, {})
-            current_price = price_data.get('current_price', random.uniform(100, 5000))
-            change_percent = price_data.get('change_percent', random.uniform(-5, 5))
+            if price_data and price_data.get('current_price'):
+                current_price = float(price_data.get('current_price'))
+                change_percent = float(price_data.get('change_percent', 0))
+                is_realtime = True
+                data_source = price_data.get('source', 'realtime')
+            else:
+                # Fallback only if no real-time data
+                current_price = random.uniform(100, 5000)
+                change_percent = random.uniform(-5, 5)
+                is_realtime = False
+                data_source = 'fallback'
 
             equity = {
                 "symbol": symbol,
                 "name": stock["name"],
                 "sector": stock["sector"],
-                "price": round(float(current_price), 2),
-                "change_percent": round(float(change_percent), 2),
+                "price": round(current_price, 2),
+                "change_percent": round(change_percent, 2),
                 "verdict": random.choice(["STRONG_BUY", "BUY", "HOLD", "SELL"]),
                 "confidence": round(random.uniform(0.6, 0.95), 3),
                 "momentum": random.randint(40, 90),
@@ -101,14 +112,12 @@ def list_equities():
                 "beta": round(random.uniform(0.5, 2.0), 3),
                 "moving_avg_50": round(current_price * random.uniform(0.95, 1.05), 2),
                 "moving_avg_200": round(current_price * random.uniform(0.90, 1.10), 2),
-                "is_realtime": price_data.get('is_realtime', False),
-                "data_source": price_data.get('source', 'fallback'),
+                "is_realtime": is_realtime,
+                "data_source": data_source,
                 "updated": now_iso()
             }
 
             equities.append(equity)
-
-        start_time = time.time() # Initialize start_time here
 
         generation_time_ms = int((time.time() - start_time) * 1000)
 

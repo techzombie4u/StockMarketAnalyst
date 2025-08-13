@@ -288,16 +288,16 @@ def get_enhanced_sample_price(symbol: str) -> Dict[str, Any]:
     """Enhanced fallback with more realistic market data including trained stocks"""
     logger.info(f"📊 Using enhanced sample price for {symbol}")
 
-    # Enhanced price database with all trained stocks
+    # Enhanced price database with all trained stocks - UPDATED TO CURRENT MARKET LEVELS
     enhanced_prices = {
         # Large Cap IT - High confidence stocks
-        "TCS": 3850, "INFY": 1420, "HCLTECH": 1180, "WIPRO": 425, "TECHM": 1125, "LTIM": 5200, "LTTS": 4800,
+        "TCS": 3036, "INFY": 1427, "HCLTECH": 1180, "WIPRO": 242, "TECHM": 1125, "LTIM": 5200, "LTTS": 4800,
         # Banking & Finance - Core holdings
-        "HDFCBANK": 1635, "ICICIBANK": 965, "KOTAKBANK": 1720, "SBIN": 625, "AXISBANK": 1090, "INDUSINDBK": 975,
+        "HDFCBANK": 1980, "ICICIBANK": 1421, "KOTAKBANK": 1988, "SBIN": 625, "AXISBANK": 1090, "INDUSINDBK": 975,
         "BAJFINANCE": 6800, "BAJAJFINSV": 1580, "AUBANK": 585, "BANDHANBNK": 170, "FEDERALBNK": 145,
         # Large Cap Diversified - Blue chips
-        "RELIANCE": 2950, "LT": 3250, "ITC": 465, "HINDUNILVR": 2420, "BHARTIARTL": 865, "ASIANPAINT": 3150,
-        "TITAN": 3400, "MARUTI": 11200, "M&M": 2850, "TATASTEEL": 140, "JSWSTEEL": 925, "HINDALCO": 485,
+        "RELIANCE": 1383, "LT": 3694, "ITC": 465, "HINDUNILVR": 2420, "BHARTIARTL": 1867, "ASIANPAINT": 2500,
+        "TITAN": 3467, "MARUTI": 12834, "M&M": 2850, "TATASTEEL": 160, "JSWSTEEL": 925, "HINDALCO": 485,
         # Pharma & Healthcare
         "SUNPHARMA": 1720, "DRREDDY": 1280, "CIPLA": 1460, "LUPIN": 2050, "BIOCON": 370, "DIVISLAB": 5900,
         "APOLLOHOSP": 6500, "FORTIS": 430, "MAXHEALTH": 850,

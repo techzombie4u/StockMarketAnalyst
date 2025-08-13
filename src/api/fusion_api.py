@@ -4,6 +4,11 @@ from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 from pathlib import Path
 import traceback
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Try to import from src.core, fall back to local if not found
 try:
@@ -14,9 +19,10 @@ except ImportError:
         def decorator(func):
             cache = {}
             def wrapper(*args, **kwargs):
-                if args not in cache or time.time() - cache[args]['timestamp'] > ttl_sec:
-                    cache[args] = {'value': func(*args, **kwargs), 'timestamp': time.time()}
-                return cache[args]['value']
+                cache_key = (args, tuple(sorted(kwargs.items())))
+                if cache_key not in cache or time.time() - cache[cache_key]['timestamp'] > ttl_sec:
+                    cache[cache_key] = {'value': func(*args, **kwargs), 'timestamp': time.time()}
+                return cache[cache_key]['value']
             return wrapper
         return decorator
 
@@ -54,7 +60,7 @@ def fusion_dashboard():
     try:
         force_refresh = request.args.get("forceRefresh", "false").lower() == "true"
 
-        print(f"🔄 Fusion dashboard request - force refresh: {force_refresh}")
+        logger.info(f"🔄 Fusion dashboard request - force refresh: {force_refresh}")
 
         start_time = time.time()
 
@@ -62,13 +68,13 @@ def fusion_dashboard():
         if not force_refresh:
             cached_payload = _cache.get("dashboard")
             if cached_payload:
-                print("💾 Returning cached payload")
+                logger.info("💾 Returning cached payload")
                 cached_payload["served_from_cache"] = True
                 cached_payload["cache_hit_time_ms"] = round((time.time() - start_time) * 1000, 1)
                 return jsonify(cached_payload)
 
         # Build fresh payload
-        print("🔨 Building fresh payload")
+        logger.info("🔨 Building fresh payload")
 
         # Get timeframe-specific KPIs using calculator with complete families
         timeframes = {}
@@ -79,7 +85,7 @@ def fusion_dashboard():
             prediction_accuracy = round(kpi_data.get("acc", 0.72), 3)
             coverage = round(kpi_data.get("coverage", 0.89), 2)
 
-            # Financial KPIs  
+            # Financial KPIs
             sharpe = round(kpi_data.get("sharpe", 1.35), 2)
             sortino = round(kpi_data.get("sortino", 1.48), 2)
             expectancy = round(kpi_data.get("winExp", 1.42), 3)
@@ -143,36 +149,20 @@ def fusion_dashboard():
         }
 
         # Get real-time data for top signals with trained stocks
-        from src.data.realtime_data_fetcher import get_multiple_realtime_prices
-        
-        trained_stocks = [
-            "TCS", "INFY", "HCLTECH", "WIPRO", "TECHM", "LTIM", "LTTS",
-            "HDFCBANK", "ICICIBANK", "KOTAKBANK", "SBIN", "AXISBANK", "INDUSINDBK",
-            "RELIANCE", "LT", "ITC", "HINDUNILVR", "BHARTIARTL", "ASIANPAINT",
-            "TITAN", "MARUTI", "TATASTEEL", "JSWSTEEL", "HINDALCO"
-        ]
-        
-        # Get real-time prices for analysis
         try:
-            print(f"🔄 Fetching real-time data for {len(trained_stocks)} stocks...")
+            from src.data.realtime_data_fetcher import get_multiple_realtime_prices
+            logger.info(f"🔄 Fetching real-time data for analysis stocks...")
+            trained_stocks = [
+                "TCS", "INFY", "HCLTECH", "WIPRO", "TECHM", "LTIM", "LTTS",
+                "HDFCBANK", "ICICIBANK", "KOTAKBANK", "SBIN", "AXISBANK", "INDUSINDBK",
+                "RELIANCE", "LT", "ITC", "HINDUNILVR", "BHARTIARTL", "ASIANPAINT",
+                "TITAN", "MARUTI", "TATASTEEL", "JSWSTEEL", "HINDALCO"
+            ]
             realtime_data = get_multiple_realtime_prices(trained_stocks)
-            print(f"✅ Retrieved real-time data for {len(realtime_data)} stocks")
-            
-            # If no real-time data, try individual fetches
-            if not realtime_data:
-                from src.data.realtime_data_fetcher import get_realtime_price
-                realtime_data = {}
-                for symbol in trained_stocks[:10]:  # Limit to prevent timeout
-                    try:
-                        data = get_realtime_price(symbol)
-                        if data and data.get('current_price'):
-                            realtime_data[symbol] = data
-                    except Exception as e:
-                        print(f"Failed to get data for {symbol}: {e}")
-                        continue
-                        
+            logger.info(f"✅ Retrieved real-time data for {len(realtime_data)} stocks")
+
         except Exception as e:
-            print(f"Error fetching real-time data: {e}")
+            logger.warning(f"Error fetching real-time data for analysis: {e}")
             realtime_data = {}
 
         def validate_verdict(verdict):
@@ -184,19 +174,20 @@ def fusion_dashboard():
                 0.75: f"Positive trend analysis for {symbol} with favorable risk-reward",
                 0.65: f"Moderate signals for {symbol}, suitable for conservative allocation"
             }
-            
-            rationale = next((r for threshold, r in base_rationale.items() if score > threshold), 
+
+            rationale = next((r for threshold, r in base_rationale.items() if score > threshold),
                            f"Mixed signals for {symbol}, requires careful monitoring")
-            
+
             if price_data and price_data.get('change_percent'):
                 change = price_data['change_percent']
                 if abs(change) > 2:
                     direction = "gaining" if change > 0 else "declining"
                     rationale += f" • Currently {direction} {abs(change):.1f}% today"
-            
+
             return rationale
 
-        # Generate signals with real-time price integration
+        # Generate mock signals with real-time prices where possible
+        mock_signals = []
         signal_templates = [
             {"symbol": "TCS", "score": 0.87, "verdict": "BUY", "confidence": 0.85},
             {"symbol": "INFY", "score": 0.91, "verdict": "STRONG_BUY", "confidence": 0.91},
@@ -208,43 +199,34 @@ def fusion_dashboard():
             {"symbol": "ASIANPAINT", "score": 0.65, "verdict": "HOLD", "confidence": 0.62}
         ]
 
-        top_signals = []
-        for signal in signal_templates:
-            symbol = signal["symbol"]
-            price_data = realtime_data.get(symbol, {})
-            validated_verdict = validate_verdict(signal["verdict"])
-            
-            # Add price information to signals
-            signal_entry = {
+        # Get real-time prices for signals
+        symbols = [s["symbol"] for s in signal_templates]
+        try:
+            realtime_prices = get_multiple_realtime_prices(symbols)
+        except Exception as e:
+            logger.warning(f"Could not fetch real-time prices for signals: {e}")
+            realtime_prices = {}
+
+        for template in signal_templates:
+            symbol = template["symbol"]
+            price_data = realtime_prices.get(symbol, {})
+            current_price = price_data.get('current_price', 1000)  # Fallback price
+
+            mock_signals.append({
                 "symbol": symbol,
                 "product": "equity",
-                "signal_score": signal["score"],
-                "ai_verdict": validated_verdict,
-                "confidence": signal["confidence"],
-                "rationale": generate_rationale(symbol, validated_verdict, signal["score"], price_data),
-                "updated": now_iso()
-            }
-            
-            # Add price data if available
-            if price_data and price_data.get('current_price'):
-                signal_entry.update({
-                    "current_price": price_data['current_price'],
-                    "target_price": price_data['current_price'] * (1 + signal["score"] * 0.1),  # Estimated target
-                    "potential_roi": signal["score"] * 0.1,  # ROI based on signal strength
-                    "price_change": price_data.get('change', 0),
-                    "price_change_percent": price_data.get('change_percent', 0)
-                })
-            else:
-                # Fallback values
-                signal_entry.update({
-                    "current_price": 1000.0,
-                    "target_price": 1000.0 * (1 + signal["score"] * 0.1),
-                    "potential_roi": signal["score"] * 0.1,
-                    "price_change": 0,
-                    "price_change_percent": 0
-                })
-            
-            top_signals.append(signal_entry)
+                "signal_score": template["score"],
+                "ai_verdict": validate_verdict(template["verdict"]),
+                "confidence": template["confidence"],
+                "rationale": generate_rationale(symbol, validate_verdict(template["verdict"]), template["score"], price_data),
+                "updated": now_iso(),
+                "current_price": round(current_price, 2),
+                "target_price": round(current_price * (1 + template["score"] * 0.1), 2),  # Estimated target
+                "potential_roi": round(template["score"] * 0.1, 3),  # ROI based on signal strength
+                "price_change": price_data.get('change', 0),
+                "price_change_percent": price_data.get('change_percent', 0),
+                "is_realtime": price_data.get('is_realtime', False) # Indicate if data is real-time
+            })
 
         # Placeholder for alerts
         alerts = [
@@ -268,7 +250,7 @@ def fusion_dashboard():
             "ai_verdict_summary": ai_verdict_summary,
             "product_breakdown": product_breakdown,
             "pinned_summary": pinned_summary,
-            "top_signals": top_signals,
+            "top_signals": mock_signals, # Use mock_signals which now contains real-time data
             "alerts": alerts,
             "insights": "Strong buy signals in IT sector. Consider increasing allocation.",
             "agent_insights": agent_insights,
@@ -281,12 +263,11 @@ def fusion_dashboard():
         # Cache the payload
         _cache.set("dashboard", payload)
 
-        print(f"✅ Returning payload with generation time: {payload.get('generation_time_ms')}ms")
+        logger.info(f"✅ Returning payload with generation time: {payload.get('generation_time_ms')}ms")
         return jsonify(payload)
 
     except Exception as e:
-        print(f"❌ Error in fusion dashboard endpoint: {e}")
-        traceback.print_exc()
+        logger.error(f"❌ Error in fusion dashboard endpoint: {e}", exc_info=True)
         return jsonify({
             "error": "Internal server error",
             "details": str(e),
@@ -303,4 +284,4 @@ def fusion_test():
         "status": "ok"
     })
 
-print("✅ Fusion API blueprint created successfully")
+logger.info("✅ Fusion API blueprint created successfully")

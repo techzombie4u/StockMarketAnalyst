@@ -763,7 +763,7 @@ async function loadPortfolioData(forceRefresh = false) {
         // Load all data concurrently
         const [portfolioRes, positionsRes, ordersRes] = await Promise.all([
             fetch('/api/papertrade/portfolio'),
-            fetch('/api/papertrade/positions'), 
+            fetch('/api/papertrade/positions'),
             fetch('/api/papertrade/orders?limit=20')
         ]);
 

@@ -53,7 +53,7 @@ class PaperTradeEngine:
         """Get real-time price for symbol with enhanced validation"""
         try:
             logger.info(f"🔄 Fetching live price for {symbol}")
-            
+
             # Check cache first (30 second TTL for paper trading)
             cache_key = f"live_price_{symbol}"
             cached_data = get_cached_data(cache_key)
@@ -65,7 +65,7 @@ class PaperTradeEngine:
 
             # Use the real-time data fetcher
             realtime_data = get_realtime_price(symbol)
-            
+
             if realtime_data and realtime_data.get('current_price', 0) > 0:
                 live_price = float(realtime_data['current_price'])
                 # Cache the full data for 30 seconds
@@ -393,11 +393,11 @@ class PaperTradeEngine:
             # Calculate additional metrics
             total_trades = len(orders)
             open_positions = len(positions)
-            
+
             # Calculate win/loss statistics
             buy_orders = [o for o in orders if o['side'] == 'BUY']
             sell_orders = [o for o in orders if o['side'] == 'SELL']
-            
+
             # Calculate performance metrics
             total_invested = sum(o['exec_value'] for o in buy_orders)
             total_realized = sum(o['exec_value'] for o in sell_orders)
@@ -580,7 +580,7 @@ def get_live_price(symbol):
         # Get cached data or fetch fresh
         cache_key = f"live_price_{symbol.upper()}"
         cached_data = get_cached_data(cache_key)
-        
+
         if cached_data and isinstance(cached_data, dict):
             return jsonify({
                 "success": True,
@@ -590,7 +590,7 @@ def get_live_price(symbol):
                 "change_percent": cached_data.get('change_percent', 0),
                 "timestamp": datetime.now().isoformat()
             })
-        
+
         # Fallback to engine method
         price = engine.get_live_price(symbol.upper())
         if price is not None:
