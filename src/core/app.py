@@ -113,7 +113,7 @@ def create_app():
     except Exception as e:
         logger.warning(f"⚠️ Could not register Paper Trade API: {e}")
 
-    # Register all web pages
+    # Register web routes
     @app.route('/')
     def index():
         return render_template('index.html')
@@ -134,9 +134,18 @@ def create_app():
     def commodities():
         return render_template('commodities.html')
 
+    @app.route('/kpi')
+    def kpi():
+        return render_template('kpi.html')
+
     @app.route('/papertrade')
     def papertrade():
+        logger.info("📊 Serving Paper Trade page")
         return render_template('papertrade.html')
+
+    @app.route('/docs')
+    def docs():
+        return render_template('docs.html')
 
     # API Documentation
     @app.route('/api')

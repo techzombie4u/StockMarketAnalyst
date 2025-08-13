@@ -286,35 +286,67 @@ def get_sample_price(symbol: str) -> Dict[str, Any]:
 
 def get_enhanced_sample_price(symbol: str) -> Dict[str, Any]:
     """Enhanced fallback with more realistic market data including trained stocks"""
-    logger.info(f"Using enhanced sample price for {symbol}")
+    logger.info(f"📊 Using enhanced sample price for {symbol}")
 
-    # Enhanced price database with more trained stocks
+    # Enhanced price database with all trained stocks
     enhanced_prices = {
-        # Large Cap IT
+        # Large Cap IT - High confidence stocks
         "TCS": 3850, "INFY": 1420, "HCLTECH": 1180, "WIPRO": 425, "TECHM": 1125, "LTIM": 5200, "LTTS": 4800,
-        # Banking & Finance  
+        # Banking & Finance - Core holdings
         "HDFCBANK": 1635, "ICICIBANK": 965, "KOTAKBANK": 1720, "SBIN": 625, "AXISBANK": 1090, "INDUSINDBK": 975,
         "BAJFINANCE": 6800, "BAJAJFINSV": 1580, "AUBANK": 585, "BANDHANBNK": 170, "FEDERALBNK": 145,
-        # Large Cap Diversified
-        "RELIANCE": 2520, "LT": 3250, "ITC": 465, "HINDUNILVR": 2420, "BHARTIARTL": 865, "ASIANPAINT": 3150,
+        # Large Cap Diversified - Blue chips
+        "RELIANCE": 2950, "LT": 3250, "ITC": 465, "HINDUNILVR": 2420, "BHARTIARTL": 865, "ASIANPAINT": 3150,
         "TITAN": 3400, "MARUTI": 11200, "M&M": 2850, "TATASTEEL": 140, "JSWSTEEL": 925, "HINDALCO": 485,
-        # Pharma
+        # Pharma & Healthcare
         "SUNPHARMA": 1720, "DRREDDY": 1280, "CIPLA": 1460, "LUPIN": 2050, "BIOCON": 370, "DIVISLAB": 5900,
-        # Others
+        "APOLLOHOSP": 6500, "FORTIS": 430, "MAXHEALTH": 850,
+        # Energy & Utilities
         "NTPC": 355, "POWERGRID": 325, "COALINDIA": 410, "ONGC": 245, "IOC": 135, "BPCL": 285,
-        "NESTLEIND": 2200, "BRITANNIA": 4800, "DABUR": 505, "GODREJCP": 1180, "MARICO": 630,
-        "EICHERMOT": 4900, "HEROMOTOCO": 4650, "BAJAJHLDNG": 9500, "GRASIM": 2480, "ULTRACEMCO": 10800
+        # FMCG & Consumer
+        "NESTLEIND": 2200, "BRITANNIA": 4800, "DABUR": 505, "GODREJCP": 1180, "MARICO": 630, "TATACONSUM": 920,
+        # Auto & Mobility  
+        "EICHERMOT": 4900, "HEROMOTOCO": 4650, "BAJAJHLDNG": 9500, "TATAMOTORS": 1050,
+        # Infrastructure & Materials
+        "GRASIM": 2480, "ULTRACEMCO": 10800, "ADANIPORTS": 1350, "COFORGE": 8200, "CYIENT": 1850,
+        # Additional trained stocks
+        "CHOLAFIN": 1280, "PERSISTENT": 5500, "MPHASIS": 2950, "MANAPPURAM": 185, "MUTHOOTFIN": 1420,
+        "LICHSGFIN": 630, "M&MFIN": 290, "NBCC": 85, "NMDC": 230, "PFC": 485, "RECLTD": 520,
+        "RAILTEL": 420, "RITES": 650, "IRCTC": 920, "IRFC": 165, "BEL": 285, "BHEL": 275,
+        "HAL": 4200, "BEML": 3850, "CONCOR": 950, "SAIL": 125, "VEDL": 485, "HINDZINC": 520,
+        "UPL": 620, "YESBANK": 22, "RBLBANK": 285, "IDFCFIRSTB": 85, "CANBK": 115, "PNB": 105,
+        "UNIONBANK": 125, "CENTRALBK": 55, "INDIANB": 580, "BANKBARODA": 245, "BANKINDIA": 110
     }
 
-    base_price = enhanced_prices.get(symbol.upper(), 1000.0)
+    base_price = enhanced_prices.get(symbol.upper(), random.uniform(800, 1200))
 
-    # Simulate realistic intraday movement
-    market_volatility = random.uniform(0.005, 0.025)  # 0.5% to 2.5% volatility
-    direction = random.choice([-1, 1])
-    price_change = base_price * market_volatility * direction
-
+    # Simulate realistic intraday movement based on market hours
+    now = datetime.now()
+    hour = now.hour
+    
+    # Market hours simulation (9:15 AM to 3:30 PM IST)
+    if 9 <= hour <= 15:
+        # Active trading hours - higher volatility
+        market_volatility = random.uniform(0.008, 0.035)  # 0.8% to 3.5% volatility
+    else:
+        # Off-market hours - lower volatility  
+        market_volatility = random.uniform(0.003, 0.015)  # 0.3% to 1.5% volatility
+    
+    # Bias towards positive movement for popular stocks
+    popular_stocks = {"TCS", "RELIANCE", "INFY", "HDFCBANK", "ICICIBANK"}
+    if symbol.upper() in popular_stocks:
+        direction_bias = random.choices([1, -1], weights=[0.6, 0.4])[0]  # 60% positive bias
+    else:
+        direction_bias = random.choice([-1, 1])
+    
+    price_change = base_price * market_volatility * direction_bias
     current_price = base_price + price_change
     change_percent = (price_change / base_price) * 100
+
+    # Calculate realistic day high/low
+    daily_range = base_price * random.uniform(0.015, 0.045)  # 1.5% to 4.5% daily range
+    day_high = max(current_price, base_price + daily_range * 0.6)
+    day_low = min(current_price, base_price - daily_range * 0.4)
 
     return {
         "symbol": symbol,
@@ -325,9 +357,10 @@ def get_enhanced_sample_price(symbol: str) -> Dict[str, Any]:
         "is_realtime": False,
         "timestamp": datetime.now().isoformat(),
         "source": "enhanced_fallback",
-        "volume": random.randint(100000, 5000000),
-        "day_high": round(current_price * 1.015, 2),
-        "day_low": round(current_price * 0.985, 2)
+        "volume": random.randint(50000, 8000000),  # Realistic volume range
+        "day_high": round(day_high, 2),
+        "day_low": round(day_low, 2),
+        "market_status": "open" if 9 <= hour <= 15 else "closed"
     }
 
 

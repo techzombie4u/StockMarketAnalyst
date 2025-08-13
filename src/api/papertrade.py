@@ -50,13 +50,18 @@ class PaperTradeEngine:
             })
 
     def get_live_price(self, symbol: str) -> Optional[float]:
-        """Get real-time price for symbol"""
+        """Get real-time price for symbol with enhanced validation"""
         try:
+            logger.info(f"🔄 Fetching live price for {symbol}")
+            
             # Check cache first (30 second TTL for paper trading)
             cache_key = f"live_price_{symbol}"
             cached_data = get_cached_data(cache_key)
             if cached_data is not None:
-                return cached_data.get('price') if isinstance(cached_data, dict) else cached_data
+                price = cached_data.get('price') if isinstance(cached_data, dict) else cached_data
+                if price and price > 0:
+                    logger.info(f"💾 Cached price for {symbol}: ₹{price}")
+                    return float(price)
 
             # Use the real-time data fetcher
             realtime_data = get_realtime_price(symbol)
@@ -67,27 +72,29 @@ class PaperTradeEngine:
                 cache_data(cache_key, {
                     'price': live_price,
                     'change': realtime_data.get('change', 0),
-                    'change_percent': realtime_data.get('change_percent', 0)
+                    'change_percent': realtime_data.get('change_percent', 0),
+                    'source': realtime_data.get('source', 'unknown')
                 }, ttl=30)
-                logger.info(f"✅ Live price for {symbol}: ₹{live_price}")
+                logger.info(f"✅ Live price for {symbol}: ₹{live_price} (Source: {realtime_data.get('source', 'unknown')})")
                 return live_price
 
             # Fallback to historical data
             try:
+                logger.info(f"⏳ Trying historical data fallback for {symbol}")
                 stock_data = get_stock_data(symbol)
                 if stock_data and len(stock_data) > 0:
                     live_price = float(stock_data.iloc[-1]['Close'])
-                    cache_data(cache_key, {'price': live_price}, ttl=30)
+                    cache_data(cache_key, {'price': live_price, 'source': 'historical'}, ttl=30)
                     logger.info(f"✅ Historical price for {symbol}: ₹{live_price}")
                     return live_price
             except Exception as e:
                 logger.warning(f"Historical data fallback failed for {symbol}: {e}")
 
-            logger.error(f"Could not fetch any price data for {symbol}")
+            logger.error(f"❌ Could not fetch any price data for {symbol}")
             return None
 
         except Exception as e:
-            logger.error(f"Error getting live price for {symbol}: {e}")
+            logger.error(f"❌ Error getting live price for {symbol}: {e}")
             return None
 
     def execute_order(self, symbol: str, side: str, quantity: int, order_type: str = "MARKET") -> Dict:
