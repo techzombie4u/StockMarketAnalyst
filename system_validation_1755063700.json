@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-08-13T05:41:40.608122",
+  "base_url": "http://0.0.0.0:5000",
+  "results": {
+    "Data Structures": "PASS",
+    "API Contracts": "PASS",
+    "UI Components": "PASS",
+    "Agents System": "PASS",
+    "KPI System": "PASS",
+    "Options Engine": "PASS",
+    "Pins & Locks": "PASS",
+    "Performance Guardrails": "PASS"
+  },
+  "errors": [],
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "success_rate": 100.0
+  }
+}
