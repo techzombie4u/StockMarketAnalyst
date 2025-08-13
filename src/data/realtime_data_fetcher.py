@@ -281,38 +281,76 @@ def get_sample_price(symbol: str) -> Dict[str, Any]:
         "source": "sample_fallback"
     }
 
+def get_enhanced_sample_price(symbol: str) -> Dict[str, Any]:
+    """Enhanced fallback with more realistic market data including trained stocks"""
+    logger.info(f"Using enhanced sample price for {symbol}")
+    
+    # Enhanced price database with more trained stocks
+    enhanced_prices = {
+        # Large Cap IT
+        "TCS": 3850, "INFY": 1420, "HCLTECH": 1180, "WIPRO": 425, "TECHM": 1125, "LTIM": 5200, "LTTS": 4800,
+        # Banking & Finance  
+        "HDFCBANK": 1635, "ICICIBANK": 965, "KOTAKBANK": 1720, "SBIN": 625, "AXISBANK": 1090, "INDUSINDBK": 975,
+        "BAJFINANCE": 6800, "BAJAJFINSV": 1580, "AUBANK": 585, "BANDHANBNK": 170, "FEDERALBNK": 145,
+        # Large Cap Diversified
+        "RELIANCE": 2520, "LT": 3250, "ITC": 465, "HINDUNILVR": 2420, "BHARTIARTL": 865, "ASIANPAINT": 3150,
+        "TITAN": 3400, "MARUTI": 11200, "M&M": 2850, "TATASTEEL": 140, "JSWSTEEL": 925, "HINDALCO": 485,
+        # Pharma
+        "SUNPHARMA": 1720, "DRREDDY": 1280, "CIPLA": 1460, "LUPIN": 2050, "BIOCON": 370, "DIVISLAB": 5900,
+        # Others
+        "NTPC": 355, "POWERGRID": 325, "COALINDIA": 410, "ONGC": 245, "IOC": 135, "BPCL": 285,
+        "NESTLEIND": 2200, "BRITANNIA": 4800, "DABUR": 505, "GODREJCP": 1180, "MARICO": 630,
+        "EICHERMOT": 4900, "HEROMOTOCO": 4650, "BAJAJHLDNG": 9500, "GRASIM": 2480, "ULTRACEMCO": 10800
+    }
+    
+    base_price = enhanced_prices.get(symbol.upper(), 1000.0)
+    
+    # Simulate realistic intraday movement
+    market_volatility = random.uniform(0.005, 0.025)  # 0.5% to 2.5% volatility
+    direction = random.choice([-1, 1])
+    price_change = base_price * market_volatility * direction
+    
+    current_price = base_price + price_change
+    change_percent = (price_change / base_price) * 100
+    
+    return {
+        "symbol": symbol,
+        "current_price": round(current_price, 2),
+        "previous_close": base_price,
+        "change": round(price_change, 2),
+        "change_percent": round(change_percent, 2),
+        "is_realtime": False,
+        "timestamp": datetime.now().isoformat(),
+        "source": "enhanced_fallback",
+        "volume": random.randint(100000, 5000000),
+        "day_high": round(current_price * 1.015, 2),
+        "day_low": round(current_price * 0.985, 2)
+    }
+
 
 def get_realtime_price(symbol: str) -> Dict[str, Any]:
     """
-    Get real-time price for a single symbol
+    Get real-time price for a single symbol with enhanced reliability
     """
     try:
+        logger.info(f"📊 Fetching real-time price for {symbol}")
+        
         # Try different ticker formats for Indian stocks
         ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
 
         for ticker_format in ticker_formats:
             try:
                 ticker = yf.Ticker(ticker_format)
-                # Get the most recent data with longer period to ensure we get data
-                data = ticker.history(period="5d", interval="1d")
-
-                if not data.empty and len(data) > 0:
-                    current_price = float(data['Close'].iloc[-1])
-                    previous_close = float(data['Close'].iloc[-2]) if len(data) > 1 else current_price
-
+                
+                # Try to get current info first
+                info = ticker.info
+                if info and 'currentPrice' in info and info['currentPrice'] > 0:
+                    current_price = float(info['currentPrice'])
+                    previous_close = float(info.get('previousClose', current_price))
                     change = current_price - previous_close
                     change_percent = (change / previous_close * 100) if previous_close != 0 else 0
-
-                    # Get intraday data for more recent price if available
-                    try:
-                        intraday = ticker.history(period="1d", interval="5m")
-                        if not intraday.empty:
-                            current_price = float(intraday['Close'].iloc[-1])
-                            change = current_price - previous_close
-                            change_percent = (change / previous_close * 100) if previous_close != 0 else 0
-                    except:
-                        pass  # Use daily price if intraday fails
-
+                    
+                    logger.info(f"✅ Got real-time price for {symbol}: ₹{current_price}")
                     return {
                         "symbol": symbol,
                         "current_price": current_price,
@@ -321,19 +359,55 @@ def get_realtime_price(symbol: str) -> Dict[str, Any]:
                         "change_percent": change_percent,
                         "is_realtime": True,
                         "timestamp": datetime.now().isoformat(),
+                        "source": "yahoo_info",
                         "ticker_used": ticker_format
                     }
+                
+                # Fallback to historical data
+                data = ticker.history(period="5d", interval="1d")
+                if not data.empty and len(data) > 0:
+                    current_price = float(data['Close'].iloc[-1])
+                    previous_close = float(data['Close'].iloc[-2]) if len(data) > 1 else current_price
+
+                    change = current_price - previous_close
+                    change_percent = (change / previous_close * 100) if previous_close != 0 else 0
+
+                    # Try to get more recent intraday data
+                    try:
+                        intraday = ticker.history(period="1d", interval="15m")
+                        if not intraday.empty and len(intraday) > 0:
+                            latest_price = float(intraday['Close'].iloc[-1])
+                            if latest_price > 0:
+                                current_price = latest_price
+                                change = current_price - previous_close
+                                change_percent = (change / previous_close * 100) if previous_close != 0 else 0
+                    except Exception as intraday_error:
+                        logger.debug(f"Intraday data not available for {ticker_format}: {intraday_error}")
+
+                    logger.info(f"✅ Got historical price for {symbol}: ₹{current_price}")
+                    return {
+                        "symbol": symbol,
+                        "current_price": current_price,
+                        "previous_close": previous_close,
+                        "change": change,
+                        "change_percent": change_percent,
+                        "is_realtime": True,
+                        "timestamp": datetime.now().isoformat(),
+                        "source": "yahoo_historical",
+                        "ticker_used": ticker_format
+                    }
+                    
             except Exception as e:
-                logger.warning(f"Failed to get real-time data for {ticker_format}: {str(e)}")
+                logger.warning(f"Failed to get data for {ticker_format}: {str(e)}")
                 continue
 
-        # Fallback to sample data if real-time fails
-        logger.warning(f"Real-time data unavailable for {symbol}, using sample data")
-        return get_sample_price(symbol)
+        # Enhanced fallback to fixture data with real stock prices
+        logger.warning(f"Real-time data unavailable for {symbol}, using enhanced fallback")
+        return get_enhanced_sample_price(symbol)
 
     except Exception as e:
         logger.error(f"Error in get_realtime_price for {symbol}: {str(e)}")
-        return get_sample_price(symbol)
+        return get_enhanced_sample_price(symbol)
 
 
 def get_multiple_realtime_prices(symbols: List[str]) -> Dict[str, Dict]:
