@@ -59,6 +59,17 @@
         </div>
     </header>
 
+    <!-- Navigation Menu (consistent with other pages) -->
+    <nav class="nav-menu">
+        <div class="nav-container">
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/equities" class="nav-link">Equities</a>
+            <a href="/options" class="nav-link">Options</a>
+            <a href="/commodities" class="nav-link">Commodities</a>
+            <a href="/papertrade" class="nav-link active">Paper Trade</a>
+        </div>
+    </nav>
+
     <!-- Main Content -->
     <main class="main-content">
         <!-- Enhanced Quick Trade Section -->
@@ -119,73 +130,69 @@
             </div>
         </section>
 
-        <!-- Two Column Layout -->
-        <div class="two-column-layout">
-            <!-- Left Column: Current Positions -->
-            <div class="left-column">
-                <section class="card">
-                    <div class="card-header">
-                        <h3>Current Positions</h3>
-                        <span class="position-count" id="positions-count">0 positions</span>
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Symbol/Contract</th>
-                                    <th>Instr</th>
-                                    <th>Qty</th>
-                                    <th>Entry</th>
-                                    <th>Entry Time</th>
-                                    <th>Last</th>
-                                    <th>Value</th>
-                                    <th>P&L</th>
-                                    <th>P&L %</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="positions-table">
-                                <tr>
-                                    <td colspan="11" class="empty-state">No positions found</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
+        <!-- Single Column Layout -->
+        <div class="single-column-layout">
+            <!-- Current Positions -->
+            <section class="card">
+                <div class="card-header">
+                    <h3>Current Positions</h3>
+                    <span class="position-count" id="positions-count">0 positions</span>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol/Contract</th>
+                                <th>Instr</th>
+                                <th>Qty</th>
+                                <th>Entry</th>
+                                <th>Entry Time</th>
+                                <th>Last</th>
+                                <th>Value</th>
+                                <th>P&L</th>
+                                <th>P&L %</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-table">
+                            <tr>
+                                <td colspan="11" class="empty-state">No positions found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-            <!-- Right Column: Recent Trades -->
-            <div class="right-column">
-                <section class="card">
-                    <div class="card-header">
-                        <h3>Recent Trades</h3>
-                        <span class="trade-count" id="trades-count">0 trades</span>
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Symbol/Contract</th>
-                                    <th>Instr</th>
-                                    <th>Side</th>
-                                    <th>Qty</th>
-                                    <th>Type</th>
-                                    <th>Price</th>
-                                    <th>Value</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="trades-table">
-                                <tr>
-                                    <td colspan="9" class="empty-state">No trades executed</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
+            <!-- Recent Trades -->
+            <section class="card">
+                <div class="card-header">
+                    <h3>Recent Trades</h3>
+                    <span class="trade-count" id="trades-count">0 trades</span>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Symbol/Contract</th>
+                                <th>Instr</th>
+                                <th>Side</th>
+                                <th>Qty</th>
+                                <th>Type</th>
+                                <th>Price</th>
+                                <th>Value</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trades-table">
+                            <tr>
+                                <td colspan="9" class="empty-state">No trades executed</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     </main>
 
@@ -338,6 +345,40 @@
     color: var(--danger);
 }
 
+/* Navigation Menu */
+.nav-menu {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 16px;
+}
+
+.nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    gap: 24px;
+}
+
+.nav-link {
+    display: block;
+    padding: 16px 0;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    color: var(--text-primary);
+}
+
+.nav-link.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
 /* Main Content */
 .main-content {
     max-width: 1400px;
@@ -352,19 +393,7 @@
     width: 100%;
 }
 
-.two-column-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
-}
-
-@media (min-width: 1024px) {
-    .two-column-layout {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-.left-column, .right-column {
+.single-column-layout {
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -803,24 +832,32 @@ function updatePortfolioDisplay() {
     
     console.log('📊 Updating enhanced portfolio display:', portfolio);
 
+    // Calculate total P&L from current positions
+    let totalPnlFromPositions = 0;
+    if (positionsData && positionsData.length > 0) {
+        totalPnlFromPositions = positionsData.reduce((sum, position) => {
+            return sum + (position.pnl || 0);
+        }, 0);
+    }
+
     // Update KPI values
     document.getElementById('total-capital').textContent = `₹${formatINR(portfolio.current_capital)}`;
-    document.getElementById('total-pnl').textContent = `₹${formatINR(portfolio.total_pnl)}`;
+    document.getElementById('total-pnl').textContent = `₹${formatINR(totalPnlFromPositions)}`;
     document.getElementById('active-positions').textContent = formatINR(portfolioData.positions_count);
     document.getElementById('position-value').textContent = `₹${formatINR(portfolio.total_position_value)} invested`;
 
-    // Calculate and display percentage
+    // Calculate and display percentage based on positions P&L
     const pnlPercent = portfolio.initial_capital > 0 ? 
-        (portfolio.total_pnl / portfolio.initial_capital * 100) : 0;
+        (totalPnlFromPositions / portfolio.initial_capital * 100) : 0;
     
     const deltaElement = document.getElementById('total-delta');
     deltaElement.textContent = `${pnlPercent.toFixed(2)}%`;
     
     // Apply color coding
-    deltaElement.className = 'kpi-delta ' + (portfolio.total_pnl >= 0 ? 'positive' : 'negative');
+    deltaElement.className = 'kpi-delta ' + (totalPnlFromPositions >= 0 ? 'positive' : 'negative');
     
     const pnlElement = document.getElementById('total-pnl');
-    pnlElement.className = 'kpi-value ' + (portfolio.total_pnl >= 0 ? 'pnl-positive' : 'pnl-negative');
+    pnlElement.className = 'kpi-value ' + (totalPnlFromPositions >= 0 ? 'pnl-positive' : 'pnl-negative');
 }
 
 function updatePositionsTable() {
