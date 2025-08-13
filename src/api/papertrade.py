@@ -52,31 +52,38 @@ class PaperTradeEngine:
     def get_live_price(self, symbol: str) -> Optional[float]:
         """Get real-time price for symbol"""
         try:
-            # Check cache first (5 second TTL for paper trading)
+            # Check cache first (30 second TTL for paper trading)
             cache_key = f"live_price_{symbol}"
-            cached_price = get_cached_data(cache_key)
-            if cached_price is not None:
-                return cached_price
+            cached_data = get_cached_data(cache_key)
+            if cached_data is not None:
+                return cached_data.get('price') if isinstance(cached_data, dict) else cached_data
 
-            # Fetch live price from Yahoo Finance
-            ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
+            # Use the real-time data fetcher
+            realtime_data = get_realtime_price(symbol)
+            
+            if realtime_data and realtime_data.get('current_price', 0) > 0:
+                live_price = float(realtime_data['current_price'])
+                # Cache the full data for 30 seconds
+                cache_data(cache_key, {
+                    'price': live_price,
+                    'change': realtime_data.get('change', 0),
+                    'change_percent': realtime_data.get('change_percent', 0)
+                }, ttl=30)
+                logger.info(f"✅ Live price for {symbol}: ₹{live_price}")
+                return live_price
 
-            for ticker_format in ticker_formats:
-                try:
-                    ticker = yf.Ticker(ticker_format)
-                    data = ticker.history(period="1d", interval="1m")
+            # Fallback to historical data
+            try:
+                stock_data = get_stock_data(symbol)
+                if stock_data and len(stock_data) > 0:
+                    live_price = float(stock_data.iloc[-1]['Close'])
+                    cache_data(cache_key, {'price': live_price}, ttl=30)
+                    logger.info(f"✅ Historical price for {symbol}: ₹{live_price}")
+                    return live_price
+            except Exception as e:
+                logger.warning(f"Historical data fallback failed for {symbol}: {e}")
 
-                    if not data.empty:
-                        live_price = float(data['Close'].iloc[-1])
-                        # Cache for 5 seconds
-                        cache_data(cache_key, live_price, ttl=5)
-                        logger.info(f"✅ Live price for {symbol}: ₹{live_price}")
-                        return live_price
-                except Exception as e:
-                    logger.warning(f"Failed to get price for {ticker_format}: {e}")
-                    continue
-
-            logger.error(f"Could not fetch live price for {symbol}")
+            logger.error(f"Could not fetch any price data for {symbol}")
             return None
 
         except Exception as e:
@@ -535,12 +542,29 @@ def get_portfolio():
 def get_live_price(symbol):
     """Get live price for a symbol"""
     try:
+        # Get cached data or fetch fresh
+        cache_key = f"live_price_{symbol.upper()}"
+        cached_data = get_cached_data(cache_key)
+        
+        if cached_data and isinstance(cached_data, dict):
+            return jsonify({
+                "success": True,
+                "symbol": symbol.upper(),
+                "price": cached_data.get('price'),
+                "change": cached_data.get('change', 0),
+                "change_percent": cached_data.get('change_percent', 0),
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        # Fallback to engine method
         price = engine.get_live_price(symbol.upper())
         if price is not None:
             return jsonify({
                 "success": True,
                 "symbol": symbol.upper(),
                 "price": price,
+                "change": 0,
+                "change_percent": 0,
                 "timestamp": datetime.now().isoformat()
             })
         else:
