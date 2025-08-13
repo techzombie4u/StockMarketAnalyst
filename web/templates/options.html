@@ -8,7 +8,7 @@
     <style>
         :root {
             --bg: #0b1220;
-            --bg-card: #0f172a;
+            --bg-card: #111a2e;
             --text: #e2e8f0;
             --text-muted: #94a3b8;
             --accent: #22c55e;
@@ -19,6 +19,8 @@
             --warn: #f59e0b;
             --danger: #ef4444;
             --ok: #10b981;
+            --emerald: #10b981;
+            --sky: #0ea5e9;
         }
 
         * {
@@ -37,24 +39,32 @@
         .header-bar {
             position: sticky;
             top: 0;
-            z-index: 30;
+            z-index: 40;
             backdrop-filter: blur(8px);
-            background: rgba(11, 18, 32, 0.8);
-            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .header-inner {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 12px;
             padding: 12px 16px;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
-        .brand {
-            font-weight: 800;
-            letter-spacing: 0.2px;
+        .brand-section h1 {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: white;
+        }
+
+        .brand-section p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
         }
 
         .nav {
@@ -65,40 +75,24 @@
 
         .nav-link {
             padding: 8px 12px;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            background: var(--chip-bg);
-            color: var(--text);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: transparent;
+            color: rgba(255, 255, 255, 0.8);
             text-decoration: none;
-            font-size: 13px;
+            font-size: 14px;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .nav-link.active {
-            border-color: var(--text);
-            background: var(--text);
-            color: var(--chip-active-text);
-        }
-
-        .toolbar {
-            margin-left: auto;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 8px 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text);
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .btn:hover {
-            background: var(--border);
+            color: var(--emerald);
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
         }
 
         .container {
@@ -107,115 +101,219 @@
             padding: 16px;
         }
 
-        .strategy-row {
-            display: flex;
-            gap: 12px;
-            align-items: center;
+        .filters-section {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px;
             margin-bottom: 16px;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 600;
-            border: 1px solid var(--border);
-            background: #0a2a1e;
-            color: #bbf7d0;
+        .filters-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
         }
 
-        .chips-row {
+        .filter-badge {
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        .filter-badge span {
+            font-weight: 600;
+            color: white;
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .filter-checkbox input {
+            accent-color: var(--emerald);
+        }
+
+        .filter-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            font-size: 14px;
+        }
+
+        .filter-controls input[type="range"] {
+            width: 120px;
+            accent-color: var(--emerald);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: transparent;
+            color: var(--emerald);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px;
+            min-width: 180px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .table-section {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .table-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .timeframe-chips {
             display: flex;
             gap: 8px;
-            flex-wrap: wrap;
         }
 
         .chip {
-            padding: 6px 10px;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            background: var(--chip-bg);
-            color: var(--text);
+            padding: 6px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: transparent;
+            color: rgba(255, 255, 255, 0.8);
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .chip:hover {
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .chip.active {
-            border-color: var(--text);
-            background: var(--text);
-            color: var(--chip-active-text);
+            color: var(--emerald);
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
         }
 
         .table-wrap {
             overflow-x: auto;
-            border: 1px solid var(--border);
             border-radius: 16px;
-            margin-bottom: 16px;
-            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .table {
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
+            background: var(--bg-card);
         }
 
         .table th {
             text-align: left;
-            padding: 10px 8px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-muted);
-            background: #0c1628;
+            padding: 12px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.05);
             font-weight: 600;
             white-space: nowrap;
             font-size: 12px;
         }
 
         .table td {
-            padding: 10px 8px;
-            border-top: 1px solid var(--border);
+            padding: 12px 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
             white-space: nowrap;
             font-size: 12px;
+            vertical-align: middle;
         }
 
-        .table tbody tr:hover {
+        .table tbody tr:nth-child(odd) {
+            background: rgba(255, 255, 255, 0);
+        }
+
+        .table tbody tr:nth-child(even) {
             background: rgba(255, 255, 255, 0.02);
         }
 
-        .verdict-buy { color: #22c55e; font-weight: 600; }
-        .verdict-sell { color: #ef4444; font-weight: 600; }
-        .verdict-hold { color: #f59e0b; font-weight: 600; }
-        .verdict-recommended { color: #22c55e; font-weight: 600; }
-        .verdict-cautious { color: #f59e0b; font-weight: 600; }
-        .verdict-top-pick { color: #10b981; font-weight: 600; }
-
-        .risk-low { color: #22c55e; }
-        .risk-medium { color: #f59e0b; }
-        .risk-high { color: #ef4444; }
-
-        .confidence-high { color: #22c55e; }
-        .confidence-medium { color: #f59e0b; }
-        .confidence-low { color: #ef4444; }
-
-        .iv-high { color: #22c55e; font-weight: 600; }
-        .iv-medium { color: #f59e0b; font-weight: 600; }
-        .iv-low { color: #ef4444; font-weight: 600; }
-
-        .theta-positive { color: #22c55e; }
-        .theta-negative { color: #ef4444; }
-
-        .event-risk-flag {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
+        .table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        .event-earnings { background: #ef4444; color: white; }
-        .event-dividend { background: #f59e0b; color: white; }
-        .event-clear { background: #22c55e; color: white; }
+        .stock-name {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .verdict-top-pick { color: var(--emerald); font-weight: 600; }
+        .verdict-buy { color: var(--emerald); font-weight: 600; }
+        .verdict-hold { color: var(--warn); font-weight: 600; }
+        .verdict-cautious { color: var(--warn); font-weight: 600; }
+        .verdict-avoid { color: var(--danger); font-weight: 600; }
+
+        .ai-verdict { color: var(--sky); font-weight: 600; }
+
+        .risk-low { color: var(--emerald); }
+        .risk-medium { color: var(--warn); }
+        .risk-high { color: var(--danger); }
+
+        .stability-high { color: var(--emerald); }
+        .stability-med { color: var(--warn); }
+        .stability-low { color: var(--danger); }
+
+        .event-clear { color: var(--emerald); }
+        .event-earnings { color: var(--danger); }
+        .event-dividend { color: var(--warn); }
 
         .loading {
             text-align: center;
@@ -230,14 +328,20 @@
         }
 
         @media (max-width: 768px) {
-            .strategy-row {
+            .filters-row {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 8px;
+                gap: 12px;
             }
             
-            .chips-row {
-                justify-content: flex-start;
+            .filter-controls {
+                margin-left: 0;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .table {
@@ -254,153 +358,187 @@
 <body>
     <div class="header-bar">
         <div class="header-inner">
-            <div class="brand">Stock Market Analyst</div>
+            <div class="brand-section">
+                <h1>Stock Market Analyst</h1>
+                <p>Options – Short Strangle · NSE Equity Options</p>
+            </div>
             <nav class="nav">
                 <a href="/" class="nav-link">Dashboard</a>
                 <a href="/equities" class="nav-link">Equities</a>
                 <a href="/options" class="nav-link active">Options</a>
                 <a href="/commodities" class="nav-link">Commodities</a>
+                <a href="/papertrade" class="nav-link">Paper Trade</a>
             </nav>
-            <div class="toolbar">
-                <button class="btn" id="refresh-btn">Refresh Data</button>
-                <div style="color: var(--text-muted); font-size: 12px;">
-                    Updated: <span id="last-updated">Loading...</span>
-                </div>
-            </div>
         </div>
     </div>
 
     <main class="container">
-        <!-- Strategy Info Row -->
-        <div class="strategy-row">
-            <div style="color: var(--text-muted); font-size: 13px;">Strategy</div>
-            <span class="badge">Short Strangle</span>
-            <div style="color: var(--text-muted); font-size: 13px;">Market</div>
-            <span class="badge">NSE Equity Options</span>
-            <div style="margin-left: auto;">
-                <div class="chips-row">
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="filter-badge">Strategy: <span>Short Strangle</span></div>
+                <div class="filter-badge">Market: <span>NSE Equity Options</span></div>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="hideEventsFilter" checked>
+                    Hide Events
+                </label>
+                <div class="filter-controls">
+                    <span style="color: var(--text-muted);">Max Breakout Prob:</span>
+                    <input type="range" id="breakoutProbSlider" min="0" max="100" value="100">
+                    <span id="breakoutProbValue">100%</span>
+                    <button class="btn" onclick="applyFilters()">Apply Filters</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Accuracy (Micro)</div>
+                <div class="stat-value" id="microAccuracy">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Accuracy (Macro)</div>
+                <div class="stat-value" id="macroAccuracy">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Strategies</div>
+                <div class="stat-value" id="totalStrategies">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg. ROI</div>
+                <div class="stat-value" id="avgROI">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">High IV Opportunities</div>
+                <div class="stat-value" id="highIVCount">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Event‑Free Trades</div>
+                <div class="stat-value" id="eventFreeCount">-</div>
+            </div>
+        </div>
+
+        <!-- Enhanced Options Strategies Table -->
+        <div class="table-section">
+            <div class="table-header">
+                <h3 class="table-title">Enhanced Options Strategies</h3>
+                <div class="timeframe-chips">
                     <button class="chip active" data-timeframe="30D">30D</button>
                     <button class="chip" data-timeframe="15D">15D</button>
                     <button class="chip" data-timeframe="10D">10D</button>
                     <button class="chip" data-timeframe="5D">5D</button>
                 </div>
             </div>
-        </div>
-
-        <!-- Enhanced Filters Row -->
-        <div class="strategy-row" style="margin-bottom: 16px; padding: 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;">
-            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
-                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
-                    <input type="checkbox" id="hideEventsFilter" style="accent-color: var(--accent);">
-                    Hide Events
-                </label>
-                <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                    <label>Max Breakout Prob:</label>
-                    <input type="range" id="breakoutProbSlider" min="20" max="100" value="100" 
-                           style="width: 120px; accent-color: var(--accent);">
-                    <span id="breakoutProbValue">100%</span>
-                </div>
-                <button class="btn" onclick="applyFilters()" style="background: var(--accent); color: white; border-color: var(--accent);">
-                    Apply Filters
-                </button>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Verdict</th>
+                            <th>AI Verdict</th>
+                            <th>Spot</th>
+                            <th>Call</th>
+                            <th>Put</th>
+                            <th>Due Date</th>
+                            <th>Breakeven Range</th>
+                            <th>Breakout Prob</th>
+                            <th>Market Stability</th>
+                            <th>Event</th>
+                            <th>Max Loss (2σ)</th>
+                            <th>Stop Loss %</th>
+                            <th>DTE</th>
+                            <th>IV%</th>
+                            <th>IV Rank</th>
+                            <th>Net Credit</th>
+                            <th>Theta/Day</th>
+                            <th>ROI on Margin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="strategiesTableBody">
+                        <tr>
+                            <td colspan="19" class="loading">Loading enhanced options strategies...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- Options Strategy Table -->
-        <div class="table-wrap">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th title="Stock Symbol">Stock</th>
-                        <th title="Current Spot Price">Spot</th>
-                        <th title="Call Strike Price">Call</th>
-                        <th title="Put Strike Price">Put</th>
-                        <th title="Days to Expiry">DTE</th>
-                        <th title="Implied Volatility %">IV%</th>
-                        <th title="IV Rank (0-100)">IV Rank</th>
-                        <th title="Net Credit Per Lot">Net Credit</th>
-                        <th title="Theta Decay Per Day (from Greeks)">Theta/Day</th>
-                        <th title="ROI on Margin Required">ROI on Margin</th>
-                        <th title="Breakeven Price Range">Breakeven Range</th>
-                        <th title="Monte Carlo Breakout Probability">Breakout Prob</th>
-                        <th title="Market Stability Score (0-100)">Market Stability</th>
-                        <th title="Event Risk Flag">Event</th>
-                        <th title="Max Loss at 2-Sigma Move">Max Loss (2σ)</th>
-                        <th title="Dynamic Stop Loss % of Credit">Stop Loss %</th>
-                        <th title="Trading Verdict">Verdict</th>
-                        <th title="AI Agent Enhanced Verdict">AI Agent</th>
-                    </tr>
-                </thead>
-                <tbody id="options-table-body">
-                    <tr>
-                        <td colspan="17" class="loading">Loading enhanced options strategies...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Strategy Summary -->
-        <div style="display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap;">
-            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; flex: 1; min-width: 200px;">
-                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Total Strategies</div>
-                <div style="font-size: 24px; font-weight: 700;" id="total-strategies">-</div>
+        <!-- Active Predictions Table -->
+        <div class="table-section">
+            <div class="table-header">
+                <h3 class="table-title">Active Predictions (Real‑time)</h3>
             </div>
-            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; flex: 1; min-width: 200px;">
-                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Avg. ROI</div>
-                <div style="font-size: 24px; font-weight: 700;" id="avg-roi">-</div>
-            </div>
-            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; flex: 1; min-width: 200px;">
-                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">High IV Opportunities</div>
-                <div style="font-size: 24px; font-weight: 700;" id="high-iv-count">-</div>
-            </div>
-            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; flex: 1; min-width: 200px;">
-                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Event-Free Trades</div>
-                <div style="font-size: 24px; font-weight: 700;" id="event-free-count">-</div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Due Date</th>
+                            <th>Stock</th>
+                            <th>Predicted Outcome</th>
+                            <th>Current Outcome</th>
+                            <th>Predicted ROI</th>
+                            <th>Current ROI</th>
+                            <th>Reason (if changed)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activePredictionsBody">
+                        <tr>
+                            <td colspan="7" class="loading">Loading active predictions...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </main>
 
     <script>
         let currentTimeframe = '30D';
-        let optionsData = [];
+        let strategiesData = [];
+        let activePredictionsData = [];
+        let accuracyData = [];
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
-            loadOptionsData();
+            loadAllData();
         });
 
         function setupEventListeners() {
             // Timeframe chips
             document.querySelectorAll('.chip[data-timeframe]').forEach(chip => {
                 chip.addEventListener('click', function() {
-                    // Update active chip
                     document.querySelectorAll('.chip[data-timeframe]').forEach(c => c.classList.remove('active'));
                     this.classList.add('active');
-                    
-                    // Get selected timeframe and update data
                     currentTimeframe = this.dataset.timeframe;
-                    loadOptionsData();
+                    loadStrategiesData();
                 });
             });
 
-            // Refresh button
-            document.getElementById('refresh-btn').addEventListener('click', function() {
-                loadOptionsData(true);
-            });
+            // Breakout probability slider
+            const slider = document.getElementById('breakoutProbSlider');
+            const display = document.getElementById('breakoutProbValue');
+            if (slider && display) {
+                slider.addEventListener('input', function() {
+                    display.textContent = this.value + '%';
+                });
+            }
         }
 
-        async function loadOptionsData(forceRefresh = false) {
+        async function loadAllData() {
+            await Promise.all([
+                loadStrategiesData(),
+                loadActivePredictions(),
+                loadAccuracyData()
+            ]);
+        }
+
+        async function loadStrategiesData() {
             try {
-                showLoading();
-                
-                // Use the new v2 strangle recommendations API
                 const hideEvents = document.getElementById('hideEventsFilter')?.checked || false;
                 const maxBreakoutProb = document.getElementById('breakoutProbSlider')?.value || 100;
                 
-                const url = `/api/options/strangle/recommendations?timeframe=${currentTimeframe}&force_refresh=${forceRefresh}&hide_events=${hideEvents}&max_breakout_prob=${maxBreakoutProb}`;
-                console.log(`🔄 Loading v2 options data from: ${url}`);
-                
+                const url = `/api/options/strangle/recommendations?timeframe=${currentTimeframe}&hide_events=${hideEvents}&max_breakout_prob=${maxBreakoutProb}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -408,187 +546,240 @@
                 }
                 
                 const data = await response.json();
-                console.log('📊 V2 options data loaded:', data);
                 
                 if (data.strategies && Array.isArray(data.strategies)) {
-                    optionsData = data.strategies;
-                    updateOptionsTable(data.strategies);
-                    updateSummaryStats(data.summary || {});
+                    strategiesData = data.strategies;
+                    updateStrategiesTable(data.strategies);
+                    updateSummaryStats(data.strategies);
                 } else {
-                    throw new Error('Invalid data format received');
+                    throw new Error('Invalid strategies data format received');
                 }
                 
-                updateLastUpdated();
-                
             } catch (error) {
-                console.error('❌ Error loading options data:', error);
-                showError(error.message);
+                console.error('Error loading strategies data:', error);
+                showStrategiesError(error.message);
             }
         }
 
-        function showLoading() {
-            document.getElementById('options-table-body').innerHTML = 
-                '<tr><td colspan="17" class="loading">Loading enhanced options strategies...</td></tr>';
+        async function loadActivePredictions() {
+            try {
+                // Mock data for active predictions
+                const mockData = [
+                    { due: "2025-08-27", stock: "MARUTI", predicted: "On Track", current: "Outperforming", proi: 26.9, croi: 30.0, reason: "ROI exceeded expectations" },
+                    { due: "2025-08-29", stock: "RELIANCE", predicted: "On Track", current: "Outperforming", proi: 22.9, croi: 30.0, reason: "ROI exceeded expectations" },
+                    { due: "2025-09-07", stock: "ITC", predicted: "On Track", current: "Outperforming", proi: 29.9, croi: 43.43, reason: "ROI exceeded expectations" }
+                ];
+                
+                activePredictionsData = mockData;
+                updateActivePredictionsTable(mockData);
+                
+            } catch (error) {
+                console.error('Error loading active predictions:', error);
+                showActivePredictionsError(error.message);
+            }
         }
 
-        function showError(message) {
-            document.getElementById('options-table-body').innerHTML = 
-                `<tr><td colspan="17" class="error">Error: ${message}</td></tr>`;
+        async function loadAccuracyData() {
+            try {
+                // Mock accuracy data based on your example calculations
+                const mockAccuracy = [
+                    { tf: 3, success: 8, failed: 1 },
+                    { tf: 5, success: 1, failed: 1 },
+                    { tf: 10, success: 12, failed: 3 },
+                    { tf: 15, success: 9, failed: 4 },
+                    { tf: 30, success: 1, failed: 0 }
+                ];
+                
+                accuracyData = mockAccuracy;
+                updateAccuracyStats(mockAccuracy);
+                
+            } catch (error) {
+                console.error('Error loading accuracy data:', error);
+            }
         }
 
-        function updateOptionsTable(strategies) {
-            const tbody = document.getElementById('options-table-body');
+        function updateAccuracyStats(accuracyData) {
+            // Calculate micro and macro accuracy as per your example
+            let totalSuccess = 0, totalFailed = 0;
+            let ratios = [];
+            
+            for (const timeframe of accuracyData) {
+                const success = Number(timeframe.success || 0);
+                const failed = Number(timeframe.failed || 0);
+                const total = success + failed;
+                
+                totalSuccess += success;
+                totalFailed += failed;
+                
+                if (total > 0) {
+                    ratios.push(success / total);
+                }
+            }
+            
+            // Micro accuracy: overall success rate
+            const microAccuracy = (totalSuccess + totalFailed) > 0 ? 
+                (totalSuccess / (totalSuccess + totalFailed)) * 100 : 0;
+            
+            // Macro accuracy: average of individual timeframe accuracies
+            const macroAccuracy = ratios.length > 0 ? 
+                (ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length) * 100 : 0;
+            
+            document.getElementById('microAccuracy').textContent = `${microAccuracy.toFixed(1)}%`;
+            document.getElementById('macroAccuracy').textContent = `${macroAccuracy.toFixed(1)}%`;
+        }
+
+        function updateSummaryStats(strategies) {
+            const total = strategies.length;
+            const avgROI = total > 0 ? 
+                strategies.reduce((sum, s) => sum + Number(s.roi_on_margin_percent || 0), 0) / total : 0;
+            const highIV = strategies.filter(s => (s.iv_rank || 0) >= 50).length;
+            const eventFree = strategies.filter(s => s.event_flag === 'CLEAR' || !s.event_flag).length;
+            
+            document.getElementById('totalStrategies').textContent = total;
+            document.getElementById('avgROI').textContent = `${avgROI.toFixed(1)}%`;
+            document.getElementById('highIVCount').textContent = highIV;
+            document.getElementById('eventFreeCount').textContent = eventFree;
+        }
+
+        function updateStrategiesTable(strategies) {
+            const tbody = document.getElementById('strategiesTableBody');
             
             if (!strategies || strategies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="17" style="text-align: center; padding: 20px; color: var(--text-muted);">No strategies available for this timeframe</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="19" style="text-align: center; padding: 20px; color: var(--text-muted);">No strategies available for this timeframe</td></tr>';
                 return;
             }
 
             tbody.innerHTML = strategies.map(strategy => {
-                // V2 data format with proper calculations
-                const dte = strategy.dte_days || 30;
-                const ivPercent = strategy.iv_percent || 25;
-                const ivRank = strategy.iv_rank || 50;
-                const thetaPerDay = strategy.theta_per_day_per_lot || 0;
-                const roiOnMargin = strategy.roi_on_margin_percent || 0;
-                const breakoutProb = strategy.breakout_prob_percent || 50;
-                const marketStability = strategy.market_stability_score || 50;
-                const maxLoss2Sigma = strategy.max_loss_two_sigma || 0;
-                const stopLossPct = strategy.stop_loss_percent_of_credit || 180;
-                const netCredit = strategy.net_credit_per_lot || 0;
-                const breakevenLower = strategy.breakeven_lower || 0;
-                const breakevenUpper = strategy.breakeven_upper || 0;
-                
-                // Determine CSS classes for styling
-                const ivClass = getIVClass(ivPercent, ivRank);
-                const thetaClass = getThetaClass(thetaPerDay);
-                const stabilityClass = getStabilityClass(marketStability);
+                const dueDate = calculateDueDate(strategy.dte_days || 30);
+                const breakevenRange = `₹${formatINR(strategy.breakeven_lower || 0)} – ₹${formatINR(strategy.breakeven_upper || 0)}`;
+                const breakoutProb = `${(strategy.breakout_prob_percent || 0).toFixed(0)}%`;
                 const verdictClass = getVerdictClass(strategy.verdict);
-                const aiVerdictClass = getVerdictClass(strategy.ai_agent_verdict);
-                
-                // Event risk display
-                const eventRisk = getEventRiskDisplay(strategy.event_flag);
-                
-                // Breakeven range display
-                const breakevenRange = `${breakevenLower.toFixed(0)}-${breakevenUpper.toFixed(0)}`;
+                const stabilityClass = getStabilityClass(strategy.market_stability_score);
+                const eventDisplay = getEventDisplay(strategy.event_flag);
 
                 return `
                     <tr>
-                        <td><strong>${strategy.symbol}</strong></td>
-                        <td>₹${strategy.spot?.toFixed(2) || 'N/A'}</td>
-                        <td>${strategy.call_strike?.toFixed(0) || 'N/A'}</td>
-                        <td>${strategy.put_strike?.toFixed(0) || 'N/A'}</td>
-                        <td>${dte}d</td>
-                        <td class="${ivClass}">${ivPercent.toFixed(1)}%</td>
-                        <td class="${ivClass}">${ivRank.toFixed(0)}</td>
-                        <td>₹${netCredit.toFixed(2)}</td>
-                        <td class="${thetaClass}">₹${thetaPerDay.toFixed(2)}</td>
-                        <td class="${roiOnMargin > 2 ? 'confidence-high' : roiOnMargin > 1 ? 'confidence-medium' : 'confidence-low'}">${roiOnMargin.toFixed(2)}%</td>
-                        <td title="Breakeven Range">${breakevenRange}</td>
-                        <td class="${breakoutProb > 40 ? 'risk-high' : breakoutProb > 30 ? 'risk-medium' : 'risk-low'}">${breakoutProb.toFixed(1)}%</td>
-                        <td class="${stabilityClass}">${marketStability.toFixed(0)}</td>
-                        <td>${eventRisk}</td>
-                        <td class="${maxLoss2Sigma < 0 ? 'risk-high' : 'risk-low'}">₹${Math.abs(maxLoss2Sigma).toFixed(0)}</td>
-                        <td>${stopLossPct.toFixed(0)}%</td>
-                        <td class="${verdictClass}">${strategy.verdict || 'Hold'}</td>
-                        <td class="${aiVerdictClass}">${strategy.ai_agent_verdict || 'Hold'}</td>
+                        <td><div class="stock-name">${strategy.symbol}</div></td>
+                        <td><span class="${verdictClass}">${strategy.verdict || 'Hold'}</span></td>
+                        <td><span class="ai-verdict">${strategy.ai_agent_verdict || 'Hold'}</span></td>
+                        <td>₹${formatINR(strategy.spot)}</td>
+                        <td>₹${formatINR(strategy.call_strike)}</td>
+                        <td>₹${formatINR(strategy.put_strike)}</td>
+                        <td>${dueDate}</td>
+                        <td>${breakevenRange}</td>
+                        <td class="${getBreakoutProbClass(strategy.breakout_prob_percent)}">${breakoutProb}</td>
+                        <td class="${stabilityClass}">${getStabilityText(strategy.market_stability_score)}</td>
+                        <td class="${getEventClass(strategy.event_flag)}">${eventDisplay}</td>
+                        <td class="${getMaxLossClass(strategy.max_loss_two_sigma)}">₹${formatINR(Math.abs(strategy.max_loss_two_sigma || 0))}</td>
+                        <td>${(strategy.stop_loss_percent_of_credit || 180).toFixed(0)}%</td>
+                        <td>${strategy.dte_days || 30}d</td>
+                        <td>${(strategy.iv_percent || 0).toFixed(1)}%</td>
+                        <td>${(strategy.iv_rank || 0).toFixed(0)}</td>
+                        <td>₹${formatINR(strategy.net_credit_per_lot)}</td>
+                        <td>₹${formatINR(strategy.theta_per_day_per_lot)}</td>
+                        <td class="${getROIClass(strategy.roi_on_margin_percent)}">${(strategy.roi_on_margin_percent || 0).toFixed(1)}%</td>
                     </tr>
                 `;
             }).join('');
         }
 
-        function updateSummaryStats(summary) {
-            // Use summary from v2 API response
-            document.getElementById('total-strategies').textContent = summary.total_strategies || '0';
-            document.getElementById('avg-roi').textContent = `${summary.avg_roi || 0}%`;
-            document.getElementById('high-iv-count').textContent = summary.high_iv_opportunities || '0';
-            document.getElementById('event-free-count').textContent = summary.event_free_trades || '0';
+        function updateActivePredictionsTable(predictions) {
+            const tbody = document.getElementById('activePredictionsBody');
+            
+            if (!predictions || predictions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--text-muted);">No active trades in progress</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = predictions.map(pred => `
+                <tr>
+                    <td>${pred.due}</td>
+                    <td><div class="stock-name">${pred.stock}</div></td>
+                    <td>${pred.predicted}</td>
+                    <td>${pred.current}</td>
+                    <td>${pred.proi}%</td>
+                    <td>${pred.croi}%</td>
+                    <td>${pred.reason}</td>
+                </tr>
+            `).join('');
         }
 
-        function getIVClass(ivPercent, ivRank) {
-            if (ivPercent >= 30 && ivRank >= 70) return 'iv-high';
-            if (ivPercent >= 20 && ivRank >= 50) return 'iv-medium';
-            return 'iv-low';
+        function showStrategiesError(message) {
+            document.getElementById('strategiesTableBody').innerHTML = 
+                `<tr><td colspan="19" class="error">Error: ${message}</td></tr>`;
         }
 
-        function getThetaClass(theta) {
-            return theta > 0 ? 'theta-positive' : 'theta-negative';
+        function showActivePredictionsError(message) {
+            document.getElementById('activePredictionsBody').innerHTML = 
+                `<tr><td colspan="7" class="error">Error: ${message}</td></tr>`;
         }
 
-        function getStabilityClass(stability) {
-            if (stability >= 80) return 'confidence-high';
-            if (stability >= 60) return 'confidence-medium';
-            return 'confidence-low';
+        function calculateDueDate(dte) {
+            const today = new Date();
+            const dueDate = new Date(today.getTime() + (dte * 24 * 60 * 60 * 1000));
+            return dueDate.toISOString().split('T')[0];
+        }
+
+        function formatINR(value) {
+            return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(Number(value || 0));
         }
 
         function getVerdictClass(verdict) {
             if (!verdict) return '';
             const v = verdict.toLowerCase();
-            if (v.includes('strong buy') || v.includes('top pick')) return 'verdict-top-pick';
-            if (v.includes('buy') || v.includes('recommended')) return 'verdict-buy';
-            if (v.includes('sell') || v.includes('avoid')) return 'verdict-sell';
-            if (v.includes('hold') || v.includes('cautious')) return 'verdict-hold';
+            if (v.includes('top pick')) return 'verdict-top-pick';
+            if (v.includes('buy')) return 'verdict-buy';
+            if (v.includes('hold')) return 'verdict-hold';
+            if (v.includes('cautious')) return 'verdict-cautious';
+            if (v.includes('avoid')) return 'verdict-avoid';
             return '';
         }
 
-        function assessEventRisk(strategy) {
-            // Mock event risk assessment - in real implementation, integrate with earnings calendar
-            const daysToEarnings = Math.random() * 45;
-            const hasDividend = Math.random() > 0.8;
-            
-            if (daysToEarnings <= strategy.days_to_expiry && daysToEarnings <= 7) {
-                return {
-                    html: '<span class="event-risk-flag event-earnings">EARNINGS</span>',
-                    hasRisk: true
-                };
-            } else if (hasDividend) {
-                return {
-                    html: '<span class="event-risk-flag event-dividend">DIV</span>',
-                    hasRisk: true
-                };
-            } else {
-                return {
-                    html: '<span class="event-risk-flag event-clear">CLEAR</span>',
-                    hasRisk: false
-                };
-            }
+        function getStabilityClass(score) {
+            if (score >= 80) return 'stability-high';
+            if (score >= 60) return 'stability-med';
+            return 'stability-low';
         }
 
-        function getEventRiskDisplay(eventFlag) {
-            """Generate event risk display HTML"""
-            switch(eventFlag) {
-                case 'EARNINGS':
-                    return '<span class="event-risk-flag event-earnings">EARNINGS</span>';
-                case 'DIV':
-                    return '<span class="event-risk-flag event-dividend">DIV</span>';
-                case 'OTHER':
-                    return '<span class="event-risk-flag event-dividend">OTHER</span>';
-                case 'CLEAR':
-                default:
-                    return '<span class="event-risk-flag event-clear">CLEAR</span>';
-            }
+        function getStabilityText(score) {
+            if (score >= 80) return 'High';
+            if (score >= 60) return 'Med';
+            return 'Low';
+        }
+
+        function getBreakoutProbClass(prob) {
+            if (prob > 40) return 'risk-high';
+            if (prob > 30) return 'risk-medium';
+            return 'risk-low';
+        }
+
+        function getEventClass(eventFlag) {
+            if (eventFlag === 'CLEAR') return 'event-clear';
+            if (eventFlag === 'EARNINGS') return 'event-earnings';
+            if (eventFlag === 'DIV') return 'event-dividend';
+            return 'event-clear';
+        }
+
+        function getEventDisplay(eventFlag) {
+            if (eventFlag === 'CLEAR') return '—';
+            if (eventFlag === 'EARNINGS') return 'EARNINGS';
+            if (eventFlag === 'DIV') return 'DIV';
+            return '—';
+        }
+
+        function getMaxLossClass(maxLoss) {
+            if (maxLoss < 0) return 'risk-high';
+            return 'risk-low';
+        }
+
+        function getROIClass(roi) {
+            if (roi > 3) return 'risk-low';
+            if (roi > 1) return 'risk-medium';
+            return 'risk-high';
         }
 
         function applyFilters() {
-            """Apply filters and reload data"""
-            loadOptionsData(false);
-        }
-
-        // Update breakout probability slider display
-        document.addEventListener('DOMContentLoaded', function() {
-            const slider = document.getElementById('breakoutProbSlider');
-            const display = document.getElementById('breakoutProbValue');
-            
-            if (slider && display) {
-                slider.addEventListener('input', function() {
-                    display.textContent = this.value + '%';
-                });
-            }
-        });
-
-        function updateLastUpdated() {
-            const now = new Date();
-            document.getElementById('last-updated').textContent = now.toLocaleTimeString();
+            loadStrategiesData();
         }
     </script>
 </body>
