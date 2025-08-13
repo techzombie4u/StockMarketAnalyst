@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "order_id": "PT_20250813_081347_TCS_BUY",
+    "symbol": "TCS",
+    "side": "BUY",
+    "quantity": 100,
+    "order_type": "MARKET",
+    "exec_price": 3040.5,
+    "exec_value": 304050.0,
+    "timestamp": "2025-08-13T08:13:47.610101",
+    "status": "EXECUTED",
+    "price_source": "real-time"
+  }
+]

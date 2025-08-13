@@ -1,10 +1,10 @@
 {
   "initial_capital": 1000000.0,
-  "current_capital": 1000000.0,
-  "total_pnl": 0.0,
-  "realized_pnl": 0.0,
-  "unrealized_pnl": 0.0,
+  "current_capital": 695520.0,
+  "total_pnl": -304480.0,
+  "realized_pnl": -304050.0,
+  "unrealized_pnl": -430.0,
   "created_at": "2025-08-13T05:50:22.129267",
-  "last_updated": "2025-08-13T07:59:29.171300",
-  "total_position_value": 0.0
+  "last_updated": "2025-08-13T10:09:21.772019",
+  "total_position_value": 303620.0
 }
