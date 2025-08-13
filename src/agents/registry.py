@@ -62,16 +62,27 @@ class AgentRegistry:
         if not a.run_fn:
             return {"success": False, "error": f"Agent {key} has no runner"}
 
-        result = a.run_fn() or {}
-        # normalize minimal schema used by tests
-        now = int(time.time())
-        result.setdefault("agent", key)
-        result.setdefault("timestamp", now)
-        result.setdefault("success", True)
+        try:
+            result = a.run_fn() or {}
+            # normalize minimal schema used by tests
+            now = int(time.time())
+            result.setdefault("agent", key)
+            result.setdefault("timestamp", now)
+            result.setdefault("success", True)
 
-        a.last_result = result
-        self._persist_result(key, result)
-        return {"success": True, "result": result}
+            a.last_result = result
+            self._persist_result(key, result)
+            return {"success": True, "result": result}
+        except Exception as e:
+            error_result = {
+                "success": False,
+                "error": str(e),
+                "agent": key,
+                "timestamp": int(time.time())
+            }
+            a.last_result = error_result
+            self._persist_result(key, error_result)
+            return {"success": False, "result": error_result}
 
     def run_all(self) -> Dict[str, Any]:
         outputs = {}

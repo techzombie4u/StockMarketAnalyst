@@ -1,4 +1,3 @@
-
 {% extends "_layout.html" %}
 
 {% block title %}Paper Trading - Fusion Stock Analyst{% endblock %}
@@ -22,7 +21,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <!-- Enhanced KPI Grid -->
             <div class="kpi-grid">
                 <div class="kpi-card">
@@ -674,7 +673,7 @@
     .enhanced-trade-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .trade-symbol-wide {
         grid-column: span 1;
     }
@@ -699,10 +698,26 @@ let performanceMetrics = {
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     loadPortfolioData();
-    
+
     // Auto-refresh every 30 seconds
-    setInterval(loadPortfolioData, 30000);
-    
+    setInterval(() => {
+        loadPositions();
+        loadPortfolio();
+        loadOrders();
+    }, 30000);
+
+    // Force real-time data refresh every 10 seconds
+    setInterval(() => {
+        fetch('/api/papertrade/portfolio')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.portfolio) {
+                    updatePortfolioDisplay(data.portfolio);
+                }
+            })
+            .catch(error => console.error('Error refreshing portfolio:', error));
+    }, 10000);
+
     // Update time display every second
     setInterval(updateTimeDisplay, 1000);
 });
@@ -714,7 +729,7 @@ function setupEventListeners() {
     });
     document.getElementById('execute-trade').addEventListener('click', executeTrade);
     document.getElementById('trade-symbol').addEventListener('input', handleSymbolInput);
-    
+
     // Order type change handler
     document.getElementById('trade-order-type').addEventListener('change', function() {
         const limitField = document.querySelector('.limit-price-field');
@@ -724,7 +739,7 @@ function setupEventListeners() {
             limitField.style.display = 'none';
         }
     });
-    
+
     // Auto-update live price when symbol changes
     let priceTimer;
     document.getElementById('trade-symbol').addEventListener('input', function() {
@@ -739,12 +754,12 @@ function updateTimeDisplay() {
 
 async function loadPortfolioData(forceRefresh = false) {
     if (isLoading) return;
-    
+
     isLoading = true;
-    
+
     try {
         console.log('🔄 Loading enhanced portfolio data...');
-        
+
         // Load all data concurrently
         const [portfolioRes, positionsRes, ordersRes] = await Promise.all([
             fetch('/api/papertrade/portfolio'),
@@ -760,7 +775,7 @@ async function loadPortfolioData(forceRefresh = false) {
 
         if (portfolioResult.success) {
             portfolioData = portfolioResult.data;
-            updatePortfolioDisplay();
+            updatePortfolioDisplay(portfolioData.portfolio); // Pass portfolio data here
         }
 
         if (positionsResult.success) {
@@ -778,7 +793,7 @@ async function loadPortfolioData(forceRefresh = false) {
         updateEnhancedKPIs();
 
         showToast('Portfolio data refreshed', 'success');
-        
+
     } catch (error) {
         console.error('❌ Error loading portfolio:', error);
         showToast('Failed to load portfolio data', 'error');
@@ -825,11 +840,9 @@ function updateEnhancedKPIs() {
     document.getElementById('max-drawdown').textContent = `Max DD ${performanceMetrics.max_drawdown.toFixed(1)}%`;
 }
 
-function updatePortfolioDisplay() {
-    if (!portfolioData || !portfolioData.portfolio) return;
+function updatePortfolioDisplay(portfolio) { // Accept portfolio object as argument
+    if (!portfolio) return;
 
-    const portfolio = portfolioData.portfolio;
-    
     console.log('📊 Updating enhanced portfolio display:', portfolio);
 
     // Calculate total P&L from current positions
@@ -847,15 +860,15 @@ function updatePortfolioDisplay() {
     document.getElementById('position-value').textContent = `₹${formatINR(portfolio.total_position_value)} invested`;
 
     // Calculate and display percentage based on positions P&L
-    const pnlPercent = portfolio.initial_capital > 0 ? 
+    const pnlPercent = portfolio.initial_capital > 0 ?
         (totalPnlFromPositions / portfolio.initial_capital * 100) : 0;
-    
+
     const deltaElement = document.getElementById('total-delta');
     deltaElement.textContent = `${pnlPercent.toFixed(2)}%`;
-    
+
     // Apply color coding
     deltaElement.className = 'kpi-delta ' + (totalPnlFromPositions >= 0 ? 'positive' : 'negative');
-    
+
     const pnlElement = document.getElementById('total-pnl');
     pnlElement.className = 'kpi-value ' + (totalPnlFromPositions >= 0 ? 'pnl-positive' : 'pnl-negative');
 }
@@ -876,12 +889,12 @@ function updatePositionsTable() {
 
     positionsData.forEach(position => {
         const row = document.createElement('tr');
-        
+
         const pnlClass = position.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
         const instrument = position.instrument || 'EQUITY';
         const entryTime = position.entry_date ? new Date(position.entry_date).toLocaleString() : '--';
         const status = position.status || 'OPEN';
-        
+
         row.innerHTML = `
             <td><div class="font-medium">${position.symbol}</div></td>
             <td><div class="text-white/70">${instrument}</div></td>
@@ -897,7 +910,7 @@ function updatePositionsTable() {
                 <button class="btn-close" onclick="closePosition('${position.symbol}')">Close</button>
             </td>
         `;
-        
+
         tbody.appendChild(row);
     });
 }
@@ -919,11 +932,11 @@ function updateTradesTable() {
     // Show only recent trades (up to 12)
     tradesData.slice(0, 12).forEach(trade => {
         const row = document.createElement('tr');
-        
+
         const sideClass = trade.side === 'BUY' ? 'pnl-positive' : 'pnl-negative';
         const instrument = trade.instrument || 'EQUITY';
         const orderType = trade.order_type || 'MARKET';
-        
+
         row.innerHTML = `
             <td><div style="color: rgba(255, 255, 255, 0.7);">${new Date(trade.timestamp).toLocaleString()}</div></td>
             <td><div class="font-medium">${trade.symbol}</div></td>
@@ -935,7 +948,7 @@ function updateTradesTable() {
             <td>₹${formatINR(trade.exec_value)}</td>
             <td><span class="badge badge-ok">${trade.status}</span></td>
         `;
-        
+
         tbody.appendChild(row);
     });
 }
@@ -958,9 +971,9 @@ async function fetchLivePrice() {
     try {
         priceDisplay.textContent = 'Loading...';
         priceDisplay.className = 'live-price-display loading';
-        
+
         console.log(`🔄 Fetching live price for ${symbol}...`);
-        
+
         const response = await fetch(`/api/papertrade/live-price/${symbol}`);
         const result = await response.json();
 
@@ -1002,7 +1015,7 @@ async function executeTrade() {
 
     try {
         console.log(`🔄 Executing enhanced trade: ${side} ${quantity} ${instrument} ${symbol}`);
-        
+
         const tradeData = {
             instrument: instrument,
             symbol: symbol,
@@ -1040,7 +1053,7 @@ async function executeTrade() {
                 `Executed ${side} ${quantity} ${instrumentLabel}${symbol} @ ₹${formatINR(result.order.exec_price)}`,
                 'success'
             );
-            
+
             // Clear form
             document.getElementById('trade-symbol').value = '';
             document.getElementById('trade-quantity').value = '100';
@@ -1067,7 +1080,7 @@ async function closePosition(symbol) {
 
     try {
         console.log(`🔄 Closing position: ${symbol}`);
-        
+
         const response = await fetch('/api/papertrade/close', {
             method: 'POST',
             headers: {
@@ -1096,10 +1109,10 @@ async function closePosition(symbol) {
 function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
     const content = document.getElementById('toast-content');
-    
+
     content.textContent = message;
     toast.className = `toast ${type}`;
-    
+
     setTimeout(() => {
         toast.className = 'toast hidden';
     }, 3000);
