@@ -1,0 +1,641 @@
+
+{% extends "_layout.html" %}
+
+{% block title %}Paper Trade{% endblock %}
+
+{% block extra_css %}
+<style>
+.papertrade-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+}
+
+.portfolio-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.portfolio-card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.portfolio-card h3 {
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+}
+
+.portfolio-card .value {
+    color: #e2e8f0;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.portfolio-card .change {
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.positive { color: #22c55e; }
+.negative { color: #ef4444; }
+
+.trade-form {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 16px;
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    color: #94a3b8;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select {
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 6px;
+    color: #e2e8f0;
+    padding: 12px;
+    font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #22c55e;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #22c55e;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #16a34a;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-secondary {
+    background: #374151;
+    color: #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+}
+
+.section {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.section-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+}
+
+.section-header h2 {
+    color: #e2e8f0;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.section-content {
+    padding: 0;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #1e293b;
+}
+
+.data-table th {
+    background: #111827;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.data-table td {
+    color: #e2e8f0;
+    font-size: 14px;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #94a3b8;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #94a3b8;
+}
+
+.refresh-btn {
+    background: none;
+    border: 1px solid #1e293b;
+    color: #94a3b8;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.refresh-btn:hover {
+    border-color: #22c55e;
+    color: #22c55e;
+}
+
+.live-price {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 12px;
+}
+
+.trade-actions {
+    display: flex;
+    gap: 8px;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .portfolio-summary {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="papertrade-container">
+    <!-- Portfolio Summary -->
+    <div class="portfolio-summary" id="portfolioSummary">
+        <div class="portfolio-card">
+            <h3>Portfolio Value</h3>
+            <div class="value" id="portfolioValue">₹0</div>
+            <div class="change" id="portfolioChange">+₹0 (0%)</div>
+        </div>
+        <div class="portfolio-card">
+            <h3>Total P&L</h3>
+            <div class="value" id="totalPnL">₹0</div>
+            <div class="change" id="totalPnLPercent">0%</div>
+        </div>
+        <div class="portfolio-card">
+            <h3>Open Positions</h3>
+            <div class="value" id="openPositions">0</div>
+        </div>
+        <div class="portfolio-card">
+            <h3>Total Trades</h3>
+            <div class="value" id="totalTrades">0</div>
+        </div>
+    </div>
+
+    <!-- Trade Form -->
+    <div class="trade-form">
+        <h2 style="color: #e2e8f0; margin-bottom: 20px;">Place Trade</h2>
+        <form id="tradeForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="symbol">Symbol</label>
+                    <input type="text" id="symbol" name="symbol" placeholder="e.g. RELIANCE" required>
+                </div>
+                <div class="form-group">
+                    <label for="side">Side</label>
+                    <select id="side" name="side" required>
+                        <option value="BUY">Buy</option>
+                        <option value="SELL">Sell</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantity">Quantity</label>
+                    <input type="number" id="quantity" name="quantity" min="1" placeholder="100" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="executeBtn">Execute Trade</button>
+            </div>
+            <div style="margin-top: 16px; display: flex; align-items: center; gap: 16px;">
+                <span style="color: #94a3b8; font-size: 14px;">Live Price:</span>
+                <span class="live-price" id="livePrice">-</span>
+                <button type="button" class="refresh-btn" id="refreshPrice">Refresh</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Current Positions -->
+    <div class="section">
+        <div class="section-header">
+            <h2>Current Positions</h2>
+            <button class="refresh-btn" id="refreshPositions">Refresh</button>
+        </div>
+        <div class="section-content">
+            <div class="table-container">
+                <table class="data-table" id="positionsTable">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Quantity</th>
+                            <th>Avg Price</th>
+                            <th>Current Price</th>
+                            <th>P&L</th>
+                            <th>P&L %</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positionsBody">
+                        <tr>
+                            <td colspan="7" class="loading">Loading positions...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order History -->
+    <div class="section">
+        <div class="section-header">
+            <h2>Order History</h2>
+            <button class="refresh-btn" id="refreshOrders">Refresh</button>
+        </div>
+        <div class="section-content">
+            <div class="table-container">
+                <table class="data-table" id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Value</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersBody">
+                        <tr>
+                            <td colspan="8" class="loading">Loading orders...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+class PaperTradeManager {
+    constructor() {
+        this.currentSymbol = '';
+        this.autoRefreshInterval = null;
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.loadInitialData();
+        this.startAutoRefresh();
+    }
+
+    bindEvents() {
+        // Trade form
+        document.getElementById('tradeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.executeTrade();
+        });
+
+        // Symbol input change
+        document.getElementById('symbol').addEventListener('input', (e) => {
+            this.currentSymbol = e.target.value.toUpperCase();
+            if (this.currentSymbol.length >= 3) {
+                this.updateLivePrice();
+            }
+        });
+
+        // Refresh buttons
+        document.getElementById('refreshPrice').addEventListener('click', () => {
+            this.updateLivePrice();
+        });
+
+        document.getElementById('refreshPositions').addEventListener('click', () => {
+            this.loadPositions();
+        });
+
+        document.getElementById('refreshOrders').addEventListener('click', () => {
+            this.loadOrders();
+        });
+    }
+
+    async loadInitialData() {
+        await Promise.all([
+            this.loadPortfolio(),
+            this.loadPositions(),
+            this.loadOrders()
+        ]);
+    }
+
+    startAutoRefresh() {
+        // Refresh every 10 seconds
+        this.autoRefreshInterval = setInterval(() => {
+            this.loadPortfolio();
+            this.loadPositions();
+        }, 10000);
+    }
+
+    async loadPortfolio() {
+        try {
+            const response = await fetch('/api/papertrade/portfolio');
+            const data = await response.json();
+
+            if (data.success) {
+                const portfolio = data.data.portfolio || {};
+                const positionsCount = data.data.positions_count || 0;
+                const totalTrades = data.data.total_trades || 0;
+
+                document.getElementById('portfolioValue').textContent = 
+                    `₹${this.formatNumber(portfolio.current_capital || 0)}`;
+                
+                const totalPnL = portfolio.total_pnl || 0;
+                const totalPnLPercent = portfolio.initial_capital ? 
+                    ((totalPnL / portfolio.initial_capital) * 100).toFixed(2) : 0;
+
+                document.getElementById('totalPnL').textContent = 
+                    `₹${this.formatNumber(totalPnL)}`;
+                document.getElementById('totalPnL').className = 
+                    `value ${totalPnL >= 0 ? 'positive' : 'negative'}`;
+
+                document.getElementById('totalPnLPercent').textContent = 
+                    `${totalPnLPercent}%`;
+                document.getElementById('totalPnLPercent').className = 
+                    `change ${totalPnL >= 0 ? 'positive' : 'negative'}`;
+
+                document.getElementById('openPositions').textContent = positionsCount;
+                document.getElementById('totalTrades').textContent = totalTrades;
+            }
+        } catch (error) {
+            console.error('Error loading portfolio:', error);
+        }
+    }
+
+    async loadPositions() {
+        try {
+            const response = await fetch('/api/papertrade/positions');
+            const data = await response.json();
+
+            const tbody = document.getElementById('positionsBody');
+
+            if (data.success && data.positions.length > 0) {
+                tbody.innerHTML = data.positions.map(pos => `
+                    <tr>
+                        <td><strong>${pos.symbol}</strong></td>
+                        <td>${pos.quantity}</td>
+                        <td>₹${this.formatNumber(pos.avg_price)}</td>
+                        <td>₹${this.formatNumber(pos.current_price || 0)}</td>
+                        <td class="${(pos.pnl || 0) >= 0 ? 'positive' : 'negative'}">
+                            ₹${this.formatNumber(pos.pnl || 0)}
+                        </td>
+                        <td class="${(pos.pnl_percent || 0) >= 0 ? 'positive' : 'negative'}">
+                            ${(pos.pnl_percent || 0).toFixed(2)}%
+                        </td>
+                        <td>
+                            <div class="trade-actions">
+                                <button class="btn btn-danger btn-sm" onclick="paperTrade.closePosition('${pos.symbol}')">
+                                    Close
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No open positions</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error loading positions:', error);
+            document.getElementById('positionsBody').innerHTML = 
+                '<tr><td colspan="7" class="empty-state">Error loading positions</td></tr>';
+        }
+    }
+
+    async loadOrders() {
+        try {
+            const response = await fetch('/api/papertrade/orders?limit=20');
+            const data = await response.json();
+
+            const tbody = document.getElementById('ordersBody');
+
+            if (data.success && data.orders.length > 0) {
+                tbody.innerHTML = data.orders.map(order => `
+                    <tr>
+                        <td><code>${order.order_id}</code></td>
+                        <td><strong>${order.symbol}</strong></td>
+                        <td class="${order.side === 'BUY' ? 'positive' : 'negative'}">
+                            ${order.side}
+                        </td>
+                        <td>${order.quantity}</td>
+                        <td>₹${this.formatNumber(order.exec_price)}</td>
+                        <td>₹${this.formatNumber(order.exec_value)}</td>
+                        <td>${this.formatDateTime(order.timestamp)}</td>
+                        <td><span style="color: #22c55e;">${order.status}</span></td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No orders yet</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error loading orders:', error);
+            document.getElementById('ordersBody').innerHTML = 
+                '<tr><td colspan="8" class="empty-state">Error loading orders</td></tr>';
+        }
+    }
+
+    async updateLivePrice() {
+        if (!this.currentSymbol) return;
+
+        try {
+            const response = await fetch(`/api/papertrade/live-price/${this.currentSymbol}`);
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('livePrice').textContent = `₹${this.formatNumber(data.price)}`;
+            } else {
+                document.getElementById('livePrice').textContent = 'N/A';
+            }
+        } catch (error) {
+            console.error('Error getting live price:', error);
+            document.getElementById('livePrice').textContent = 'Error';
+        }
+    }
+
+    async executeTrade() {
+        const form = document.getElementById('tradeForm');
+        const formData = new FormData(form);
+        const executeBtn = document.getElementById('executeBtn');
+
+        const tradeData = {
+            symbol: formData.get('symbol').toUpperCase(),
+            side: formData.get('side'),
+            quantity: parseInt(formData.get('quantity'))
+        };
+
+        // Validation
+        if (!tradeData.symbol || !tradeData.side || tradeData.quantity <= 0) {
+            alert('Please fill all fields correctly');
+            return;
+        }
+
+        executeBtn.disabled = true;
+        executeBtn.textContent = 'Executing...';
+
+        try {
+            const response = await fetch('/api/papertrade/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(tradeData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`Trade executed successfully!\n${tradeData.side} ${tradeData.quantity} ${tradeData.symbol} @ ₹${this.formatNumber(result.live_price)}`);
+                form.reset();
+                document.getElementById('livePrice').textContent = '-';
+                this.currentSymbol = '';
+                
+                // Refresh data
+                this.loadInitialData();
+            } else {
+                alert(`Trade failed: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error executing trade:', error);
+            alert('Error executing trade. Please try again.');
+        } finally {
+            executeBtn.disabled = false;
+            executeBtn.textContent = 'Execute Trade';
+        }
+    }
+
+    async closePosition(symbol) {
+        if (!confirm(`Are you sure you want to close your ${symbol} position?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/papertrade/close', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ symbol })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`Position closed successfully!`);
+                this.loadInitialData();
+            } else {
+                alert(`Failed to close position: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error closing position:', error);
+            alert('Error closing position. Please try again.');
+        }
+    }
+
+    formatNumber(num) {
+        if (typeof num !== 'number') return '0';
+        return new Intl.NumberFormat('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(num);
+    }
+
+    formatDateTime(isoString) {
+        const date = new Date(isoString);
+        return date.toLocaleString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+}
+
+// Initialize when page loads
+const paperTrade = new PaperTradeManager();
+</script>
+{% endblock %}

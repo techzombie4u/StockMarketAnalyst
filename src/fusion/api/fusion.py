@@ -1,4 +1,3 @@
-
 import json
 import time
 import os
@@ -48,12 +47,12 @@ def load_pins_data():
 def dashboard():
     """Main fusion dashboard endpoint"""
     start_time = time.time()
-    
+
     try:
         # Load KPI data
         kpi_data = load_kpi_data()
         timeframes = kpi_data.get('metrics', {})
-        
+
         # Load pinned items
         pins = load_pins_data()
         pinned_summary = {
@@ -62,11 +61,11 @@ def dashboard():
             "options_count": len([p for p in pins if p.get('type') == 'OPTIONS']),
             "commodity_count": len([p for p in pins if p.get('type') == 'COMMODITY'])
         }
-        
+
         # Load equities for top signals
         equities_data = load_sample_data('equities_sample.json')
         top_signals = []
-        
+
         if 'items' in equities_data:
             for item in equities_data['items'][:5]:  # Top 5
                 top_signals.append({
@@ -77,19 +76,49 @@ def dashboard():
                     "price": item.get('price'),
                     "change_percent": item.get('change_percent', 0)
                 })
-        
+
+        # Placeholder for kpis and cache_info, assuming they are defined elsewhere or will be added
+        # For the purpose of this merge, we'll add dummy values or assume they are loaded
+        # In a real scenario, these would be loaded similarly to kpi_data or through other services.
+        kpis = {} # Replace with actual KPI loading if available
+        ttl = 300 # Dummy TTL
+        force_refresh = False # Dummy force_refresh
+
+        # Get Paper Trade summary
+        papertrade_summary = {}
+        try:
+            from src.utils.file_utils import load_json_safe
+            pt_portfolio = load_json_safe("data/persistent/papertrade_portfolio.json", {})
+            pt_positions = load_json_safe("data/persistent/papertrade_positions.json", [])
+
+            if pt_portfolio:
+                papertrade_summary = {
+                    "portfolio_value": pt_portfolio.get("current_capital", 0),
+                    "total_pnl": pt_portfolio.get("total_pnl", 0),
+                    "unrealized_pnl": pt_portfolio.get("unrealized_pnl", 0),
+                    "open_positions": len(pt_positions),
+                    "enabled": True
+                }
+            else:
+                papertrade_summary = {"enabled": False}
+        except Exception as e:
+            logger.warning(f"Could not load Paper Trade summary: {e}")
+            papertrade_summary = {"enabled": False}
+
         generation_time_ms = int((time.time() - start_time) * 1000)
-        
+
         response = {
             "timeframes": timeframes,
             "pinned_summary": pinned_summary,
+            "papertrade_summary": papertrade_summary,
             "top_signals": top_signals,
+            "kpis": kpis,
             "generation_time_ms": generation_time_ms,
             "last_updated": datetime.now().isoformat()
         }
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error(f"Error in fusion dashboard: {e}")
         return jsonify({
@@ -98,6 +127,8 @@ def dashboard():
             "timeframes": {},
             "pinned_summary": {"total_pinned": 0},
             "top_signals": [],
+            "papertrade_summary": {"enabled": False},
+            "kpis": {},
             "generation_time_ms": 0
         }), 500
 

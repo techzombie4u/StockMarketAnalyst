@@ -201,6 +201,183 @@ paths:
               schema:
                 type: string
 
+  /api/agents/runs:
+    get:
+      tags:
+        - Agents
+      summary: Get agent run history
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [running, completed, failed]
+      responses:
+        '200':
+          description: Agent runs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  runs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AgentRun'
+
+  /api/papertrade/portfolio:
+    get:
+      tags:
+        - Paper Trade
+      summary: Get paper trade portfolio summary
+      responses:
+        '200':
+          description: Portfolio summary with live P&L
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PaperTradePortfolio'
+
+  /api/papertrade/positions:
+    get:
+      tags:
+        - Paper Trade
+      summary: Get current paper trade positions
+      responses:
+        '200':
+          description: Current positions with live P&L
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  positions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaperTradePosition'
+
+  /api/papertrade/orders:
+    get:
+      tags:
+        - Paper Trade
+      summary: Get paper trade order history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Order history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaperTradeOrder'
+
+  /api/papertrade/execute:
+    post:
+      tags:
+        - Paper Trade
+      summary: Execute paper trade at live market price
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - symbol
+                - side
+                - quantity
+              properties:
+                symbol:
+                  type: string
+                  example: "RELIANCE"
+                side:
+                  type: string
+                  enum: [BUY, SELL]
+                quantity:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Trade executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/PaperTradeOrder'
+                  live_price:
+                    type: number
+
+  /api/papertrade/close:
+    post:
+      tags:
+        - Paper Trade
+      summary: Close paper trade position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - symbol
+              properties:
+                symbol:
+                  type: string
+                  example: "RELIANCE"
+      responses:
+        '200':
+          description: Position closed successfully
+
+  /api/papertrade/live-price/{symbol}:
+    get:
+      tags:
+        - Paper Trade
+      summary: Get live market price for symbol
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Live price data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  symbol:
+                    type: string
+                  price:
+                    type: number
+                  timestamp:
+                    type: string
+
 components:
   schemas:
     Error:
@@ -307,6 +484,103 @@ components:
           type: number
           format: float
           example: 0.87
+
+    AgentRun:
+      type: object
+      properties:
+        run_id:
+          type: string
+        agent_name:
+          type: string
+        status:
+          type: string
+          enum: [running, completed, failed]
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        inputs:
+          type: object
+        outputs:
+          type: object
+
+    PaperTradePortfolio:
+      type: object
+      properties:
+        portfolio:
+          type: object
+          properties:
+            initial_capital:
+              type: number
+            current_capital:
+              type: number
+            total_pnl:
+              type: number
+            realized_pnl:
+              type: number
+            unrealized_pnl:
+              type: number
+            last_updated:
+              type: string
+              format: date-time
+        positions_count:
+          type: integer
+        total_trades:
+          type: integer
+
+    PaperTradePosition:
+      type: object
+      properties:
+        position_id:
+          type: string
+        symbol:
+          type: string
+        quantity:
+          type: integer
+        avg_price:
+          type: number
+        current_price:
+          type: number
+        position_value:
+          type: number
+        cost_basis:
+          type: number
+        pnl:
+          type: number
+        pnl_percent:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+        last_updated:
+          type: string
+          format: date-time
+
+    PaperTradeOrder:
+      type: object
+      properties:
+        order_id:
+          type: string
+        symbol:
+          type: string
+        side:
+          type: string
+          enum: [BUY, SELL]
+        quantity:
+          type: integer
+        order_type:
+          type: string
+        exec_price:
+          type: number
+        exec_value:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
 
   responses:
     NotFound:

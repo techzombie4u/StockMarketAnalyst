@@ -19,6 +19,7 @@
                     <a href="/equities" class="{% if request.endpoint == 'equities' %}text-accent{% else %}text-muted{% endif %}">Equities</a>
                     <a href="/options" class="{% if request.endpoint == 'options' %}text-accent{% else %}text-muted{% endif %}">Options</a>
                     <a href="/commodities" class="{% if request.endpoint == 'commodities' %}text-accent{% else %}text-muted{% endif %}">Commodities</a>
+                    <a href="/papertrade" class="{% if request.endpoint == 'papertrade' %}text-accent{% else %}text-muted{% endif %}">Paper Trade</a>
                 </div>
                 <div class="toolbar">
                     <button class="btn" onclick="location.reload()">Refresh</button>
@@ -47,7 +48,7 @@
             try {
                 const response = await fetch('/api/metrics/guardrails');
                 const data = await response.json();
-                
+
                 const banner = document.getElementById('degraded-banner');
                 if (data.degraded) {
                     banner.style.display = 'block';
