@@ -4,122 +4,122 @@
 {% block title %}Paper Trade - Fusion Stock Analyst{% endblock %}
 
 {% block content %}
+<div class="page-header">
+    <h1>Paper Trading Simulator</h1>
+    <div class="toolbar">
+        <button class="btn" id="refresh-portfolio">Refresh Portfolio</button>
+        <button class="btn btn-primary" id="new-trade-btn">New Trade</button>
+    </div>
+</div>
+
+<!-- Portfolio Summary KPIs -->
+<div class="grid grid-3">
+    <div class="kpi-card">
+        <div class="kpi-label">Total Capital</div>
+        <div class="kpi-value" id="total-capital">₹10,00,000</div>
+        <div class="kpi-change" id="pnl-percent">0.00%</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Total P&L</div>
+        <div class="kpi-value" id="total-pnl">₹0</div>
+        <div class="kpi-change text-muted">Unrealized + Realized</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Active Positions</div>
+        <div class="kpi-value" id="active-positions">0</div>
+        <div class="kpi-change" id="position-value">₹0 invested</div>
+    </div>
+</div>
+
+<!-- Quick Trade Panel -->
 <div class="content-section">
     <div class="section-header">
-        <h2>Paper Trading Simulator</h2>
-        <div class="toolbar">
-            <button class="btn btn-primary" id="refresh-portfolio">Refresh Portfolio</button>
-            <button class="btn btn-success" id="new-trade-btn">New Trade</button>
+        <h2>Quick Trade</h2>
+    </div>
+    <div class="filters-row">
+        <div class="filter-group">
+            <label>Symbol</label>
+            <input type="text" id="trade-symbol" placeholder="e.g., RELIANCE" class="filter-input">
+        </div>
+        <div class="filter-group">
+            <label>Side</label>
+            <select id="trade-side" class="filter-select">
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Quantity</label>
+            <input type="number" id="trade-quantity" placeholder="100" class="filter-input" min="1">
+        </div>
+        <div class="filter-group">
+            <label>Live Price</label>
+            <div id="live-price-display" class="live-price">--</div>
+        </div>
+        <div class="filter-group">
+            <button id="execute-trade" class="btn btn-primary">Execute Trade</button>
         </div>
     </div>
+</div>
 
-    <!-- Portfolio Summary -->
-    <div class="grid grid-3 mb-6">
-        <div class="kpi-card">
-            <div class="kpi-label">Total Capital</div>
-            <div class="kpi-value" id="total-capital">₹10,00,000</div>
-            <div class="kpi-hint">Initial: ₹10,00,000</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Total P&L</div>
-            <div class="kpi-value" id="total-pnl">₹0</div>
-            <div class="kpi-hint" id="pnl-percent">0.00%</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Active Positions</div>
-            <div class="kpi-value" id="active-positions">0</div>
-            <div class="kpi-hint" id="position-value">₹0 invested</div>
+<!-- Current Positions -->
+<div class="content-section">
+    <div class="section-header">
+        <h2>Current Positions</h2>
+        <div class="filters-row">
+            <span class="badge" id="positions-count">0 positions</span>
         </div>
     </div>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Quantity</th>
+                    <th>Avg Price</th>
+                    <th>Current Price</th>
+                    <th>Position Value</th>
+                    <th>P&L</th>
+                    <th>P&L %</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="positions-table">
+                <tr>
+                    <td colspan="8" class="text-center text-muted">No positions found</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
-    <!-- Quick Trade Panel -->
-    <div class="card mb-6">
-        <div class="card-header">
-            <div class="card-title">Quick Trade</div>
-        </div>
-        <div class="trade-form">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Symbol</label>
-                    <input type="text" id="trade-symbol" placeholder="e.g., RELIANCE" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>Side</label>
-                    <select id="trade-side" class="form-select">
-                        <option value="BUY">BUY</option>
-                        <option value="SELL">SELL</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Quantity</label>
-                    <input type="number" id="trade-quantity" placeholder="100" class="form-input" min="1">
-                </div>
-                <div class="form-group">
-                    <label>Live Price</label>
-                    <div id="live-price-display" class="live-price">--</div>
-                </div>
-                <div class="form-group">
-                    <button id="execute-trade" class="btn btn-primary">Execute Trade</button>
-                </div>
-            </div>
+<!-- Trade History -->
+<div class="content-section">
+    <div class="section-header">
+        <h2>Recent Trades</h2>
+        <div class="filters-row">
+            <span class="badge" id="trades-count">0 trades</span>
         </div>
     </div>
-
-    <!-- Current Positions -->
-    <div class="content-section">
-        <div class="section-header">
-            <h3>Current Positions</h3>
-            <div class="badge" id="positions-count">0 positions</div>
-        </div>
-        <div class="table-wrap">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Symbol</th>
-                        <th>Quantity</th>
-                        <th>Avg Price</th>
-                        <th>Current Price</th>
-                        <th>Position Value</th>
-                        <th>P&L</th>
-                        <th>P&L %</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="positions-table">
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 20px;">No positions found</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Trade History -->
-    <div class="content-section">
-        <div class="section-header">
-            <h3>Recent Trades</h3>
-            <div class="badge" id="trades-count">0 trades</div>
-        </div>
-        <div class="table-wrap">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>Symbol</th>
-                        <th>Side</th>
-                        <th>Quantity</th>
-                        <th>Price</th>
-                        <th>Value</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="trades-table">
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 20px;">No trades executed</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Symbol</th>
+                    <th>Side</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Value</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="trades-table">
+                <tr>
+                    <td colspan="7" class="text-center text-muted">No trades executed</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -137,47 +137,18 @@
 </div>
 
 <style>
-.trade-form {
-    padding: 16px;
-}
-
-.form-row {
-    display: flex;
-    gap: 16px;
-    align-items: end;
-    flex-wrap: wrap;
-}
-
-.form-group {
-    min-width: 120px;
-    flex: 1;
-}
-
-.form-group label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-}
-
-.form-input, .form-select {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 14px;
-}
-
 .live-price {
     padding: 8px 12px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 4px;
     background: var(--bg-card);
     color: var(--accent);
     font-weight: 600;
     text-align: center;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal {
@@ -196,7 +167,7 @@
 .modal-content {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 8px;
     width: 90%;
     max-width: 500px;
     max-height: 80vh;
@@ -223,28 +194,12 @@
     padding: 16px;
 }
 
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.section-header h3 {
-    margin: 0;
-    color: var(--text);
-}
-
-.btn-success {
-    background: var(--accent);
-    color: var(--bg);
-    border-color: var(--accent);
-}
-
 .btn-danger {
     background: var(--danger);
     color: white;
     border-color: var(--danger);
+    padding: 4px 8px;
+    font-size: 12px;
 }
 
 .pnl-positive {
@@ -255,12 +210,22 @@
     color: var(--danger);
 }
 
+.trade-details p {
+    margin: 8px 0;
+    color: var(--text);
+}
+
+.trade-details strong {
+    color: var(--text-muted);
+}
+
 @media (max-width: 768px) {
-    .form-row {
+    .filters-row {
         flex-direction: column;
+        gap: 12px;
     }
     
-    .form-group {
+    .filter-group {
         min-width: auto;
     }
 }
