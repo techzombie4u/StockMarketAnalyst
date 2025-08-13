@@ -5,6 +5,13 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 import logging
 
+# Import the short strangle engine
+try:
+    from src.analyzers.short_strangle_engine import ShortStrangleEngine
+except ImportError:
+    logger.warning("Short strangle engine not available, using fallback data")
+    ShortStrangleEngine = None
+
 logger = logging.getLogger(__name__)
 
 options_bp = Blueprint('options', __name__)
@@ -61,6 +68,39 @@ def get_strangle_candidates():
         return jsonify({
             'status': 'error',
             'message': str(e)
+        }), 500
+
+@options_bp.route('/strategies', methods=['GET'])
+def get_options_strategies():
+    """Get short strangle options strategies with real-time data"""
+    try:
+        timeframe = request.args.get('timeframe', '30D')
+        force_refresh = request.args.get('force_refresh', 'false').lower() == 'true'
+        
+        # Import and use the short strangle engine
+        from src.analyzers.short_strangle_engine import ShortStrangleEngine
+        
+        engine = ShortStrangleEngine()
+        strategies = engine.generate_strategies(timeframe=timeframe, force_refresh=force_refresh)
+        
+        logger.info(f"Generated {len(strategies)} options strategies for timeframe {timeframe}")
+        
+        return jsonify({
+            'status': 'success',
+            'strategies': strategies,
+            'timeframe': timeframe,
+            'count': len(strategies),
+            'timestamp': datetime.now().isoformat(),
+            'data_source': 'short_strangle_engine'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generating options strategies: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'strategies': [],
+            'count': 0
         }), 500
 
 @options_bp.route('/positions')
