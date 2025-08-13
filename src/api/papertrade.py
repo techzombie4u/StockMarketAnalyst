@@ -1,4 +1,3 @@
-
 """
 Paper Trade API - Real-time Trading Simulation
 """
@@ -13,6 +12,8 @@ import pandas as pd
 from src.utils.file_utils import load_json_safe, save_json_safe
 from src.core.cache import get_cached_data, cache_data
 from src.analyzers.market_sentiment_analyzer import MarketSentimentAnalyzer
+from src.data.fetch_historical_data import get_stock_data
+from src.data.realtime_data_fetcher import get_realtime_price, get_multiple_realtime_prices
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +25,13 @@ class PaperTradeEngine:
         self.positions_file = "data/persistent/papertrade_positions.json"
         self.portfolio_file = "data/persistent/papertrade_portfolio.json"
         self.sentiment_analyzer = MarketSentimentAnalyzer()
-        
+
         # Ensure directories exist
         os.makedirs(os.path.dirname(self.orders_file), exist_ok=True)
-        
+
         # Initialize files if they don't exist
         self._initialize_files()
-    
+
     def _initialize_files(self):
         """Initialize persistent files if they don't exist"""
         if not os.path.exists(self.orders_file):
@@ -47,7 +48,7 @@ class PaperTradeEngine:
                 "created_at": datetime.now().isoformat(),
                 "last_updated": datetime.now().isoformat()
             })
-    
+
     def get_live_price(self, symbol: str) -> Optional[float]:
         """Get real-time price for symbol"""
         try:
@@ -56,15 +57,15 @@ class PaperTradeEngine:
             cached_price = get_cached_data(cache_key)
             if cached_price is not None:
                 return cached_price
-            
+
             # Fetch live price from Yahoo Finance
             ticker_formats = [f"{symbol}.NS", f"{symbol}.BO", symbol]
-            
+
             for ticker_format in ticker_formats:
                 try:
                     ticker = yf.Ticker(ticker_format)
                     data = ticker.history(period="1d", interval="1m")
-                    
+
                     if not data.empty:
                         live_price = float(data['Close'].iloc[-1])
                         # Cache for 5 seconds
@@ -74,29 +75,45 @@ class PaperTradeEngine:
                 except Exception as e:
                     logger.warning(f"Failed to get price for {ticker_format}: {e}")
                     continue
-            
+
             logger.error(f"Could not fetch live price for {symbol}")
             return None
-            
+
         except Exception as e:
             logger.error(f"Error getting live price for {symbol}: {e}")
             return None
-    
+
     def execute_order(self, symbol: str, side: str, quantity: int, order_type: str = "MARKET") -> Dict:
         """Execute a paper trade order at live market price"""
         try:
-            # Get live price
-            live_price = self.get_live_price(symbol)
+            # Get current price using real-time data
+            realtime_data = get_realtime_price(symbol)
+
+            if realtime_data.get('is_realtime') and realtime_data.get('current_price', 0) > 0:
+                live_price = float(realtime_data['current_price'])
+                price_source = 'real-time'
+            else:
+                # Fallback to historical data
+                stock_data = get_stock_data(symbol)
+                if not stock_data or len(stock_data) == 0:
+                    return {
+                        "success": False,
+                        "error": f"Unable to fetch price data for {symbol}",
+                        "symbol": symbol
+                    }
+                live_price = float(stock_data.iloc[-1]['Close'])
+                price_source = 'historical'
+
             if live_price is None:
                 return {
                     "success": False,
                     "error": f"Unable to fetch live price for {symbol}",
                     "symbol": symbol
                 }
-            
+
             # Generate order ID
             order_id = f"PT_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{symbol}_{side}"
-            
+
             # Create order record
             order = {
                 "order_id": order_id,
@@ -107,29 +124,31 @@ class PaperTradeEngine:
                 "exec_price": live_price,
                 "exec_value": live_price * quantity,
                 "timestamp": datetime.now().isoformat(),
-                "status": "EXECUTED"
+                "status": "EXECUTED",
+                "price_source": price_source
             }
-            
+
             # Save order
             orders = load_json_safe(self.orders_file, [])
             orders.append(order)
             save_json_safe(self.orders_file, orders)
-            
+
             # Update positions
             self._update_positions(order)
-            
+
             # Update portfolio
             self._update_portfolio()
-            
-            logger.info(f"✅ Paper trade executed: {side} {quantity} {symbol} @ ₹{live_price}")
-            
+
+            logger.info(f"✅ Paper trade executed: {side} {quantity} {symbol} @ ₹{live_price} (Source: {price_source})")
+
             return {
                 "success": True,
                 "order": order,
                 "live_price": live_price,
-                "exec_value": live_price * quantity
+                "exec_value": live_price * quantity,
+                "price_source": price_source
             }
-            
+
         except Exception as e:
             logger.error(f"Error executing paper trade: {e}")
             return {
@@ -137,7 +156,7 @@ class PaperTradeEngine:
                 "error": str(e),
                 "symbol": symbol
             }
-    
+
     def _update_positions(self, order: Dict):
         """Update positions based on executed order"""
         try:
@@ -146,14 +165,14 @@ class PaperTradeEngine:
             side = order["side"]
             quantity = order["quantity"]
             price = order["exec_price"]
-            
+
             # Find existing position
             position_idx = None
             for i, pos in enumerate(positions):
                 if pos["symbol"] == symbol:
                     position_idx = i
                     break
-            
+
             if side == "BUY":
                 if position_idx is not None:
                     # Add to existing position
@@ -161,7 +180,7 @@ class PaperTradeEngine:
                     total_value = (pos["quantity"] * pos["avg_price"]) + (quantity * price)
                     total_quantity = pos["quantity"] + quantity
                     avg_price = total_value / total_quantity
-                    
+
                     positions[position_idx].update({
                         "quantity": total_quantity,
                         "avg_price": avg_price,
@@ -177,14 +196,14 @@ class PaperTradeEngine:
                         "created_at": datetime.now().isoformat(),
                         "last_updated": datetime.now().isoformat()
                     })
-            
+
             elif side == "SELL":
                 if position_idx is not None:
                     pos = positions[position_idx]
                     if pos["quantity"] >= quantity:
                         pos["quantity"] -= quantity
                         pos["last_updated"] = datetime.now().isoformat()
-                        
+
                         # Remove position if quantity is 0
                         if pos["quantity"] == 0:
                             positions.pop(position_idx)
@@ -192,19 +211,19 @@ class PaperTradeEngine:
                         logger.warning(f"Insufficient quantity to sell for {symbol}")
                 else:
                     logger.warning(f"No position found to sell for {symbol}")
-            
+
             save_json_safe(self.positions_file, positions)
-            
+
         except Exception as e:
             logger.error(f"Error updating positions: {e}")
-    
+
     def _update_portfolio(self):
         """Update portfolio metrics with current positions and live prices"""
         try:
             portfolio = load_json_safe(self.portfolio_file, {})
             positions = load_json_safe(self.positions_file, [])
             orders = load_json_safe(self.orders_file, [])
-            
+
             # Calculate realized P&L from completed trades
             realized_pnl = 0.0
             for order in orders:
@@ -212,25 +231,25 @@ class PaperTradeEngine:
                     realized_pnl += order["exec_value"]
                 elif order["side"] == "BUY":
                     realized_pnl -= order["exec_value"]
-            
+
             # Calculate unrealized P&L from current positions
             unrealized_pnl = 0.0
             total_position_value = 0.0
-            
+
             for position in positions:
                 live_price = self.get_live_price(position["symbol"])
                 if live_price:
                     position_value = position["quantity"] * live_price
                     cost_basis = position["quantity"] * position["avg_price"]
                     position_pnl = position_value - cost_basis
-                    
+
                     unrealized_pnl += position_pnl
                     total_position_value += position_value
-            
+
             # Update portfolio
             total_pnl = realized_pnl + unrealized_pnl
             current_capital = portfolio["initial_capital"] + total_pnl
-            
+
             portfolio.update({
                 "current_capital": current_capital,
                 "total_pnl": total_pnl,
@@ -239,27 +258,62 @@ class PaperTradeEngine:
                 "total_position_value": total_position_value,
                 "last_updated": datetime.now().isoformat()
             })
-            
+
             save_json_safe(self.portfolio_file, portfolio)
-            
+
         except Exception as e:
             logger.error(f"Error updating portfolio: {e}")
-    
+
     def get_positions(self) -> List[Dict]:
         """Get current positions with live P&L"""
         try:
             positions = load_json_safe(self.positions_file, [])
-            
+
+            # Get current prices for all positions using real-time data
+            symbols = list(set(position['symbol'] for position in positions))
+            current_prices = {}
+
+            # Try real-time data first
+            try:
+                realtime_prices = get_multiple_realtime_prices(symbols)
+                for symbol in symbols:
+                    if symbol in realtime_prices and realtime_prices[symbol].get('is_realtime'):
+                        current_prices[symbol] = float(realtime_prices[symbol]['current_price'])
+                    else:
+                        # Fallback to historical data
+                        try:
+                            stock_data = get_stock_data(symbol)
+                            if stock_data and len(stock_data) > 0:
+                                current_prices[symbol] = float(stock_data.iloc[-1]['Close'])
+                            else:
+                                current_prices[symbol] = 100.0
+                        except Exception as e:
+                            logger.warning(f"Could not get historical price for {symbol}: {str(e)}")
+                            current_prices[symbol] = 100.0
+            except Exception as e:
+                logger.error(f"Error fetching real-time prices: {str(e)}")
+                # Fallback to historical data for all symbols
+                for symbol in symbols:
+                    try:
+                        stock_data = get_stock_data(symbol)
+                        if stock_data and len(stock_data) > 0:
+                            current_prices[symbol] = float(stock_data.iloc[-1]['Close'])
+                        else:
+                            current_prices[symbol] = 100.0
+                    except Exception as e:
+                        logger.warning(f"Could not get price for {symbol}: {str(e)}")
+                        current_prices[symbol] = 100.0
+
             # Enrich with live data
             enriched_positions = []
             for position in positions:
-                live_price = self.get_live_price(position["symbol"])
+                live_price = current_prices.get(position["symbol"])
                 if live_price:
                     position_value = position["quantity"] * live_price
                     cost_basis = position["quantity"] * position["avg_price"]
                     pnl = position_value - cost_basis
                     pnl_percent = (pnl / cost_basis) * 100 if cost_basis > 0 else 0
-                    
+
                     enriched_position = position.copy()
                     enriched_position.update({
                         "current_price": live_price,
@@ -269,13 +323,13 @@ class PaperTradeEngine:
                         "pnl_percent": pnl_percent
                     })
                     enriched_positions.append(enriched_position)
-            
+
             return enriched_positions
-            
+
         except Exception as e:
             logger.error(f"Error getting positions: {e}")
             return []
-    
+
     def get_orders(self, limit: int = 50) -> List[Dict]:
         """Get order history"""
         try:
@@ -285,53 +339,53 @@ class PaperTradeEngine:
         except Exception as e:
             logger.error(f"Error getting orders: {e}")
             return []
-    
+
     def close_position(self, symbol: str) -> Dict:
         """Close an entire position at current market price"""
         try:
             positions = load_json_safe(self.positions_file, [])
-            
+
             # Find position
             position = None
             for pos in positions:
                 if pos["symbol"] == symbol:
                     position = pos
                     break
-            
+
             if not position:
                 return {
                     "success": False,
                     "error": f"No position found for {symbol}"
                 }
-            
+
             # Execute sell order for entire quantity
             return self.execute_order(symbol, "SELL", position["quantity"])
-            
+
         except Exception as e:
             logger.error(f"Error closing position: {e}")
             return {
                 "success": False,
                 "error": str(e)
             }
-    
+
     def get_portfolio_summary(self) -> Dict:
         """Get portfolio summary with live data"""
         try:
             self._update_portfolio()  # Refresh with live prices
             portfolio = load_json_safe(self.portfolio_file, {})
             positions = self.get_positions()
-            
+
             # Calculate additional metrics
             total_trades = len(load_json_safe(self.orders_file, []))
             open_positions = len(positions)
-            
+
             return {
                 "portfolio": portfolio,
                 "positions_count": open_positions,
                 "total_trades": total_trades,
                 "positions": positions
             }
-            
+
         except Exception as e:
             logger.error(f"Error getting portfolio summary: {e}")
             return {}
@@ -388,38 +442,38 @@ def execute_trade():
                 "success": False,
                 "error": "No JSON data provided"
             }), 400
-        
+
         symbol = data.get('symbol', '').upper()
         side = data.get('side', '').upper()
         quantity = data.get('quantity', 0)
-        
+
         # Validation
         if not symbol:
             return jsonify({
                 "success": False,
                 "error": "Symbol is required"
             }), 400
-        
+
         if side not in ['BUY', 'SELL']:
             return jsonify({
                 "success": False,
                 "error": "Side must be BUY or SELL"
             }), 400
-        
+
         if quantity <= 0:
             return jsonify({
                 "success": False,
                 "error": "Quantity must be positive"
             }), 400
-        
+
         # Execute order
         result = engine.execute_order(symbol, side, quantity)
-        
+
         if result["success"]:
             return jsonify(result)
         else:
             return jsonify(result), 400
-            
+
     except Exception as e:
         logger.error(f"Error in execute_trade: {e}")
         return jsonify({
@@ -437,21 +491,21 @@ def close_position():
                 "success": False,
                 "error": "No JSON data provided"
             }), 400
-        
+
         symbol = data.get('symbol', '').upper()
         if not symbol:
             return jsonify({
                 "success": False,
                 "error": "Symbol is required"
             }), 400
-        
+
         result = engine.close_position(symbol)
-        
+
         if result["success"]:
             return jsonify(result)
         else:
             return jsonify(result), 400
-            
+
     except Exception as e:
         logger.error(f"Error in close_position: {e}")
         return jsonify({
