@@ -385,20 +385,42 @@ class PaperTradeEngine:
     def get_portfolio_summary(self) -> Dict:
         """Get portfolio summary with live data"""
         try:
-            self._update_portfolio()  # Refresh with live prices
-            portfolio = load_json_safe(self.portfolio_file, {})
             positions = self.get_positions()
             orders = load_json_safe(self.orders_file, [])
+
+            # Calculate real Total P&L from current positions
+            total_pnl_from_positions = sum(pos.get('pnl', 0) for pos in positions)
+            total_position_value = sum(pos.get('position_value', 0) for pos in positions)
+            
+            # Calculate realized P&L from completed trades
+            realized_pnl = 0.0
+            for order in orders:
+                if order["side"] == "SELL":
+                    realized_pnl += order["exec_value"]
+                elif order["side"] == "BUY":
+                    realized_pnl -= order["exec_value"]
+
+            # Portfolio summary
+            initial_capital = 1000000.0
+            current_capital = initial_capital + total_pnl_from_positions
+            
+            portfolio = {
+                "initial_capital": initial_capital,
+                "current_capital": current_capital,
+                "total_pnl": total_pnl_from_positions,  # Use positions P&L
+                "realized_pnl": realized_pnl,
+                "unrealized_pnl": total_pnl_from_positions,
+                "total_position_value": total_position_value,
+                "last_updated": datetime.now().isoformat()
+            }
 
             # Calculate additional metrics
             total_trades = len(orders)
             open_positions = len(positions)
 
-            # Calculate win/loss statistics
+            # Calculate performance metrics
             buy_orders = [o for o in orders if o['side'] == 'BUY']
             sell_orders = [o for o in orders if o['side'] == 'SELL']
-
-            # Calculate performance metrics
             total_invested = sum(o['exec_value'] for o in buy_orders)
             total_realized = sum(o['exec_value'] for o in sell_orders)
 

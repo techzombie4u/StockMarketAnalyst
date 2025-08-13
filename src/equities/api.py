@@ -29,7 +29,7 @@ def now_iso():
 @equities_bp.route("/list", methods=["GET"])
 def list_equities():
     """List equity positions and analytics with real-time data"""
-    start_time = time.time()  # Initialize start_time at the beginning
+    start_time = time.time()
     
     try:
         from src.data.realtime_data_fetcher import get_multiple_realtime_prices
@@ -178,44 +178,3 @@ def equities_kpis():
 def init_equities_api(app):
     """Initialize equities API routes"""
     app.register_blueprint(equities_bp, url_prefix='/api/equities')
-
-    @equities_bp.route('/list', methods=['GET'])
-    def get_equities_list():
-        """Get list of equities with real-time data"""
-        start_time = time.time()
-
-        try:
-            print("🔄 Fetching real-time data for equities API")
-
-            symbols = ['TCS', 'RELIANCE', 'INFY', 'HDFCBANK', 'ICICIBANK', 'BHARTIARTL', 'LT', 'ASIANPAINT', 'MARUTI', 'TITAN', 'KOTAKBANK', 'WIPRO', 'ULTRACEMCO', 'POWERGRID', 'TATASTEEL']
-
-            realtime_data = get_multiple_realtime_prices(symbols)
-            print(f"✅ Got real-time data for {len(realtime_data)} symbols")
-
-            items = []
-            for symbol, data in realtime_data.items():
-                items.append({
-                    "symbol": symbol,
-                    "current_price": data.get('current_price', 0),
-                    "change": data.get('change', 0),
-                    "change_percent": data.get('change_percent', 0),
-                    "volume": data.get('volume', 0),
-                    "is_realtime": data.get('is_realtime', False),
-                    "source": data.get('source', 'unknown')
-                })
-
-            return jsonify({
-                'success': True,
-                'items': items,
-                'total_count': len(items),
-                'fetch_time_ms': round((time.time() - start_time) * 1000, 2)
-            })
-
-        except Exception as e:
-            logger.error(f"Error in equities list: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': str(e),
-                'items': [],
-                'total_count': 0
-            }), 500

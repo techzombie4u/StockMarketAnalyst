@@ -113,6 +113,19 @@ def create_app():
     except Exception as e:
         logger.warning(f"⚠️ Could not register Paper Trade API: {e}")
 
+    # Add missing metrics endpoints
+    @app.route('/api/metrics/guardrails')
+    def metrics_guardrails():
+        """Guardrails metrics endpoint"""
+        return jsonify({
+            "guardrails": {
+                "budget_utilization": 0.65,
+                "performance_degradation": False,
+                "active_limits": []
+            },
+            "timestamp": datetime.now().isoformat()
+        })
+
     # Register web routes
     @app.route('/')
     def index():

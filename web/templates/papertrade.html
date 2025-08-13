@@ -126,6 +126,9 @@
                 <div class="trade-field">
                     <button id="execute-trade" class="btn-execute">Execute</button>
                 </div>
+                <div class="trade-field">
+                    <button id="create-sample-trade" class="btn-execute" style="background: #1f2937; color: #9ca3af;">Sample Trade</button>
+                </div>
             </div>
         </section>
 
@@ -723,11 +726,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupEventListeners() {
-    document.getElementById('refresh-portfolio').addEventListener('click', () => loadPortfolioData(true));
+    document.getElementById('refresh-portfolio').addEventListener('click', () => {
+        console.log('🔄 Manual refresh triggered');
+        loadPortfolioData(true);
+    });
     document.getElementById('focus-trade-input').addEventListener('click', () => {
         document.getElementById('trade-symbol').focus();
     });
     document.getElementById('execute-trade').addEventListener('click', executeTrade);
+    document.getElementById('create-sample-trade').addEventListener('click', createSampleTrade);
     document.getElementById('trade-symbol').addEventListener('input', handleSymbolInput);
 
     // Order type change handler
@@ -748,51 +755,98 @@ function setupEventListeners() {
     });
 }
 
+async function createSampleTrade() {
+    console.log('🧪 Creating sample trade for testing');
+    
+    try {
+        const sampleTradeData = {
+            symbol: 'TCS',
+            side: 'BUY',
+            quantity: 10,
+            order_type: 'MARKET'
+        };
+
+        const response = await fetch('/api/papertrade/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(sampleTradeData)
+        });
+
+        const result = await response.json();
+        console.log('✅ Sample trade result:', result);
+
+        if (result.success) {
+            showToast(`Sample trade created: BUY 10 TCS @ ₹${formatINR(result.order.exec_price)}`, 'success');
+            // Refresh data after successful trade
+            setTimeout(() => loadPortfolioData(true), 1000);
+        } else {
+            showToast(`Sample trade failed: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error creating sample trade:', error);
+        showToast('Error creating sample trade', 'error');
+    }
+}
+
 function updateTimeDisplay() {
     // Update any time-based displays if needed
 }
 
 async function loadPortfolioData(forceRefresh = false) {
-    if (isLoading) return;
+    if (isLoading && !forceRefresh) return;
 
     isLoading = true;
 
     try {
-        console.log('🔄 Loading enhanced portfolio data...');
+        console.log('🔄 Loading REAL portfolio data with force refresh:', forceRefresh);
 
-        // Load all data concurrently
+        // Load all data concurrently with cache busting
+        const timestamp = Date.now();
         const [portfolioRes, positionsRes, ordersRes] = await Promise.all([
-            fetch('/api/papertrade/portfolio'),
-            fetch('/api/papertrade/positions'),
-            fetch('/api/papertrade/orders?limit=20')
+            fetch(`/api/papertrade/portfolio?t=${timestamp}`),
+            fetch(`/api/papertrade/positions?t=${timestamp}`),
+            fetch(`/api/papertrade/orders?limit=20&t=${timestamp}`)
         ]);
 
         const portfolioResult = await portfolioRes.json();
         const positionsResult = await positionsRes.json();
         const ordersResult = await ordersRes.json();
 
-        console.log('✅ Enhanced portfolio data loaded:', { portfolioResult, positionsResult, ordersResult });
+        console.log('✅ REAL portfolio data loaded:', { 
+            portfolio: portfolioResult, 
+            positions: positionsResult, 
+            orders: ordersResult 
+        });
 
-        if (portfolioResult.success) {
+        if (portfolioResult.success && portfolioResult.data) {
             portfolioData = portfolioResult.data;
-            updatePortfolioDisplay(portfolioData.portfolio); // Pass portfolio data here
+            console.log('📊 Portfolio data structure:', portfolioData);
         }
 
         if (positionsResult.success) {
             positionsData = positionsResult.positions || [];
+            console.log('📈 Positions data loaded:', positionsData.length, 'positions');
             updatePositionsTable();
         }
 
         if (ordersResult.success) {
             tradesData = ordersResult.orders || [];
+            console.log('📋 Orders data loaded:', tradesData.length, 'orders');
             updateTradesTable();
+        }
+
+        // Update portfolio display AFTER positions are loaded
+        if (portfolioData && portfolioData.portfolio) {
+            updatePortfolioDisplay(portfolioData.portfolio);
         }
 
         // Calculate enhanced metrics
         calculatePerformanceMetrics();
         updateEnhancedKPIs();
 
-        showToast('Portfolio data refreshed', 'success');
+        showToast(`Portfolio refreshed - ${positionsData.length} positions`, 'success');
 
     } catch (error) {
         console.error('❌ Error loading portfolio:', error);
@@ -840,24 +894,26 @@ function updateEnhancedKPIs() {
     document.getElementById('max-drawdown').textContent = `Max DD ${performanceMetrics.max_drawdown.toFixed(1)}%`;
 }
 
-function updatePortfolioDisplay(portfolio) { // Accept portfolio object as argument
+function updatePortfolioDisplay(portfolio) {
     if (!portfolio) return;
 
     console.log('📊 Updating enhanced portfolio display:', portfolio);
 
-    // Calculate total P&L from current positions
+    // Calculate total P&L from current positions (REAL DATA)
     let totalPnlFromPositions = 0;
     if (positionsData && positionsData.length > 0) {
         totalPnlFromPositions = positionsData.reduce((sum, position) => {
-            return sum + (position.pnl || 0);
+            return sum + (parseFloat(position.pnl) || 0);
         }, 0);
     }
 
-    // Update KPI values
+    console.log(`💰 Real Total P&L from positions: ₹${formatINR(totalPnlFromPositions)}`);
+
+    // Update KPI values with REAL data
     document.getElementById('total-capital').textContent = `₹${formatINR(portfolio.current_capital)}`;
     document.getElementById('total-pnl').textContent = `₹${formatINR(totalPnlFromPositions)}`;
-    document.getElementById('active-positions').textContent = formatINR(portfolioData.positions_count);
-    document.getElementById('position-value').textContent = `₹${formatINR(portfolio.total_position_value)} invested`;
+    document.getElementById('active-positions').textContent = (portfolioData?.positions_count || positionsData.length);
+    document.getElementById('position-value').textContent = `₹${formatINR(portfolio.total_position_value || 0)} invested`;
 
     // Calculate and display percentage based on positions P&L
     const pnlPercent = portfolio.initial_capital > 0 ?
@@ -890,22 +946,24 @@ function updatePositionsTable() {
     positionsData.forEach(position => {
         const row = document.createElement('tr');
 
-        const pnlClass = position.pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+        const pnl = parseFloat(position.pnl) || 0;
+        const pnlPercent = parseFloat(position.pnl_percent) || 0;
+        const pnlClass = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
         const instrument = position.instrument || 'EQUITY';
-        const entryTime = position.entry_date ? new Date(position.entry_date).toLocaleString() : '--';
-        const status = position.status || 'OPEN';
+        const entryTime = position.created_at ? new Date(position.created_at).toLocaleString() : new Date(position.last_updated || Date.now()).toLocaleString();
+        const status = 'OPEN'; // All positions in position table are open
 
         row.innerHTML = `
             <td><div class="font-medium">${position.symbol}</div></td>
-            <td><div class="text-white/70">${instrument}</div></td>
+            <td><div style="color: rgba(255, 255, 255, 0.7);">${instrument}</div></td>
             <td>${position.quantity}</td>
             <td>₹${formatINR(position.avg_price)}</td>
-            <td><div class="text-white/70">${entryTime}</div></td>
+            <td><div style="color: rgba(255, 255, 255, 0.7);">${entryTime}</div></td>
             <td>₹${formatINR(position.current_price)}</td>
             <td>₹${formatINR(position.position_value)}</td>
-            <td class="${pnlClass}">₹${formatINR(position.pnl)}</td>
-            <td class="${pnlClass}">${position.pnl_percent.toFixed(2)}%</td>
-            <td><span class="badge ${status === 'OPEN' ? 'badge-info' : 'badge-ok'}">${status}</span></td>
+            <td class="${pnlClass}">₹${formatINR(pnl)}</td>
+            <td class="${pnlClass}">${pnlPercent.toFixed(2)}%</td>
+            <td><span class="badge badge-open">${status}</span></td>
             <td>
                 <button class="btn-close" onclick="closePosition('${position.symbol}')">Close</button>
             </td>
