@@ -10,5 +10,29 @@
     "timestamp": "2025-08-13T08:13:47.610101",
     "status": "EXECUTED",
     "price_source": "real-time"
+  },
+  {
+    "order_id": "PT_20250813_120806_RELIANCE_BUY",
+    "symbol": "RELIANCE",
+    "side": "BUY",
+    "quantity": 100,
+    "order_type": "MARKET",
+    "exec_price": 1382.6,
+    "exec_value": 138260.0,
+    "timestamp": "2025-08-13T12:08:06.094644",
+    "status": "EXECUTED",
+    "price_source": "real-time"
+  },
+  {
+    "order_id": "PT_20250813_120941_BEL_BUY",
+    "symbol": "BEL",
+    "side": "BUY",
+    "quantity": 100,
+    "order_type": "MARKET",
+    "exec_price": 388.85,
+    "exec_value": 38885.0,
+    "timestamp": "2025-08-13T12:09:41.731076",
+    "status": "EXECUTED",
+    "price_source": "real-time"
   }
 ]
