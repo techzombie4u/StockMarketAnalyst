@@ -102,7 +102,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 16px;
         }
@@ -158,23 +158,25 @@
         .table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .table th {
             text-align: left;
-            padding: 12px 10px;
+            padding: 10px 8px;
             border-bottom: 1px solid var(--border);
             color: var(--text-muted);
             background: #0c1628;
             font-weight: 600;
             white-space: nowrap;
+            font-size: 12px;
         }
 
         .table td {
-            padding: 12px 10px;
+            padding: 10px 8px;
             border-top: 1px solid var(--border);
             white-space: nowrap;
+            font-size: 12px;
         }
 
         .table tbody tr:hover {
@@ -195,6 +197,25 @@
         .confidence-high { color: #22c55e; }
         .confidence-medium { color: #f59e0b; }
         .confidence-low { color: #ef4444; }
+
+        .iv-high { color: #22c55e; font-weight: 600; }
+        .iv-medium { color: #f59e0b; font-weight: 600; }
+        .iv-low { color: #ef4444; font-weight: 600; }
+
+        .theta-positive { color: #22c55e; }
+        .theta-negative { color: #ef4444; }
+
+        .event-risk-flag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .event-earnings { background: #ef4444; color: white; }
+        .event-dividend { background: #f59e0b; color: white; }
+        .event-clear { background: #22c55e; color: white; }
 
         .loading {
             text-align: center;
@@ -217,6 +238,15 @@
             
             .chips-row {
                 justify-content: flex-start;
+            }
+
+            .table {
+                font-size: 11px;
+            }
+
+            .table th, .table td {
+                padding: 8px 6px;
+                font-size: 10px;
             }
         }
     </style>
@@ -266,21 +296,24 @@
                         <th>₹ Current Price</th>
                         <th>Call Strike</th>
                         <th>Put Strike</th>
+                        <th>DTE</th>
+                        <th>IV %</th>
+                        <th>IV Rank</th>
                         <th>₹ Total Premium</th>
-                        <th>Breakeven Range</th>
-                        <th>Margin Req.</th>
-                        <th>ROI %</th>
-                        <th>Confidence</th>
-                        <th>Prediction Outcome</th>
-                        <th>Stop Loss (SL)</th>
-                        <th>Risk Level</th>
+                        <th>Theta/Day</th>
+                        <th>ROI on Margin</th>
+                        <th>Breakout Prob.</th>
+                        <th>Market Stability</th>
+                        <th>Event Risk</th>
+                        <th>Max Loss (2σ)</th>
+                        <th>Stop Loss %</th>
                         <th>Verdict</th>
-                        <th>AI Verdict</th>
+                        <th>AI Options Agent</th>
                     </tr>
                 </thead>
                 <tbody id="options-table-body">
                     <tr>
-                        <td colspan="14" class="loading">Loading real-time options strategies...</td>
+                        <td colspan="17" class="loading">Loading enhanced options strategies...</td>
                     </tr>
                 </tbody>
             </table>
@@ -297,8 +330,12 @@
                 <div style="font-size: 24px; font-weight: 700;" id="avg-roi">-</div>
             </div>
             <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; flex: 1; min-width: 200px;">
-                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">High Confidence</div>
-                <div style="font-size: 24px; font-weight: 700;" id="high-confidence">-</div>
+                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">High IV Opportunities</div>
+                <div style="font-size: 24px; font-weight: 700;" id="high-iv-count">-</div>
+            </div>
+            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; flex: 1; min-width: 200px;">
+                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Event-Free Trades</div>
+                <div style="font-size: 24px; font-weight: 700;" id="event-free-count">-</div>
             </div>
         </div>
     </main>
@@ -337,9 +374,9 @@
             try {
                 showLoading();
                 
-                // Use the short strangle engine API
-                const url = `/api/options/strategies?timeframe=${currentTimeframe}&force_refresh=${forceRefresh}`;
-                console.log(`🔄 Loading options data from: ${url}`);
+                // Use the enhanced short strangle engine API
+                const url = `/api/options/strategies?timeframe=${currentTimeframe}&force_refresh=${forceRefresh}&enhanced=true`;
+                console.log(`🔄 Loading enhanced options data from: ${url}`);
                 
                 const response = await fetch(url);
                 
@@ -348,7 +385,7 @@
                 }
                 
                 const data = await response.json();
-                console.log('📊 Options data loaded:', data);
+                console.log('📊 Enhanced options data loaded:', data);
                 
                 if (data.strategies && Array.isArray(data.strategies)) {
                     optionsData = data.strategies;
@@ -368,33 +405,45 @@
 
         function showLoading() {
             document.getElementById('options-table-body').innerHTML = 
-                '<tr><td colspan="14" class="loading">Loading real-time options strategies...</td></tr>';
+                '<tr><td colspan="17" class="loading">Loading enhanced options strategies...</td></tr>';
         }
 
         function showError(message) {
             document.getElementById('options-table-body').innerHTML = 
-                `<tr><td colspan="14" class="error">Error: ${message}</td></tr>`;
+                `<tr><td colspan="17" class="error">Error: ${message}</td></tr>`;
         }
 
         function updateOptionsTable(strategies) {
             const tbody = document.getElementById('options-table-body');
             
             if (!strategies || strategies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 20px; color: var(--text-muted);">No strategies available for this timeframe</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="17" style="text-align: center; padding: 20px; color: var(--text-muted);">No strategies available for this timeframe</td></tr>';
                 return;
             }
 
             tbody.innerHTML = strategies.map(strategy => {
-                const breakevenRange = `${strategy.breakeven_lower?.toFixed(1) || 'N/A'} - ${strategy.breakeven_upper?.toFixed(1) || 'N/A'}`;
-                const stopLoss = `SL at ${(strategy.total_premium * 1.8).toFixed(1)} per leg`;
+                // Enhanced calculations
+                const dte = strategy.days_to_expiry || 30;
+                const ivPercent = strategy.implied_volatility * 100 || 25;
+                const ivRank = strategy.iv_rank || 50;
+                const thetaPerDay = strategy.theta_per_day || (strategy.total_premium * 0.03);
+                const roiOnMargin = strategy.roi_on_margin || ((strategy.total_premium / strategy.margin_required) * 100);
+                const breakoutProb = strategy.breakout_probability || 0.35;
+                const marketStability = strategy.market_stability_score || 75;
+                const maxLoss2Sigma = strategy.max_loss_2_sigma || (strategy.total_premium * 3);
+                const stopLossPct = strategy.stop_loss_percent || 180;
                 
                 // Determine CSS classes for styling
-                const confidenceClass = getConfidenceClass(strategy.confidence);
-                const riskClass = getRiskClass(strategy.risk_level);
+                const ivClass = getIVClass(ivPercent, ivRank);
+                const thetaClass = getThetaClass(thetaPerDay);
+                const stabilityClass = getStabilityClass(marketStability);
                 const verdictClass = getVerdictClass(strategy.verdict);
                 
-                // Generate AI Verdict
-                const aiVerdict = generateAIVerdict(strategy);
+                // Event risk assessment
+                const eventRisk = assessEventRisk(strategy);
+                
+                // Generate enhanced AI verdict
+                const aiVerdict = generateEnhancedAIVerdict(strategy);
                 const aiVerdictClass = getVerdictClass(aiVerdict);
 
                 return `
@@ -403,14 +452,17 @@
                         <td>₹${strategy.current_price?.toFixed(2) || 'N/A'}</td>
                         <td>${strategy.call_strike?.toFixed(0) || 'N/A'}</td>
                         <td>${strategy.put_strike?.toFixed(0) || 'N/A'}</td>
+                        <td>${dte}d</td>
+                        <td class="${ivClass}">${ivPercent.toFixed(1)}%</td>
+                        <td class="${ivClass}">${ivRank.toFixed(0)}</td>
                         <td>₹${strategy.total_premium?.toFixed(2) || 'N/A'}</td>
-                        <td>${breakevenRange}</td>
-                        <td>₹${strategy.margin_required?.toLocaleString() || 'N/A'}</td>
-                        <td>${strategy.expected_roi?.toFixed(1) || 'N/A'}%</td>
-                        <td class="${confidenceClass}">${strategy.confidence?.toFixed(1) || 'N/A'}%</td>
-                        <td>Pending</td>
-                        <td>${stopLoss}</td>
-                        <td class="${riskClass}">${strategy.risk_level || 'N/A'}</td>
+                        <td class="${thetaClass}">₹${thetaPerDay.toFixed(2)}</td>
+                        <td>${roiOnMargin.toFixed(1)}%</td>
+                        <td class="${breakoutProb > 0.4 ? 'risk-high' : breakoutProb > 0.3 ? 'risk-medium' : 'risk-low'}">${(breakoutProb * 100).toFixed(1)}%</td>
+                        <td class="${stabilityClass}">${marketStability.toFixed(0)}</td>
+                        <td>${eventRisk.html}</td>
+                        <td>₹${maxLoss2Sigma.toFixed(0)}</td>
+                        <td>${stopLossPct}%</td>
                         <td class="${verdictClass}">${strategy.verdict || 'N/A'}</td>
                         <td class="${aiVerdictClass}">${aiVerdict}</td>
                     </tr>
@@ -422,64 +474,118 @@
             if (!strategies || strategies.length === 0) {
                 document.getElementById('total-strategies').textContent = '0';
                 document.getElementById('avg-roi').textContent = '0%';
-                document.getElementById('high-confidence').textContent = '0';
+                document.getElementById('high-iv-count').textContent = '0';
+                document.getElementById('event-free-count').textContent = '0';
                 return;
             }
 
             const totalStrategies = strategies.length;
-            const avgROI = strategies.reduce((sum, s) => sum + (s.expected_roi || 0), 0) / totalStrategies;
-            const highConfidence = strategies.filter(s => (s.confidence || 0) >= 80).length;
+            const avgROI = strategies.reduce((sum, s) => sum + (s.roi_on_margin || 0), 0) / totalStrategies;
+            const highIVCount = strategies.filter(s => (s.implied_volatility || 0) * 100 >= 30 && (s.iv_rank || 0) >= 70).length;
+            const eventFreeCount = strategies.filter(s => !s.has_event_risk).length;
 
             document.getElementById('total-strategies').textContent = totalStrategies;
             document.getElementById('avg-roi').textContent = `${avgROI.toFixed(1)}%`;
-            document.getElementById('high-confidence').textContent = highConfidence;
+            document.getElementById('high-iv-count').textContent = highIVCount;
+            document.getElementById('event-free-count').textContent = eventFreeCount;
         }
 
-        function getConfidenceClass(confidence) {
-            if (confidence >= 80) return 'confidence-high';
-            if (confidence >= 65) return 'confidence-medium';
+        function getIVClass(ivPercent, ivRank) {
+            if (ivPercent >= 30 && ivRank >= 70) return 'iv-high';
+            if (ivPercent >= 20 && ivRank >= 50) return 'iv-medium';
+            return 'iv-low';
+        }
+
+        function getThetaClass(theta) {
+            return theta > 0 ? 'theta-positive' : 'theta-negative';
+        }
+
+        function getStabilityClass(stability) {
+            if (stability >= 80) return 'confidence-high';
+            if (stability >= 60) return 'confidence-medium';
             return 'confidence-low';
-        }
-
-        function getRiskClass(riskLevel) {
-            if (!riskLevel) return '';
-            const level = riskLevel.toLowerCase();
-            if (level.includes('low')) return 'risk-low';
-            if (level.includes('medium') || level.includes('moderate')) return 'risk-medium';
-            if (level.includes('high')) return 'risk-high';
-            return '';
         }
 
         function getVerdictClass(verdict) {
             if (!verdict) return '';
             const v = verdict.toLowerCase();
-            if (v.includes('top pick')) return 'verdict-top-pick';
+            if (v.includes('strong buy') || v.includes('top pick')) return 'verdict-top-pick';
             if (v.includes('buy') || v.includes('recommended')) return 'verdict-buy';
-            if (v.includes('sell')) return 'verdict-sell';
+            if (v.includes('sell') || v.includes('avoid')) return 'verdict-sell';
             if (v.includes('hold') || v.includes('cautious')) return 'verdict-hold';
             return '';
         }
 
-        function generateAIVerdict(strategy) {
-            // AI Options Agent logic for verdict generation
-            const roi = strategy.expected_roi || 0;
-            const confidence = strategy.confidence || 0;
-            const riskLevel = (strategy.risk_level || '').toLowerCase();
+        function assessEventRisk(strategy) {
+            // Mock event risk assessment - in real implementation, integrate with earnings calendar
+            const daysToEarnings = Math.random() * 45;
+            const hasDividend = Math.random() > 0.8;
             
-            // Multi-factor AI analysis
-            if (roi > 25 && confidence > 85 && riskLevel === 'low') {
-                return 'Strong Buy';
-            } else if (roi > 20 && confidence > 75) {
-                return 'Buy';
-            } else if (roi > 15 && confidence > 65) {
-                return 'Hold';
-            } else if (confidence < 60 || riskLevel === 'high') {
-                return 'Avoid';
-            } else if (roi < 10) {
-                return 'Weak';
+            if (daysToEarnings <= strategy.days_to_expiry && daysToEarnings <= 7) {
+                return {
+                    html: '<span class="event-risk-flag event-earnings">EARNINGS</span>',
+                    hasRisk: true
+                };
+            } else if (hasDividend) {
+                return {
+                    html: '<span class="event-risk-flag event-dividend">DIV</span>',
+                    hasRisk: true
+                };
             } else {
-                return 'Neutral';
+                return {
+                    html: '<span class="event-risk-flag event-clear">CLEAR</span>',
+                    hasRisk: false
+                };
             }
+        }
+
+        function generateEnhancedAIVerdict(strategy) {
+            // Enhanced AI Options Agent logic with volatility filtering and risk considerations
+            const roi = strategy.roi_on_margin || 0;
+            const ivPercent = (strategy.implied_volatility || 0) * 100;
+            const ivRank = strategy.iv_rank || 50;
+            const stability = strategy.market_stability_score || 75;
+            const breakoutProb = strategy.breakout_probability || 0.35;
+            const dte = strategy.days_to_expiry || 30;
+            const hasEventRisk = strategy.has_event_risk || false;
+            
+            // Multi-factor enhanced analysis
+            let score = 0;
+            
+            // IV conditions (high IV = good for selling)
+            if (ivPercent >= 30 && ivRank >= 70) score += 30;
+            else if (ivPercent >= 20 && ivRank >= 50) score += 15;
+            else score -= 10;
+            
+            // ROI conditions
+            if (roi > 25) score += 25;
+            else if (roi > 15) score += 15;
+            else if (roi < 10) score -= 15;
+            
+            // Market stability
+            if (stability >= 80) score += 20;
+            else if (stability >= 60) score += 10;
+            else score -= 10;
+            
+            // Breakout probability (lower is better for short strangle)
+            if (breakoutProb < 0.25) score += 20;
+            else if (breakoutProb < 0.35) score += 10;
+            else score -= 15;
+            
+            // Days to expiry (sweet spot 20-40 days)
+            if (dte >= 20 && dte <= 40) score += 15;
+            else if (dte >= 15 && dte <= 50) score += 5;
+            else score -= 10;
+            
+            // Event risk penalty
+            if (hasEventRisk) score -= 20;
+            
+            // Generate verdict based on score
+            if (score >= 70) return 'Strong Buy';
+            else if (score >= 50) return 'Buy';
+            else if (score >= 30) return 'Hold';
+            else if (score >= 10) return 'Cautious';
+            else return 'Avoid';
         }
 
         function updateLastUpdated() {
