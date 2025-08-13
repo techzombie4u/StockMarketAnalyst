@@ -113,13 +113,13 @@ def create_app():
     except Exception as e:
         logger.warning(f"⚠️ Could not register Paper Trade API: {e}")
 
-    # UI Routes
+    # Register all web pages
     @app.route('/')
-    def main_dashboard():
+    def index():
         return render_template('index.html')
 
     @app.route('/dashboard')
-    def kpi_dashboard():
+    def dashboard():
         return render_template('dashboard.html')
 
     @app.route('/equities')
