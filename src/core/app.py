@@ -66,11 +66,14 @@ def create_app():
         logger.warning(f"⚠️ Could not register Equities API: {e}")
 
     try:
-        # Options API - Register main options blueprint
-        from src.options.api import options_bp, predictions_bp
+        # Options API
+        from src.options.api import options_bp
         app.register_blueprint(options_bp, url_prefix='/api/options')
-        app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
         logger.info("✅ Registered Options API at /api/options")
+
+        # Register Predictions API
+        from src.app.api.predictions import predictions_bp
+        app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
         logger.info("✅ Registered Predictions API at /api/predictions")
 
     except ImportError as e:

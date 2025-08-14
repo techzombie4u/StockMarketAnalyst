@@ -41,7 +41,7 @@ def main():
 
         # Get port from environment or use default
         port = int(os.environ.get('PORT', 5000))
-        
+
         # Test if port is available
         import socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -51,6 +51,11 @@ def main():
         except OSError:
             logger.warning(f"Port {port} might be in use, attempting to start anyway...")
 
+        # Start scheduler for auto-finalization
+        from src.core.scheduler import scheduler
+        scheduler.start()
+
+        # Start the Flask application
         logger.info(f"🌐 Server will start on: http://0.0.0.0:{port}")
         logger.info("📊 Available endpoints:")
         logger.info("  - http://0.0.0.0:5000/health")
@@ -75,6 +80,8 @@ def main():
             else:
                 logger.error(f"❌ Server startup failed: {str(e)}")
             sys.exit(1)
+        finally:
+            scheduler.stop()
 
     except ImportError as e:
         logger.error(f"❌ Import error: {str(e)}")

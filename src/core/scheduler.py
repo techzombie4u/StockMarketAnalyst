@@ -592,3 +592,57 @@ def main():
 
 if __name__ == "__main__":
     main()
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+import logging
+import atexit
+
+from src.services.finalize import FinalizationService
+from src.live_data.nse_provider import NSEProvider
+
+logger = logging.getLogger(__name__)
+
+class OptionsScheduler:
+    def __init__(self):
+        self.scheduler = BackgroundScheduler()
+        self.finalize_service = FinalizationService()
+        self.provider = NSEProvider()
+        
+    def start(self):
+        """Start the scheduler"""
+        try:
+            # Add finalization job - runs every 10 minutes
+            self.scheduler.add_job(
+                func=self._finalize_strategies,
+                trigger=IntervalTrigger(minutes=10),
+                id='finalize_options_strategies',
+                name='Finalize Options Strategies',
+                replace_existing=True
+            )
+            
+            self.scheduler.start()
+            logger.info("✅ Options scheduler started with finalization job")
+            
+            # Ensure scheduler shuts down cleanly
+            atexit.register(lambda: self.scheduler.shutdown())
+            
+        except Exception as e:
+            logger.error(f"Failed to start scheduler: {e}")
+    
+    def _finalize_strategies(self):
+        """Finalize strategies job"""
+        try:
+            logger.info("Running strategy finalization job")
+            self.finalize_service.finalize_strategies(self.provider)
+            logger.info("Strategy finalization completed")
+        except Exception as e:
+            logger.error(f"Error in finalization job: {e}")
+    
+    def stop(self):
+        """Stop the scheduler"""
+        if self.scheduler.running:
+            self.scheduler.shutdown()
+            logger.info("Options scheduler stopped")
+
+# Global scheduler instance
+scheduler = OptionsScheduler()
