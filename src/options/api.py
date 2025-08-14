@@ -104,7 +104,7 @@ def get_options_strategies():
             symbols = [symbol_filter]
         else:
             symbols = ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'WIPRO', 'LT', 'MARUTI']
-        
+
         strategies = []
 
         for symbol in symbols:
@@ -139,7 +139,7 @@ def get_options_chain(symbol):
 
         # Get spot price (with fallback if NSE provider unavailable)
         spot_price = 1500.0  # Default fallback
-        
+
         if NSEProvider:
             try:
                 provider = NSEProvider()
@@ -150,7 +150,7 @@ def get_options_chain(symbol):
                     logger.warning(f"No live spot price for {symbol}, using fallback")
             except Exception as e:
                 logger.warning(f"NSE provider error: {e}, using fallback price")
-        
+
         # Use symbol-based consistent pricing as fallback
         symbol_hash = abs(hash(symbol)) % 1000
         if spot_price == 1500.0:  # Still using fallback
