@@ -1,4 +1,3 @@
-
 import os
 import sys
 import json
@@ -68,22 +67,19 @@ def create_app():
 
     try:
         # Options API - Register main options blueprint
-        from src.options.api import options_bp
+        from src.options.api import options_bp, predictions_bp
         app.register_blueprint(options_bp, url_prefix='/api/options')
-        logger.info("✅ Registered Options API at /api/options")
-        
-        # Register predictions blueprint separately to avoid conflicts
-        from src.options.api import predictions_bp
         app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
+        logger.info("✅ Registered Options API at /api/options")
         logger.info("✅ Registered Predictions API at /api/predictions")
-        
+
     except ImportError as e:
         logger.error(f"❌ Failed to import options/predictions blueprints: {e}")
         # Create fallback endpoints
         @app.route('/api/options/strategies')
         def fallback_options():
             return jsonify({'success': False, 'error': 'Options API not available', 'strategies': []})
-            
+
     except Exception as e:
         logger.error(f"❌ Failed to register options/predictions blueprints: {e}")
 
