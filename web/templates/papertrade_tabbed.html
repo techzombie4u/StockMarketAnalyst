@@ -4,979 +4,614 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paper Trading - Fusion Stock Analyst</title>
-    <style>
-        :root {
-            --bg-primary: #0b1220;
-            --bg-surface: #111a2e;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --text-primary: rgba(255, 255, 255, 0.9);
-            --text-dim: rgba(255, 255, 255, 0.6);
-            --brand-color: #6ee7b7;
-            --emerald-bg: rgba(16, 185, 129, 0.1);
-            --emerald-border: rgba(16, 185, 129, 0.2);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
-
-        .header {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            background: var(--bg-surface);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .header-content {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0.75rem 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-        }
-
-        .header-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: white;
-        }
-
-        .header-subtitle {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            margin-top: 0.125rem;
-        }
-
-        .nav {
-            display: flex;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .nav-link {
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: background-color 0.2s;
-        }
-
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .nav-link.active {
-            color: var(--brand-color);
-            font-weight: 600;
-            background: var(--emerald-bg);
-        }
-
-        .main {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .surface {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 1rem;
-        }
-
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 0.75rem;
-        }
-
-        .kpi-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 1rem;
-            min-width: 180px;
-        }
-
-        .kpi-label {
-            font-size: 0.6875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 600;
-            color: var(--text-dim);
-        }
-
-        .kpi-value {
-            margin-top: 0.25rem;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.95);
-        }
-
-        .kpi-sub {
-            font-size: 0.6875rem;
-            color: var(--text-dim);
-            margin-top: 0.125rem;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 0.25rem;
-            padding: 0.25rem;
-            border-radius: 0.75rem;
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .tab {
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .tab:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .tab.active {
-            background: var(--emerald-bg);
-            color: var(--brand-color);
-            font-weight: 600;
-        }
-
-        .tab-content {
-            display: none;
-            padding: 1rem;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .form-label {
-            font-size: 0.6875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-dim);
-            font-weight: 600;
-        }
-
-        .form-input, .form-select {
-            height: 2.25rem;
-            padding: 0 0.75rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
-            background: #0f172a;
-            color: var(--text-primary);
-            font-size: 0.875rem;
-        }
-
-        .form-input:focus, .form-select:focus {
-            outline: none;
-            border-color: var(--brand-color);
-            box-shadow: 0 0 0 2px var(--emerald-bg);
-        }
-
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 0.75rem;
-            border: 1px solid;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-primary {
-            background: var(--emerald-bg);
-            color: var(--brand-color);
-            border-color: var(--emerald-border);
-        }
-
-        .btn-primary:hover {
-            background: rgba(16, 185, 129, 0.15);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-primary);
-            border-color: var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .table-container {
-            border-radius: 1rem;
-            overflow: auto;
-            border: 1px solid var(--border-color);
-            max-height: 500px;
-        }
-
-        .table {
-            width: 100%;
-            font-size: 0.8125rem;
-            background: var(--bg-surface);
-        }
-
-        .table thead {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .table th {
-            padding: 0.5rem 0.75rem;
-            font-weight: 500;
-            text-align: left;
-            color: rgba(255, 255, 255, 0.7);
-            background: rgba(255, 255, 255, 0.05);
-            white-space: nowrap;
-        }
-
-        .table td {
-            padding: 0.5rem 0.75rem;
-            vertical-align: middle;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .table tbody tr:nth-child(even) {
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .empty-state {
-            padding: 2rem;
-            text-align: center;
-            color: var(--text-dim);
-        }
-
-        .chip {
-            padding: 0.75rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .chip-label {
-            font-size: 0.625rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-dim);
-        }
-
-        .chip-value {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
-            margin-top: 0.25rem;
-        }
-
-        .positive {
-            color: #4ade80;
-        }
-
-        .negative {
-            color: #f87171;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-dim);
-        }
-
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .nav {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-    </style>
-</head>
-<body>
-    <header class="header">
-        <div class="header-content">
-            <div>
-                <h1 class="header-title">Fusion Stock Analyst</h1>
-                <p class="header-subtitle">Paper Trading — Real-time simulation</p>
-            </div>
-            <nav class="nav">
-                <a href="/dashboard" class="nav-link">Dashboard</a>
-                <a href="/equities" class="nav-link">Equities</a>
-                <a href="/options" class="nav-link">Options</a>
-                <a href="/commodities" class="nav-link">Commodities</a>
-                <a href="/papertrade" class="nav-link active">Paper Trade</a>
-            </nav>
-        </div>
-    </header>
-
-    <main class="main">
-        <!-- KPI Grid -->
-        <section class="kpi-grid">
-            <div class="kpi-card">
-                <div class="kpi-label">Total Capital</div>
-                <div class="kpi-value" id="total-capital">₹10,00,000</div>
-                <div class="kpi-sub" id="capital-change">0.00%</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Total P&L</div>
-                <div class="kpi-value" id="total-pnl">₹0</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Positions</div>
-                <div class="kpi-value" id="positions-count">0</div>
-                <div class="kpi-sub" id="invested-amount">₹0 invested</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Sharpe (3M)</div>
-                <div class="kpi-value" id="sharpe-ratio">0.00</div>
-                <div class="kpi-sub">Risk-adjusted</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Sortino (3M)</div>
-                <div class="kpi-value" id="sortino-ratio">0.00</div>
-                <div class="kpi-sub">Downside risk</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-label">Win Rate</div>
-                <div class="kpi-value" id="win-rate">0%</div>
-                <div class="kpi-sub" id="max-dd">Max DD ~0.0%</div>
-            </div>
-        </section>
-
-        <!-- Tabs Section -->
-        <section class="surface">
-            <div class="tabs">
-                <div class="tab active" data-tab="options">OPTIONS</div>
-                <div class="tab" data-tab="equities">EQUITIES</div>
-                <div class="tab" data-tab="commodities">COMMODITIES</div>
-                <div class="btn-secondary" style="margin-left: auto;" onclick="refreshData()">Refresh</div>
-            </div>
-
-            <!-- Options Tab -->
-            <div id="options-tab" class="tab-content active">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">Symbol</label>
-                        <select id="options-symbol" class="form-select" onchange="loadOptionsChain()">
-                            <option value="RELIANCE">RELIANCE</option>
-                            <option value="TCS">TCS</option>
-                            <option value="HDFCBANK">HDFCBANK</option>
-                            <option value="INFY">INFY</option>
-                            <option value="ICICIBANK">ICICIBANK</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Strategy</label>
-                        <select id="options-strategy" class="form-select">
-                            <option value="single-leg">Single Leg</option>
-                            <option value="short-strangle">Short Strangle</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Side</label>
-                        <select id="options-side" class="form-select">
-                            <option value="SELL">SELL</option>
-                            <option value="BUY">BUY</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Lots</label>
-                        <input type="number" id="options-lots" class="form-input" value="1" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Actions</label>
-                        <button class="btn btn-primary" onclick="executeOptionsTrade()">Execute Trade</button>
-                    </div>
-                </div>
-
-                <!-- Options Analytics -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4" id="options-analytics">
-                    <div class="chip">
-                        <div class="chip-label">Lot Size</div>
-                        <div class="chip-value" id="opt-lot-size">505</div>
-                    </div>
-                    <div class="chip">
-                        <div class="chip-label">Spot Price</div>
-                        <div class="chip-value" id="opt-spot">₹2,850</div>
-                    </div>
-                    <div class="chip">
-                        <div class="chip-label">Net Credit</div>
-                        <div class="chip-value" id="opt-credit">₹45,000</div>
-                    </div>
-                    <div class="chip">
-                        <div class="chip-label">ROI on Margin</div>
-                        <div class="chip-value" id="opt-roi">25.5%</div>
-                    </div>
-                    <div class="chip">
-                        <div class="chip-label">IV / IV Rank</div>
-                        <div class="chip-value" id="opt-iv">22% / 38</div>
-                    </div>
-                    <div class="chip">
-                        <div class="chip-label">DTE</div>
-                        <div class="chip-value" id="opt-dte">45</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Equities Tab -->
-            <div id="equities-tab" class="tab-content">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">Symbol</label>
-                        <input type="text" id="equity-symbol" class="form-input" placeholder="e.g., TCS" onchange="loadEquityPrice()">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Side</label>
-                        <select id="equity-side" class="form-select">
-                            <option value="BUY">BUY</option>
-                            <option value="SELL">SELL</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Quantity</label>
-                        <input type="number" id="equity-quantity" class="form-input" value="100" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Order Type</label>
-                        <select id="equity-order-type" class="form-select">
-                            <option value="MARKET">Market</option>
-                            <option value="LIMIT">Limit</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Actions</label>
-                        <button class="btn btn-primary" onclick="executeEquityTrade()">Execute Trade</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Commodities Tab -->
-            <div id="commodities-tab" class="tab-content">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label class="form-label">Commodity</label>
-                        <select id="commodity-symbol" class="form-select">
-                            <option value="GOLD">Gold</option>
-                            <option value="SILVER">Silver</option>
-                            <option value="CRUDE">Crude Oil</option>
-                            <option value="COPPER">Copper</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Side</label>
-                        <select id="commodity-side" class="form-select">
-                            <option value="BUY">BUY</option>
-                            <option value="SELL">SELL</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Lots</label>
-                        <input type="number" id="commodity-lots" class="form-input" value="1" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Order Type</label>
-                        <select id="commodity-order-type" class="form-select">
-                            <option value="MARKET">Market</option>
-                            <option value="LIMIT">Limit</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Actions</label>
-                        <button class="btn btn-primary" onclick="executeCommodityTrade()">Execute Trade</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Positions Table -->
-        <section class="surface">
-            <h3 style="margin-bottom: 1rem; color: var(--text-dim);">Current Positions</h3>
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Symbol</th>
-                            <th>Instrument</th>
-                            <th>Side</th>
-                            <th>Quantity</th>
-                            <th>Entry Price</th>
-                            <th>Current Price</th>
-                            <th>P&L</th>
-                            <th>P&L %</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="positions-table-body">
-                        <tr>
-                            <td colspan="9" class="empty-state">No positions yet</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- Orders Table -->
-        <section class="surface">
-            <h3 style="margin-bottom: 1rem; color: var(--text-dim);">Recent Trades</h3>
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Symbol</th>
-                            <th>Instrument</th>
-                            <th>Side</th>
-                            <th>Quantity</th>
-                            <th>Price</th>
-                            <th>Value</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="orders-table-body">
-                        <tr>
-                            <td colspan="8" class="empty-state">No trades executed yet</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </main>
-
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        let portfolioData = {
-            current_capital: 1000000,
-            total_pnl: 0,
-            positions_count: 0,
-            total_position_value: 0
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0b1220',
+                        surface: '#111a2e',
+                        emerald: {
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-[#0b1220] text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Theme and utilities
+        const T = {
+            bg: "bg-[#0b1220]",
+            surface: "bg-[#111a2e]",
+            border: "border border-white/10",
+            text: "text-white/90",
+            textDim: "text-white/60",
         };
 
-        let positionsData = [];
-        let ordersData = [];
+        const clsx = (...a) => a.filter(Boolean).join(" ");
+        const fmtINR = (n) => new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(Number(n || 0));
+        const todayYMD = () => new Date().toISOString().slice(0,10);
+        const ymd = (d)=> d.toISOString().slice(0,10);
 
-        // Tab switching
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const tabName = this.dataset.tab;
-                if (!tabName) return;
+        async function safeFetch(url, opts = {}, timeoutMs = 8000){
+            const ctrl = new AbortController();
+            const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+            try{ 
+                const res = await fetch(url, { ...opts, signal: ctrl.signal }); 
+                clearTimeout(t); 
+                if(!res.ok) throw new Error(`HTTP ${res.status}`); 
+                return await res.json(); 
+            }
+            catch(e){ clearTimeout(t); throw e; }
+        }
 
-                // Update tab buttons
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
+        // Mock data
+        const MOCK = {
+            portfolio:{ current_capital: 1000000, total_pnl: 0, positions_count: 0, total_position_value: 0, sharpe_3m:0, sortino_3m:0, win_rate:0, max_dd:0 },
+            positions: [],
+            orders: [],
+        };
 
-                // Update tab content
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.remove('active');
+        const LOTS = { RELIANCE:505, TCS:150, INFY:300, ITC:3200, HDFCBANK:550, NIFTY:50, BANKNIFTY:15 };
+
+        function genChain(symbol){
+            const lot = LOTS[symbol] || 100;
+            const spot = 1200 + (Math.abs((symbol||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % 1000);
+            const expiries = []; const base=new Date();
+            for(let i=0;i<6;i++){ const d=new Date(base); d.setDate(d.getDate()+((4-d.getDay()+7)%7)+i*7); expiries.push(ymd(d)); }
+            const step = spot<1000? 10 : 20;
+            const strikes = Array.from({length:17}, (_,k)=> Math.round((spot-8*step)+k*step));
+            const ltp = (k, type)=> Math.max(1, (type==='CE'? Math.max(0, spot-k)/2 : Math.max(0, k-spot)/2) + 12 + Math.random()*8);
+            return { lotSize: lot, spot: Number(spot.toFixed(2)), expiries, strikes, ltp, iv: 22.0, ivRank: 38 };
+        }
+
+        async function getChain(symbol){
+            try{ 
+                const r = await safeFetch(`/api/options/chain/${(symbol||'').toUpperCase()}`); 
+                if(r && r.success) return r.data; 
+            }catch{}
+            return genChain(symbol||'');
+        }
+
+        // Paper data hook
+        function usePaperData(){
+            const [portfolio, setPortfolio] = useState(MOCK.portfolio);
+            const [positions, setPositions] = useState(MOCK.positions);
+            const [orders, setOrders] = useState(MOCK.orders);
+
+            useEffect(()=>{ (async()=>{
+                try{ 
+                    const p = await safeFetch('/api/papertrade/portfolio'); 
+                    if(p?.success) setPortfolio({
+                        current_capital: p.data.portfolio.current_capital,
+                        total_pnl: p.data.portfolio.total_pnl,
+                        positions_count: p.data.positions_count,
+                        total_position_value: p.data.portfolio.total_position_value,
+                        sharpe_3m: p.data.portfolio.sharpe_3m ?? 0,
+                        sortino_3m: p.data.portfolio.sortino_3m ?? 0,
+                        win_rate: p.data.portfolio.win_rate ?? 0,
+                        max_dd: p.data.portfolio.max_dd ?? 0,
+                    }); 
+                }catch{}
+                try{ 
+                    const pos = await safeFetch('/api/papertrade/positions'); 
+                    if(pos?.success) setPositions(pos.positions||[]);
+                }catch{}
+                try{ 
+                    const ord = await safeFetch('/api/papertrade/orders?limit=20'); 
+                    if(ord?.success) setOrders(ord.orders||[]);
+                }catch{}
+            })(); },[]);
+
+            const invested = useMemo(()=> positions.reduce((s,p)=> s + (p.last||0)*(p.quantity||0), 0), [positions]);
+            const totalPnL = useMemo(()=> positions.reduce((s,p)=> s + ((p.last-p.entry)*p.quantity), 0), [positions]);
+
+            async function refresh(){
+                try{ 
+                    const p = await safeFetch('/api/papertrade/portfolio'); 
+                    if(p?.success) setPortfolio({
+                        current_capital: p.data.portfolio.current_capital,
+                        total_pnl: p.data.portfolio.total_pnl,
+                        positions_count: p.data.positions_count,
+                        total_position_value: p.data.portfolio.total_position_value,
+                        sharpe_3m: p.data.portfolio.sharpe_3m ?? 0,
+                        sortino_3m: p.data.portfolio.sortino_3m ?? 0,
+                        win_rate: p.data.portfolio.win_rate ?? 0,
+                        max_dd: p.data.portfolio.max_dd ?? 0,
+                    }); 
+                }catch{}
+                try{ 
+                    const pos = await safeFetch('/api/papertrade/positions'); 
+                    if(pos?.success) setPositions(pos.positions||[]);
+                }catch{}
+                try{ 
+                    const ord = await safeFetch('/api/papertrade/orders?limit=20'); 
+                    if(ord?.success) setOrders(ord.orders||[]);
+                }catch{}
+            }
+
+            async function execute(payload){
+                try{ 
+                    const r = await safeFetch('/api/papertrade/execute', { 
+                        method:'POST', 
+                        headers:{'Content-Type':'application/json'}, 
+                        body: JSON.stringify(payload) 
+                    }); 
+                    if(r?.success){ 
+                        await refresh(); 
+                        return true; 
+                    } 
+                }catch{}
+                // fallback local
+                const now = new Date().toLocaleString(); 
+                const price = Number(payload.price || 100); 
+                const qty = Number(payload.quantity || 0); 
+                const instr = payload.instrument?.toUpperCase() || 'EQUITY';
+                if(!payload.symbol || !qty) return false; 
+                const entry = price;
+                setPositions(prev => [{ 
+                    symbol: payload.symbol, 
+                    instrument: instr, 
+                    quantity: qty, 
+                    entry, 
+                    entry_time: now, 
+                    last: price, 
+                    status: 'OPEN' 
+                }, ...prev]);
+                setOrders(prev => [{ 
+                    timestamp: now, 
+                    symbol: payload.symbol, 
+                    instrument: instr, 
+                    side: payload.side||'BUY', 
+                    quantity: qty, 
+                    order_type: (payload.order_type||'MARKET').toUpperCase(), 
+                    exec_price: price, 
+                    exec_value: price*qty, 
+                    status: 'EXECUTED' 
+                }, ...prev]);
+                return true;
+            }
+
+            async function closePosition(symbol){
+                try{ 
+                    const r = await safeFetch('/api/papertrade/close', { 
+                        method:'POST', 
+                        headers:{'Content-Type':'application/json'}, 
+                        body: JSON.stringify({ symbol }) 
+                    }); 
+                    if(r?.success){ 
+                        await refresh(); 
+                        return; 
+                    } 
+                }catch{}
+                setPositions(prev => prev.filter(p=>p.symbol!==symbol));
+            }
+
+            return { portfolio, positions, orders, invested, totalPnL, refresh, execute, closePosition };
+        }
+
+        // KPI Component
+        function KPI({ label, value, sub }){
+            return (
+                <div className={clsx(T.surface, T.border, "rounded-2xl p-4 min-w-[180px]")}> 
+                    <div className={clsx("text-[11px] uppercase tracking-wide font-semibold", T.textDim)}>{label}</div>
+                    <div className="mt-1 text-2xl font-bold text-white/95">{value}</div>
+                    {sub && <div className={clsx("text-[11px] mt-1", T.textDim)}>{sub}</div>}
+                </div>
+            );
+        }
+
+        // Table Component
+        function Table({ cols, rows, empty }){
+            return (
+                <div className={clsx("rounded-2xl overflow-hidden", T.border)}>
+                    <table className={clsx("w-full table-fixed text-[13px] sm:text-sm", T.surface)}>
+                        <thead className="sticky top-0 z-10">
+                            <tr className="text-left text-white/70 bg-white/5">
+                                {cols.map((c,i)=> <th key={i} className="px-2 py-1.5 font-medium whitespace-nowrap">{c}</th>)}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.length===0 ? (
+                                <tr><td colSpan={cols.length} className={clsx("px-3 py-6 text-center", T.textDim)}>{empty}</td></tr>
+                            ) : rows.map((r,i)=> (
+                                <tr key={i} className="odd:bg-white/0 even:bg-white/[0.02]">
+                                    {r.map((cell,j)=> <td key={j} className="px-2 py-1.5 align-middle break-words">{cell}</td>)}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
+
+        // Mini Dashboard for each tab
+        function useTabStats(instrument){
+            const [stats, setStats] = useState({ micro:0, macro:0, under:0, met:0, notMet:0 });
+            useEffect(()=>{
+                let mounted = true;
+                const load = async ()=>{
+                    try{
+                        const acc = await safeFetch(`/api/predictions/accuracy?instrument=${instrument.toLowerCase()}&window=30d`);
+                        if(acc?.success && mounted){
+                            let succ=0, fail=0; const ratios=[];
+                            for(const r of (acc.data?.by_timeframe||[])){ 
+                                const s=Number(r.success||0), f=Number(r.failed||0); 
+                                const d=s+f; succ+=s; fail+=f; 
+                                if(d>0) ratios.push(s/d); 
+                            }
+                            const micro = (succ+fail)>0 ? succ/(succ+fail) : 0;
+                            const macro = ratios.length? ratios.reduce((a,b)=>a+b,0)/ratios.length : 0;
+                            setStats(s=>({ ...s, micro, macro, met: succ, notMet: fail }));
+                        }
+                    }catch{}
+                    try{
+                        const act = await safeFetch('/api/predictions/active');
+                        if(act?.success && mounted){
+                            let items = act.items||[];
+                            if(items.length && items[0].instrument){ 
+                                items = items.filter(i => (i.instrument||'').toUpperCase()===instrument); 
+                            }
+                            setStats(s=>({ ...s, under: items.length }));
+                        }
+                    }catch{}
+                };
+                load();
+                const id = setInterval(load, 30000);
+                return ()=>{ mounted=false; clearInterval(id); };
+            }, [instrument]);
+            return stats;
+        }
+
+        function MiniDash({ instrument }){
+            const [mode, setMode] = useState('micro');
+            const { micro, macro, under, met, notMet } = useTabStats(instrument);
+            const acc = mode==='micro' ? micro : macro;
+            return (
+                <section className={clsx('rounded-2xl p-3', T.surface, T.border)}>
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs text-white/70">{instrument} — Prediction Overview</div>
+                        <div className="inline-flex rounded-xl overflow-hidden border border-white/10 text-xs">
+                            <button onClick={()=>setMode('micro')} className={clsx('px-3 py-1.5', mode==='micro'?'bg-emerald-500/10 text-emerald-300':'text-white/80 hover:bg-white/5')}>Micro</button>
+                            <button onClick={()=>setMode('macro')} className={clsx('px-3 py-1.5 border-l border-white/10', mode==='macro'?'bg-emerald-500/10 text-emerald-300':'text-white/80 hover:bg-white/5')}>Macro</button>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <KPI label={`Accuracy (${mode==='micro'?'Micro':'Macro'})`} value={`${(acc*100).toFixed(1)}%`} />
+                        <KPI label="Under Monitor" value={under} />
+                        <KPI label="Met" value={met} />
+                        <KPI label="Not Met" value={notMet} />
+                    </div>
+                </section>
+            );
+        }
+
+        // Options Tab Component
+        function OptionsTab({ execute }){
+            const [symbol, setSymbol] = useState("RELIANCE");
+            const [chain, setChain] = useState(null);
+            const [preset, setPreset] = useState("STRANGLE");
+            const [expiry, setExpiry] = useState("");
+            const [side, setSide] = useState("SELL");
+            const [lots, setLots] = useState(1);
+
+            const lotSize = chain?.lotSize || 100;
+            const spot = chain?.spot || 0;
+
+            useEffect(() => {
+                if (symbol) {
+                    loadChain(symbol);
+                }
+            }, [symbol]);
+
+            async function loadChain(sym){ 
+                if(!sym) return setChain(null); 
+                const ch = await getChain(sym); 
+                setChain(ch); 
+                if(!expiry && ch.expiries?.length) setExpiry(ch.expiries[0]); 
+            }
+
+            async function onExecute(){
+                const qty = lots * lotSize; 
+                if(!symbol || !qty || !expiry) return;
+                const payload = { 
+                    instrument:'OPTION', 
+                    symbol: symbol.toUpperCase(), 
+                    side, 
+                    quantity: qty,
+                    price: 100 // Mock price
+                };
+
+                const ok = await execute(payload);
+                if(ok){ 
+                    setLots(1); 
+                }
+            }
+
+            return (
+                <div className="space-y-4">
+                    <MiniDash instrument="OPTION" />
+
+                    <div className={clsx(T.surface, T.border, "rounded-2xl p-4")}> 
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <div className="text-sm font-semibold text-white/80">Options — Paper Trade</div>
+                            <div className="ml-auto inline-flex rounded-xl overflow-hidden border border-white/10 text-sm">
+                                <button onClick={()=>setPreset('SINGLE')} className={clsx('px-3 py-1.5', preset==='SINGLE'?'bg-emerald-500/10 text-emerald-300':'text-white/80 hover:bg-white/5')}>Single Leg</button>
+                                <button onClick={()=>setPreset('STRANGLE')} className={clsx('px-3 py-1.5 border-l border-white/10', preset==='STRANGLE'?'bg-emerald-500/10 text-emerald-300':'text-white/80 hover:bg-white/5')}>Short Strangle</button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                            <label className="flex flex-col gap-1">
+                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Underlying</span>
+                                <select value={symbol} onChange={(e)=>setSymbol(e.target.value)} className="h-9 px-3 rounded-xl border bg-transparent border-white/10 text-white/90">
+                                    <option value="RELIANCE">RELIANCE</option>
+                                    <option value="TCS">TCS</option>
+                                    <option value="HDFCBANK">HDFCBANK</option>
+                                    <option value="INFY">INFY</option>
+                                </select>
+                            </label>
+                            <label className="flex flex-col gap-1">
+                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Side</span>
+                                <select value={side} onChange={(e)=>setSide(e.target.value)} className="h-9 px-3 rounded-xl border bg-transparent border-white/10 text-white/90">
+                                    <option>SELL</option>
+                                    <option>BUY</option>
+                                </select>
+                            </label>
+                            <label className="flex flex-col gap-1">
+                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Lots</span>
+                                <input type="number" value={lots} min={1} onChange={(e)=>setLots(Number(e.target.value||1))} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90" />
+                            </label>
+                            <div className="flex items-end">
+                                <button onClick={onExecute} className="h-9 px-4 rounded-xl border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 font-semibold">Execute</button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-4">
+                            <div className={clsx("px-3 py-2 rounded-xl border", T.border, "bg-white/5")}> 
+                                <div className={clsx("text-[10px] uppercase tracking-wide", T.textDim)}>Lot Size</div>
+                                <div className="text-sm font-semibold text-white/90 mt-0.5">{lotSize}</div>
+                            </div>
+                            <div className={clsx("px-3 py-2 rounded-xl border", T.border, "bg-white/5")}> 
+                                <div className={clsx("text-[10px] uppercase tracking-wide", T.textDim)}>Spot Price</div>
+                                <div className="text-sm font-semibold text-white/90 mt-0.5">₹{fmtINR(spot)}</div>
+                            </div>
+                            <div className={clsx("px-3 py-2 rounded-xl border", T.border, "bg-white/5")}> 
+                                <div className={clsx("text-[10px] uppercase tracking-wide", T.textDim)}>IV / IV Rank</div>
+                                <div className="text-sm font-semibold text-white/90 mt-0.5">{chain?.iv}% / {chain?.ivRank}</div>
+                            </div>
+                            <div className={clsx("px-3 py-2 rounded-xl border", T.border, "bg-white/5")}> 
+                                <div className={clsx("text-[10px] uppercase tracking-wide", T.textDim)}>Net Credit</div>
+                                <div className="text-sm font-semibold text-white/90 mt-0.5">₹{fmtINR(45000)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Equities Tab
+        function EquitiesTab({ execute }){
+            const [symbol, setSymbol] = useState("");
+            const [side, setSide] = useState("BUY");
+            const [quantity, setQuantity] = useState(100);
+
+            async function onExecute(){
+                if(!symbol || !quantity) return;
+                await execute({ 
+                    instrument:'EQUITY', 
+                    symbol: symbol.toUpperCase(), 
+                    side, 
+                    quantity,
+                    price: 1500 // Mock price
                 });
-                document.getElementById(tabName + '-tab').classList.add('active');
+                setSymbol("");
+                setQuantity(100);
+            }
+
+            return (
+                <div className="space-y-4"> 
+                    <MiniDash instrument="EQUITY" />
+                    <div className={clsx(T.surface, T.border, "rounded-2xl p-4 space-y-3")}> 
+                        <div className="text-sm font-semibold text-white/80 mb-1">Equities — Paper Trade</div>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <label className="flex flex-col gap-1">
+                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Symbol</span>
+                                <input value={symbol} onChange={(e)=>setSymbol(e.target.value.toUpperCase())} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90" placeholder="e.g., TCS"/>
+                            </label>
+                            <label className="flex flex-col gap-1">
+                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Side</span>
+                                <select value={side} onChange={(e)=>setSide(e.target.value)} className="h-9 px-3 rounded-xl border bg-transparent border-white/10 text-white/90">
+                                    <option>BUY</option>
+                                    <option>SELL</option>
+                                </select>
+                            </label>
+                            <label className="flex flex-col gap-1">
+                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Quantity</span>
+                                <input type="number" value={quantity} onChange={(e)=>setQuantity(Number(e.target.value||0))} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90"/>
+                            </label>
+                            <div className="flex items-end">
+                                <button onClick={onExecute} className="h-9 px-4 rounded-xl border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 font-semibold">Execute</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Commodities Tab
+        function CommoditiesTab({ execute }){
+            const [symbol, setSymbol] = useState("");
+            const [side, setSide] = useState("BUY");
+            const [quantity, setQuantity] = useState(1);
+
+            async function onExecute(){
+                if(!symbol || !quantity) return;
+                await execute({ 
+                    instrument:'COMMODITY', 
+                    symbol: symbol.toUpperCase(), 
+                    side, 
+                    quantity,
+                    price: 5000 // Mock price
+                });
+                setSymbol("");
+                setQuantity(1);
+            }
+
+            return (
+                <div className="space-y-4"> 
+                    <MiniDash instrument="COMMODITY" />
+                    <div className={clsx(T.surface, T.border, "rounded-2xl p-4 space-y-3")}> 
+                        <div className="text-sm font-semibold text-white/80 mb-1">Commodities — Paper Trade</div>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <label className="flex flex-col gap-1">
+                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Contract</span>
+                                <input value={symbol} onChange={(e)=>setSymbol(e.target.value.toUpperCase())} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90" placeholder="e.g., CRUDEOIL-SEP"/>
+                            </label>
+                            <label className="flex flex-col gap-1">
+                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Side</span>
+                                <select value={side} onChange={(e)=>setSide(e.target.value)} className="h-9 px-3 rounded-xl border bg-transparent border-white/10 text-white/90">
+                                    <option>BUY</option>
+                                    <option>SELL</option>
+                                </select>
+                            </label>
+                            <label className="flex flex-col gap-1">
+                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Quantity</span>
+                                <input type="number" value={quantity} onChange={(e)=>setQuantity(Number(e.target.value||0))} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90"/>
+                            </label>
+                            <div className="flex items-end">
+                                <button onClick={onExecute} className="h-9 px-4 rounded-xl border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 font-semibold">Execute</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Positions Table
+        function PositionsTable({ rows, onClose }){
+            const cols=["Symbol","Instr","Qty","Entry","Last","P&L","P&L %","Actions"];
+            const r = rows.map(p=>{
+                const pnl = ((p.last||0)-(p.entry||0))*(p.quantity||0);
+                const pnlPct = p.entry? (((p.last||0)-(p.entry||0))/(p.entry))*100 : 0;
+                return [
+                    p.symbol,
+                    p.instrument,
+                    fmtINR(p.quantity),
+                    `₹${fmtINR(p.entry)}`,
+                    `₹${fmtINR(p.last)}`,
+                    React.createElement('span', {className: pnl>=0?'text-emerald-300':'text-rose-300'}, `₹${fmtINR(pnl)}`),
+                    React.createElement('span', {className: pnlPct>=0?'text-emerald-300':'text-rose-300'}, `${pnlPct.toFixed(2)}%`),
+                    React.createElement('button', {onClick:()=>onClose(p.symbol), className:"px-2 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-200"}, "Close"),
+                ];
             });
-        });
-
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Paper trading page loaded');
-            refreshData();
-            loadOptionsChain();
-        });
-
-        async function refreshData() {
-            console.log('Loading portfolio data...');
-            try {
-                await Promise.all([
-                    loadPortfolioData(),
-                    loadPositionsData(),
-                    loadOrdersData()
-                ]);
-                updateUI();
-            } catch (error) {
-                console.error('Error refreshing data:', error);
-            }
+            return React.createElement(Table, {cols, rows: r, empty: "No positions found"});
         }
 
-        async function loadPortfolioData() {
-            try {
-                const response = await fetch('/api/papertrade/portfolio');
-                const data = await response.json();
-
-                if (data.success && data.data) {
-                    portfolioData = {
-                        current_capital: data.data.portfolio.current_capital || 1000000,
-                        total_pnl: data.data.portfolio.total_pnl || 0,
-                        positions_count: data.data.positions_count || 0,
-                        total_position_value: data.data.portfolio.total_position_value || 0,
-                        sharpe_3m: data.data.portfolio.sharpe_3m || 0,
-                        sortino_3m: data.data.portfolio.sortino_3m || 0,
-                        win_rate: data.data.portfolio.win_rate || 0,
-                        max_dd: data.data.portfolio.max_dd || 0
-                    };
-                }
-            } catch (error) {
-                console.error('Error loading portfolio:', error);
-            }
+        // Trades Table
+        function TradesTable({ rows }){
+            const cols=["Time","Symbol","Instr","Side","Qty","Price","Value","Status"];
+            const r = rows.map(o=>[
+                o.timestamp,
+                o.symbol,
+                o.instrument,
+                o.side,
+                fmtINR(o.quantity),
+                `₹${fmtINR(o.exec_price)}`,
+                `₹${fmtINR(o.exec_value)}`,
+                React.createElement('span', {className:"px-2 py-0.5 rounded-full text-[11px] border border-emerald-400/30 bg-emerald-500/10 text-emerald-300"}, o.status),
+            ]);
+            return React.createElement(Table, {cols, rows: r, empty: "No trades executed"});
         }
 
-        async function loadPositionsData() {
-            try {
-                const response = await fetch('/api/papertrade/positions');
-                const data = await response.json();
+        // Main Component
+        function PaperTradeTabbed(){
+            const { portfolio, positions, orders, invested, totalPnL, refresh, execute, closePosition } = usePaperData();
+            const [tab, setTab] = useState('OPTIONS');
 
-                if (data.success) {
-                    positionsData = data.positions || [];
-                }
-            } catch (error) {
-                console.error('Error loading positions:', error);
-            }
+            return (
+                <div className={clsx('min-h-screen', T.bg, T.text)}>
+                    {/* Header */}
+                    <header className={clsx('sticky top-0 z-40', T.surface, T.border)}>
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div className="text-white font-extrabold">Fusion Stock Analyst</div>
+                                <p className={clsx('text-[12px] mt-0.5', T.textDim)}>Paper Trade</p>
+                            </div>
+                            <nav className="flex gap-2 text-sm">
+                                {[['Dashboard','/dashboard'],['Equities','/equities'],['Options','/options'],['Commodities','/commodities'],['Paper Trade','/papertrade']].map(([x,href])=> (
+                                    <a key={x} href={href} className={clsx('px-3 py-2 rounded-xl border', T.border, x==='Paper Trade'? 'text-emerald-300 bg-emerald-500/10 font-semibold':'text-white/80 hover:bg-white/5')}>{x}</a>
+                                ))}
+                            </nav>
+                        </div>
+                    </header>
+
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+                        {/* KPI band */}
+                        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                            <KPI label="Total Capital" value={`₹${fmtINR(portfolio.current_capital || invested)}`} />
+                            <KPI label="Total P&L" value={`₹${fmtINR(portfolio.total_pnl ?? totalPnL)}`} />
+                            <KPI label="Positions" value={String(portfolio.positions_count ?? positions.length)} sub={`₹${fmtINR(portfolio.total_position_value ?? invested)} invested`} />
+                            <KPI label="Sharpe (3M)" value={(portfolio.sharpe_3m||0).toFixed(2)} sub="Risk‑adjusted" />
+                            <KPI label="Sortino (3M)" value={(portfolio.sortino_3m||0).toFixed(2)} sub="Downside risk" />
+                            <KPI label="Win Rate" value={`${(portfolio.win_rate||0).toFixed(0)}%`} sub={`Max DD ~${(portfolio.max_dd||0).toFixed(1)}%`} />
+                        </section>
+
+                        {/* Tabs */}
+                        <section className={clsx(T.surface, T.border, 'rounded-2xl p-2')}> 
+                            <div className="flex gap-1 p-1 rounded-xl bg-white/5">
+                                {['OPTIONS','EQUITIES','COMMODITIES'].map(x=> (
+                                    <button key={x} onClick={()=>setTab(x)} className={clsx('px-4 py-2 rounded-lg text-sm', tab===x? 'bg-emerald-500/10 text-emerald-300 font-semibold':'text-white/80 hover:bg-white/5')}>{x}</button>
+                                ))}
+                                <div className="ml-auto">
+                                    <button onClick={refresh} className="px-3 py-2 rounded-xl border text-white/80 hover:bg-white/5">Refresh</button>
+                                </div>
+                            </div>
+                            <div className="p-2 sm:p-3">
+                                {tab==='OPTIONS' && React.createElement(OptionsTab, {execute})}
+                                {tab==='EQUITIES' && React.createElement(EquitiesTab, {execute})}
+                                {tab==='COMMODITIES' && React.createElement(CommoditiesTab, {execute})}
+                            </div>
+                        </section>
+
+                        {/* Current Positions */}
+                        <section>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-sm font-semibold text-white/70">Current Positions</div>
+                                <div className={clsx('text-xs', T.textDim)}>{positions.length} positions</div>
+                            </div>
+                            {React.createElement(PositionsTable, {rows: positions, onClose: closePosition})}
+                        </section>
+
+                        {/* Recent Trades */}
+                        <section>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-sm font-semibold text-white/70">Recent Trades</div>
+                                <div className={clsx('text-xs', T.textDim)}>{orders.length} trades</div>
+                            </div>
+                            {React.createElement(TradesTable, {rows: orders})}
+                        </section>
+                    </main>
+                </div>
+            );
         }
 
-        async function loadOrdersData() {
-            try {
-                const response = await fetch('/api/papertrade/orders');
-                const data = await response.json();
-
-                if (data.success) {
-                    ordersData = data.orders || [];
-                }
-            } catch (error) {
-                console.error('Error loading orders:', error);
-            }
-        }
-
-        function updateUI() {
-            // Update KPI cards
-            document.getElementById('total-capital').textContent = `₹${formatNumber(portfolioData.current_capital)}`;
-            document.getElementById('total-pnl').textContent = `₹${formatNumber(portfolioData.total_pnl)}`;
-            document.getElementById('positions-count').textContent = portfolioData.positions_count;
-            document.getElementById('invested-amount').textContent = `₹${formatNumber(portfolioData.total_position_value)} invested`;
-            document.getElementById('sharpe-ratio').textContent = portfolioData.sharpe_3m.toFixed(2);
-            document.getElementById('sortino-ratio').textContent = portfolioData.sortino_3m.toFixed(2);
-            document.getElementById('win-rate').textContent = `${portfolioData.win_rate.toFixed(0)}%`;
-            document.getElementById('max-dd').textContent = `Max DD ~${portfolioData.max_dd.toFixed(1)}%`;
-
-            // Update positions table
-            updatePositionsTable();
-
-            // Update orders table
-            updateOrdersTable();
-        }
-
-        function updatePositionsTable() {
-            const tbody = document.getElementById('positions-table-body');
-
-            if (positionsData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No positions yet</td></tr>';
-                return;
-            }
-
-            const rows = positionsData.map(position => {
-                const pnl = position.pnl || 0;
-                const pnlPercent = position.pnl_percent || 0;
-                const pnlClass = pnl >= 0 ? 'positive' : 'negative';
-
-                return `
-                    <tr>
-                        <td>${position.symbol}</td>
-                        <td>${position.instrument || 'equity'}</td>
-                        <td>${position.side || 'BUY'}</td>
-                        <td>${formatNumber(position.quantity)}</td>
-                        <td>₹${formatNumber(position.avg_price || position.entry_price)}</td>
-                        <td>₹${formatNumber(position.current_price)}</td>
-                        <td class="${pnlClass}">₹${formatNumber(pnl)}</td>
-                        <td class="${pnlClass}">${pnlPercent.toFixed(2)}%</td>
-                        <td><button class="btn btn-secondary" onclick="closePosition('${position.symbol}')">Close</button></td>
-                    </tr>
-                `;
-            }).join('');
-
-            tbody.innerHTML = rows;
-        }
-
-        function updateOrdersTable() {
-            const tbody = document.getElementById('orders-table-body');
-
-            if (ordersData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No trades executed yet</td></tr>';
-                return;
-            }
-
-            const rows = ordersData.slice(0, 20).map(order => `
-                <tr>
-                    <td>${new Date(order.timestamp).toLocaleString()}</td>
-                    <td>${order.symbol}</td>
-                    <td>${order.instrument || 'equity'}</td>
-                    <td>${order.side}</td>
-                    <td>${formatNumber(order.quantity)}</td>
-                    <td>₹${formatNumber(order.exec_price)}</td>
-                    <td>₹${formatNumber(order.exec_value)}</td>
-                    <td><span style="color: var(--brand-color);">${order.status}</span></td>
-                </tr>
-            `).join('');
-
-            tbody.innerHTML = rows;
-        }
-
-        async function loadOptionsChain() {
-            const symbol = document.getElementById('options-symbol').value;
-            try {
-                const response = await fetch(`/api/options/chain/${symbol}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    updateOptionsAnalytics(data.data);
-                }
-            } catch (error) {
-                console.error('Error loading options chain:', error);
-            }
-        }
-
-        function updateOptionsAnalytics(chainData) {
-            document.getElementById('opt-lot-size').textContent = chainData.lotSize || 505;
-            document.getElementById('opt-spot').textContent = `₹${formatNumber(chainData.spot)}`;
-            document.getElementById('opt-iv').textContent = `${chainData.iv}% / ${chainData.ivRank}`;
-
-            // Calculate estimated values
-            const netCredit = 45000; // Mock value
-            const roi = 25.5; // Mock value
-            const dte = 45; // Mock value
-
-            document.getElementById('opt-credit').textContent = `₹${formatNumber(netCredit)}`;
-            document.getElementById('opt-roi').textContent = `${roi}%`;
-            document.getElementById('opt-dte').textContent = dte;
-        }
-
-        async function loadEquityPrice() {
-            const symbol = document.getElementById('equity-symbol').value;
-            if (!symbol) return;
-
-            try {
-                const response = await fetch(`/api/papertrade/live-price/${symbol}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    console.log(`Live price for ${symbol}: ₹${data.price}`);
-                }
-            } catch (error) {
-                console.error('Error loading equity price:', error);
-            }
-        }
-
-        async function executeOptionsTrade() {
-            const symbol = document.getElementById('options-symbol').value;
-            const strategy = document.getElementById('options-strategy').value;
-            const side = document.getElementById('options-side').value;
-            const lots = parseInt(document.getElementById('options-lots').value);
-
-            const payload = {
-                instrument: 'options',
-                symbol: symbol,
-                strategy: strategy,
-                side: side,
-                quantity: lots
-            };
-
-            try {
-                const response = await fetch('/api/papertrade/execute', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showNotification(`Options trade executed: ${strategy} ${symbol}`, 'success');
-                    await refreshData();
-                } else {
-                    showNotification(`Trade failed: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Error executing options trade:', error);
-                showNotification('Trade execution failed', 'error');
-            }
-        }
-
-        async function executeEquityTrade() {
-            const symbol = document.getElementById('equity-symbol').value;
-            const side = document.getElementById('equity-side').value;
-            const quantity = parseInt(document.getElementById('equity-quantity').value);
-
-            if (!symbol) {
-                showNotification('Please enter a symbol', 'error');
-                return;
-            }
-
-            const payload = {
-                instrument: 'equity',
-                symbol: symbol,
-                side: side,
-                quantity: quantity
-            };
-
-            try {
-                const response = await fetch('/api/papertrade/execute', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showNotification(`Equity trade executed: ${side} ${symbol}`, 'success');
-                    await refreshData();
-                } else {
-                    showNotification(`Trade failed: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Error executing equity trade:', error);
-                showNotification('Trade execution failed', 'error');
-            }
-        }
-
-        async function executeCommodityTrade() {
-            const symbol = document.getElementById('commodity-symbol').value;
-            const side = document.getElementById('commodity-side').value;
-            const lots = parseInt(document.getElementById('commodity-lots').value);
-
-            const payload = {
-                instrument: 'commodity',
-                symbol: symbol,
-                side: side,
-                quantity: lots
-            };
-
-            try {
-                const response = await fetch('/api/papertrade/execute', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showNotification(`Commodity trade executed: ${side} ${symbol}`, 'success');
-                    await refreshData();
-                } else {
-                    showNotification(`Trade failed: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Error executing commodity trade:', error);
-                showNotification('Trade execution failed', 'error');
-            }
-        }
-
-        async function closePosition(symbol) {
-            try {
-                const response = await fetch('/api/papertrade/close', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol: symbol })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showNotification('Position closed successfully', 'success');
-                    await refreshData();
-                } else {
-                    showNotification(`Failed to close position: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                console.error('Error closing position:', error);
-                showNotification('Failed to close position', 'error');
-            }
-        }
-
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 16px 24px;
-                border-radius: 8px;
-                color: white;
-                font-weight: 600;
-                z-index: 1000;
-                ${type === 'success' ? 'background: #059669;' : 'background: #dc2626;'}
-                animation: slideIn 0.3s ease;
-            `;
-            notification.textContent = message;
-
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        function formatNumber(num) {
-            return new Intl.NumberFormat('en-IN').format(num || 0);
-        }
-
-        // Add CSS animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-        `;
-        document.head.appendChild(style);
+        // Render the app
+        ReactDOM.render(React.createElement(PaperTradeTabbed), document.getElementById('root'));
     </script>
 </body>
 </html>
