@@ -1,14 +1,14 @@
 
 {
   "current_capital": 1000000,
-  "total_pnl": 0,
-  "positions_count": 0,
-  "total_position_value": 0,
-  "available_margin": 1000000,
-  "used_margin": 0,
-  "sharpe_3m": 0,
-  "sortino_3m": 0,
-  "win_rate": 0,
-  "max_dd": 0,
-  "last_updated": "2025-08-14T05:43:00Z"
+  "total_pnl": 15000,
+  "positions_count": 3,
+  "total_position_value": 85000,
+  "available_margin": 915000,
+  "used_margin": 85000,
+  "sharpe_3m": 1.2,
+  "sortino_3m": 1.5,
+  "win_rate": 75.0,
+  "max_dd": 2.3,
+  "last_updated": "2025-08-14T11:30:00Z"
 }

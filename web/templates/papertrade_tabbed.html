@@ -1,42 +1,28 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paper Trading - Fusion Stock Analyst</title>
+    <title>Paper Trade - Tabbed Auto + MiniDash</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#0b1220',
-                        surface: '#111a2e',
-                        emerald: {
-                            300: '#6ee7b7',
-                            400: '#34d399',
-                            500: '#10b981'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0b1220; color: white; overflow-x: auto; }
+        #root { min-height: 100vh; }
+    </style>
 </head>
-<body class="bg-[#0b1220] text-white">
+<body>
     <div id="root"></div>
-
+    
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useEffect, useMemo, useState } = React;
 
-        // Theme and utilities
+        // Theme constants
         const T = {
             bg: "bg-[#0b1220]",
-            surface: "bg-[#111a2e]",
+            surface: "bg-[#111a2e]", 
             border: "border border-white/10",
             text: "text-white/90",
             textDim: "text-white/60",
@@ -45,573 +31,417 @@
         const clsx = (...a) => a.filter(Boolean).join(" ");
         const fmtINR = (n) => new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(Number(n || 0));
         const todayYMD = () => new Date().toISOString().slice(0,10);
-        const ymd = (d)=> d.toISOString().slice(0,10);
+        const ymd = (d) => d.toISOString().slice(0,10);
 
-        async function safeFetch(url, opts = {}, timeoutMs = 8000){
+        async function safeFetch(url, opts = {}, timeoutMs = 8000) {
             const ctrl = new AbortController();
-            const t = setTimeout(()=>ctrl.abort(), timeoutMs);
-            try{ 
-                const res = await fetch(url, { ...opts, signal: ctrl.signal }); 
-                clearTimeout(t); 
-                if(!res.ok) throw new Error(`HTTP ${res.status}`); 
-                return await res.json(); 
+            const t = setTimeout(() => ctrl.abort(), timeoutMs);
+            try {
+                const res = await fetch(url, { ...opts, signal: ctrl.signal });
+                clearTimeout(t);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.json();
+            } catch (e) {
+                clearTimeout(t);
+                throw e;
             }
-            catch(e){ clearTimeout(t); throw e; }
         }
 
-        // Mock data
+        // Mock data constants
         const MOCK = {
-            portfolio:{ current_capital: 1000000, total_pnl: 0, positions_count: 0, total_position_value: 0, sharpe_3m:0, sortino_3m:0, win_rate:0, max_dd:0 },
+            portfolio: { current_capital: 1000000, total_pnl: 0, positions_count: 0, total_position_value: 0, sharpe_3m: 0, sortino_3m: 0, win_rate: 0, max_dd: 0 },
             positions: [],
             orders: [],
         };
 
-        const LOTS = { RELIANCE:505, TCS:150, INFY:300, ITC:3200, HDFCBANK:550, NIFTY:50, BANKNIFTY:15 };
+        const LOTS = { RELIANCE: 505, TCS: 150, INFY: 300, ITC: 3200, HDFCBANK: 550, NIFTY: 50, BANKNIFTY: 15 };
 
-        function genChain(symbol){
+        function genChain(symbol) {
             const lot = LOTS[symbol] || 100;
             const spot = 1200 + (Math.abs((symbol||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % 1000);
-            const expiries = []; const base=new Date();
-            for(let i=0;i<6;i++){ const d=new Date(base); d.setDate(d.getDate()+((4-d.getDay()+7)%7)+i*7); expiries.push(ymd(d)); }
-            const step = spot<1000? 10 : 20;
-            const strikes = Array.from({length:17}, (_,k)=> Math.round((spot-8*step)+k*step));
-            const ltp = (k, type)=> Math.max(1, (type==='CE'? Math.max(0, spot-k)/2 : Math.max(0, k-spot)/2) + 12 + Math.random()*8);
+            const expiries = [];
+            const base = new Date();
+            for (let i = 0; i < 6; i++) {
+                const d = new Date(base);
+                d.setDate(d.getDate() + ((4 - d.getDay() + 7) % 7) + i * 7);
+                expiries.push(ymd(d));
+            }
+            const step = spot < 1000 ? 10 : 20;
+            const strikes = Array.from({length: 17}, (_, k) => Math.round((spot - 8 * step) + k * step));
+            const ltp = (k, type) => Math.max(1, (type === 'CE' ? Math.max(0, spot - k) / 2 : Math.max(0, k - spot) / 2) + 12 + Math.random() * 8);
             return { lotSize: lot, spot: Number(spot.toFixed(2)), expiries, strikes, ltp, iv: 22.0, ivRank: 38 };
         }
 
-        async function getChain(symbol){
-            try{ 
-                const r = await safeFetch(`/api/options/chain/${(symbol||'').toUpperCase()}`); 
-                if(r && r.success) return r.data; 
-            }catch{}
-            return genChain(symbol||'');
+        async function getChain(symbol) {
+            try {
+                const r = await safeFetch(`/api/options/chain/${(symbol||'').toUpperCase()}`);
+                if (r && r.success) return r.data;
+            } catch {}
+            return genChain(symbol || '');
         }
 
-        // Paper data hook
-        function usePaperData(){
-            const [portfolio, setPortfolio] = useState(MOCK.portfolio);
-            const [positions, setPositions] = useState(MOCK.positions);
-            const [orders, setOrders] = useState(MOCK.orders);
+        // Data hooks
+        function usePaperData() {
+            const [data, setData] = useState({ portfolio: MOCK.portfolio, positions: MOCK.positions, orders: MOCK.orders });
+            const [loading, setLoading] = useState(true);
 
-            useEffect(()=>{ (async()=>{
-                try{ 
-                    const p = await safeFetch('/api/papertrade/portfolio'); 
-                    if(p?.success) setPortfolio({
-                        current_capital: p.data.portfolio.current_capital,
-                        total_pnl: p.data.portfolio.total_pnl,
-                        positions_count: p.data.positions_count,
-                        total_position_value: p.data.portfolio.total_position_value,
-                        sharpe_3m: p.data.portfolio.sharpe_3m ?? 0,
-                        sortino_3m: p.data.portfolio.sortino_3m ?? 0,
-                        win_rate: p.data.portfolio.win_rate ?? 0,
-                        max_dd: p.data.portfolio.max_dd ?? 0,
-                    }); 
-                }catch{}
-                try{ 
-                    const pos = await safeFetch('/api/papertrade/positions'); 
-                    if(pos?.success) setPositions(pos.positions||[]);
-                }catch{}
-                try{ 
-                    const ord = await safeFetch('/api/papertrade/orders?limit=20'); 
-                    if(ord?.success) setOrders(ord.orders||[]);
-                }catch{}
-            })(); },[]);
+            const refetch = async () => {
+                setLoading(true);
+                try {
+                    const [portfolio, positions, orders] = await Promise.all([
+                        safeFetch('/api/papertrade/portfolio').catch(() => MOCK.portfolio),
+                        safeFetch('/api/papertrade/positions').catch(() => MOCK.positions),
+                        safeFetch('/api/papertrade/orders?limit=20').catch(() => MOCK.orders)
+                    ]);
+                    setData({ portfolio, positions, orders });
+                } catch (e) {
+                    console.error('Paper data fetch failed:', e);
+                }
+                setLoading(false);
+            };
 
-            const invested = useMemo(()=> positions.reduce((s,p)=> s + (p.last||0)*(p.quantity||0), 0), [positions]);
-            const totalPnL = useMemo(()=> positions.reduce((s,p)=> s + ((p.last-p.entry)*p.quantity), 0), [positions]);
+            useEffect(() => { 
+                console.log('Paper trading page loaded');
+                console.log('Loading portfolio data...');
+                refetch(); 
+            }, []);
 
-            async function refresh(){
-                try{ 
-                    const p = await safeFetch('/api/papertrade/portfolio'); 
-                    if(p?.success) setPortfolio({
-                        current_capital: p.data.portfolio.current_capital,
-                        total_pnl: p.data.portfolio.total_pnl,
-                        positions_count: p.data.positions_count,
-                        total_position_value: p.data.portfolio.total_position_value,
-                        sharpe_3m: p.data.portfolio.sharpe_3m ?? 0,
-                        sortino_3m: p.data.portfolio.sortino_3m ?? 0,
-                        win_rate: p.data.portfolio.win_rate ?? 0,
-                        max_dd: p.data.portfolio.max_dd ?? 0,
-                    }); 
-                }catch{}
-                try{ 
-                    const pos = await safeFetch('/api/papertrade/positions'); 
-                    if(pos?.success) setPositions(pos.positions||[]);
-                }catch{}
-                try{ 
-                    const ord = await safeFetch('/api/papertrade/orders?limit=20'); 
-                    if(ord?.success) setOrders(ord.orders||[]);
-                }catch{}
-            }
-
-            async function execute(payload){
-                try{ 
-                    const r = await safeFetch('/api/papertrade/execute', { 
-                        method:'POST', 
-                        headers:{'Content-Type':'application/json'}, 
-                        body: JSON.stringify(payload) 
-                    }); 
-                    if(r?.success){ 
-                        await refresh(); 
-                        return true; 
-                    } 
-                }catch{}
-                // fallback local
-                const now = new Date().toLocaleString(); 
-                const price = Number(payload.price || 100); 
-                const qty = Number(payload.quantity || 0); 
-                const instr = payload.instrument?.toUpperCase() || 'EQUITY';
-                if(!payload.symbol || !qty) return false; 
-                const entry = price;
-                setPositions(prev => [{ 
-                    symbol: payload.symbol, 
-                    instrument: instr, 
-                    quantity: qty, 
-                    entry, 
-                    entry_time: now, 
-                    last: price, 
-                    status: 'OPEN' 
-                }, ...prev]);
-                setOrders(prev => [{ 
-                    timestamp: now, 
-                    symbol: payload.symbol, 
-                    instrument: instr, 
-                    side: payload.side||'BUY', 
-                    quantity: qty, 
-                    order_type: (payload.order_type||'MARKET').toUpperCase(), 
-                    exec_price: price, 
-                    exec_value: price*qty, 
-                    status: 'EXECUTED' 
-                }, ...prev]);
-                return true;
-            }
-
-            async function closePosition(symbol){
-                try{ 
-                    const r = await safeFetch('/api/papertrade/close', { 
-                        method:'POST', 
-                        headers:{'Content-Type':'application/json'}, 
-                        body: JSON.stringify({ symbol }) 
-                    }); 
-                    if(r?.success){ 
-                        await refresh(); 
-                        return; 
-                    } 
-                }catch{}
-                setPositions(prev => prev.filter(p=>p.symbol!==symbol));
-            }
-
-            return { portfolio, positions, orders, invested, totalPnL, refresh, execute, closePosition };
+            return { ...data, loading, refetch };
         }
 
-        // KPI Component
-        function KPI({ label, value, sub }){
+        function useAccuracy(instrument, window = '30d') {
+            const [acc, setAcc] = useState({ micro: 0, macro: 0, count: 0 });
+            useEffect(() => {
+                safeFetch(`/api/predictions/accuracy?instrument=${instrument}&window=${window}`)
+                    .then(r => setAcc(r.data || acc))
+                    .catch(() => {});
+            }, [instrument, window]);
+            return acc;
+        }
+
+        function useActivePredictions() {
+            const [preds, setPreds] = useState([]);
+            useEffect(() => {
+                safeFetch('/api/predictions/active')
+                    .then(r => setPreds(r.data || []))
+                    .catch(() => {});
+            }, []);
+            return preds;
+        }
+
+        // Components
+        function MiniDashboard({ instrument }) {
+            const [accType, setAccType] = useState('micro');
+            const acc = useAccuracy(instrument);
+            const preds = useActivePredictions();
+            
+            const filtered = preds.filter(p => p.instrument?.toLowerCase() === instrument?.toLowerCase());
+            const underMonitor = filtered.filter(p => p.status === 'active').length;
+            const met = filtered.filter(p => p.status === 'met').length;
+            const notMet = filtered.filter(p => p.status === 'failed').length;
+
             return (
-                <div className={clsx(T.surface, T.border, "rounded-2xl p-4 min-w-[180px]")}> 
-                    <div className={clsx("text-[11px] uppercase tracking-wide font-semibold", T.textDim)}>{label}</div>
-                    <div className="mt-1 text-2xl font-bold text-white/95">{value}</div>
-                    {sub && <div className={clsx("text-[11px] mt-1", T.textDim)}>{sub}</div>}
-                </div>
-            );
-        }
-
-        // Table Component
-        function Table({ cols, rows, empty }){
-            return (
-                <div className={clsx("rounded-2xl overflow-hidden", T.border)}>
-                    <table className={clsx("w-full table-fixed text-[13px] sm:text-sm", T.surface)}>
-                        <thead className="sticky top-0 z-10">
-                            <tr className="text-left text-white/70 bg-white/5">
-                                {cols.map((c,i)=> <th key={i} className="px-2 py-1.5 font-medium whitespace-nowrap">{c}</th>)}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.length===0 ? (
-                                <tr><td colSpan={cols.length} className={clsx("px-3 py-6 text-center", T.textDim)}>{empty}</td></tr>
-                            ) : rows.map((r,i)=> (
-                                <tr key={i} className="odd:bg-white/0 even:bg-white/[0.02]">
-                                    {r.map((cell,j)=> <td key={j} className="px-2 py-1.5 align-middle break-words">{cell}</td>)}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            );
-        }
-
-        // Mini Dashboard for each tab
-        function useTabStats(instrument){
-            const [stats, setStats] = useState({ micro:0, macro:0, under:0, met:0, notMet:0 });
-            useEffect(()=>{
-                let mounted = true;
-                const load = async ()=>{
-                    try{
-                        const acc = await safeFetch(`/api/predictions/accuracy?instrument=${instrument.toLowerCase()}&window=30d`);
-                        if(acc?.success && mounted){
-                            let succ=0, fail=0; const ratios=[];
-                            for(const r of (acc.data?.by_timeframe||[])){ 
-                                const s=Number(r.success||0), f=Number(r.failed||0); 
-                                const d=s+f; succ+=s; fail+=f; 
-                                if(d>0) ratios.push(s/d); 
-                            }
-                            const micro = (succ+fail)>0 ? succ/(succ+fail) : 0;
-                            const macro = ratios.length? ratios.reduce((a,b)=>a+b,0)/ratios.length : 0;
-                            setStats(s=>({ ...s, micro, macro, met: succ, notMet: fail }));
-                        }
-                    }catch{}
-                    try{
-                        const act = await safeFetch('/api/predictions/active');
-                        if(act?.success && mounted){
-                            let items = act.items||[];
-                            if(items.length && items[0].instrument){ 
-                                items = items.filter(i => (i.instrument||'').toUpperCase()===instrument); 
-                            }
-                            setStats(s=>({ ...s, under: items.length }));
-                        }
-                    }catch{}
-                };
-                load();
-                const id = setInterval(load, 30000);
-                return ()=>{ mounted=false; clearInterval(id); };
-            }, [instrument]);
-            return stats;
-        }
-
-        function MiniDash({ instrument }){
-            const [mode, setMode] = useState('micro');
-            const { micro, macro, under, met, notMet } = useTabStats(instrument);
-            const acc = mode==='micro' ? micro : macro;
-            return (
-                <section className={clsx('rounded-2xl p-3', T.surface, T.border)}>
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="text-xs text-white/70">{instrument} — Prediction Overview</div>
-                        <div className="inline-flex rounded-xl overflow-hidden border border-white/10 text-xs">
-                            <button onClick={()=>setMode('micro')} className={clsx('px-3 py-1.5', mode==='micro'?'bg-emerald-500/10 text-emerald-300':'text-white/80 hover:bg-white/5')}>Micro</button>
-                            <button onClick={()=>setMode('macro')} className={clsx('px-3 py-1.5 border-l border-white/10', mode==='macro'?'bg-emerald-500/10 text-emerald-300':'text-white/80 hover:bg-white/5')}>Macro</button>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                    <div className={clsx(T.surface, T.border, "p-3 rounded")}>
+                        <div className="flex items-center justify-between mb-2">
+                            <span className={clsx(T.textDim, "text-xs")}>Accuracy</span>
+                            <button
+                                onClick={() => setAccType(accType === 'micro' ? 'macro' : 'micro')}
+                                className="text-xs px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded"
+                            >
+                                {accType}
+                            </button>
+                        </div>
+                        <div className={clsx(T.text, "text-lg font-semibold")}>
+                            {(acc[accType] * 100).toFixed(1)}%
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <KPI label={`Accuracy (${mode==='micro'?'Micro':'Macro'})`} value={`${(acc*100).toFixed(1)}%`} />
-                        <KPI label="Under Monitor" value={under} />
-                        <KPI label="Met" value={met} />
-                        <KPI label="Not Met" value={notMet} />
+                    
+                    <div className={clsx(T.surface, T.border, "p-3 rounded")}>
+                        <div className={clsx(T.textDim, "text-xs mb-2")}>Under Monitor</div>
+                        <div className={clsx(T.text, "text-lg font-semibold text-yellow-400")}>
+                            {underMonitor}
+                        </div>
                     </div>
-                </section>
+                    
+                    <div className={clsx(T.surface, T.border, "p-3 rounded")}>
+                        <div className={clsx(T.textDim, "text-xs mb-2")}>Met</div>
+                        <div className={clsx(T.text, "text-lg font-semibold text-green-400")}>
+                            {met}
+                        </div>
+                    </div>
+                    
+                    <div className={clsx(T.surface, T.border, "p-3 rounded")}>
+                        <div className={clsx(T.textDim, "text-xs mb-2")}>Not Met</div>
+                        <div className={clsx(T.text, "text-lg font-semibold text-red-400")}>
+                            {notMet}
+                        </div>
+                    </div>
+                </div>
             );
         }
 
-        // Options Tab Component
-        function OptionsTab({ execute }){
-            const [symbol, setSymbol] = useState("RELIANCE");
+        function OptionsTab() {
+            const [symbol, setSymbol] = useState('RELIANCE');
             const [chain, setChain] = useState(null);
-            const [preset, setPreset] = useState("STRANGLE");
-            const [expiry, setExpiry] = useState("");
-            const [side, setSide] = useState("SELL");
-            const [lots, setLots] = useState(1);
-
-            const lotSize = chain?.lotSize || 100;
-            const spot = chain?.spot || 0;
+            const [selectedExpiry, setSelectedExpiry] = useState('');
+            const [ceStrike, setCeStrike] = useState('');
+            const [peStrike, setPeStrike] = useState('');
+            const [autoMode, setAutoMode] = useState({ tp: true, sl: true, roi: true, due: true });
+            const [manualValues, setManualValues] = useState({ tp: 50, sl: 30, roi: 25, due: todayYMD() });
 
             useEffect(() => {
                 if (symbol) {
-                    loadChain(symbol);
+                    getChain(symbol).then(c => {
+                        setChain(c);
+                        setSelectedExpiry(c.expiries[0] || '');
+                        const atmStrike = c.strikes.find(s => Math.abs(s - c.spot) === Math.min(...c.strikes.map(st => Math.abs(st - c.spot))));
+                        setCeStrike(atmStrike);
+                        setPeStrike(atmStrike);
+                    });
                 }
             }, [symbol]);
 
-            async function loadChain(sym){ 
-                if(!sym) return setChain(null); 
-                const ch = await getChain(sym); 
-                setChain(ch); 
-                if(!expiry && ch.expiries?.length) setExpiry(ch.expiries[0]); 
-            }
-
-            async function onExecute(){
-                const qty = lots * lotSize; 
-                if(!symbol || !qty || !expiry) return;
-                const payload = { 
-                    instrument:'OPTION', 
-                    symbol: symbol.toUpperCase(), 
-                    side, 
-                    quantity: qty,
-                    price: 100 // Mock price
+            const analytics = useMemo(() => {
+                if (!chain || !ceStrike || !peStrike) return {};
+                const ceLTP = chain.ltp(ceStrike, 'CE');
+                const peLTP = chain.ltp(peStrike, 'PE');
+                const netCredit = (ceLTP + peLTP) * chain.lotSize;
+                const estMargin = 0.2 * chain.spot * chain.lotSize;
+                const roiOnMargin = (netCredit / estMargin) * 100;
+                const dte = selectedExpiry ? Math.max(0, Math.floor((new Date(selectedExpiry) - new Date()) / (1000 * 60 * 60 * 24))) : 0;
+                const breakevens = [peStrike - (ceLTP + peLTP), ceStrike + (ceLTP + peLTP)];
+                
+                return {
+                    netCredit,
+                    estMargin,
+                    roiOnMargin,
+                    dte,
+                    breakevens,
+                    iv: chain.iv,
+                    ivRank: chain.ivRank
                 };
-
-                const ok = await execute(payload);
-                if(ok){ 
-                    setLots(1); 
-                }
-            }
+            }, [chain, ceStrike, peStrike, selectedExpiry]);
 
             return (
-                <div className="space-y-4">
-                    <MiniDash instrument="OPTION" />
-
-                    <div className={clsx(T.surface, T.border, "rounded-2xl p-4")}> 
-                        <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <div className="text-sm font-semibold text-white/80">Options — Paper Trade</div>
-                            <div className="ml-auto inline-flex rounded-xl overflow-hidden border border-white/10 text-sm">
-                                <button onClick={()=>setPreset('SINGLE')} className={clsx('px-3 py-1.5', preset==='SINGLE'?'bg-emerald-500/10 text-emerald-300':'text-white/80 hover:bg-white/5')}>Single Leg</button>
-                                <button onClick={()=>setPreset('STRANGLE')} className={clsx('px-3 py-1.5 border-l border-white/10', preset==='STRANGLE'?'bg-emerald-500/10 text-emerald-300':'text-white/80 hover:bg-white/5')}>Short Strangle</button>
+                <div>
+                    <MiniDashboard instrument="OPTION" />
+                    
+                    <div className="grid lg:grid-cols-2 gap-6">
+                        <div className={clsx(T.surface, T.border, "p-6 rounded")}>
+                            <h3 className={clsx(T.text, "text-lg font-semibold mb-4")}>Options Strategy</h3>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className={clsx(T.textDim, "block text-sm mb-1")}>Symbol</label>
+                                    <input
+                                        type="text"
+                                        value={symbol}
+                                        onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                                        className={clsx(T.surface, T.border, T.text, "w-full p-2 rounded")}
+                                        placeholder="RELIANCE"
+                                    />
+                                </div>
+                                
+                                {chain && (
+                                    <>
+                                        <div>
+                                            <label className={clsx(T.textDim, "block text-sm mb-1")}>Expiry</label>
+                                            <select
+                                                value={selectedExpiry}
+                                                onChange={(e) => setSelectedExpiry(e.target.value)}
+                                                className={clsx(T.surface, T.border, T.text, "w-full p-2 rounded")}
+                                            >
+                                                {chain.expiries.map(exp => (
+                                                    <option key={exp} value={exp}>{exp}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={clsx(T.textDim, "block text-sm mb-1")}>CE Strike</label>
+                                                <select
+                                                    value={ceStrike}
+                                                    onChange={(e) => setCeStrike(Number(e.target.value))}
+                                                    className={clsx(T.surface, T.border, T.text, "w-full p-2 rounded")}
+                                                >
+                                                    {chain.strikes.map(strike => (
+                                                        <option key={strike} value={strike}>{strike}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            
+                                            <div>
+                                                <label className={clsx(T.textDim, "block text-sm mb-1")}>PE Strike</label>
+                                                <select
+                                                    value={peStrike}
+                                                    onChange={(e) => setPeStrike(Number(e.target.value))}
+                                                    className={clsx(T.surface, T.border, T.text, "w-full p-2 rounded")}
+                                                >
+                                                    {chain.strikes.map(strike => (
+                                                        <option key={strike} value={strike}>{strike}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            <label className="flex flex-col gap-1">
-                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Underlying</span>
-                                <select value={symbol} onChange={(e)=>setSymbol(e.target.value)} className="h-9 px-3 rounded-xl border bg-transparent border-white/10 text-white/90">
-                                    <option value="RELIANCE">RELIANCE</option>
-                                    <option value="TCS">TCS</option>
-                                    <option value="HDFCBANK">HDFCBANK</option>
-                                    <option value="INFY">INFY</option>
-                                </select>
-                            </label>
-                            <label className="flex flex-col gap-1">
-                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Side</span>
-                                <select value={side} onChange={(e)=>setSide(e.target.value)} className="h-9 px-3 rounded-xl border bg-transparent border-white/10 text-white/90">
-                                    <option>SELL</option>
-                                    <option>BUY</option>
-                                </select>
-                            </label>
-                            <label className="flex flex-col gap-1">
-                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Lots</span>
-                                <input type="number" value={lots} min={1} onChange={(e)=>setLots(Number(e.target.value||1))} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90" />
-                            </label>
-                            <div className="flex items-end">
-                                <button onClick={onExecute} className="h-9 px-4 rounded-xl border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 font-semibold">Execute</button>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-4">
-                            <div className={clsx("px-3 py-2 rounded-xl border", T.border, "bg-white/5")}> 
-                                <div className={clsx("text-[10px] uppercase tracking-wide", T.textDim)}>Lot Size</div>
-                                <div className="text-sm font-semibold text-white/90 mt-0.5">{lotSize}</div>
-                            </div>
-                            <div className={clsx("px-3 py-2 rounded-xl border", T.border, "bg-white/5")}> 
-                                <div className={clsx("text-[10px] uppercase tracking-wide", T.textDim)}>Spot Price</div>
-                                <div className="text-sm font-semibold text-white/90 mt-0.5">₹{fmtINR(spot)}</div>
-                            </div>
-                            <div className={clsx("px-3 py-2 rounded-xl border", T.border, "bg-white/5")}> 
-                                <div className={clsx("text-[10px] uppercase tracking-wide", T.textDim)}>IV / IV Rank</div>
-                                <div className="text-sm font-semibold text-white/90 mt-0.5">{chain?.iv}% / {chain?.ivRank}</div>
-                            </div>
-                            <div className={clsx("px-3 py-2 rounded-xl border", T.border, "bg-white/5")}> 
-                                <div className={clsx("text-[10px] uppercase tracking-wide", T.textDim)}>Net Credit</div>
-                                <div className="text-sm font-semibold text-white/90 mt-0.5">₹{fmtINR(45000)}</div>
-                            </div>
+                        
+                        <div className={clsx(T.surface, T.border, "p-6 rounded")}>
+                            <h3 className={clsx(T.text, "text-lg font-semibold mb-4")}>Live Analytics</h3>
+                            
+                            {analytics.netCredit && (
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className={T.textDim}>Net Credit:</span>
+                                        <span className={T.text}>₹{fmtINR(analytics.netCredit)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className={T.textDim}>DTE:</span>
+                                        <span className={T.text}>{analytics.dte}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className={T.textDim}>IV:</span>
+                                        <span className={T.text}>{analytics.iv}%</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className={T.textDim}>IV Rank:</span>
+                                        <span className={T.text}>{analytics.ivRank}%</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className={T.textDim}>Est. Margin:</span>
+                                        <span className={T.text}>₹{fmtINR(analytics.estMargin)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className={T.textDim}>ROI on Margin:</span>
+                                        <span className={T.text}>{analytics.roiOnMargin.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <span className={T.textDim}>Breakevens:</span>
+                                        <span className={T.text}> {analytics.breakevens.map(b => b.toFixed(0)).join(', ')}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             );
         }
 
-        // Equities Tab
-        function EquitiesTab({ execute }){
-            const [symbol, setSymbol] = useState("");
-            const [side, setSide] = useState("BUY");
-            const [quantity, setQuantity] = useState(100);
-
-            async function onExecute(){
-                if(!symbol || !quantity) return;
-                await execute({ 
-                    instrument:'EQUITY', 
-                    symbol: symbol.toUpperCase(), 
-                    side, 
-                    quantity,
-                    price: 1500 // Mock price
-                });
-                setSymbol("");
-                setQuantity(100);
-            }
-
+        function EquitiesTab() {
             return (
-                <div className="space-y-4"> 
-                    <MiniDash instrument="EQUITY" />
-                    <div className={clsx(T.surface, T.border, "rounded-2xl p-4 space-y-3")}> 
-                        <div className="text-sm font-semibold text-white/80 mb-1">Equities — Paper Trade</div>
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                            <label className="flex flex-col gap-1">
-                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Symbol</span>
-                                <input value={symbol} onChange={(e)=>setSymbol(e.target.value.toUpperCase())} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90" placeholder="e.g., TCS"/>
-                            </label>
-                            <label className="flex flex-col gap-1">
-                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Side</span>
-                                <select value={side} onChange={(e)=>setSide(e.target.value)} className="h-9 px-3 rounded-xl border bg-transparent border-white/10 text-white/90">
-                                    <option>BUY</option>
-                                    <option>SELL</option>
-                                </select>
-                            </label>
-                            <label className="flex flex-col gap-1">
-                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Quantity</span>
-                                <input type="number" value={quantity} onChange={(e)=>setQuantity(Number(e.target.value||0))} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90"/>
-                            </label>
-                            <div className="flex items-end">
-                                <button onClick={onExecute} className="h-9 px-4 rounded-xl border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 font-semibold">Execute</button>
-                            </div>
-                        </div>
+                <div>
+                    <MiniDashboard instrument="EQUITY" />
+                    <div className={clsx(T.surface, T.border, "p-6 rounded")}>
+                        <h3 className={clsx(T.text, "text-lg font-semibold mb-4")}>Equity Trading</h3>
+                        <p className={T.textDim}>Equity trading interface coming soon...</p>
                     </div>
                 </div>
             );
         }
 
-        // Commodities Tab
-        function CommoditiesTab({ execute }){
-            const [symbol, setSymbol] = useState("");
-            const [side, setSide] = useState("BUY");
-            const [quantity, setQuantity] = useState(1);
-
-            async function onExecute(){
-                if(!symbol || !quantity) return;
-                await execute({ 
-                    instrument:'COMMODITY', 
-                    symbol: symbol.toUpperCase(), 
-                    side, 
-                    quantity,
-                    price: 5000 // Mock price
-                });
-                setSymbol("");
-                setQuantity(1);
-            }
-
+        function CommoditiesTab() {
             return (
-                <div className="space-y-4"> 
-                    <MiniDash instrument="COMMODITY" />
-                    <div className={clsx(T.surface, T.border, "rounded-2xl p-4 space-y-3")}> 
-                        <div className="text-sm font-semibold text-white/80 mb-1">Commodities — Paper Trade</div>
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                            <label className="flex flex-col gap-1">
-                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Contract</span>
-                                <input value={symbol} onChange={(e)=>setSymbol(e.target.value.toUpperCase())} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90" placeholder="e.g., CRUDEOIL-SEP"/>
-                            </label>
-                            <label className="flex flex-col gap-1">
-                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Side</span>
-                                <select value={side} onChange={(e)=>setSide(e.target.value)} className="h-9 px-3 rounded-xl border bg-transparent border-white/10 text-white/90">
-                                    <option>BUY</option>
-                                    <option>SELL</option>
-                                </select>
-                            </label>
-                            <label className="flex flex-col gap-1">
-                                <span className={clsx('text-[11px] uppercase tracking-wide', T.textDim)}>Quantity</span>
-                                <input type="number" value={quantity} onChange={(e)=>setQuantity(Number(e.target.value||0))} className="h-9 px-3 rounded-xl border bg-[#0f172a] border-white/10 text-white/90"/>
-                            </label>
-                            <div className="flex items-end">
-                                <button onClick={onExecute} className="h-9 px-4 rounded-xl border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 font-semibold">Execute</button>
-                            </div>
-                        </div>
+                <div>
+                    <MiniDashboard instrument="COMMODITY" />
+                    <div className={clsx(T.surface, T.border, "p-6 rounded")}>
+                        <h3 className={clsx(T.text, "text-lg font-semibold mb-4")}>Commodities Trading</h3>
+                        <p className={T.textDim}>Commodities trading interface coming soon...</p>
                     </div>
                 </div>
             );
         }
 
-        // Positions Table
-        function PositionsTable({ rows, onClose }){
-            const cols=["Symbol","Instr","Qty","Entry","Last","P&L","P&L %","Actions"];
-            const r = rows.map(p=>{
-                const pnl = ((p.last||0)-(p.entry||0))*(p.quantity||0);
-                const pnlPct = p.entry? (((p.last||0)-(p.entry||0))/(p.entry))*100 : 0;
-                return [
-                    p.symbol,
-                    p.instrument,
-                    fmtINR(p.quantity),
-                    `₹${fmtINR(p.entry)}`,
-                    `₹${fmtINR(p.last)}`,
-                    React.createElement('span', {className: pnl>=0?'text-emerald-300':'text-rose-300'}, `₹${fmtINR(pnl)}`),
-                    React.createElement('span', {className: pnlPct>=0?'text-emerald-300':'text-rose-300'}, `${pnlPct.toFixed(2)}%`),
-                    React.createElement('button', {onClick:()=>onClose(p.symbol), className:"px-2 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-200"}, "Close"),
-                ];
-            });
-            return React.createElement(Table, {cols, rows: r, empty: "No positions found"});
-        }
+        function PaperTrade() {
+            const [activeTab, setActiveTab] = useState('options');
+            const { portfolio, positions, orders, loading, refetch } = usePaperData();
 
-        // Trades Table
-        function TradesTable({ rows }){
-            const cols=["Time","Symbol","Instr","Side","Qty","Price","Value","Status"];
-            const r = rows.map(o=>[
-                o.timestamp,
-                o.symbol,
-                o.instrument,
-                o.side,
-                fmtINR(o.quantity),
-                `₹${fmtINR(o.exec_price)}`,
-                `₹${fmtINR(o.exec_value)}`,
-                React.createElement('span', {className:"px-2 py-0.5 rounded-full text-[11px] border border-emerald-400/30 bg-emerald-500/10 text-emerald-300"}, o.status),
-            ]);
-            return React.createElement(Table, {cols, rows: r, empty: "No trades executed"});
-        }
+            const tabs = [
+                { id: 'options', label: 'Options', component: OptionsTab },
+                { id: 'equities', label: 'Equities', component: EquitiesTab },
+                { id: 'commodities', label: 'Commodities', component: CommoditiesTab }
+            ];
 
-        // Main Component
-        function PaperTradeTabbed(){
-            const { portfolio, positions, orders, invested, totalPnL, refresh, execute, closePosition } = usePaperData();
-            const [tab, setTab] = useState('OPTIONS');
+            const ActiveComponent = tabs.find(t => t.id === activeTab)?.component || OptionsTab;
 
             return (
-                <div className={clsx('min-h-screen', T.bg, T.text)}>
-                    {/* Header */}
-                    <header className={clsx('sticky top-0 z-40', T.surface, T.border)}>
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-                            <div>
-                                <div className="text-white font-extrabold">Fusion Stock Analyst</div>
-                                <p className={clsx('text-[12px] mt-0.5', T.textDim)}>Paper Trade</p>
+                <div className={clsx(T.bg, "min-h-screen p-6")}>
+                    <div className="max-w-7xl mx-auto">
+                        <div className="flex items-center justify-between mb-6">
+                            <h1 className={clsx(T.text, "text-2xl font-bold")}>Paper Trading</h1>
+                            <div className={clsx(T.surface, T.border, "px-4 py-2 rounded")}>
+                                <span className={T.textDim}>Capital: </span>
+                                <span className={T.text}>₹{fmtINR(portfolio.current_capital)}</span>
                             </div>
-                            <nav className="flex gap-2 text-sm">
-                                {[['Dashboard','/dashboard'],['Equities','/equities'],['Options','/options'],['Commodities','/commodities'],['Paper Trade','/papertrade']].map(([x,href])=> (
-                                    <a key={x} href={href} className={clsx('px-3 py-2 rounded-xl border', T.border, x==='Paper Trade'? 'text-emerald-300 bg-emerald-500/10 font-semibold':'text-white/80 hover:bg-white/5')}>{x}</a>
-                                ))}
-                            </nav>
                         </div>
-                    </header>
 
-                    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
-                        {/* KPI band */}
-                        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-                            <KPI label="Total Capital" value={`₹${fmtINR(portfolio.current_capital || invested)}`} />
-                            <KPI label="Total P&L" value={`₹${fmtINR(portfolio.total_pnl ?? totalPnL)}`} />
-                            <KPI label="Positions" value={String(portfolio.positions_count ?? positions.length)} sub={`₹${fmtINR(portfolio.total_position_value ?? invested)} invested`} />
-                            <KPI label="Sharpe (3M)" value={(portfolio.sharpe_3m||0).toFixed(2)} sub="Risk‑adjusted" />
-                            <KPI label="Sortino (3M)" value={(portfolio.sortino_3m||0).toFixed(2)} sub="Downside risk" />
-                            <KPI label="Win Rate" value={`${(portfolio.win_rate||0).toFixed(0)}%`} sub={`Max DD ~${(portfolio.max_dd||0).toFixed(1)}%`} />
-                        </section>
+                        <div className="flex space-x-1 mb-6">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={clsx(
+                                        "px-4 py-2 rounded text-sm font-medium transition-colors",
+                                        activeTab === tab.id
+                                            ? "bg-blue-600 text-white"
+                                            : clsx(T.surface, T.text, "hover:bg-white/5")
+                                    )}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
 
-                        {/* Tabs */}
-                        <section className={clsx(T.surface, T.border, 'rounded-2xl p-2')}> 
-                            <div className="flex gap-1 p-1 rounded-xl bg-white/5">
-                                {['OPTIONS','EQUITIES','COMMODITIES'].map(x=> (
-                                    <button key={x} onClick={()=>setTab(x)} className={clsx('px-4 py-2 rounded-lg text-sm', tab===x? 'bg-emerald-500/10 text-emerald-300 font-semibold':'text-white/80 hover:bg-white/5')}>{x}</button>
-                                ))}
-                                <div className="ml-auto">
-                                    <button onClick={refresh} className="px-3 py-2 rounded-xl border text-white/80 hover:bg-white/5">Refresh</button>
+                        <ActiveComponent />
+
+                        {positions.length > 0 && (
+                            <div className={clsx(T.surface, T.border, "mt-6 p-6 rounded")}>
+                                <h3 className={clsx(T.text, "text-lg font-semibold mb-4")}>Current Positions</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className={clsx(T.textDim, "border-b border-white/10")}>
+                                                <th className="text-left py-2">Symbol</th>
+                                                <th className="text-left py-2">Type</th>
+                                                <th className="text-left py-2">Quantity</th>
+                                                <th className="text-left py-2">Entry Price</th>
+                                                <th className="text-left py-2">Current Price</th>
+                                                <th className="text-left py-2">P&L</th>
+                                                <th className="text-left py-2">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {positions.map((pos, i) => (
+                                                <tr key={i} className={clsx(T.text, "border-b border-white/10")}>
+                                                    <td className="py-2">{pos.symbol}</td>
+                                                    <td className="py-2">{pos.type}</td>
+                                                    <td className="py-2">{pos.quantity}</td>
+                                                    <td className="py-2">₹{fmtINR(pos.entry_price)}</td>
+                                                    <td className="py-2">₹{fmtINR(pos.current_price)}</td>
+                                                    <td className={clsx("py-2", pos.pnl >= 0 ? "text-green-400" : "text-red-400")}>
+                                                        ₹{fmtINR(pos.pnl)}
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <button className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">
+                                                            Close
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
-                            <div className="p-2 sm:p-3">
-                                {tab==='OPTIONS' && React.createElement(OptionsTab, {execute})}
-                                {tab==='EQUITIES' && React.createElement(EquitiesTab, {execute})}
-                                {tab==='COMMODITIES' && React.createElement(CommoditiesTab, {execute})}
-                            </div>
-                        </section>
-
-                        {/* Current Positions */}
-                        <section>
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="text-sm font-semibold text-white/70">Current Positions</div>
-                                <div className={clsx('text-xs', T.textDim)}>{positions.length} positions</div>
-                            </div>
-                            {React.createElement(PositionsTable, {rows: positions, onClose: closePosition})}
-                        </section>
-
-                        {/* Recent Trades */}
-                        <section>
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="text-sm font-semibold text-white/70">Recent Trades</div>
-                                <div className={clsx('text-xs', T.textDim)}>{orders.length} trades</div>
-                            </div>
-                            {React.createElement(TradesTable, {rows: orders})}
-                        </section>
-                    </main>
+                        )}
+                    </div>
                 </div>
             );
         }
 
-        // Render the app
-        ReactDOM.render(React.createElement(PaperTradeTabbed), document.getElementById('root'));
+        ReactDOM.render(<PaperTrade />, document.getElementById('root'));
     </script>
 </body>
 </html>

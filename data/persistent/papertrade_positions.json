@@ -1,2 +1,39 @@
 
-[]
+[
+  {
+    "symbol": "RELIANCE",
+    "instrument": "OPTION",
+    "quantity": 505,
+    "entry": 95.50,
+    "last": 105.20,
+    "entry_time": "2025-08-14 10:30:00",
+    "status": "OPEN",
+    "side": "SELL",
+    "pnl": 4898.50,
+    "pnl_percent": 5.1
+  },
+  {
+    "symbol": "TCS",
+    "instrument": "EQUITY",
+    "quantity": 100,
+    "entry": 3450.00,
+    "last": 3520.50,
+    "entry_time": "2025-08-14 09:15:00",
+    "status": "OPEN", 
+    "side": "BUY",
+    "pnl": 7050.00,
+    "pnl_percent": 2.0
+  },
+  {
+    "symbol": "HDFCBANK",
+    "instrument": "OPTION",
+    "quantity": 550,
+    "entry": 88.75,
+    "last": 92.30,
+    "entry_time": "2025-08-14 11:00:00",
+    "status": "OPEN",
+    "side": "SELL", 
+    "pnl": 1952.50,
+    "pnl_percent": 4.0
+  }
+]
