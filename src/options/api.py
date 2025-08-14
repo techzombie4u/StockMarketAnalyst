@@ -88,7 +88,7 @@ def generate_mock_strategy_data(symbol: str, timeframe: str) -> dict:
 def get_options_strategies():
     """Get options strategies for the UI"""
     try:
-        timeframe = request.args.get('timeframe', '30D')
+        timeframe = request.args.get('timeframe', '45D')
         logger.info(f"🎯 Getting options strategies for timeframe: {timeframe}")
 
         # Generate strategy data with consistent structure
@@ -98,18 +98,33 @@ def get_options_strategies():
         for symbol in symbols:
             strategy_data = generate_mock_strategy_data(symbol, timeframe)
             if strategy_data:
-                # Ensure all required fields are present
+                # Ensure all required fields are present with proper defaults
                 strategy_data.setdefault('stock', symbol)
-                strategy_data.setdefault('spot', 0.0)
-                strategy_data.setdefault('call', 0.0)
-                strategy_data.setdefault('put', 0.0)
-                strategy_data.setdefault('net_credit', 0.0)
-                strategy_data.setdefault('dte', 0)
-                strategy_data.setdefault('iv', 0.0)
-                strategy_data.setdefault('roi_on_margin', 0.0)
-                strategy_data.setdefault('breakout_prob', 0.0)
-                strategy_data.setdefault('market_stability', 'Medium')
-                strategy_data.setdefault('event', 'None')
+                strategy_data.setdefault('verdict', 'Hold')
+                strategy_data.setdefault('ai_verdict', 'On Track')
+                strategy_data.setdefault('final_outcome', 'IN_PROGRESS')
+                strategy_data.setdefault('spot', round(1500 + (hash(symbol) % 500), 2))
+                strategy_data.setdefault('call', strategy_data['spot'] + 100)
+                strategy_data.setdefault('put', strategy_data['spot'] - 100)
+                strategy_data.setdefault('net_credit', round(95 + (hash(symbol) % 30), 2))
+                strategy_data.setdefault('dte', 45 if timeframe == '45D' else int(timeframe.replace('D', '')))
+                strategy_data.setdefault('iv', round(20 + (hash(symbol) % 20), 1))
+                strategy_data.setdefault('iv_rank', round(30 + (hash(symbol) % 40), 1))
+                strategy_data.setdefault('roi_on_margin', round(25 + (hash(symbol) % 15), 2))
+                strategy_data.setdefault('breakout_prob', round((hash(symbol) % 40) / 100, 3))
+                strategy_data.setdefault('market_stability', ['Low', 'Medium', 'High'][hash(symbol) % 3])
+                strategy_data.setdefault('event', 'None' if hash(symbol) % 3 == 0 else 'Earnings')
+                strategy_data.setdefault('max_loss_2s', 'Moderate')
+                strategy_data.setdefault('stop_loss_pct', 50)
+                strategy_data.setdefault('theta_day', round(strategy_data['net_credit'] / strategy_data['dte'], 2))
+                
+                # Calculate breakeven range
+                call_premium = 45 + (hash(symbol) % 15)
+                put_premium = 40 + (hash(symbol) % 15)
+                total_credit = call_premium + put_premium
+                strategy_data.setdefault('breakeven_min', round(strategy_data['put'] - total_credit, 2))
+                strategy_data.setdefault('breakeven_max', round(strategy_data['call'] + total_credit, 2))
+                
                 strategies.append(strategy_data)
 
         logger.info(f"✅ Generated {len(strategies)} strategies for {timeframe}")

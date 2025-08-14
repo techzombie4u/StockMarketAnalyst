@@ -93,7 +93,7 @@ def create_app():
         @app.route('/api/predictions/accuracy')
         def fallback_predictions_accuracy():
             return jsonify({'success': True, 'data': {'by_timeframe': [{'timeframe': '30D', 'micro_accuracy': 0.0, 'macro_accuracy': 0.0}], 'micro_accuracy': 0.0, 'macro_accuracy': 0.0}})
-        
+
         @app.route('/api/predictions/active')
         def fallback_predictions_active():
             return jsonify({'success': True, 'items': [], 'count': 0})
@@ -217,13 +217,14 @@ def create_app():
 
     @app.route('/papertrade')
     def papertrade():
+        """Paper Trade page"""
         try:
             logger.info("📊 Serving Paper Trade page")
             return render_template('papertrade_tabbed.html')
         except Exception as e:
             logger.error(f"Error rendering papertrade: {e}")
-            return jsonify({'error': 'Template not found'}), 500
-            
+            return f"Error loading Paper Trade page: {e}", 500
+
     @app.route('/paper-trade')
     def paper_trade_alt():
         """Alternative route for paper trade"""

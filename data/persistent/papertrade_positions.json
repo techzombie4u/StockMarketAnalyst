@@ -1,26 +1,2 @@
-[
-  {
-    "id": "pos_001",
-    "symbol": "RELIANCE",
-    "instrument": "equity",
-    "side": "BUY",
-    "quantity": 10,
-    "entry_price": 2850.0,
-    "current_price": 2875.0,
-    "pnl": 250.0,
-    "entry_time": "2025-01-14T10:30:00",
-    "status": "open"
-  },
-  {
-    "id": "pos_002",
-    "symbol": "TCS",
-    "instrument": "equity",
-    "side": "BUY",
-    "quantity": 5,
-    "entry_price": 4200.0,
-    "current_price": 4250.0,
-    "pnl": 250.0,
-    "entry_time": "2025-01-14T11:00:00",
-    "status": "open"
-  }
-]
+
+[]
