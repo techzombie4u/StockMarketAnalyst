@@ -401,7 +401,10 @@ def get_options_strategies():
         logger.error(f"Error getting options strategies: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@options_bp.route('/predictions/accuracy', methods=['GET'])
+# Create a separate predictions blueprint for better organization
+predictions_bp = Blueprint('predictions_bp', __name__)
+
+@predictions_bp.route('/accuracy', methods=['GET'])
 def get_predictions_accuracy():
     """Get accuracy metrics by timeframe (finalized only)"""
     try:
@@ -419,9 +422,6 @@ def get_predictions_accuracy():
         
         logger.info(f"Generated accuracy data for window {window}: {accuracy_data}")
 
-        # Filter based on window if needed
-        # For now, return all timeframes
-
         return jsonify({
             'success': True,
             'by_timeframe': accuracy_data
@@ -431,12 +431,11 @@ def get_predictions_accuracy():
         logger.error(f"Error getting accuracy data: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@options_bp.route('/predictions/active', methods=['GET'])
+@predictions_bp.route('/active', methods=['GET'])
 def get_active_predictions():
     """Get active (in-progress) predictions"""
     try:
         # Mock active predictions data
-        # In real implementation, query your active predictions
         active_predictions = [
             {
                 'due': '2025-08-27',
@@ -475,6 +474,16 @@ def get_active_predictions():
     except Exception as e:
         logger.error(f"Error getting active predictions: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@options_bp.route('/predictions/accuracy', methods=['GET'])
+def get_options_predictions_accuracy():
+    """Get accuracy metrics by timeframe (finalized only) - Options specific"""
+    return get_predictions_accuracy()
+
+@options_bp.route('/predictions/active', methods=['GET'])
+def get_options_active_predictions():
+    """Get active (in-progress) predictions - Options specific"""
+    return get_active_predictions()
 
 # The following routes were present in the original code but are not mentioned in the changes.
 # According to instructions, "rest of the file remains unchanged" means we should keep them.

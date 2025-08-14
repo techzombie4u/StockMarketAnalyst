@@ -67,11 +67,14 @@ def create_app():
 
     try:
         # Options API
-        from src.options.api import options_bp
+        from src.options.api import options_bp, predictions_bp
         app.register_blueprint(options_bp, url_prefix='/api/options')
-        logger.info("✅ Registered Options API at /api/options")
+        app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
+        logger.info("Options and predictions blueprints registered successfully")
+    except ImportError as e:
+        logger.error(f"Failed to import options/predictions blueprints: {e}")
     except Exception as e:
-        logger.warning(f"⚠️ Could not register Options API: {e}")
+        logger.error(f"Failed to register options/predictions blueprints: {e}")
 
     try:
         # Commodities API
