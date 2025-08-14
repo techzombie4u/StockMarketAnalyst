@@ -1,0 +1,714 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Trade - Fusion Stock Analyst</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="/static/css/proto.css">
+    <style>
+        .paper-trade-container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .tab-nav {
+            display: flex;
+            border-bottom: 2px solid #333;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 16px;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-button.active {
+            color: #00ff88;
+            border-bottom-color: #00ff88;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .mini-dash {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .mini-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        .mini-card h4 {
+            margin: 0 0 10px 0;
+            color: #00ff88;
+            font-size: 14px;
+        }
+        .mini-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .options-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            color: #ccc;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .form-group input, .form-group select {
+            padding: 8px;
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 4px;
+        }
+        .execute-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .execute-btn {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .execute-btn:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+        .positions-table, .orders-table {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .positions-table th, .positions-table td,
+        .orders-table th, .orders-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            color: #fff;
+        }
+        .positions-table th, .orders-table th {
+            background: #333;
+            color: #00ff88;
+        }
+        .close-btn {
+            background: #ff4444;
+            color: #fff;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .profit { color: #00ff88; }
+        .loss { color: #ff4444; }
+    </style>
+</head>
+<body class="dark-theme">
+    <div id="paper-trade-root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // Utility functions
+        async function safeFetch(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Fetch error:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Real-time chain fetch (no mocks)
+        async function getChain(symbol) {
+            const sym = (symbol || '').toUpperCase();
+            const r = await safeFetch(`/api/options/chain/${sym}`);
+            if (!r?.success) throw new Error("chain fetch failed");
+
+            const ceMap = r.data.ce || {};
+            const peMap = r.data.pe || {};
+            const ltp = (k, type) => {
+                const ex = (r.data.expiries || [])[0];
+                if (!ex) return 0;
+                const m = type === 'CE' ? ceMap[ex] : peMap[ex];
+                return Number((m?.[String(k)] ?? 0) || 0);
+            };
+
+            return {
+                lotSize: r.data.lotSize,
+                spot: r.data.spot,
+                expiries: r.data.expiries,
+                strikes: r.data.strikes,
+                ltp,
+                iv: r.data.iv ?? 0,
+                ivRank: r.data.ivRank ?? 0
+            };
+        }
+
+        // Main Paper Trade Component
+        function PaperTradeApp() {
+            const [activeTab, setActiveTab] = useState('OPTIONS');
+            const [miniDash, setMiniDash] = useState({
+                microAccuracy: 0,
+                macroAccuracy: 0,
+                underMonitor: 0,
+                totalPnL: 0
+            });
+            
+            // Options tab state
+            const [symbol, setSymbol] = useState('RELIANCE');
+            const [strategy, setStrategy] = useState('SINGLE');
+            const [side, setSide] = useState('SELL');
+            const [type, setType] = useState('CE');
+            const [strike, setStrike] = useState('');
+            const [callStrike, setCallStrike] = useState('');
+            const [putStrike, setPutStrike] = useState('');
+            const [expiry, setExpiry] = useState('');
+            const [trackPrediction, setTrackPrediction] = useState(false);
+            const [tpPct, setTpPct] = useState(50);
+            const [slPct, setSlPct] = useState(100);
+            
+            // Chain data
+            const [chainData, setChainData] = useState(null);
+            const [loading, setLoading] = useState(false);
+            
+            // Portfolio data
+            const [positions, setPositions] = useState([]);
+            const [orders, setOrders] = useState([]);
+
+            // Load mini dashboard
+            const loadMiniDash = useCallback(async () => {
+                try {
+                    const [accuracyRes, portfolioRes, activeRes] = await Promise.all([
+                        safeFetch(`/api/predictions/accuracy?instrument=option&window=30d`),
+                        safeFetch('/api/papertrade/portfolio'),
+                        safeFetch('/api/predictions/active')
+                    ]);
+
+                    const accuracy = accuracyRes.success ? accuracyRes.data : {};
+                    const portfolio = portfolioRes.success ? portfolioRes.data : {};
+                    const active = activeRes.success ? activeRes.data : {};
+
+                    setMiniDash({
+                        microAccuracy: Math.round((accuracy.micro_accuracy || 0) * 100),
+                        macroAccuracy: Math.round((accuracy.macro_accuracy || 0) * 100),
+                        underMonitor: active.predictions?.length || 0,
+                        totalPnL: portfolio.total_pnl || 0
+                    });
+                } catch (error) {
+                    console.error('Error loading mini dashboard:', error);
+                }
+            }, []);
+
+            // Load chain data
+            const loadChain = useCallback(async () => {
+                if (!symbol) return;
+                
+                setLoading(true);
+                try {
+                    const chain = await getChain(symbol);
+                    setChainData(chain);
+                    if (chain.expiries?.length > 0) {
+                        setExpiry(chain.expiries[0]);
+                    }
+                } catch (error) {
+                    console.error('Error loading chain:', error);
+                    setChainData(null);
+                } finally {
+                    setLoading(false);
+                }
+            }, [symbol]);
+
+            // Load positions and orders
+            const loadPortfolio = useCallback(async () => {
+                try {
+                    const [posRes, ordRes] = await Promise.all([
+                        safeFetch('/api/papertrade/positions'),
+                        safeFetch('/api/papertrade/orders?limit=20')
+                    ]);
+
+                    if (posRes.success) setPositions(posRes.data.positions || []);
+                    if (ordRes.success) setOrders(ordRes.data.orders || []);
+                } catch (error) {
+                    console.error('Error loading portfolio:', error);
+                }
+            }, []);
+
+            // Calculate metrics
+            const calculateMetrics = () => {
+                if (!chainData) return {};
+                
+                const spot = chainData.spot;
+                const lotSize = chainData.lotSize;
+                
+                if (strategy === 'SINGLE') {
+                    const ltp = chainData.ltp(Number(strike), type);
+                    const premium = ltp * lotSize;
+                    const margin = Math.round(0.2 * spot * lotSize);
+                    const roi = margin > 0 ? ((premium / margin) * 100).toFixed(2) : 0;
+                    
+                    return {
+                        premium,
+                        margin,
+                        roi,
+                        netCredit: side === 'SELL' ? premium : -premium
+                    };
+                } else if (strategy === 'STRANGLE') {
+                    const ceLtp = chainData.ltp(Number(callStrike), 'CE');
+                    const peLtp = chainData.ltp(Number(putStrike), 'PE');
+                    const netCredit = (ceLtp + peLtp) * lotSize;
+                    const margin = Math.round(0.2 * spot * lotSize);
+                    const roi = margin > 0 ? ((netCredit / margin) * 100).toFixed(2) : 0;
+                    
+                    const totalCredit = netCredit / lotSize;
+                    const breakevens = [
+                        Number(putStrike) - totalCredit,
+                        Number(callStrike) + totalCredit
+                    ];
+                    
+                    return {
+                        netCredit,
+                        margin,
+                        roi,
+                        breakevens
+                    };
+                }
+                
+                return {};
+            };
+
+            // Execute trade
+            const executeTrade = async () => {
+                try {
+                    const metrics = calculateMetrics();
+                    let legs = [];
+                    
+                    if (strategy === 'SINGLE') {
+                        legs = [{ type, strike: Number(strike), side }];
+                    } else if (strategy === 'STRANGLE') {
+                        legs = [
+                            { type: 'CE', strike: Number(callStrike), side },
+                            { type: 'PE', strike: Number(putStrike), side }
+                        ];
+                    }
+                    
+                    const payload = {
+                        instrument: 'OPTION',
+                        symbol,
+                        side,
+                        order_type: 'MARKET',
+                        quantity: chainData.lotSize,
+                        legs,
+                        price: metrics.netCredit || metrics.premium || 0,
+                        expiry
+                    };
+                    
+                    if (trackPrediction) {
+                        payload.prediction = {
+                            tp_pct: tpPct,
+                            sl_pct: slPct,
+                            p_roi: Number(metrics.roi),
+                            due_date: expiry
+                        };
+                    }
+                    
+                    const result = await safeFetch('/api/papertrade/execute', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (result.success) {
+                        loadPortfolio();
+                        loadMiniDash();
+                        alert('Trade executed successfully!');
+                    } else {
+                        alert('Trade execution failed: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Execute trade error:', error);
+                    alert('Trade execution failed');
+                }
+            };
+
+            // Close position
+            const closePosition = async (symbol) => {
+                try {
+                    const result = await safeFetch('/api/papertrade/close', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ symbol })
+                    });
+                    
+                    if (result.success) {
+                        loadPortfolio();
+                        loadMiniDash();
+                        alert('Position closed successfully!');
+                    } else {
+                        alert('Close position failed: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Close position error:', error);
+                    alert('Close position failed');
+                }
+            };
+
+            // Effects
+            useEffect(() => {
+                loadMiniDash();
+                loadPortfolio();
+            }, [loadMiniDash, loadPortfolio]);
+
+            useEffect(() => {
+                loadChain();
+            }, [loadChain]);
+
+            const metrics = calculateMetrics();
+
+            return (
+                <div className="paper-trade-container">
+                    <h1 style={{ color: '#00ff88', marginBottom: '20px' }}>Paper Trade</h1>
+                    
+                    {/* Mini Dashboard */}
+                    <div className="mini-dash">
+                        <div className="mini-card">
+                            <h4>Micro Accuracy</h4>
+                            <div className="value">{miniDash.microAccuracy}%</div>
+                        </div>
+                        <div className="mini-card">
+                            <h4>Macro Accuracy</h4>
+                            <div className="value">{miniDash.macroAccuracy}%</div>
+                        </div>
+                        <div className="mini-card">
+                            <h4>Under Monitor</h4>
+                            <div className="value">{miniDash.underMonitor}</div>
+                        </div>
+                        <div className="mini-card">
+                            <h4>Total P&L</h4>
+                            <div className={`value ${miniDash.totalPnL >= 0 ? 'profit' : 'loss'}`}>
+                                ₹{miniDash.totalPnL.toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tab Navigation */}
+                    <div className="tab-nav">
+                        {['OPTIONS', 'EQUITIES', 'COMMODITIES'].map(tab => (
+                            <button
+                                key={tab}
+                                className={`tab-button ${activeTab === tab ? 'active' : ''}`}
+                                onClick={() => setActiveTab(tab)}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Options Tab */}
+                    <div className={`tab-content ${activeTab === 'OPTIONS' ? 'active' : ''}`}>
+                        <div className="options-form">
+                            <div className="form-group">
+                                <label>Symbol</label>
+                                <input
+                                    type="text"
+                                    value={symbol}
+                                    onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                                    placeholder="RELIANCE"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Strategy</label>
+                                <select value={strategy} onChange={(e) => setStrategy(e.target.value)}>
+                                    <option value="SINGLE">Single Leg</option>
+                                    <option value="STRANGLE">Short Strangle</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Side</label>
+                                <select value={side} onChange={(e) => setSide(e.target.value)}>
+                                    <option value="SELL">SELL</option>
+                                    <option value="BUY">BUY</option>
+                                </select>
+                            </div>
+                            {strategy === 'SINGLE' && (
+                                <>
+                                    <div className="form-group">
+                                        <label>Type</label>
+                                        <select value={type} onChange={(e) => setType(e.target.value)}>
+                                            <option value="CE">CE</option>
+                                            <option value="PE">PE</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Strike</label>
+                                        <input
+                                            type="number"
+                                            value={strike}
+                                            onChange={(e) => setStrike(e.target.value)}
+                                            placeholder="Strike price"
+                                        />
+                                    </div>
+                                </>
+                            )}
+                            {strategy === 'STRANGLE' && (
+                                <>
+                                    <div className="form-group">
+                                        <label>Call Strike</label>
+                                        <input
+                                            type="number"
+                                            value={callStrike}
+                                            onChange={(e) => setCallStrike(e.target.value)}
+                                            placeholder="Call strike"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Put Strike</label>
+                                        <input
+                                            type="number"
+                                            value={putStrike}
+                                            onChange={(e) => setPutStrike(e.target.value)}
+                                            placeholder="Put strike"
+                                        />
+                                    </div>
+                                </>
+                            )}
+                            <div className="form-group">
+                                <label>Expiry</label>
+                                <select value={expiry} onChange={(e) => setExpiry(e.target.value)}>
+                                    <option value="">Select expiry</option>
+                                    {chainData?.expiries?.map(exp => (
+                                        <option key={exp} value={exp}>{exp}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Chain Info */}
+                        {chainData && (
+                            <div style={{ marginBottom: '20px', color: '#ccc' }}>
+                                <p>Spot: ₹{chainData.spot} | Lot Size: {chainData.lotSize} | IV: {chainData.iv}% | IV Rank: {chainData.ivRank}</p>
+                            </div>
+                        )}
+
+                        {/* Metrics */}
+                        {Object.keys(metrics).length > 0 && (
+                            <div className="execute-section">
+                                <h3 style={{ color: '#00ff88', marginBottom: '15px' }}>Trade Metrics</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                                    {metrics.premium && (
+                                        <div>
+                                            <div style={{ color: '#888', fontSize: '12px' }}>Premium</div>
+                                            <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>₹{metrics.premium.toLocaleString()}</div>
+                                        </div>
+                                    )}
+                                    {metrics.netCredit && (
+                                        <div>
+                                            <div style={{ color: '#888', fontSize: '12px' }}>Net Credit</div>
+                                            <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>₹{metrics.netCredit.toLocaleString()}</div>
+                                        </div>
+                                    )}
+                                    {metrics.margin && (
+                                        <div>
+                                            <div style={{ color: '#888', fontSize: '12px' }}>Est. Margin</div>
+                                            <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>₹{metrics.margin.toLocaleString()}</div>
+                                        </div>
+                                    )}
+                                    {metrics.roi && (
+                                        <div>
+                                            <div style={{ color: '#888', fontSize: '12px' }}>ROI on Margin</div>
+                                            <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{metrics.roi}%</div>
+                                        </div>
+                                    )}
+                                    {metrics.breakevens && (
+                                        <div>
+                                            <div style={{ color: '#888', fontSize: '12px' }}>Breakevens</div>
+                                            <div style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>
+                                                ₹{metrics.breakevens[0].toFixed(2)} - ₹{metrics.breakevens[1].toFixed(2)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Prediction Tracking */}
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', color: '#ccc', marginBottom: '10px' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={trackPrediction}
+                                            onChange={(e) => setTrackPrediction(e.target.checked)}
+                                            style={{ marginRight: '8px' }}
+                                        />
+                                        Track as prediction
+                                    </label>
+                                    {trackPrediction && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                            <div className="form-group">
+                                                <label>Take Profit %</label>
+                                                <input
+                                                    type="number"
+                                                    value={tpPct}
+                                                    onChange={(e) => setTpPct(Number(e.target.value))}
+                                                    min="1"
+                                                    max="500"
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Stop Loss %</label>
+                                                <input
+                                                    type="number"
+                                                    value={slPct}
+                                                    onChange={(e) => setSlPct(Number(e.target.value))}
+                                                    min="1"
+                                                    max="500"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button
+                                    className="execute-btn"
+                                    onClick={executeTrade}
+                                    disabled={loading || !chainData || !expiry}
+                                >
+                                    Execute Trade
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Equities Tab */}
+                    <div className={`tab-content ${activeTab === 'EQUITIES' ? 'active' : ''}`}>
+                        <p style={{ color: '#888', textAlign: 'center', padding: '40px' }}>
+                            Equities trading coming soon...
+                        </p>
+                    </div>
+
+                    {/* Commodities Tab */}
+                    <div className={`tab-content ${activeTab === 'COMMODITIES' ? 'active' : ''}`}>
+                        <p style={{ color: '#888', textAlign: 'center', padding: '40px' }}>
+                            Commodities trading coming soon...
+                        </p>
+                    </div>
+
+                    {/* Positions */}
+                    <h3 style={{ color: '#00ff88', marginTop: '40px', marginBottom: '15px' }}>Positions</h3>
+                    {positions.length === 0 ? (
+                        <p style={{ color: '#888', textAlign: 'center', padding: '20px' }}>No positions found</p>
+                    ) : (
+                        <table className="positions-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Strategy</th>
+                                    <th>Side</th>
+                                    <th>Quantity</th>
+                                    <th>Entry Price</th>
+                                    <th>Current Value</th>
+                                    <th>P&L</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {positions.map((position, idx) => (
+                                    <tr key={idx}>
+                                        <td>{position.symbol}</td>
+                                        <td>{position.strategy}</td>
+                                        <td>{position.side}</td>
+                                        <td>{position.quantity}</td>
+                                        <td>₹{position.entry_price}</td>
+                                        <td>₹{position.current_value}</td>
+                                        <td className={position.pnl >= 0 ? 'profit' : 'loss'}>
+                                            ₹{position.pnl.toLocaleString()}
+                                        </td>
+                                        <td>
+                                            <button
+                                                className="close-btn"
+                                                onClick={() => closePosition(position.symbol)}
+                                            >
+                                                Close
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+
+                    {/* Orders */}
+                    <h3 style={{ color: '#00ff88', marginTop: '40px', marginBottom: '15px' }}>Recent Orders</h3>
+                    {orders.length === 0 ? (
+                        <p style={{ color: '#888', textAlign: 'center', padding: '20px' }}>No orders found</p>
+                    ) : (
+                        <table className="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Symbol</th>
+                                    <th>Strategy</th>
+                                    <th>Side</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {orders.map((order, idx) => (
+                                    <tr key={idx}>
+                                        <td>{new Date(order.timestamp).toLocaleString()}</td>
+                                        <td>{order.symbol}</td>
+                                        <td>{order.strategy}</td>
+                                        <td>{order.side}</td>
+                                        <td>{order.quantity}</td>
+                                        <td>₹{order.price}</td>
+                                        <td>{order.status}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<PaperTradeApp />, document.getElementById('paper-trade-root'));
+    </script>
+</body>
+</html>

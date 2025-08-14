@@ -403,6 +403,24 @@ def debug_sample_data():
             'debug': True
         }), 500
 
+# Create a separate predictions blueprint to avoid conflicts
+# predictions_bp = Blueprint('predictions_bp', __name__) # This line is now redundant as predictions_bp is already defined above.
+
+# @predictions_bp.route('/accuracy', methods=['GET']) # These routes are now redundant as they are already defined above with the correct paths.
+# def predictions_accuracy():
+#     """Global predictions accuracy endpoint"""
+#     return get_predictions_accuracy()
+
+# @predictions_bp.route('/active', methods=['GET'])
+# def predictions_active():
+#     """Global active predictions endpoint"""
+#     return get_active_predictions()
+
+# Updated imports to include NSEProvider
+from src.services.options_engine import OptionsEngine
+from src.services.finalize import FinalizationService
+from src.live_data.nse_provider import NSEProvider
+
 # Predictions endpoints
 @options_bp.route('/predictions/accuracy', methods=['GET'])
 def get_predictions_accuracy():
@@ -471,15 +489,45 @@ def get_active_predictions():
             'items': []
         }), 500
 
-# Create a separate predictions blueprint to avoid conflicts
-# predictions_bp = Blueprint('predictions_bp', __name__) # This line is now redundant as predictions_bp is already defined above.
+@options_bp.route('/chain/<symbol>')
+def get_options_chain(symbol):
+    """Get real-time options chain for symbol"""
+    try:
+        provider = NSEProvider()
 
-# @predictions_bp.route('/accuracy', methods=['GET']) # These routes are now redundant as they are already defined above with the correct paths.
-# def predictions_accuracy():
-#     """Global predictions accuracy endpoint"""
-#     return get_predictions_accuracy()
+        # Get live chain data
+        chain_data = provider.get_options_chain(symbol.upper())
 
-# @predictions_bp.route('/active', methods=['GET'])
-# def predictions_active():
-#     """Global active predictions endpoint"""
-#     return get_active_predictions()
+        if not chain_data:
+            return jsonify({
+                'success': False,
+                'error': 'live_data_unavailable'
+            }), 503
+
+        # Get stock data for spot price
+        stock_data = provider.get_stock_data(symbol.upper())
+        spot_price = stock_data.get('ltp', 0) if stock_data else 0
+
+        # Format response
+        response_data = {
+            'lotSize': chain_data.get('lot_size', 1),
+            'spot': spot_price,
+            'expiries': chain_data.get('expiries', []),
+            'strikes': chain_data.get('strikes', []),
+            'ce': chain_data.get('ce_prices', {}),
+            'pe': chain_data.get('pe_prices', {}),
+            'iv': chain_data.get('iv', 0),
+            'ivRank': chain_data.get('iv_rank', 0)
+        }
+
+        return jsonify({
+            'success': True,
+            'data': response_data
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting options chain for {symbol}: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'live_data_unavailable'
+        }), 503

@@ -204,10 +204,15 @@ def create_app():
     def papertrade():
         try:
             logger.info("📊 Serving Paper Trade page")
-            return render_template('papertrade.html')
+            return render_template('papertrade_tabbed.html')
         except Exception as e:
             logger.error(f"Error rendering papertrade: {e}")
             return jsonify({'error': 'Template not found'}), 500
+            
+    @app.route('/paper-trade')
+    def paper_trade_alt():
+        """Alternative route for paper trade"""
+        return papertrade()
 
     @app.route('/docs')
     def docs():

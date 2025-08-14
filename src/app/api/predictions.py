@@ -49,30 +49,57 @@ finalize_service = FinalizationService()
 
 @predictions_bp.route('/accuracy', methods=['GET'])
 def get_accuracy():
-    """Get prediction accuracy statistics"""
+    """Get prediction accuracy metrics"""
     try:
-        window = request.args.get('window', '30d').lower()
-        
-        # Parse window to days
-        if window.endswith('d'):
-            days = int(window[:-1])
-        else:
-            days = 30
-        
-        # Get accuracy stats
-        stats = finalize_service.get_accuracy_stats(days)
-        
+        window = request.args.get('window', '30D')
+        instrument = request.args.get('instrument', 'all')  # option, equity, commodity, all
+
+        # Calculate accuracy from finalized predictions
+        finalized = finalize_service.get_finalized_predictions()
+
+        # Filter by instrument if specified
+        if instrument and instrument != 'all':
+            if instrument == 'option':
+                finalized = [p for p in finalized if p.get('instrument', '').upper() in ['OPTIONS', 'OPTION']]
+            elif instrument == 'equity':
+                finalized = [p for p in finalized if p.get('instrument', '').upper() in ['EQUITIES', 'EQUITY']]
+            elif instrument == 'commodity':
+                finalized = [p for p in finalized if p.get('instrument', '').upper() in ['COMMODITIES', 'COMMODITY']]
+
+        if not finalized:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'by_timeframe': [
+                        {'timeframe': window, 'micro_accuracy': 0.0, 'macro_accuracy': 0.0}
+                    ],
+                    'micro_accuracy': 0.0,
+                    'macro_accuracy': 0.0
+                }
+            })
+
+        # Calculate accuracy metrics
+        correct_predictions = [p for p in finalized if p.get('outcome') == 'CORRECT']
+        total_predictions = len(finalized)
+
+        micro_accuracy = len(correct_predictions) / total_predictions if total_predictions > 0 else 0.0
+        macro_accuracy = micro_accuracy  # Simplified for now
+
         return jsonify({
             'success': True,
-            'micro_accuracy': stats['micro_accuracy'],
-            'macro_accuracy': stats['macro_accuracy'],
-            'total_predictions': stats['total'],
-            'successful_predictions': stats['success'],
-            'failed_predictions': stats['failed'],
-            'by_timeframe': stats['by_timeframe'],
-            'timestamp': datetime.now().isoformat()
+            'data': {
+                'by_timeframe': [
+                    {
+                        'timeframe': window,
+                        'micro_accuracy': round(micro_accuracy, 3),
+                        'macro_accuracy': round(macro_accuracy, 3)
+                    }
+                ],
+                'micro_accuracy': round(micro_accuracy, 3),
+                'macro_accuracy': round(macro_accuracy, 3)
+            }
         })
-    
+
     except Exception as e:
         logger.error(f"Error getting accuracy: {e}")
         return jsonify({
@@ -85,14 +112,14 @@ def get_active_predictions():
     """Get active predictions"""
     try:
         active_predictions = finalize_service.get_active_predictions()
-        
+
         return jsonify({
             'success': True,
             'items': active_predictions,
             'count': len(active_predictions),
             'timestamp': datetime.now().isoformat()
         })
-    
+
     except Exception as e:
         logger.error(f"Error getting active predictions: {e}")
         return jsonify({
