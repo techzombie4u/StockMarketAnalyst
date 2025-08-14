@@ -242,11 +242,12 @@
             overflow: auto;
             border: 1px solid var(--border-color);
             max-width: 100%;
+            width: 100%;
         }
 
         .table {
             width: 100%;
-            min-width: 1800px;
+            min-width: 2200px;
             table-layout: auto;
             font-size: 0.8125rem;
             background: var(--bg-surface);
@@ -277,26 +278,26 @@
         }
 
         /* Specific column widths */
-        .table th:nth-child(1), .table td:nth-child(1) { min-width: 100px; } /* Stock */
-        .table th:nth-child(2), .table td:nth-child(2) { min-width: 100px; } /* Verdict */
-        .table th:nth-child(3), .table td:nth-child(3) { min-width: 100px; } /* AI Verdict */
-        .table th:nth-child(4), .table td:nth-child(4) { min-width: 120px; } /* Final Outcome */
-        .table th:nth-child(5), .table td:nth-child(5) { min-width: 80px; }  /* Spot */
-        .table th:nth-child(6), .table td:nth-child(6) { min-width: 80px; }  /* Call */
-        .table th:nth-child(7), .table td:nth-child(7) { min-width: 80px; }  /* Put */
-        .table th:nth-child(8), .table td:nth-child(8) { min-width: 100px; } /* Due Date */
-        .table th:nth-child(9), .table td:nth-child(9) { min-width: 160px; } /* Breakeven Range */
-        .table th:nth-child(10), .table td:nth-child(10) { min-width: 100px; } /* Breakout Prob */
-        .table th:nth-child(11), .table td:nth-child(11) { min-width: 120px; } /* Market Stability */
-        .table th:nth-child(12), .table td:nth-child(12) { min-width: 80px; }  /* Event */
-        .table th:nth-child(13), .table td:nth-child(13) { min-width: 120px; } /* Max Loss (2σ) */
-        .table th:nth-child(14), .table td:nth-child(14) { min-width: 100px; } /* Stop Loss % */
-        .table th:nth-child(15), .table td:nth-child(15) { min-width: 60px; }  /* DTE */
-        .table th:nth-child(16), .table td:nth-child(16) { min-width: 70px; }  /* IV% */
-        .table th:nth-child(17), .table td:nth-child(17) { min-width: 80px; }  /* IV Rank */
-        .table th:nth-child(18), .table td:nth-child(18) { min-width: 100px; } /* Net Credit */
-        .table th:nth-child(19), .table td:nth-child(19) { min-width: 100px; } /* Theta/Day */
-        .table th:nth-child(20), .table td:nth-child(20) { min-width: 120px; } /* ROI on Margin */
+        .table th:nth-child(1), .table td:nth-child(1) { min-width: 120px; } /* Stock */
+        .table th:nth-child(2), .table td:nth-child(2) { min-width: 120px; } /* Verdict */
+        .table th:nth-child(3), .table td:nth-child(3) { min-width: 120px; } /* AI Verdict */
+        .table th:nth-child(4), .table td:nth-child(4) { min-width: 140px; } /* Final Outcome */
+        .table th:nth-child(5), .table td:nth-child(5) { min-width: 100px; }  /* Spot */
+        .table th:nth-child(6), .table td:nth-child(6) { min-width: 100px; }  /* Call */
+        .table th:nth-child(7), .table td:nth-child(7) { min-width: 100px; }  /* Put */
+        .table th:nth-child(8), .table td:nth-child(8) { min-width: 120px; } /* Due Date */
+        .table th:nth-child(9), .table td:nth-child(9) { min-width: 180px; } /* Breakeven Range */
+        .table th:nth-child(10), .table td:nth-child(10) { min-width: 120px; } /* Breakout Prob */
+        .table th:nth-child(11), .table td:nth-child(11) { min-width: 140px; } /* Market Stability */
+        .table th:nth-child(12), .table td:nth-child(12) { min-width: 100px; }  /* Event */
+        .table th:nth-child(13), .table td:nth-child(13) { min-width: 140px; } /* Max Loss (2σ) */
+        .table th:nth-child(14), .table td:nth-child(14) { min-width: 120px; } /* Stop Loss % */
+        .table th:nth-child(15), .table td:nth-child(15) { min-width: 80px; }  /* DTE */
+        .table th:nth-child(16), .table td:nth-child(16) { min-width: 90px; }  /* IV% */
+        .table th:nth-child(17), .table td:nth-child(17) { min-width: 100px; }  /* IV Rank */
+        .table th:nth-child(18), .table td:nth-child(18) { min-width: 120px; } /* Net Credit */
+        .table th:nth-child(19), .table td:nth-child(19) { min-width: 120px; } /* Theta/Day */
+        .table th:nth-child(20), .table td:nth-child(20) { min-width: 140px; } /* ROI on Margin */
 
         .table tbody tr:nth-child(even) {
             background: rgba(255, 255, 255, 0.02);
@@ -391,7 +392,7 @@
 
             .table {
                 font-size: 0.75rem;
-                min-width: 1600px;
+                min-width: 2000px;
             }
 
             .table th,
