@@ -1,3 +1,4 @@
+
 import os
 import sys
 import json
@@ -48,7 +49,7 @@ def create_app():
             "timestamp": datetime.now().isoformat()
         })
 
-    # Register API blueprints
+    # Register API blueprints with better error handling
     try:
         # Fusion API
         from src.fusion.api.fusion import fusion_bp
@@ -66,15 +67,25 @@ def create_app():
         logger.warning(f"⚠️ Could not register Equities API: {e}")
 
     try:
-        # Options API
-        from src.options.api import options_bp, predictions_bp
+        # Options API - Register main options blueprint
+        from src.options.api import options_bp
         app.register_blueprint(options_bp, url_prefix='/api/options')
+        logger.info("✅ Registered Options API at /api/options")
+        
+        # Register predictions blueprint separately to avoid conflicts
+        from src.options.api import predictions_bp
         app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
-        logger.info("Options and predictions blueprints registered successfully")
+        logger.info("✅ Registered Predictions API at /api/predictions")
+        
     except ImportError as e:
-        logger.error(f"Failed to import options/predictions blueprints: {e}")
+        logger.error(f"❌ Failed to import options/predictions blueprints: {e}")
+        # Create fallback endpoints
+        @app.route('/api/options/strategies')
+        def fallback_options():
+            return jsonify({'success': False, 'error': 'Options API not available', 'strategies': []})
+            
     except Exception as e:
-        logger.error(f"Failed to register options/predictions blueprints: {e}")
+        logger.error(f"❌ Failed to register options/predictions blueprints: {e}")
 
     try:
         # Commodities API
@@ -129,43 +140,86 @@ def create_app():
             "timestamp": datetime.now().isoformat()
         })
 
-    # Register web routes
+    # Register web routes with error handling
     @app.route('/')
     def index():
-        return render_template('index.html')
+        try:
+            return render_template('index.html')
+        except Exception as e:
+            logger.error(f"Error rendering index: {e}")
+            return jsonify({'error': 'Template not found'}), 500
 
     @app.route('/dashboard')
     def dashboard():
-        return render_template('dashboard.html')
+        try:
+            return render_template('dashboard.html')
+        except Exception as e:
+            logger.error(f"Error rendering dashboard: {e}")
+            return jsonify({'error': 'Template not found'}), 500
 
     @app.route('/equities')
     def equities():
-        return render_template('equities.html')
+        try:
+            return render_template('equities.html')
+        except Exception as e:
+            logger.error(f"Error rendering equities: {e}")
+            return jsonify({'error': 'Template not found'}), 500
 
     @app.route('/options')
     def options():
-        return render_template('options.html')
+        try:
+            logger.info("📊 Serving Options page")
+            return render_template('options.html')
+        except Exception as e:
+            logger.error(f"❌ Error rendering options page: {e}")
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Options - Error</title></head>
+            <body>
+                <h1>Options Page Error</h1>
+                <p>Error: {str(e)}</p>
+                <p>Template path issue - please check web/templates/options.html</p>
+                <a href="/dashboard">Back to Dashboard</a>
+            </body>
+            </html>
+            """, 500
 
     @app.route('/commodities')
     def commodities():
-        return render_template('commodities.html')
+        try:
+            return render_template('commodities.html')
+        except Exception as e:
+            logger.error(f"Error rendering commodities: {e}")
+            return jsonify({'error': 'Template not found'}), 500
 
     @app.route('/kpi')
     def kpi():
-        return render_template('kpi.html')
+        try:
+            return render_template('kpi.html')
+        except Exception as e:
+            logger.error(f"Error rendering kpi: {e}")
+            return jsonify({'error': 'Template not found'}), 500
 
     @app.route('/papertrade')
     def papertrade():
-        logger.info("📊 Serving Paper Trade page")
-        return render_template('papertrade.html')
+        try:
+            logger.info("📊 Serving Paper Trade page")
+            return render_template('papertrade.html')
+        except Exception as e:
+            logger.error(f"Error rendering papertrade: {e}")
+            return jsonify({'error': 'Template not found'}), 500
 
     @app.route('/docs')
     def docs():
-        return render_template('docs.html')
+        try:
+            return render_template('docs.html')
+        except Exception as e:
+            logger.error(f"Error rendering docs: {e}")
+            return jsonify({'error': 'Template not found'}), 500
 
     # API Documentation
     @app.route('/api')
-    @app.route('/docs')
     def api_docs():
         return jsonify({
             "title": "Fusion Stock Analyst API",
@@ -175,6 +229,7 @@ def create_app():
                 "health": "/health",
                 "fusion_dashboard": "/api/fusion/dashboard",
                 "equities_list": "/api/equities/list",
+                "options_strategies": "/api/options/strategies",
                 "options_candidates": "/api/options/strangle/candidates",
                 "commodities_signals": "/api/commodities/signals",
                 "kpi_metrics": "/api/kpi/metrics",
@@ -182,6 +237,22 @@ def create_app():
                 "pins": "/api/pins",
                 "locks": "/api/locks"
             }
+        })
+
+    # Add route debugging endpoint
+    @app.route('/api/debug/routes')
+    def debug_routes():
+        """Debug endpoint to show all registered routes"""
+        routes = []
+        for rule in app.url_map.iter_rules():
+            routes.append({
+                'endpoint': rule.endpoint,
+                'methods': list(rule.methods),
+                'rule': rule.rule
+            })
+        return jsonify({
+            'total_routes': len(routes),
+            'routes': sorted(routes, key=lambda x: x['rule'])
         })
 
     logger.info("✅ Flask app created successfully")

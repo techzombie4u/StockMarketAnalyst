@@ -1,940 +1,427 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Options - Stock Market Analyst</title>
+    <title>Options Strategies - Fusion Stock Analyst</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
     <style>
-        :root {
-            --bg: #0b1220;
-            --bg-card: #111a2e;
-            --text: #e2e8f0;
-            --text-muted: #94a3b8;
-            --accent: #22c55e;
-            --border: #1e293b;
-            --chip-bg: #111827;
-            --chip-active-bg: #f8fafc;
-            --chip-active-text: #0f172a;
-            --warn: #f59e0b;
-            --danger: #ef4444;
-            --ok: #10b981;
-            --emerald: #10b981;
-            --sky: #0ea5e9;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
+        .options-page-container {
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
             min-height: 100vh;
         }
-
-        .header-bar {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            backdrop-filter: blur(8px);
-            background: var(--bg-card);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        
+        .page-header {
+            margin-bottom: 30px;
         }
-
-        .header-inner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 16px;
-            max-width: 1400px;
-            margin: 0 auto;
+        
+        .page-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
         }
-
-        .brand-section h1 {
-            font-weight: 700;
-            font-size: 1.25rem;
-            color: white;
+        
+        .page-subtitle {
+            color: #888;
+            font-size: 16px;
         }
-
-        .brand-section p {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        .nav {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .nav-link {
-            padding: 8px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: transparent;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .nav-link.active {
-            color: var(--emerald);
-            font-weight: 600;
-            background: rgba(16, 185, 129, 0.1);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 16px;
-        }
-
-        .filters-section {
-            background: var(--bg-card);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .filters-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .filter-badge {
-            padding: 4px 8px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 14px;
-        }
-
-        .filter-badge span {
-            font-weight: 600;
-            color: white;
-        }
-
-        .filter-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-
-        .filter-checkbox input {
-            accent-color: var(--emerald);
-        }
-
-        .filter-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-left: auto;
-            font-size: 14px;
-        }
-
-        .filter-controls input[type="range"] {
-            width: 120px;
-            accent-color: var(--emerald);
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: transparent;
-            color: var(--emerald);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            background: rgba(16, 185, 129, 0.1);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 16px;
-            min-width: 180px;
-        }
-
-        .stat-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.95);
-        }
-
-        .table-section {
-            background: var(--bg-card);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .table-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-
-        .table-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
+        
         .timeframe-chips {
             display: flex;
-            gap: 8px;
+            gap: 10px;
+            margin-bottom: 20px;
         }
-
+        
         .chip {
-            padding: 6px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: transparent;
-            color: rgba(255, 255, 255, 0.8);
+            padding: 8px 16px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
+            transition: all 0.3s;
         }
-
-        .chip:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
+        
         .chip.active {
-            color: var(--emerald);
-            font-weight: 600;
-            background: rgba(16, 185, 129, 0.1);
+            background: #0066cc;
+            border-color: #0066cc;
         }
-
-        .table-wrap {
-            overflow-x: auto;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        
+        .chip:hover {
+            background: #333;
         }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-            background: var(--bg-card);
+        
+        .strategies-table {
+            background: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
         }
-
-        .table th {
-            text-align: left;
-            padding: 12px 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.7);
-            background: rgba(255, 255, 255, 0.05);
-            font-weight: 600;
-            white-space: nowrap;
+        
+        .table-header {
+            background: #333;
+            padding: 15px 20px;
+            font-weight: bold;
+            border-bottom: 1px solid #444;
+        }
+        
+        .strategies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .strategy-card {
+            background: #333;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #444;
+        }
+        
+        .strategy-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .stock-symbol {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .verdict {
+            padding: 4px 12px;
+            border-radius: 12px;
             font-size: 12px;
+            font-weight: bold;
         }
-
-        .table td {
-            padding: 12px 8px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            white-space: nowrap;
-            font-size: 12px;
-            vertical-align: middle;
+        
+        .verdict.strong-buy { background: #00c851; color: #000; }
+        .verdict.buy { background: #2e7d32; color: #fff; }
+        .verdict.hold { background: #ff9800; color: #000; }
+        .verdict.cautious { background: #f44336; color: #fff; }
+        
+        .strategy-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
         }
-
-        .table tbody tr:nth-child(odd) {
-            background: rgba(255, 255, 255, 0);
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #444;
         }
-
-        .table tbody tr:nth-child(even) {
-            background: rgba(255, 255, 255, 0.02);
+        
+        .metric-label {
+            color: #888;
+            font-size: 14px;
         }
-
-        .table tbody tr:hover {
-            background: rgba(255, 255, 255, 0.05);
+        
+        .metric-value {
+            color: #fff;
+            font-weight: bold;
         }
-
-        .stock-name {
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .verdict-top-pick { color: var(--emerald); font-weight: 600; }
-        .verdict-buy { color: var(--emerald); font-weight: 600; }
-        .verdict-hold { color: var(--warn); font-weight: 600; }
-        .verdict-cautious { color: var(--warn); font-weight: 600; }
-        .verdict-avoid { color: var(--danger); font-weight: 600; }
-
-        .ai-verdict { color: var(--sky); font-weight: 600; }
-
-        .risk-low { color: var(--emerald); }
-        .risk-medium { color: var(--warn); }
-        .risk-high { color: var(--danger); }
-
-        .stability-high { color: var(--emerald); }
-        .stability-med { color: var(--warn); }
-        .stability-low { color: var(--danger); }
-
-        .event-clear { color: var(--emerald); }
-        .event-earnings { color: var(--danger); }
-        .event-dividend { color: var(--warn); }
-
+        
         .loading {
             text-align: center;
             padding: 40px;
-            color: var(--text-muted);
+            color: #888;
         }
-
+        
         .error {
-            color: var(--danger);
-            text-align: center;
-            padding: 20px;
+            background: #f44336;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
         }
-
-        .outcome-pill {
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 11px;
-            display: inline-block;
+        
+        .filters {
+            background: #2a2a2a;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
         }
-
-        .outcome-pill.met {
-            background: #e6f7ed;
-            color: #167a4a;
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-
-        .outcome-pill.not-met {
-            background: #fde8e7;
-            color: #b42318;
+        
+        .filter-label {
+            color: #888;
+            font-size: 14px;
         }
-
-        .outcome-pill.in-progress {
-            background: #fff6e5;
-            color: #8a5a00;
+        
+        .filter-input {
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
         }
-
-        @media (max-width: 768px) {
-            .filters-row {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 12px;
-            }
-
-            .filter-controls {
-                margin-left: 0;
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .table {
-                font-size: 11px;
-            }
-
-            .table th, .table td {
-                padding: 8px 6px;
-                font-size: 10px;
-            }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00c851;
+        }
+        
+        .status-text {
+            color: #888;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <div class="header-bar">
-        <div class="header-inner">
-            <div class="brand-section">
-                <h1>Stock Market Analyst</h1>
-                <p>Options – Short Strangle · NSE Equity Options</p>
+    <div class="options-page-container" id="optionsPageContainer">
+        <div class="page-header">
+            <h1 class="page-title">Options Strategies</h1>
+            <p class="page-subtitle">Short Strangle Opportunities & Analysis</p>
+        </div>
+        
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span class="status-text" id="statusText">Loading strategies...</span>
+        </div>
+        
+        <div class="timeframe-chips" id="timeframeChips">
+            <div class="chip active" data-timeframe="45D">45D</div>
+            <div class="chip" data-timeframe="30D">30D</div>
+            <div class="chip" data-timeframe="21D">21D</div>
+            <div class="chip" data-timeframe="14D">14D</div>
+            <div class="chip" data-timeframe="10D">10D</div>
+            <div class="chip" data-timeframe="7D">7D</div>
+        </div>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <label class="filter-label">Max Breakout Probability:</label>
+                <input type="range" class="filter-input" id="maxBreakoutProb" 
+                       min="10" max="50" value="35" step="5">
+                <span id="breakoutProbValue">35%</span>
             </div>
-            <nav class="nav">
-                <a href="/" class="nav-link">Dashboard</a>
-                <a href="/equities" class="nav-link">Equities</a>
-                <a href="/options" class="nav-link active">Options</a>
-                <a href="/commodities" class="nav-link">Commodities</a>
-                <a href="/papertrade" class="nav-link">Paper Trade</a>
-            </nav>
+            <div class="filter-group">
+                <label class="filter-label">
+                    <input type="checkbox" id="hideEvents"> Hide Earnings Events
+                </label>
+            </div>
+        </div>
+        
+        <div class="strategies-table">
+            <div class="table-header">
+                <span>Options Strategies</span>
+                <span id="strategiesCount" style="float: right; color: #888;">Loading...</span>
+            </div>
+            
+            <div id="strategiesContainer">
+                <div class="loading">
+                    <p>Loading options strategies...</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <main class="container">
-        <!-- Filters Section -->
-        <div class="filters-section">
-            <div class="filters-row">
-                <div class="filter-badge">Strategy: <span>Short Strangle</span></div>
-                <div class="filter-badge">Market: <span>NSE Equity Options</span></div>
-                <label class="filter-checkbox">
-                    <input type="checkbox" id="hideEventsFilter" checked>
-                    Hide Events
-                </label>
-                <div class="filter-controls">
-                    <span style="color: var(--text-muted);">Max Breakout Prob:</span>
-                    <input type="range" id="breakoutProbSlider" min="0" max="100" value="100">
-                    <span id="breakoutProbValue">100%</span>
-                    <button class="btn" onclick="applyFilters()">Apply Filters</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Summary Statistics -->
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-card">
-                <div class="stat-label">Accuracy (Micro)</div>
-                <div class="stat-value" id="microAccuracy">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Accuracy (Macro)</div>
-                <div class="stat-value" id="macroAccuracy">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Strategies</div>
-                <div class="stat-value" id="totalStrategies">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Avg. ROI</div>
-                <div class="stat-value" id="avgROI">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">High IV Opportunities</div>
-                <div class="stat-value" id="highIVCount">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Event‑Free Trades</div>
-                <div class="stat-value" id="eventFreeCount">-</div>
-            </div>
-        </div>
-
-        <!-- Enhanced Options Strategies Table -->
-        <div class="table-section">
-            <div class="table-header">
-                <h3 class="table-title">Enhanced Options Strategies</h3>
-                <div class="timeframe-chips">
-                    <button class="chip active" data-timeframe="30D">30D</button>
-                    <button class="chip" data-timeframe="15D">15D</button>
-                    <button class="chip" data-timeframe="10D">10D</button>
-                    <button class="chip" data-timeframe="5D">5D</button>
-                </div>
-            </div>
-            <div class="table-wrap">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Stock</th>
-                            <th>Verdict</th>
-                            <th>AI Verdict</th>
-                            <th>Final Outcome</th>
-                            <th>Spot</th>
-                            <th>Call</th>
-                            <th>Put</th>
-                            <th>Due Date</th>
-                            <th>Breakeven Range</th>
-                            <th>Breakout Prob</th>
-                            <th>Market Stability</th>
-                            <th>Event</th>
-                            <th>Max Loss (2σ)</th>
-                            <th>Stop Loss %</th>
-                            <th>DTE</th>
-                            <th>IV%</th>
-                            <th>IV Rank</th>
-                            <th>Net Credit</th>
-                            <th>Theta/Day</th>
-                            <th>ROI on Margin</th>
-                        </tr>
-                    </thead>
-                    <tbody id="strategiesTableBody">
-                        <tr>
-                            <td colspan="19" class="loading">Loading enhanced options strategies...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Active Predictions Table -->
-        <div class="table-section">
-            <div class="table-header">
-                <h3 class="table-title">Active Predictions (Real‑time)</h3>
-            </div>
-            <div class="table-wrap">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Due Date</th>
-                            <th>Stock</th>
-                            <th>Predicted Outcome</th>
-                            <th>Current Outcome</th>
-                            <th>Predicted ROI</th>
-                            <th>Current ROI</th>
-                            <th>Reason (if changed)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activePredictionsBody">
-                        <tr>
-                            <td colspan="7" class="loading">Loading active predictions...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-
     <script>
-        let currentTimeframe = '30D';
-        let strategiesData = [];
-        let activePredictionsData = [];
-        let accuracyData = [];
-
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            setupEventListeners();
-            loadAllData();
-        });
-
-        function setupEventListeners() {
-            // Timeframe chips
-            document.querySelectorAll('.chip[data-timeframe]').forEach(chip => {
-                chip.addEventListener('click', function() {
-                    document.querySelectorAll('.chip[data-timeframe]').forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
-                    currentTimeframe = this.dataset.timeframe;
-                    loadStrategiesData();
+        class OptionsPage {
+            constructor() {
+                this.currentTimeframe = '45D';
+                this.strategiesData = [];
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.loadStrategies();
+            }
+            
+            setupEventListeners() {
+                // Timeframe chips
+                document.querySelectorAll('.chip').forEach(chip => {
+                    chip.addEventListener('click', (e) => {
+                        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentTimeframe = e.target.dataset.timeframe;
+                        this.loadStrategies();
+                    });
                 });
-            });
-
-            // Breakout probability slider
-            const slider = document.getElementById('breakoutProbSlider');
-            const display = document.getElementById('breakoutProbValue');
-            if (slider && display) {
-                slider.addEventListener('input', function() {
-                    display.textContent = this.value + '%';
+                
+                // Filters
+                const maxBreakoutProb = document.getElementById('maxBreakoutProb');
+                const breakoutProbValue = document.getElementById('breakoutProbValue');
+                const hideEvents = document.getElementById('hideEvents');
+                
+                maxBreakoutProb.addEventListener('input', (e) => {
+                    breakoutProbValue.textContent = e.target.value + '%';
+                    this.filterStrategies();
+                });
+                
+                hideEvents.addEventListener('change', () => {
+                    this.filterStrategies();
                 });
             }
-        }
-
-        async function loadAllData() {
-            await Promise.all([
-                loadStrategiesData(),
-                loadActivePredictions(),
-                loadAccuracyData()
-            ]);
-        }
-
-        async function loadStrategiesData() {
-            try {
-                console.log('🔄 Loading strategies data for timeframe:', currentTimeframe);
-                
-                const hideEvents = document.getElementById('hideEventsFilter')?.checked || false;
-                const maxBreakoutProb = document.getElementById('breakoutProbSlider')?.value || 100;
-
-                const url = `/api/options/strategies?timeframe=${currentTimeframe}`;
-                console.log('📡 Fetching from:', url);
-                
-                const response = await fetch(url);
-                console.log('📡 Response status:', response.status);
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('❌ API Error:', errorText);
-                    throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-                }
-
-                const responseText = await response.text();
-                console.log('📝 Raw response:', responseText);
-                
-                let data;
+            
+            async loadStrategies() {
                 try {
-                    data = JSON.parse(responseText);
-                    console.log('✅ Parsed API Response:', data);
-                } catch (parseError) {
-                    console.error('❌ JSON Parse Error:', parseError);
-                    throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-                }
-
-                if (data.success !== false && data.strategies && Array.isArray(data.strategies)) {
-                    console.log('📊 Received', data.strategies.length, 'strategies');
-                    strategiesData = data.strategies;
-
-                    // Apply client-side filtering
-                    let filteredStrategies = data.strategies;
+                    this.updateStatus('loading', 'Loading strategies...');
                     
-                    if (hideEvents) {
-                        const beforeFilter = filteredStrategies.length;
-                        filteredStrategies = filteredStrategies.filter(s => {
-                            const event = s.event || s.event_flag;
-                            return event === '—' || event === 'CLEAR' || !event;
-                        });
-                        console.log('🔍 Event filter:', beforeFilter, '->', filteredStrategies.length);
+                    const response = await fetch(`/api/options/strategies?timeframe=${this.currentTimeframe}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     
-                    if (maxBreakoutProb < 100) {
-                        const beforeFilter = filteredStrategies.length;
-                        filteredStrategies = filteredStrategies.filter(s => {
-                            const breakoutProb = Number(s.breakout_prob || s.breakout_probability || 0);
-                            return (breakoutProb * 100) <= maxBreakoutProb;
-                        });
-                        console.log('🔍 Breakout filter:', beforeFilter, '->', filteredStrategies.length);
+                    const data = await response.json();
+                    
+                    if (data.success && data.strategies) {
+                        this.strategiesData = data.strategies;
+                        this.renderStrategies(this.strategiesData);
+                        this.updateStatus('success', `Loaded ${data.strategies.length} strategies`);
+                    } else {
+                        throw new Error(data.error || 'No strategies returned');
                     }
-
-                    console.log('📈 Final filtered strategies:', filteredStrategies.length);
-                    updateStrategiesTable(filteredStrategies);
-                    updateSummaryStats(filteredStrategies);
-                } else {
-                    console.error('❌ Invalid data format:', data);
-                    throw new Error(`Invalid strategies data format: ${JSON.stringify(data)}`);
-                }
-
-            } catch (error) {
-                console.error('❌ Error loading strategies data:', error);
-                showStrategiesError(error.message);
-            }
-        }
-
-        async function loadActivePredictions() {
-            try {
-                const response = await fetch('/api/options/predictions/active');
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-
-                if (data.success && data.items && Array.isArray(data.items)) {
-                    activePredictionsData = data.items;
-                    updateActivePredictionsTable(data.items);
-                } else {
-                    throw new Error('Invalid active predictions data format received');
-                }
-
-            } catch (error) {
-                console.error('Error loading active predictions:', error);
-                showActivePredictionsError(error.message);
-            }
-        }
-
-        async function loadAccuracyData() {
-            try {
-                const window = currentTimeframe.toLowerCase();
-                const response = await fetch(`/api/options/predictions/accuracy?window=${window}`);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-
-                if (data.success && data.by_timeframe && Array.isArray(data.by_timeframe)) {
-                    accuracyData = data.by_timeframe;
-                    updateAccuracyStats(data.by_timeframe);
-                } else {
-                    throw new Error('Invalid accuracy data format received');
-                }
-
-            } catch (error) {
-                console.error('Error loading accuracy data:', error);
-                // Fallback to empty array on error
-                accuracyData = [];
-                updateAccuracyStats([]);
-            }
-        }
-
-        function updateAccuracyStats(accuracyData) {
-            // Calculate micro and macro accuracy as per your example
-            let totalSuccess = 0, totalFailed = 0;
-            let ratios = [];
-
-            for (const timeframe of accuracyData) {
-                const success = Number(timeframe.success || 0);
-                const failed = Number(timeframe.failed || 0);
-                const total = success + failed;
-
-                totalSuccess += success;
-                totalFailed += failed;
-
-                if (total > 0) {
-                    ratios.push(success / total);
+                    
+                } catch (error) {
+                    console.error('Error loading strategies:', error);
+                    this.showError(`Failed to load strategies: ${error.message}`);
+                    this.updateStatus('error', 'Failed to load strategies');
                 }
             }
-
-            // Micro accuracy: overall success rate
-            const microAccuracy = (totalSuccess + totalFailed) > 0 ? 
-                (totalSuccess / (totalSuccess + totalFailed)) * 100 : 0;
-
-            // Macro accuracy: average of individual timeframe accuracies
-            const macroAccuracy = ratios.length > 0 ? 
-                (ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length) * 100 : 0;
-
-            document.getElementById('microAccuracy').textContent = `${microAccuracy.toFixed(1)}%`;
-            document.getElementById('macroAccuracy').textContent = `${macroAccuracy.toFixed(1)}%`;
-        }
-
-        function updateSummaryStats(strategies) {
-            const total = strategies.length;
-            console.log('Updating summary stats for', total, 'strategies');
             
-            const avgROI = total > 0 ? 
-                strategies.reduce((sum, s) => {
-                    const roi = Number(s.roi_on_margin_percent || s.roi_on_margin || 0);
-                    return sum + roi;
-                }, 0) / total : 0;
-            
-            const highIV = strategies.filter(s => {
-                const ivRank = Number(s.iv_rank || 0);
-                return ivRank >= 50;
-            }).length;
-            
-            const eventFree = strategies.filter(s => {
-                const eventFlag = s.event_flag || s.event;
-                return eventFlag === 'CLEAR' || eventFlag === '—' || !eventFlag;
-            }).length;
-
-            document.getElementById('totalStrategies').textContent = total;
-            document.getElementById('avgROI').textContent = `${avgROI.toFixed(1)}%`;
-            document.getElementById('highIVCount').textContent = highIV;
-            document.getElementById('eventFreeCount').textContent = eventFree;
-        }
-
-        function updateStrategiesTable(strategies) {
-            const tbody = document.getElementById('strategiesTableBody');
-            
-            console.log('Updating strategies table with', strategies.length, 'strategies');
-            if (strategies.length > 0) {
-                console.log('Sample strategy:', strategies[0]);
-            }
-
-            if (!strategies || strategies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="20" style="text-align: center; padding: 20px; color: var(--text-muted);">No strategies available for this timeframe</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = strategies.map(strategy => {
-                // Safe field access with fallbacks
-                const stock = strategy.stock || strategy.symbol || 'N/A';
-                const spot = Number(strategy.spot || strategy.current_price || strategy.spot_price || 0);
-                const call = Number(strategy.call || strategy.call_strike || 0);
-                const put = Number(strategy.put || strategy.put_strike || 0);
-                const dte = Number(strategy.dte || strategy.dte_days || strategy.days_to_expiry || 30);
-                const iv = Number(strategy.iv || strategy.iv_percent || (strategy.implied_volatility * 100) || 25);
-                const ivRank = Number(strategy.iv_rank || 50);
-                const netCredit = Number(strategy.net_credit || strategy.net_credit_per_lot || strategy.total_premium || 0);
-                const thetaDay = Number(strategy.theta_day || strategy.theta_per_day || strategy.theta_per_day_per_lot || 0);
-                const roiOnMargin = Number(strategy.roi_on_margin || strategy.roi_on_margin_percent || 0);
-                const breakoutProb = Number(strategy.breakout_prob || strategy.breakout_probability || 0.5);
-                const maxLoss2s = Number(strategy.max_loss_2s || strategy.max_loss_2_sigma || strategy.max_loss_two_sigma || 0);
-                const stopLossPct = Number(strategy.stop_loss_pct || strategy.stop_loss_percent || strategy.stop_loss_percent_of_credit || 180);
+            filterStrategies() {
+                const maxProb = document.getElementById('maxBreakoutProb').value / 100;
+                const hideEvents = document.getElementById('hideEvents').checked;
                 
-                const dueDate = strategy.due_date || calculateDueDate(dte);
-                const breakevenMin = Number(strategy.breakeven_min || strategy.breakeven_lower || strategy.breakeven_low || 0);
-                const breakevenMax = Number(strategy.breakeven_max || strategy.breakeven_upper || strategy.breakeven_high || 0);
-                const breakevenRange = `₹${formatINR(breakevenMin)} – ₹${formatINR(breakevenMax)}`;
-                const breakoutProbDisplay = `${(breakoutProb * 100).toFixed(0)}%`;
+                let filtered = this.strategiesData.filter(strategy => {
+                    if (hideEvents && strategy.event_flag === 'EARNINGS') return false;
+                    if (strategy.breakout_prob > maxProb) return false;
+                    return true;
+                });
                 
-                const verdict = strategy.verdict || 'Hold';
-                const aiVerdict = strategy.ai_verdict || strategy.ai_agent_verdict || verdict;
-                const marketStability = strategy.market_stability || strategy.market_stability_score || 'Med';
-                const event = strategy.event || (strategy.event_flag === 'EARNINGS' ? 'EARNINGS' : '—');
+                this.renderStrategies(filtered);
+                this.updateStatus('success', `Showing ${filtered.length} strategies`);
+            }
+            
+            renderStrategies(strategies) {
+                const container = document.getElementById('strategiesContainer');
+                const count = document.getElementById('strategiesCount');
                 
-                const verdictClass = getVerdictClass(verdict);
-                const stabilityClass = getStabilityClass(marketStability);
-                const eventDisplay = getEventDisplay(event);
-
-                // Handle final outcome pill
-                const finalOutcome = strategy.final_outcome ? 
-                    `<span class="outcome-pill ${getOutcomeClass(strategy.final_outcome)}">${strategy.final_outcome}</span>` : 
-                    '<span class="outcome-pill in-progress">IN_PROGRESS</span>';
-
-                return `
-                    <tr>
-                        <td><div class="stock-name">${stock}</div></td>
-                        <td><span class="${verdictClass}">${verdict}</span></td>
-                        <td><span class="ai-verdict">${aiVerdict}</span></td>
-                        <td>${finalOutcome}</td>
-                        <td>₹${formatINR(spot)}</td>
-                        <td>₹${formatINR(call)}</td>
-                        <td>₹${formatINR(put)}</td>
-                        <td>${dueDate}</td>
-                        <td>${breakevenRange}</td>
-                        <td class="${getBreakoutProbClass(breakoutProb * 100)}">${breakoutProbDisplay}</td>
-                        <td class="${stabilityClass}">${getStabilityText(marketStability)}</td>
-                        <td class="${getEventClass(event)}">${eventDisplay}</td>
-                        <td class="${getMaxLossClass(maxLoss2s)}">${maxLoss2s ? formatINR(Math.abs(maxLoss2s)) : 'Moderate'}</td>
-                        <td>${stopLossPct.toFixed(0)}%</td>
-                        <td>${dte}d</td>
-                        <td>${iv.toFixed(1)}%</td>
-                        <td>${ivRank.toFixed(0)}</td>
-                        <td>₹${formatINR(netCredit)}</td>
-                        <td>₹${formatINR(thetaDay)}</td>
-                        <td class="${getROIClass(roiOnMargin)}">${roiOnMargin.toFixed(1)}%</td>
-                    </tr>
+                if (!strategies || strategies.length === 0) {
+                    container.innerHTML = '<div class="loading"><p>No strategies match current filters</p></div>';
+                    count.textContent = '0 strategies';
+                    return;
+                }
+                
+                count.textContent = `${strategies.length} strategies`;
+                
+                container.innerHTML = `
+                    <div class="strategies-grid">
+                        ${strategies.map(strategy => this.renderStrategyCard(strategy)).join('')}
+                    </div>
                 `;
-            }).join('');
-        }
-
-        function updateActivePredictionsTable(predictions) {
-            const tbody = document.getElementById('activePredictionsBody');
-
-            if (!predictions || predictions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--text-muted);">No active trades in progress</td></tr>';
-                return;
             }
-
-            tbody.innerHTML = predictions.map(pred => `
-                <tr>
-                    <td>${pred.due}</td>
-                    <td><div class="stock-name">${pred.stock}</div></td>
-                    <td>${pred.predicted}</td>
-                    <td>${pred.current}</td>
-                    <td>${pred.proi}%</td>
-                    <td>${pred.croi}%</td>
-                    <td>${pred.reason}</td>
-                </tr>
-            `).join('');
-        }
-
-        function showStrategiesError(message) {
-            console.error('🚨 Strategies Error:', message);
-            document.getElementById('strategiesTableBody').innerHTML = 
-                `<tr><td colspan="20" class="error">Error loading data: ${message}<br><small>Check browser console for details</small></td></tr>`;
             
-            // Also update summary stats to show error state
-            document.getElementById('totalStrategies').textContent = '0';
-            document.getElementById('avgROI').textContent = 'N/A';
-            document.getElementById('highIVCount').textContent = '0';
-            document.getElementById('eventFreeCount').textContent = '0';
-        }
-
-        function showActivePredictionsError(message) {
-            document.getElementById('activePredictionsBody').innerHTML = 
-                `<tr><td colspan="7" class="error">Error: ${message}</td></tr>`;
-        }
-
-        function calculateDueDate(dte) {
-            const today = new Date();
-            const dueDate = new Date(today.getTime() + (dte * 24 * 60 * 60 * 1000));
-            return dueDate.toISOString().split('T')[0];
-        }
-
-        function formatINR(value) {
-            return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(Number(value || 0));
-        }
-
-        function getVerdictClass(verdict) {
-            if (!verdict) return '';
-            const v = verdict.toLowerCase();
-            if (v.includes('top pick')) return 'verdict-top-pick';
-            if (v.includes('buy')) return 'verdict-buy';
-            if (v.includes('hold')) return 'verdict-hold';
-            if (v.includes('cautious')) return 'verdict-cautious';
-            if (v.includes('avoid')) return 'verdict-avoid';
-            return '';
-        }
-
-        function getStabilityClass(stability) {
-            if (typeof stability === 'string') {
-                if (stability === 'High') return 'stability-high';
-                if (stability === 'Med') return 'stability-med';
-                return 'stability-low';
+            renderStrategyCard(strategy) {
+                const verdictClass = strategy.verdict?.toLowerCase().replace(/\s+/g, '-') || 'hold';
+                
+                return `
+                    <div class="strategy-card">
+                        <div class="strategy-header">
+                            <div class="stock-symbol">${strategy.stock || 'N/A'}</div>
+                            <div class="verdict ${verdictClass}">${strategy.verdict || 'Hold'}</div>
+                        </div>
+                        
+                        <div class="strategy-metrics">
+                            <div class="metric">
+                                <span class="metric-label">Spot Price:</span>
+                                <span class="metric-value">₹${strategy.spot?.toFixed(2) || '0.00'}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Net Credit:</span>
+                                <span class="metric-value">₹${strategy.net_credit?.toFixed(2) || '0.00'}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Call Strike:</span>
+                                <span class="metric-value">₹${strategy.call?.toFixed(0) || '0'}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Put Strike:</span>
+                                <span class="metric-value">₹${strategy.put?.toFixed(0) || '0'}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Days to Expiry:</span>
+                                <span class="metric-value">${strategy.dte || 0}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">IV:</span>
+                                <span class="metric-value">${strategy.iv?.toFixed(1) || '0.0'}%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">ROI on Margin:</span>
+                                <span class="metric-value">${strategy.roi_on_margin?.toFixed(1) || '0.0'}%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Breakout Prob:</span>
+                                <span class="metric-value">${(strategy.breakout_prob * 100)?.toFixed(1) || '0.0'}%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Market Stability:</span>
+                                <span class="metric-value">${strategy.market_stability || 'Med'}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Event Risk:</span>
+                                <span class="metric-value">${strategy.event || '—'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
-            const score = Number(stability || 50);
-            if (score >= 80) return 'stability-high';
-            if (score >= 60) return 'stability-med';
-            return 'stability-low';
-        }
-
-        function getStabilityText(stability) {
-            if (typeof stability === 'string') {
-                return stability;
+            
+            updateStatus(type, message) {
+                const dot = document.getElementById('statusDot');
+                const text = document.getElementById('statusText');
+                
+                dot.style.background = type === 'success' ? '#00c851' : 
+                                      type === 'error' ? '#f44336' : '#ff9800';
+                text.textContent = message;
             }
-            const score = Number(stability || 50);
-            if (score >= 80) return 'High';
-            if (score >= 60) return 'Med';
-            return 'Low';
+            
+            showError(message) {
+                const container = document.getElementById('strategiesContainer');
+                container.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${message}
+                        <br><br>
+                        <button onclick="optionsPage.loadStrategies()" style="background: #333; color: #fff; border: 1px solid #666; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
         }
-
-        function getBreakoutProbClass(prob) {
-            if (prob > 40) return 'risk-high';
-            if (prob > 30) return 'risk-medium';
-            return 'risk-low';
-        }
-
-        function getEventClass(eventFlag) {
-            if (eventFlag === 'CLEAR') return 'event-clear';
-            if (eventFlag === 'EARNINGS') return 'event-earnings';
-            if (eventFlag === 'DIV') return 'event-dividend';
-            return 'event-clear';
-        }
-
-        function getEventDisplay(eventFlag) {
-            if (eventFlag === 'CLEAR') return '—';
-            if (eventFlag === 'EARNINGS') return 'EARNINGS';
-            if (eventFlag === 'DIV') return 'DIV';
-            return '—';
-        }
-
-        function getMaxLossClass(maxLoss) {
-            if (maxLoss < 0) return 'risk-high';
-            return 'risk-low';
-        }
-
-        function getROIClass(roi) {
-            if (roi > 3) return 'risk-low';
-            if (roi > 1) return 'risk-medium';
-            return 'risk-high';
-        }
-
-        function getOutcomeClass(outcome) {
-            if (outcome === 'MET') return 'met';
-            if (outcome === 'NOT_MET') return 'not-met';
-            return 'in-progress';
-        }
-
-        function getStabilityText(stability) {
-            if (typeof stability === 'string') return stability;
-            if (stability >= 80) return 'High';
-            if (stability >= 60) return 'Med';
-            return 'Low';
-        }
-
-        function applyFilters() {
-            loadStrategiesData();
-        }
+        
+        // Initialize the page
+        const optionsPage = new OptionsPage();
     </script>
 </body>
 </html>
