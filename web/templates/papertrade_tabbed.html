@@ -233,7 +233,7 @@
     <div class="container">
         <div class="header">
             <h1>Paper Trading</h1>
-            <p style="color: var(--text-dim);">Practice trading with virtual money</p>
+            <p style="color: var(--text-dim);">Practice trading with virtual money - Real-time data</p>
         </div>
 
         <div class="tabs">
@@ -249,7 +249,7 @@
             <div class="trade-form">
                 <div class="form-group">
                     <label>Symbol</label>
-                    <select id="options-symbol">
+                    <select id="options-symbol" onchange="loadOptionsChain()">
                         <option value="RELIANCE">RELIANCE</option>
                         <option value="TCS">TCS</option>
                         <option value="HDFCBANK">HDFCBANK</option>
@@ -273,7 +273,7 @@
                 </div>
             </div>
 
-            <div class="portfolio-summary">
+            <div class="portfolio-summary" id="options-summary">
                 <div class="summary-card">
                     <h3>Total Capital</h3>
                     <div class="value" id="options-capital">₹10,00,000</div>
@@ -290,7 +290,21 @@
 
             <div id="options-positions-container">
                 <h3>Current Positions</h3>
-                <div class="loading">No positions yet</div>
+                <table class="positions-table" id="options-positions-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Strategy</th>
+                            <th>Entry</th>
+                            <th>Current</th>
+                            <th>P&L</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="options-positions-body">
+                    </tbody>
+                </table>
+                <div class="loading" id="options-no-positions">No positions yet</div>
             </div>
         </div>
 
@@ -301,7 +315,7 @@
             <div class="trade-form">
                 <div class="form-group">
                     <label>Symbol</label>
-                    <input type="text" id="equity-symbol" placeholder="Enter stock symbol">
+                    <input type="text" id="equity-symbol" placeholder="Enter stock symbol" onchange="loadEquityPrice()">
                 </div>
                 <div class="form-group">
                     <label>Side</label>
@@ -395,6 +409,12 @@
     </div>
 
     <script>
+        let portfolioData = {
+            capital: 1000000,
+            positions: [],
+            orders: []
+        };
+
         function showTab(tabName) {
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(content => {
@@ -413,46 +433,246 @@
             event.target.classList.add('active');
         }
 
-        function executeOptionsTrade() {
+        async function loadOptionsChain() {
             const symbol = document.getElementById('options-symbol').value;
-            const strategy = document.getElementById('options-strategy').value;
-            const quantity = document.getElementById('options-quantity').value;
-
-            console.log('Executing options trade:', { symbol, strategy, quantity });
-            
-            // Simulate trade execution
-            showNotification(`Options trade executed: ${strategy} ${symbol} x${quantity}`, 'success');
+            try {
+                console.log(`Loading options chain for ${symbol}`);
+                const response = await fetch(`/api/options/chain/${symbol}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log(`Options chain loaded for ${symbol}:`, data.data);
+                    // Update UI with live data
+                    updateOptionsDisplay(data.data);
+                } else {
+                    console.error('Failed to load options chain:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading options chain:', error);
+            }
         }
 
-        function executeEquityTrade() {
+        function updateOptionsDisplay(chainData) {
+            // Update spot price display if needed
+            console.log(`Spot price: ₹${chainData.spot}, IV: ${chainData.iv}%`);
+        }
+
+        async function loadEquityPrice() {
+            const symbol = document.getElementById('equity-symbol').value;
+            if (!symbol) return;
+            
+            try {
+                console.log(`Loading live price for ${symbol}`);
+                const response = await fetch(`/api/papertrade/live-price/${symbol}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log(`Live price for ${symbol}: ₹${data.price}`);
+                } else {
+                    console.error('Failed to load live price:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading live price:', error);
+            }
+        }
+
+        async function executeOptionsTrade() {
+            const symbol = document.getElementById('options-symbol').value;
+            const strategy = document.getElementById('options-strategy').value;
+            const quantity = parseInt(document.getElementById('options-quantity').value);
+
+            try {
+                const response = await fetch('/api/papertrade/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        instrument: 'options',
+                        symbol: symbol,
+                        strategy: strategy,
+                        quantity: quantity
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`Options trade executed: ${strategy} ${symbol} x${quantity}`, 'success');
+                    await loadPortfolioData();
+                } else {
+                    showNotification(`Trade failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error executing options trade:', error);
+                showNotification('Trade execution failed', 'error');
+            }
+        }
+
+        async function executeEquityTrade() {
             const symbol = document.getElementById('equity-symbol').value;
             const side = document.getElementById('equity-side').value;
-            const quantity = document.getElementById('equity-quantity').value;
+            const quantity = parseInt(document.getElementById('equity-quantity').value);
 
             if (!symbol) {
                 showNotification('Please enter a symbol', 'error');
                 return;
             }
 
-            console.log('Executing equity trade:', { symbol, side, quantity });
-            
-            // Simulate trade execution
-            showNotification(`Equity trade executed: ${side} ${symbol} x${quantity}`, 'success');
+            try {
+                const response = await fetch('/api/papertrade/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        instrument: 'equity',
+                        symbol: symbol,
+                        side: side,
+                        quantity: quantity
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`Equity trade executed: ${side} ${symbol} x${quantity}`, 'success');
+                    await loadPortfolioData();
+                } else {
+                    showNotification(`Trade failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error executing equity trade:', error);
+                showNotification('Trade execution failed', 'error');
+            }
         }
 
-        function executeCommodityTrade() {
+        async function executeCommodityTrade() {
             const symbol = document.getElementById('commodity-symbol').value;
             const side = document.getElementById('commodity-side').value;
-            const lots = document.getElementById('commodity-lots').value;
+            const lots = parseInt(document.getElementById('commodity-lots').value);
 
-            console.log('Executing commodity trade:', { symbol, side, lots });
+            try {
+                const response = await fetch('/api/papertrade/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        instrument: 'commodity',
+                        symbol: symbol,
+                        side: side,
+                        quantity: lots
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`Commodity trade executed: ${side} ${symbol} x${lots} lots`, 'success');
+                    await loadPortfolioData();
+                } else {
+                    showNotification(`Trade failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error executing commodity trade:', error);
+                showNotification('Trade execution failed', 'error');
+            }
+        }
+
+        async function loadPortfolioData() {
+            try {
+                const [portfolioResponse, positionsResponse] = await Promise.all([
+                    fetch('/api/papertrade/portfolio'),
+                    fetch('/api/papertrade/positions')
+                ]);
+
+                const portfolio = await portfolioResponse.json();
+                const positions = await positionsResponse.json();
+
+                if (portfolio.success) {
+                    updatePortfolioDisplay(portfolio);
+                }
+
+                if (positions.success) {
+                    updatePositionsDisplay(positions.positions);
+                }
+            } catch (error) {
+                console.error('Error loading portfolio data:', error);
+            }
+        }
+
+        function updatePortfolioDisplay(portfolio) {
+            const data = portfolio.portfolio || portfolio;
             
-            // Simulate trade execution
-            showNotification(`Commodity trade executed: ${side} ${symbol} x${lots} lots`, 'success');
+            document.getElementById('options-capital').textContent = `₹${formatNumber(data.total_value || 1000000)}`;
+            document.getElementById('equity-capital').textContent = `₹${formatNumber(data.total_value || 1000000)}`;
+            document.getElementById('commodity-capital').textContent = `₹${formatNumber(data.total_value || 1000000)}`;
+            
+            const pnlValue = data.total_pnl || 0;
+            const pnlClass = pnlValue >= 0 ? 'positive' : 'negative';
+            
+            document.getElementById('options-pnl').textContent = `₹${formatNumber(pnlValue)}`;
+            document.getElementById('options-pnl').className = `value ${pnlClass}`;
+        }
+
+        function updatePositionsDisplay(positions) {
+            const optionsPositions = positions.filter(p => p.instrument === 'options');
+            
+            document.getElementById('options-positions').textContent = optionsPositions.length;
+            
+            if (optionsPositions.length > 0) {
+                const tbody = document.getElementById('options-positions-body');
+                tbody.innerHTML = '';
+                
+                optionsPositions.forEach(position => {
+                    const row = document.createElement('tr');
+                    const pnlClass = position.pnl >= 0 ? 'positive' : 'negative';
+                    
+                    row.innerHTML = `
+                        <td>${position.symbol}</td>
+                        <td>${position.strategy || position.side}</td>
+                        <td>₹${formatNumber(position.entry_price)}</td>
+                        <td>₹${formatNumber(position.current_price)}</td>
+                        <td class="${pnlClass}">₹${formatNumber(position.pnl)}</td>
+                        <td><button class="btn" onclick="closePosition('${position.id}')">Close</button></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                document.getElementById('options-positions-table').style.display = 'table';
+                document.getElementById('options-no-positions').style.display = 'none';
+            } else {
+                document.getElementById('options-positions-table').style.display = 'none';
+                document.getElementById('options-no-positions').style.display = 'block';
+            }
+        }
+
+        async function closePosition(positionId) {
+            try {
+                const response = await fetch('/api/papertrade/close', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ position_id: positionId })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Position closed successfully', 'success');
+                    await loadPortfolioData();
+                } else {
+                    showNotification(`Failed to close position: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error closing position:', error);
+                showNotification('Failed to close position', 'error');
+            }
         }
 
         function showNotification(message, type) {
-            // Create notification element
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.style.cssText = `
@@ -471,10 +691,13 @@
 
             document.body.appendChild(notification);
 
-            // Remove notification after 3 seconds
             setTimeout(() => {
                 notification.remove();
             }, 3000);
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-IN').format(num);
         }
 
         // Add CSS animation
@@ -496,31 +719,9 @@
         // Load initial data when page loads
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Paper trading page loaded');
-            
-            // Initialize with sample data
             loadPortfolioData();
+            loadOptionsChain();
         });
-
-        function loadPortfolioData() {
-            // This would typically fetch from your API
-            console.log('Loading portfolio data...');
-            
-            // Sample data for demonstration
-            const portfolioData = {
-                capital: 1000000,
-                pnl: 0,
-                positions: 0
-            };
-
-            // Update all portfolio displays
-            document.getElementById('options-capital').textContent = `₹${formatNumber(portfolioData.capital)}`;
-            document.getElementById('equity-capital').textContent = `₹${formatNumber(portfolioData.capital)}`;
-            document.getElementById('commodity-capital').textContent = `₹${formatNumber(portfolioData.capital)}`;
-        }
-
-        function formatNumber(num) {
-            return new Intl.NumberFormat('en-IN').format(num);
-        }
     </script>
 </body>
 </html>
