@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -356,7 +355,7 @@
                 align-items: flex-start;
                 gap: 12px;
             }
-            
+
             .filter-controls {
                 margin-left: 0;
                 width: 100%;
@@ -561,19 +560,19 @@
             try {
                 const hideEvents = document.getElementById('hideEventsFilter')?.checked || false;
                 const maxBreakoutProb = document.getElementById('breakoutProbSlider')?.value || 100;
-                
+
                 const url = `/api/options/strategies?timeframe=${currentTimeframe}`;
                 const response = await fetch(url);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (data.strategies && Array.isArray(data.strategies)) {
                     strategiesData = data.strategies;
-                    
+
                     // Apply client-side filtering
                     let filteredStrategies = data.strategies;
                     if (hideEvents) {
@@ -582,13 +581,13 @@
                     if (maxBreakoutProb < 100) {
                         filteredStrategies = filteredStrategies.filter(s => (s.breakout_prob * 100) <= maxBreakoutProb);
                     }
-                    
+
                     updateStrategiesTable(filteredStrategies);
                     updateSummaryStats(filteredStrategies);
                 } else {
                     throw new Error('Invalid strategies data format received');
                 }
-                
+
             } catch (error) {
                 console.error('Error loading strategies data:', error);
                 showStrategiesError(error.message);
@@ -598,20 +597,20 @@
         async function loadActivePredictions() {
             try {
                 const response = await fetch('/api/options/predictions/active');
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (data.success && data.items && Array.isArray(data.items)) {
                     activePredictionsData = data.items;
                     updateActivePredictionsTable(data.items);
                 } else {
                     throw new Error('Invalid active predictions data format received');
                 }
-                
+
             } catch (error) {
                 console.error('Error loading active predictions:', error);
                 showActivePredictionsError(error.message);
@@ -622,20 +621,20 @@
             try {
                 const window = currentTimeframe.toLowerCase();
                 const response = await fetch(`/api/options/predictions/accuracy?window=${window}`);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (data.success && data.by_timeframe && Array.isArray(data.by_timeframe)) {
                     accuracyData = data.by_timeframe;
                     updateAccuracyStats(data.by_timeframe);
                 } else {
                     throw new Error('Invalid accuracy data format received');
                 }
-                
+
             } catch (error) {
                 console.error('Error loading accuracy data:', error);
                 // Fallback to empty array on error
@@ -648,28 +647,28 @@
             // Calculate micro and macro accuracy as per your example
             let totalSuccess = 0, totalFailed = 0;
             let ratios = [];
-            
+
             for (const timeframe of accuracyData) {
                 const success = Number(timeframe.success || 0);
                 const failed = Number(timeframe.failed || 0);
                 const total = success + failed;
-                
+
                 totalSuccess += success;
                 totalFailed += failed;
-                
+
                 if (total > 0) {
                     ratios.push(success / total);
                 }
             }
-            
+
             // Micro accuracy: overall success rate
             const microAccuracy = (totalSuccess + totalFailed) > 0 ? 
                 (totalSuccess / (totalSuccess + totalFailed)) * 100 : 0;
-            
+
             // Macro accuracy: average of individual timeframe accuracies
             const macroAccuracy = ratios.length > 0 ? 
                 (ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length) * 100 : 0;
-            
+
             document.getElementById('microAccuracy').textContent = `${microAccuracy.toFixed(1)}%`;
             document.getElementById('macroAccuracy').textContent = `${macroAccuracy.toFixed(1)}%`;
         }
@@ -680,7 +679,7 @@
                 strategies.reduce((sum, s) => sum + Number(s.roi_on_margin_percent || 0), 0) / total : 0;
             const highIV = strategies.filter(s => (s.iv_rank || 0) >= 50).length;
             const eventFree = strategies.filter(s => s.event_flag === 'CLEAR' || !s.event_flag).length;
-            
+
             document.getElementById('totalStrategies').textContent = total;
             document.getElementById('avgROI').textContent = `${avgROI.toFixed(1)}%`;
             document.getElementById('highIVCount').textContent = highIV;
@@ -689,7 +688,7 @@
 
         function updateStrategiesTable(strategies) {
             const tbody = document.getElementById('strategiesTableBody');
-            
+
             if (!strategies || strategies.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="19" style="text-align: center; padding: 20px; color: var(--text-muted);">No strategies available for this timeframe</td></tr>';
                 return;
@@ -702,7 +701,7 @@
                 const verdictClass = getVerdictClass(strategy.verdict);
                 const stabilityClass = getStabilityClass(strategy.market_stability);
                 const eventDisplay = getEventDisplay(strategy.event);
-                
+
                 // Handle final outcome pill
                 const finalOutcome = strategy.final_outcome ? 
                     `<span class="outcome-pill ${getOutcomeClass(strategy.final_outcome)}">${strategy.final_outcome}</span>` : 
@@ -737,7 +736,7 @@
 
         function updateActivePredictionsTable(predictions) {
             const tbody = document.getElementById('activePredictionsBody');
-            
+
             if (!predictions || predictions.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--text-muted);">No active trades in progress</td></tr>';
                 return;

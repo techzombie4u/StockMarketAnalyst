@@ -140,6 +140,24 @@ class StrangleEngine:
             logger.error(f"Error computing theta per day: {e}")
             return 0.0
 
+    def dynamic_stop_loss_percent(self, iv_rank: int) -> int:
+        """
+        Calculate dynamic stop loss percentage based on IV rank
+        Higher IV rank = tighter stop loss
+        """
+        try:
+            if iv_rank >= 80:
+                return 150  # Tight stop loss for very high IV
+            elif iv_rank >= 60:
+                return 180  # Normal stop loss
+            elif iv_rank >= 40:
+                return 200  # Looser stop loss for lower IV
+            else:
+                return 250  # Very loose stop loss for low IV
+        except Exception as e:
+            logger.error(f"Error calculating dynamic stop loss: {e}")
+            return 180  # Default
+
     def market_stability_score(self, rv20_pct: float, adx: float, event_flag: str, iv_rank: int) -> int:
         """
         Calculate market stability score (0-100)

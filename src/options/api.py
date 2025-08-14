@@ -16,9 +16,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# The original Blueprint name was 'options_bp', but the changes mention 'options_api'.
-# Assuming 'options_api' is the correct intended name for the blueprint.
-options_api = Blueprint('options_api', __name__)
+# Fix blueprint name to match what the app expects
+options_bp = Blueprint('options_bp', __name__)
 
 def calculate_historical_volatility_filtering(symbol, timeframe):
     """Calculate historical volatility with filtering for accuracy"""
@@ -228,7 +227,7 @@ def load_options_data():
 # The existing get_strangle_candidates and get_options_strategies are replaced by the new ones in the changes.
 # The following routes are the new additions from the changes.
 
-@options_api.route('/strangle/candidates', methods=['GET'])
+@options_bp.route('/strangle/candidates', methods=['GET'])
 def get_strangle_candidates():
     """Get short strangle candidates"""
     try:
@@ -256,7 +255,7 @@ def get_strangle_candidates():
         logger.error(f"Error getting strangle candidates: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@options_api.route('/strangle/recommendations', methods=['GET'])
+@options_bp.route('/strangle/recommendations', methods=['GET'])
 def get_strangle_recommendations():
     """Get v2 strangle recommendations with enhanced data"""
     try:
@@ -311,7 +310,7 @@ def format_due_date(dte_days):
     due_date = datetime.now() + timedelta(days=dte_days)
     return due_date.strftime('%Y-%m-%d')
 
-@options_api.route('/strategies', methods=['GET'])
+@options_bp.route('/strategies', methods=['GET'])
 def get_options_strategies():
     """Get enhanced options strategies for the new UI"""
     try:
@@ -369,7 +368,7 @@ def get_options_strategies():
         logger.error(f"Error getting options strategies: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@options_api.route('/predictions/accuracy', methods=['GET'])
+@options_bp.route('/predictions/accuracy', methods=['GET'])
 def get_predictions_accuracy():
     """Get accuracy metrics by timeframe (finalized only)"""
     try:
@@ -397,7 +396,7 @@ def get_predictions_accuracy():
         logger.error(f"Error getting accuracy data: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@options_api.route('/predictions/active', methods=['GET'])
+@options_bp.route('/predictions/active', methods=['GET'])
 def get_active_predictions():
     """Get active (in-progress) predictions"""
     try:
@@ -457,7 +456,7 @@ def get_active_predictions():
 # - /strategies (this is a new route in the changes)
 # - /positions (this route is not in the changes, so it should be kept)
 
-@options_api.route('/positions')
+@options_bp.route('/positions')
 def positions():
     """Get options positions"""
     start_time = time.time()
