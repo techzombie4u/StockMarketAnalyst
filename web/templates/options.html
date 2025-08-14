@@ -558,38 +558,70 @@
 
         async function loadStrategiesData() {
             try {
+                console.log('🔄 Loading strategies data for timeframe:', currentTimeframe);
+                
                 const hideEvents = document.getElementById('hideEventsFilter')?.checked || false;
                 const maxBreakoutProb = document.getElementById('breakoutProbSlider')?.value || 100;
 
                 const url = `/api/options/strategies?timeframe=${currentTimeframe}`;
+                console.log('📡 Fetching from:', url);
+                
                 const response = await fetch(url);
+                console.log('📡 Response status:', response.status);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    const errorText = await response.text();
+                    console.error('❌ API Error:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
                 }
 
-                const data = await response.json();
+                const responseText = await response.text();
+                console.log('📝 Raw response:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                    console.log('✅ Parsed API Response:', data);
+                } catch (parseError) {
+                    console.error('❌ JSON Parse Error:', parseError);
+                    throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
+                }
 
-                if (data.strategies && Array.isArray(data.strategies)) {
+                if (data.success !== false && data.strategies && Array.isArray(data.strategies)) {
+                    console.log('📊 Received', data.strategies.length, 'strategies');
                     strategiesData = data.strategies;
 
                     // Apply client-side filtering
                     let filteredStrategies = data.strategies;
+                    
                     if (hideEvents) {
-                        filteredStrategies = filteredStrategies.filter(s => s.event === '—' || !s.event);
+                        const beforeFilter = filteredStrategies.length;
+                        filteredStrategies = filteredStrategies.filter(s => {
+                            const event = s.event || s.event_flag;
+                            return event === '—' || event === 'CLEAR' || !event;
+                        });
+                        console.log('🔍 Event filter:', beforeFilter, '->', filteredStrategies.length);
                     }
+                    
                     if (maxBreakoutProb < 100) {
-                        filteredStrategies = filteredStrategies.filter(s => (s.breakout_prob * 100) <= maxBreakoutProb);
+                        const beforeFilter = filteredStrategies.length;
+                        filteredStrategies = filteredStrategies.filter(s => {
+                            const breakoutProb = Number(s.breakout_prob || s.breakout_probability || 0);
+                            return (breakoutProb * 100) <= maxBreakoutProb;
+                        });
+                        console.log('🔍 Breakout filter:', beforeFilter, '->', filteredStrategies.length);
                     }
 
+                    console.log('📈 Final filtered strategies:', filteredStrategies.length);
                     updateStrategiesTable(filteredStrategies);
                     updateSummaryStats(filteredStrategies);
                 } else {
-                    throw new Error('Invalid strategies data format received');
+                    console.error('❌ Invalid data format:', data);
+                    throw new Error(`Invalid strategies data format: ${JSON.stringify(data)}`);
                 }
 
             } catch (error) {
-                console.error('Error loading strategies data:', error);
+                console.error('❌ Error loading strategies data:', error);
                 showStrategiesError(error.message);
             }
         }
@@ -675,10 +707,23 @@
 
         function updateSummaryStats(strategies) {
             const total = strategies.length;
+            console.log('Updating summary stats for', total, 'strategies');
+            
             const avgROI = total > 0 ? 
-                strategies.reduce((sum, s) => sum + Number(s.roi_on_margin_percent || 0), 0) / total : 0;
-            const highIV = strategies.filter(s => (s.iv_rank || 0) >= 50).length;
-            const eventFree = strategies.filter(s => s.event_flag === 'CLEAR' || !s.event_flag).length;
+                strategies.reduce((sum, s) => {
+                    const roi = Number(s.roi_on_margin_percent || s.roi_on_margin || 0);
+                    return sum + roi;
+                }, 0) / total : 0;
+            
+            const highIV = strategies.filter(s => {
+                const ivRank = Number(s.iv_rank || 0);
+                return ivRank >= 50;
+            }).length;
+            
+            const eventFree = strategies.filter(s => {
+                const eventFlag = s.event_flag || s.event;
+                return eventFlag === 'CLEAR' || eventFlag === '—' || !eventFlag;
+            }).length;
 
             document.getElementById('totalStrategies').textContent = total;
             document.getElementById('avgROI').textContent = `${avgROI.toFixed(1)}%`;
@@ -688,19 +733,47 @@
 
         function updateStrategiesTable(strategies) {
             const tbody = document.getElementById('strategiesTableBody');
+            
+            console.log('Updating strategies table with', strategies.length, 'strategies');
+            if (strategies.length > 0) {
+                console.log('Sample strategy:', strategies[0]);
+            }
 
             if (!strategies || strategies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="19" style="text-align: center; padding: 20px; color: var(--text-muted);">No strategies available for this timeframe</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="20" style="text-align: center; padding: 20px; color: var(--text-muted);">No strategies available for this timeframe</td></tr>';
                 return;
             }
 
             tbody.innerHTML = strategies.map(strategy => {
-                const dueDate = strategy.due_date || calculateDueDate(strategy.dte || 30);
-                const breakevenRange = `₹${formatINR(strategy.breakeven_min || 0)} – ₹${formatINR(strategy.breakeven_max || 0)}`;
-                const breakoutProb = `${((strategy.breakout_prob || 0) * 100).toFixed(0)}%`;
-                const verdictClass = getVerdictClass(strategy.verdict);
-                const stabilityClass = getStabilityClass(strategy.market_stability);
-                const eventDisplay = getEventDisplay(strategy.event);
+                // Safe field access with fallbacks
+                const stock = strategy.stock || strategy.symbol || 'N/A';
+                const spot = Number(strategy.spot || strategy.current_price || strategy.spot_price || 0);
+                const call = Number(strategy.call || strategy.call_strike || 0);
+                const put = Number(strategy.put || strategy.put_strike || 0);
+                const dte = Number(strategy.dte || strategy.dte_days || strategy.days_to_expiry || 30);
+                const iv = Number(strategy.iv || strategy.iv_percent || (strategy.implied_volatility * 100) || 25);
+                const ivRank = Number(strategy.iv_rank || 50);
+                const netCredit = Number(strategy.net_credit || strategy.net_credit_per_lot || strategy.total_premium || 0);
+                const thetaDay = Number(strategy.theta_day || strategy.theta_per_day || strategy.theta_per_day_per_lot || 0);
+                const roiOnMargin = Number(strategy.roi_on_margin || strategy.roi_on_margin_percent || 0);
+                const breakoutProb = Number(strategy.breakout_prob || strategy.breakout_probability || 0.5);
+                const maxLoss2s = Number(strategy.max_loss_2s || strategy.max_loss_2_sigma || strategy.max_loss_two_sigma || 0);
+                const stopLossPct = Number(strategy.stop_loss_pct || strategy.stop_loss_percent || strategy.stop_loss_percent_of_credit || 180);
+                
+                const dueDate = strategy.due_date || calculateDueDate(dte);
+                const breakevenMin = Number(strategy.breakeven_min || strategy.breakeven_lower || strategy.breakeven_low || 0);
+                const breakevenMax = Number(strategy.breakeven_max || strategy.breakeven_upper || strategy.breakeven_high || 0);
+                const breakevenRange = `₹${formatINR(breakevenMin)} – ₹${formatINR(breakevenMax)}`;
+                const breakoutProbDisplay = `${(breakoutProb * 100).toFixed(0)}%`;
+                
+                const verdict = strategy.verdict || 'Hold';
+                const aiVerdict = strategy.ai_verdict || strategy.ai_agent_verdict || verdict;
+                const marketStability = strategy.market_stability || strategy.market_stability_score || 'Med';
+                const event = strategy.event || (strategy.event_flag === 'EARNINGS' ? 'EARNINGS' : '—');
+                
+                const verdictClass = getVerdictClass(verdict);
+                const stabilityClass = getStabilityClass(marketStability);
+                const eventDisplay = getEventDisplay(event);
 
                 // Handle final outcome pill
                 const finalOutcome = strategy.final_outcome ? 
@@ -709,26 +782,26 @@
 
                 return `
                     <tr>
-                        <td><div class="stock-name">${strategy.stock}</div></td>
-                        <td><span class="${verdictClass}">${strategy.verdict || 'Hold'}</span></td>
-                        <td><span class="ai-verdict">${strategy.ai_verdict || 'Hold'}</span></td>
+                        <td><div class="stock-name">${stock}</div></td>
+                        <td><span class="${verdictClass}">${verdict}</span></td>
+                        <td><span class="ai-verdict">${aiVerdict}</span></td>
                         <td>${finalOutcome}</td>
-                        <td>₹${formatINR(strategy.spot)}</td>
-                        <td>₹${formatINR(strategy.call)}</td>
-                        <td>₹${formatINR(strategy.put)}</td>
+                        <td>₹${formatINR(spot)}</td>
+                        <td>₹${formatINR(call)}</td>
+                        <td>₹${formatINR(put)}</td>
                         <td>${dueDate}</td>
                         <td>${breakevenRange}</td>
-                        <td class="${getBreakoutProbClass((strategy.breakout_prob || 0) * 100)}">${breakoutProb}</td>
-                        <td class="${stabilityClass}">${getStabilityText(strategy.market_stability)}</td>
-                        <td class="${getEventClass(strategy.event)}">${eventDisplay}</td>
-                        <td class="${getMaxLossClass(strategy.max_loss_2s)}">${strategy.max_loss_2s || 'Moderate'}</td>
-                        <td>${(strategy.stop_loss_pct || 180).toFixed(0)}%</td>
-                        <td>${strategy.dte || 30}d</td>
-                        <td>${(strategy.iv || 0).toFixed(1)}%</td>
-                        <td>${(strategy.iv_rank || 0).toFixed(0)}</td>
-                        <td>₹${formatINR(strategy.net_credit)}</td>
-                        <td>₹${formatINR(strategy.theta_day)}</td>
-                        <td class="${getROIClass(strategy.roi_on_margin)}">${(strategy.roi_on_margin || 0).toFixed(1)}%</td>
+                        <td class="${getBreakoutProbClass(breakoutProb * 100)}">${breakoutProbDisplay}</td>
+                        <td class="${stabilityClass}">${getStabilityText(marketStability)}</td>
+                        <td class="${getEventClass(event)}">${eventDisplay}</td>
+                        <td class="${getMaxLossClass(maxLoss2s)}">${maxLoss2s ? formatINR(Math.abs(maxLoss2s)) : 'Moderate'}</td>
+                        <td>${stopLossPct.toFixed(0)}%</td>
+                        <td>${dte}d</td>
+                        <td>${iv.toFixed(1)}%</td>
+                        <td>${ivRank.toFixed(0)}</td>
+                        <td>₹${formatINR(netCredit)}</td>
+                        <td>₹${formatINR(thetaDay)}</td>
+                        <td class="${getROIClass(roiOnMargin)}">${roiOnMargin.toFixed(1)}%</td>
                     </tr>
                 `;
             }).join('');
@@ -756,8 +829,15 @@
         }
 
         function showStrategiesError(message) {
+            console.error('🚨 Strategies Error:', message);
             document.getElementById('strategiesTableBody').innerHTML = 
-                `<tr><td colspan="19" class="error">Error: ${message}</td></tr>`;
+                `<tr><td colspan="20" class="error">Error loading data: ${message}<br><small>Check browser console for details</small></td></tr>`;
+            
+            // Also update summary stats to show error state
+            document.getElementById('totalStrategies').textContent = '0';
+            document.getElementById('avgROI').textContent = 'N/A';
+            document.getElementById('highIVCount').textContent = '0';
+            document.getElementById('eventFreeCount').textContent = '0';
         }
 
         function showActivePredictionsError(message) {
@@ -786,13 +866,23 @@
             return '';
         }
 
-        function getStabilityClass(score) {
+        function getStabilityClass(stability) {
+            if (typeof stability === 'string') {
+                if (stability === 'High') return 'stability-high';
+                if (stability === 'Med') return 'stability-med';
+                return 'stability-low';
+            }
+            const score = Number(stability || 50);
             if (score >= 80) return 'stability-high';
             if (score >= 60) return 'stability-med';
             return 'stability-low';
         }
 
-        function getStabilityText(score) {
+        function getStabilityText(stability) {
+            if (typeof stability === 'string') {
+                return stability;
+            }
+            const score = Number(stability || 50);
             if (score >= 80) return 'High';
             if (score >= 60) return 'Med';
             return 'Low';

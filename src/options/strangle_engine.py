@@ -257,26 +257,41 @@ class StrangleEngine:
                 market_stability = "Low"
             
             enriched['market_stability_score'] = market_stability
+            enriched['market_stability'] = market_stability  # Additional mapping
 
-            # Populate enriched dictionary with all computed values
+            # Populate enriched dictionary with all computed values (with multiple field mappings)
             enriched['symbol'] = symbol
             enriched['spot'] = spot_price
+            enriched['spot_price'] = spot_price
+            enriched['current_price'] = spot_price
             enriched['call_strike'] = call_strike
             enriched['put_strike'] = put_strike
             enriched['net_credit_per_lot'] = net_credit
+            enriched['total_premium'] = net_credit
             enriched['breakeven_lower'] = breakeven_lower
             enriched['breakeven_upper'] = breakeven_upper
+            enriched['breakeven_low'] = breakeven_lower
+            enriched['breakeven_high'] = breakeven_upper
             enriched['breakout_prob_percent'] = breakout_data.get('breakout_prob_percent', 50.0)
+            enriched['breakout_probability'] = breakout_data.get('breakout_prob_percent', 50.0) / 100.0
             enriched['max_loss_two_sigma'] = max_loss_2sigma
+            enriched['max_loss_2_sigma'] = max_loss_2sigma
             enriched['roi_on_margin_percent'] = roi_on_margin
+            enriched['roi_on_margin'] = roi_on_margin
             enriched['theta_per_day_per_lot'] = theta_per_day
+            enriched['theta_per_day'] = theta_per_day
             enriched['dte_days'] = dte_days
+            enriched['days_to_expiry'] = dte_days
             enriched['iv_percent'] = iv_percent
+            enriched['implied_volatility'] = iv_percent / 100.0
             enriched['iv_rank'] = iv_rank
             enriched['stop_loss_percent_of_credit'] = stop_loss_percent
+            enriched['stop_loss_percent'] = stop_loss_percent
             enriched['verdict'] = verdict
             enriched['ai_agent_verdict'] = ai_verdict
+            enriched['ai_verdict'] = ai_verdict
             enriched['event_flag'] = event_flag
+            enriched['has_event_risk'] = (event_flag == 'EARNINGS')
 
 
             return enriched
