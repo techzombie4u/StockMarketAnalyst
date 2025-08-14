@@ -117,14 +117,14 @@ def get_options_strategies():
                 strategy_data.setdefault('max_loss_2s', 'Moderate')
                 strategy_data.setdefault('stop_loss_pct', 50)
                 strategy_data.setdefault('theta_day', round(strategy_data['net_credit'] / strategy_data['dte'], 2))
-                
+
                 # Calculate breakeven range
                 call_premium = 45 + (hash(symbol) % 15)
                 put_premium = 40 + (hash(symbol) % 15)
                 total_credit = call_premium + put_premium
                 strategy_data.setdefault('breakeven_min', round(strategy_data['put'] - total_credit, 2))
                 strategy_data.setdefault('breakeven_max', round(strategy_data['call'] + total_credit, 2))
-                
+
                 strategies.append(strategy_data)
 
         logger.info(f"✅ Generated {len(strategies)} strategies for {timeframe}")
@@ -162,7 +162,7 @@ def get_options_chain(symbol):
             'ICICIBANK': 1375, 'WIPRO': 3000, 'LT': 225, 'MARUTI': 100
         }
         lot_size = lot_sizes.get(symbol, 1000)
-        
+
         # Generate expiry dates (next 3 weekly expiries)
         expiries = []
         base_date = datetime.datetime.now()
@@ -207,20 +207,29 @@ def get_options_chain(symbol):
         iv = 18 + (hash(symbol) % 20)
         iv_rank = 30 + (hash(symbol) % 40)
 
+        # Mock data for the chain
+        chain_data = {
+            'expiry_dates': expiries,
+            'strikes': strikes,
+            'call_options': ce_data,
+            'put_options': pe_data
+        }
+
+        # Import IST timezone
+        from pytz import timezone
+        IST = timezone('Asia/Kolkata')
+
+        # Ensure live data with proper error handling
+        if not chain_data:
+            logger.error(f"No chain data generated for {symbol}")
+            return jsonify({'error': 'Unable to generate options chain', 'status': 'error'}), 503
+
         return jsonify({
-            'success': True,
-            'data': {
-                'symbol': symbol,
-                'spot': float(base_spot),
-                'lotSize': lot_size,
-                'expiries': expiries,
-                'strikes': strikes,
-                'ce': ce_data,
-                'pe': pe_data,
-                'iv': float(iv),
-                'ivRank': float(iv_rank)
-            },
-            'timestamp': datetime.datetime.now().isoformat()
+            'symbol': symbol,
+            'spot_price': float(base_spot),
+            'chain': chain_data,
+            'last_updated': datetime.now(IST).isoformat(),
+            'status': 'live'
         })
 
     except Exception as e:
@@ -555,4 +564,3 @@ def get_active_predictions():
             'error': str(e),
             'items': []
         }), 500
-

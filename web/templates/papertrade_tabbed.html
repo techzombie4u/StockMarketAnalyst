@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -646,7 +645,7 @@
             try {
                 const response = await fetch('/api/papertrade/portfolio');
                 const data = await response.json();
-                
+
                 if (data.success && data.data) {
                     portfolioData = {
                         current_capital: data.data.portfolio.current_capital || 1000000,
@@ -668,7 +667,7 @@
             try {
                 const response = await fetch('/api/papertrade/positions');
                 const data = await response.json();
-                
+
                 if (data.success) {
                     positionsData = data.positions || [];
                 }
@@ -681,7 +680,7 @@
             try {
                 const response = await fetch('/api/papertrade/orders');
                 const data = await response.json();
-                
+
                 if (data.success) {
                     ordersData = data.orders || [];
                 }
@@ -703,14 +702,14 @@
 
             // Update positions table
             updatePositionsTable();
-            
+
             // Update orders table
             updateOrdersTable();
         }
 
         function updatePositionsTable() {
             const tbody = document.getElementById('positions-table-body');
-            
+
             if (positionsData.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No positions yet</td></tr>';
                 return;
@@ -741,7 +740,7 @@
 
         function updateOrdersTable() {
             const tbody = document.getElementById('orders-table-body');
-            
+
             if (ordersData.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No trades executed yet</td></tr>';
                 return;
@@ -768,7 +767,7 @@
             try {
                 const response = await fetch(`/api/options/chain/${symbol}`);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     updateOptionsAnalytics(data.data);
                 }
@@ -781,12 +780,12 @@
             document.getElementById('opt-lot-size').textContent = chainData.lotSize || 505;
             document.getElementById('opt-spot').textContent = `₹${formatNumber(chainData.spot)}`;
             document.getElementById('opt-iv').textContent = `${chainData.iv}% / ${chainData.ivRank}`;
-            
+
             // Calculate estimated values
             const netCredit = 45000; // Mock value
             const roi = 25.5; // Mock value
             const dte = 45; // Mock value
-            
+
             document.getElementById('opt-credit').textContent = `₹${formatNumber(netCredit)}`;
             document.getElementById('opt-roi').textContent = `${roi}%`;
             document.getElementById('opt-dte').textContent = dte;
@@ -795,11 +794,11 @@
         async function loadEquityPrice() {
             const symbol = document.getElementById('equity-symbol').value;
             if (!symbol) return;
-            
+
             try {
                 const response = await fetch(`/api/papertrade/live-price/${symbol}`);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     console.log(`Live price for ${symbol}: ₹${data.price}`);
                 }
@@ -830,7 +829,7 @@
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showNotification(`Options trade executed: ${strategy} ${symbol}`, 'success');
                     await refreshData();
@@ -868,7 +867,7 @@
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showNotification(`Equity trade executed: ${side} ${symbol}`, 'success');
                     await refreshData();
@@ -901,7 +900,7 @@
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showNotification(`Commodity trade executed: ${side} ${symbol}`, 'success');
                     await refreshData();
@@ -923,7 +922,7 @@
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showNotification('Position closed successfully', 'success');
                     await refreshData();

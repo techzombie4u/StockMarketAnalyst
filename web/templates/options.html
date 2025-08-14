@@ -839,6 +839,13 @@
             const tbody = document.getElementById(tbodyId);
             tbody.innerHTML = `<tr><td colspan="${colSpan}" class="empty-state">${message}</td></tr>`;
         }
+
+        function showError(message) {
+            // Display a general error message to the user.
+            // This could be a modal, a toast, or a specific error div.
+            // For this example, we'll assume a simple alert.
+            alert(message);
+        }
     </script>
 </body>
 </html>
