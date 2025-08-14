@@ -327,6 +327,29 @@
             padding: 20px;
         }
 
+        .outcome-pill {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 11px;
+            display: inline-block;
+        }
+
+        .outcome-pill.met {
+            background: #e6f7ed;
+            color: #167a4a;
+        }
+
+        .outcome-pill.not-met {
+            background: #fde8e7;
+            color: #b42318;
+        }
+
+        .outcome-pill.in-progress {
+            background: #fff6e5;
+            color: #8a5a00;
+        }
+
         @media (max-width: 768px) {
             .filters-row {
                 flex-direction: column;
@@ -437,6 +460,7 @@
                             <th>Stock</th>
                             <th>Verdict</th>
                             <th>AI Verdict</th>
+                            <th>Final Outcome</th>
                             <th>Spot</th>
                             <th>Call</th>
                             <th>Put</th>
@@ -538,7 +562,7 @@
                 const hideEvents = document.getElementById('hideEventsFilter')?.checked || false;
                 const maxBreakoutProb = document.getElementById('breakoutProbSlider')?.value || 100;
                 
-                const url = `/api/options/strangle/recommendations?timeframe=${currentTimeframe}&hide_events=${hideEvents}&max_breakout_prob=${maxBreakoutProb}`;
+                const url = `/api/options/strategies?timeframe=${currentTimeframe}`;
                 const response = await fetch(url);
                 
                 if (!response.ok) {
@@ -549,8 +573,18 @@
                 
                 if (data.strategies && Array.isArray(data.strategies)) {
                     strategiesData = data.strategies;
-                    updateStrategiesTable(data.strategies);
-                    updateSummaryStats(data.strategies);
+                    
+                    // Apply client-side filtering
+                    let filteredStrategies = data.strategies;
+                    if (hideEvents) {
+                        filteredStrategies = filteredStrategies.filter(s => s.event === '—' || !s.event);
+                    }
+                    if (maxBreakoutProb < 100) {
+                        filteredStrategies = filteredStrategies.filter(s => (s.breakout_prob * 100) <= maxBreakoutProb);
+                    }
+                    
+                    updateStrategiesTable(filteredStrategies);
+                    updateSummaryStats(filteredStrategies);
                 } else {
                     throw new Error('Invalid strategies data format received');
                 }
@@ -563,15 +597,20 @@
 
         async function loadActivePredictions() {
             try {
-                // Mock data for active predictions
-                const mockData = [
-                    { due: "2025-08-27", stock: "MARUTI", predicted: "On Track", current: "Outperforming", proi: 26.9, croi: 30.0, reason: "ROI exceeded expectations" },
-                    { due: "2025-08-29", stock: "RELIANCE", predicted: "On Track", current: "Outperforming", proi: 22.9, croi: 30.0, reason: "ROI exceeded expectations" },
-                    { due: "2025-09-07", stock: "ITC", predicted: "On Track", current: "Outperforming", proi: 29.9, croi: 43.43, reason: "ROI exceeded expectations" }
-                ];
+                const response = await fetch('/api/options/predictions/active');
                 
-                activePredictionsData = mockData;
-                updateActivePredictionsTable(mockData);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.items && Array.isArray(data.items)) {
+                    activePredictionsData = data.items;
+                    updateActivePredictionsTable(data.items);
+                } else {
+                    throw new Error('Invalid active predictions data format received');
+                }
                 
             } catch (error) {
                 console.error('Error loading active predictions:', error);
@@ -581,20 +620,27 @@
 
         async function loadAccuracyData() {
             try {
-                // Mock accuracy data based on your example calculations
-                const mockAccuracy = [
-                    { tf: 3, success: 8, failed: 1 },
-                    { tf: 5, success: 1, failed: 1 },
-                    { tf: 10, success: 12, failed: 3 },
-                    { tf: 15, success: 9, failed: 4 },
-                    { tf: 30, success: 1, failed: 0 }
-                ];
+                const window = currentTimeframe.toLowerCase();
+                const response = await fetch(`/api/options/predictions/accuracy?window=${window}`);
                 
-                accuracyData = mockAccuracy;
-                updateAccuracyStats(mockAccuracy);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.by_timeframe && Array.isArray(data.by_timeframe)) {
+                    accuracyData = data.by_timeframe;
+                    updateAccuracyStats(data.by_timeframe);
+                } else {
+                    throw new Error('Invalid accuracy data format received');
+                }
                 
             } catch (error) {
                 console.error('Error loading accuracy data:', error);
+                // Fallback to empty array on error
+                accuracyData = [];
+                updateAccuracyStats([]);
             }
         }
 
@@ -650,34 +696,40 @@
             }
 
             tbody.innerHTML = strategies.map(strategy => {
-                const dueDate = calculateDueDate(strategy.dte_days || 30);
-                const breakevenRange = `₹${formatINR(strategy.breakeven_lower || 0)} – ₹${formatINR(strategy.breakeven_upper || 0)}`;
-                const breakoutProb = `${(strategy.breakout_prob_percent || 0).toFixed(0)}%`;
+                const dueDate = strategy.due_date || calculateDueDate(strategy.dte || 30);
+                const breakevenRange = `₹${formatINR(strategy.breakeven_min || 0)} – ₹${formatINR(strategy.breakeven_max || 0)}`;
+                const breakoutProb = `${((strategy.breakout_prob || 0) * 100).toFixed(0)}%`;
                 const verdictClass = getVerdictClass(strategy.verdict);
-                const stabilityClass = getStabilityClass(strategy.market_stability_score);
-                const eventDisplay = getEventDisplay(strategy.event_flag);
+                const stabilityClass = getStabilityClass(strategy.market_stability);
+                const eventDisplay = getEventDisplay(strategy.event);
+                
+                // Handle final outcome pill
+                const finalOutcome = strategy.final_outcome ? 
+                    `<span class="outcome-pill ${getOutcomeClass(strategy.final_outcome)}">${strategy.final_outcome}</span>` : 
+                    '<span class="outcome-pill in-progress">IN_PROGRESS</span>';
 
                 return `
                     <tr>
-                        <td><div class="stock-name">${strategy.symbol}</div></td>
+                        <td><div class="stock-name">${strategy.stock}</div></td>
                         <td><span class="${verdictClass}">${strategy.verdict || 'Hold'}</span></td>
-                        <td><span class="ai-verdict">${strategy.ai_agent_verdict || 'Hold'}</span></td>
+                        <td><span class="ai-verdict">${strategy.ai_verdict || 'Hold'}</span></td>
+                        <td>${finalOutcome}</td>
                         <td>₹${formatINR(strategy.spot)}</td>
-                        <td>₹${formatINR(strategy.call_strike)}</td>
-                        <td>₹${formatINR(strategy.put_strike)}</td>
+                        <td>₹${formatINR(strategy.call)}</td>
+                        <td>₹${formatINR(strategy.put)}</td>
                         <td>${dueDate}</td>
                         <td>${breakevenRange}</td>
-                        <td class="${getBreakoutProbClass(strategy.breakout_prob_percent)}">${breakoutProb}</td>
-                        <td class="${stabilityClass}">${getStabilityText(strategy.market_stability_score)}</td>
-                        <td class="${getEventClass(strategy.event_flag)}">${eventDisplay}</td>
-                        <td class="${getMaxLossClass(strategy.max_loss_two_sigma)}">₹${formatINR(Math.abs(strategy.max_loss_two_sigma || 0))}</td>
-                        <td>${(strategy.stop_loss_percent_of_credit || 180).toFixed(0)}%</td>
-                        <td>${strategy.dte_days || 30}d</td>
-                        <td>${(strategy.iv_percent || 0).toFixed(1)}%</td>
+                        <td class="${getBreakoutProbClass((strategy.breakout_prob || 0) * 100)}">${breakoutProb}</td>
+                        <td class="${stabilityClass}">${getStabilityText(strategy.market_stability)}</td>
+                        <td class="${getEventClass(strategy.event)}">${eventDisplay}</td>
+                        <td class="${getMaxLossClass(strategy.max_loss_2s)}">${strategy.max_loss_2s || 'Moderate'}</td>
+                        <td>${(strategy.stop_loss_pct || 180).toFixed(0)}%</td>
+                        <td>${strategy.dte || 30}d</td>
+                        <td>${(strategy.iv || 0).toFixed(1)}%</td>
                         <td>${(strategy.iv_rank || 0).toFixed(0)}</td>
-                        <td>₹${formatINR(strategy.net_credit_per_lot)}</td>
-                        <td>₹${formatINR(strategy.theta_per_day_per_lot)}</td>
-                        <td class="${getROIClass(strategy.roi_on_margin_percent)}">${(strategy.roi_on_margin_percent || 0).toFixed(1)}%</td>
+                        <td>₹${formatINR(strategy.net_credit)}</td>
+                        <td>₹${formatINR(strategy.theta_day)}</td>
+                        <td class="${getROIClass(strategy.roi_on_margin)}">${(strategy.roi_on_margin || 0).toFixed(1)}%</td>
                     </tr>
                 `;
             }).join('');
@@ -776,6 +828,19 @@
             if (roi > 3) return 'risk-low';
             if (roi > 1) return 'risk-medium';
             return 'risk-high';
+        }
+
+        function getOutcomeClass(outcome) {
+            if (outcome === 'MET') return 'met';
+            if (outcome === 'NOT_MET') return 'not-met';
+            return 'in-progress';
+        }
+
+        function getStabilityText(stability) {
+            if (typeof stability === 'string') return stability;
+            if (stability >= 80) return 'High';
+            if (stability >= 60) return 'Med';
+            return 'Low';
         }
 
         function applyFilters() {
