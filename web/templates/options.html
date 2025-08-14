@@ -646,10 +646,15 @@
             try {
                 const window = currentTimeframe.toLowerCase();
                 const response = await fetch(`/api/predictions/accuracy?window=${window}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
                 
-                if (data.success && data.by_timeframe) {
-                    accuracyData = data.by_timeframe;
+                if (data.success && data.data && data.data.by_timeframe) {
+                    accuracyData = data.data.by_timeframe;
                     updateAccuracyMetrics();
                 } else {
                     console.warn('No accuracy data available');
@@ -664,6 +669,11 @@
         async function loadActivePredictions() {
             try {
                 const response = await fetch('/api/predictions/active');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
                 
                 if (data.success && data.items) {
@@ -756,26 +766,38 @@
                 return;
             }
 
-            let totalSuccess = 0, totalFailed = 0, ratios = [];
-            
-            accuracyData.forEach(item => {
-                const success = Number(item.success || 0);
-                const failed = Number(item.failed || 0);
-                const total = success + failed;
-                
-                totalSuccess += success;
-                totalFailed += failed;
-                
-                if (total > 0) {
-                    ratios.push(success / total);
-                }
-            });
+            // Handle both old format (success/failed) and new format (micro_accuracy/macro_accuracy)
+            if (accuracyData[0] && 'micro_accuracy' in accuracyData[0]) {
+                // New format from API
+                const latestData = accuracyData[0];
+                const microAcc = Number(latestData.micro_accuracy || 0);
+                const macroAcc = Number(latestData.macro_accuracy || 0);
 
-            const microAcc = (totalSuccess + totalFailed) > 0 ? totalSuccess / (totalSuccess + totalFailed) : 0;
-            const macroAcc = ratios.length > 0 ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
+                document.getElementById('microAccValue').textContent = (microAcc * 100).toFixed(1) + '%';
+                document.getElementById('macroAccValue').textContent = (macroAcc * 100).toFixed(1) + '%';
+            } else {
+                // Old format - calculate from success/failed
+                let totalSuccess = 0, totalFailed = 0, ratios = [];
+                
+                accuracyData.forEach(item => {
+                    const success = Number(item.success || 0);
+                    const failed = Number(item.failed || 0);
+                    const total = success + failed;
+                    
+                    totalSuccess += success;
+                    totalFailed += failed;
+                    
+                    if (total > 0) {
+                        ratios.push(success / total);
+                    }
+                });
 
-            document.getElementById('microAccValue').textContent = (microAcc * 100).toFixed(1) + '%';
-            document.getElementById('macroAccValue').textContent = (macroAcc * 100).toFixed(1) + '%';
+                const microAcc = (totalSuccess + totalFailed) > 0 ? totalSuccess / (totalSuccess + totalFailed) : 0;
+                const macroAcc = ratios.length > 0 ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
+
+                document.getElementById('microAccValue').textContent = (microAcc * 100).toFixed(1) + '%';
+                document.getElementById('macroAccValue').textContent = (macroAcc * 100).toFixed(1) + '%';
+            }
         }
 
         function renderOutcomePill(outcome) {

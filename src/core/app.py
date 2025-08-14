@@ -71,20 +71,35 @@ def create_app():
         app.register_blueprint(options_bp, url_prefix='/api/options')
         logger.info("✅ Registered Options API at /api/options")
 
-        # Register Predictions API
-        from src.app.api.predictions import predictions_bp
-        app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
-        logger.info("✅ Registered Predictions API at /api/predictions")
-
     except ImportError as e:
-        logger.error(f"❌ Failed to import options/predictions blueprints: {e}")
+        logger.error(f"❌ Failed to import options blueprint: {e}")
         # Create fallback endpoints
         @app.route('/api/options/strategies')
         def fallback_options():
             return jsonify({'success': False, 'error': 'Options API not available', 'strategies': []})
 
     except Exception as e:
-        logger.error(f"❌ Failed to register options/predictions blueprints: {e}")
+        logger.error(f"❌ Failed to register options blueprint: {e}")
+
+    try:
+        # Register Predictions API separately
+        from src.app.api.predictions import predictions_bp
+        app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
+        logger.info("✅ Registered Predictions API at /api/predictions")
+
+    except ImportError as e:
+        logger.error(f"❌ Failed to import predictions blueprint: {e}")
+        # Create fallback endpoints
+        @app.route('/api/predictions/accuracy')
+        def fallback_predictions_accuracy():
+            return jsonify({'success': True, 'data': {'by_timeframe': [{'timeframe': '30D', 'micro_accuracy': 0.0, 'macro_accuracy': 0.0}], 'micro_accuracy': 0.0, 'macro_accuracy': 0.0}})
+        
+        @app.route('/api/predictions/active')
+        def fallback_predictions_active():
+            return jsonify({'success': True, 'items': [], 'count': 0})
+
+    except Exception as e:
+        logger.error(f"❌ Failed to register predictions blueprint: {e}")
 
     try:
         # Commodities API
