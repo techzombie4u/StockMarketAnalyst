@@ -3,7 +3,7 @@ import sys
 import json
 import time
 from datetime import datetime
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, redirect
 from flask_cors import CORS
 import logging
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def create_app():
     """Create and configure Flask application"""
-    app = Flask(__name__, 
+    app = Flask(__name__,
                 template_folder='../../web/templates',
                 static_folder='../../web/static')
 
@@ -65,40 +65,20 @@ def create_app():
     except Exception as e:
         logger.warning(f"⚠️ Could not register Equities API: {e}")
 
+    # Register options blueprint
     try:
-        # Options API
         from src.options.api import options_bp
         app.register_blueprint(options_bp, url_prefix='/api/options')
-        logger.info("✅ Registered Options API at /api/options")
-
+        logger.info("✅ Options API blueprint registered")
     except ImportError as e:
-        logger.error(f"❌ Failed to import options blueprint: {e}")
-        # Create fallback endpoints
-        @app.route('/api/options/strategies')
-        def fallback_options():
-            return jsonify({'success': False, 'error': 'Options API not available', 'strategies': []})
-
-    except Exception as e:
         logger.error(f"❌ Failed to register options blueprint: {e}")
 
+    # Register predictions blueprint
     try:
-        # Register Predictions API separately
-        from src.app.api.predictions import predictions_bp
-        app.register_blueprint(predictions_bp, url_prefix='/api/predictions')
-        logger.info("✅ Registered Predictions API at /api/predictions")
-
+        from src.options.api import predictions_bp
+        app.register_blueprint(predictions_bp)
+        logger.info("✅ Predictions API blueprint registered")
     except ImportError as e:
-        logger.error(f"❌ Failed to import predictions blueprint: {e}")
-        # Create fallback endpoints
-        @app.route('/api/predictions/accuracy')
-        def fallback_predictions_accuracy():
-            return jsonify({'success': True, 'data': {'by_timeframe': [{'timeframe': '30D', 'micro_accuracy': 0.0, 'macro_accuracy': 0.0}], 'micro_accuracy': 0.0, 'macro_accuracy': 0.0}})
-
-        @app.route('/api/predictions/active')
-        def fallback_predictions_active():
-            return jsonify({'success': True, 'items': [], 'count': 0})
-
-    except Exception as e:
         logger.error(f"❌ Failed to register predictions blueprint: {e}")
 
     try:
@@ -180,24 +160,9 @@ def create_app():
             return jsonify({'error': 'Template not found'}), 500
 
     @app.route('/options')
-    def options():
-        try:
-            logger.info("📊 Serving Options page")
-            return render_template('options.html')
-        except Exception as e:
-            logger.error(f"❌ Error rendering options page: {e}")
-            return f"""
-            <!DOCTYPE html>
-            <html>
-            <head><title>Options - Error</title></head>
-            <body>
-                <h1>Options Page Error</h1>
-                <p>Error: {str(e)}</p>
-                <p>Template path issue - please check web/templates/options.html</p>
-                <a href="/dashboard">Back to Dashboard</a>
-            </body>
-            </html>
-            """, 500
+    def options_page():
+        """Options trading page"""
+        return render_template('options.html')
 
     @app.route('/commodities')
     def commodities():
@@ -274,6 +239,21 @@ def create_app():
             'total_routes': len(routes),
             'routes': sorted(routes, key=lambda x: x['rule'])
         })
+
+    # Add a redirect for the options strategies endpoint
+    @app.route('/api/options-strategies')
+    def api_options_strategies():
+        """Redirect to proper options strategies endpoint"""
+        timeframe = request.args.get('timeframe', '30D')
+        symbol = request.args.get('symbol', None)
+
+        # Build URL for redirect
+        url = f'/api/options/strategies?timeframe={timeframe}'
+        if symbol:
+            url += f'&symbol={symbol}'
+
+        return redirect(url)
+
 
     logger.info("✅ Flask app created successfully")
     return app

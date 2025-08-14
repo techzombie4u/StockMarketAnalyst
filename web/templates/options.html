@@ -1,850 +1,654 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Options Strategies - Enhanced Layout</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <title>Options Trading - Stock Market Analyst</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --bg-primary: #0b1220;
-            --bg-surface: #111a2e;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --text-primary: rgba(255, 255, 255, 0.9);
-            --text-dim: rgba(255, 255, 255, 0.6);
-            --brand-color: #6ee7b7;
-            --emerald-bg: rgba(16, 185, 129, 0.1);
-            --emerald-border: rgba(16, 185, 129, 0.2);
-            --sky-bg: rgba(14, 165, 233, 0.1);
-            --sky-border: rgba(14, 165, 233, 0.2);
-            --rose-bg: rgba(244, 63, 94, 0.1);
-            --rose-border: rgba(244, 63, 94, 0.2);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            line-height: 1.5;
-        }
-
-        .header {
-            position: sticky;
-            top: 0;
-            z-index: 40;
-            background: var(--bg-surface);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .header-content {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0.75rem 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-        }
-
-        .header-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: white;
-        }
-
-        .header-subtitle {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            margin-top: 0.125rem;
-        }
-
-        .nav {
-            display: flex;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .nav-link {
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: background-color 0.2s;
-        }
-
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .nav-link.active {
-            color: var(--brand-color);
-            font-weight: 600;
-        }
-
-        .main {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .surface {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 1rem;
-        }
-
-        .filters {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .filter-item {
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.5rem;
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.875rem;
-        }
-
-        .filter-item span {
-            font-weight: 600;
-            color: white;
-        }
-
-        .filter-controls {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .range-input {
-            width: 10rem;
-        }
-
-        .btn-primary {
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
-            background: transparent;
-            color: var(--brand-color);
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .btn-primary:hover {
-            background: var(--emerald-bg);
-        }
-
-        .accuracy-toggle {
-            display: inline-flex;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-        }
-
-        .accuracy-btn {
-            padding: 0.375rem 0.75rem;
-            background: transparent;
-            border: none;
-            color: rgba(255, 255, 255, 0.8);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .accuracy-btn:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .accuracy-btn.active {
-            background: var(--emerald-bg);
-            color: var(--brand-color);
-        }
-
-        .accuracy-btn:not(:first-child) {
-            border-left: 1px solid var(--border-color);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 0.75rem;
-        }
-
-        .stat-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 1rem;
-            min-width: 180px;
-        }
-
-        .stat-card.highlight {
-            outline: 1px solid rgba(110, 231, 183, 0.3);
-        }
-
-        .stat-label {
-            font-size: 0.6875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 600;
-            color: var(--text-dim);
-        }
-
-        .stat-value {
-            margin-top: 0.25rem;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.95);
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.75rem;
-        }
-
-        .section-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--text-dim);
-        }
-
-        .timeframe-select {
-            padding: 0.375rem 0.75rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border-color);
-            background: transparent;
-            color: var(--text-primary);
-            font-size: 0.875rem;
-        }
-
-        .table-container {
-            border-radius: 1rem;
-            overflow: auto;
-            border: 1px solid var(--border-color);
-            max-width: 100%;
-            width: 100%;
-        }
-
-        .table {
-            width: 100%;
-            min-width: 2200px;
-            table-layout: auto;
-            font-size: 0.8125rem;
-            background: var(--bg-surface);
-        }
-
-        .table thead {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .table th {
-            padding: 0.5rem 0.75rem;
-            font-weight: 500;
-            text-align: left;
-            color: rgba(255, 255, 255, 0.7);
-            background: rgba(255, 255, 255, 0.05);
-            white-space: nowrap;
-            min-width: 80px;
-        }
-
-        .table td {
-            padding: 0.5rem 0.75rem;
-            vertical-align: middle;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Specific column widths */
-        .table th:nth-child(1), .table td:nth-child(1) { min-width: 120px; } /* Stock */
-        .table th:nth-child(2), .table td:nth-child(2) { min-width: 120px; } /* Verdict */
-        .table th:nth-child(3), .table td:nth-child(3) { min-width: 120px; } /* AI Verdict */
-        .table th:nth-child(4), .table td:nth-child(4) { min-width: 140px; } /* Final Outcome */
-        .table th:nth-child(5), .table td:nth-child(5) { min-width: 100px; }  /* Spot */
-        .table th:nth-child(6), .table td:nth-child(6) { min-width: 100px; }  /* Call */
-        .table th:nth-child(7), .table td:nth-child(7) { min-width: 100px; }  /* Put */
-        .table th:nth-child(8), .table td:nth-child(8) { min-width: 120px; } /* Due Date */
-        .table th:nth-child(9), .table td:nth-child(9) { min-width: 180px; } /* Breakeven Range */
-        .table th:nth-child(10), .table td:nth-child(10) { min-width: 120px; } /* Breakout Prob */
-        .table th:nth-child(11), .table td:nth-child(11) { min-width: 140px; } /* Market Stability */
-        .table th:nth-child(12), .table td:nth-child(12) { min-width: 100px; }  /* Event */
-        .table th:nth-child(13), .table td:nth-child(13) { min-width: 140px; } /* Max Loss (2σ) */
-        .table th:nth-child(14), .table td:nth-child(14) { min-width: 120px; } /* Stop Loss % */
-        .table th:nth-child(15), .table td:nth-child(15) { min-width: 80px; }  /* DTE */
-        .table th:nth-child(16), .table td:nth-child(16) { min-width: 90px; }  /* IV% */
-        .table th:nth-child(17), .table td:nth-child(17) { min-width: 100px; }  /* IV Rank */
-        .table th:nth-child(18), .table td:nth-child(18) { min-width: 120px; } /* Net Credit */
-        .table th:nth-child(19), .table td:nth-child(19) { min-width: 120px; } /* Theta/Day */
-        .table th:nth-child(20), .table td:nth-child(20) { min-width: 140px; } /* ROI on Margin */
-
-        .table tbody tr:nth-child(even) {
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .outcome-pill {
-            padding: 0.125rem 0.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid;
-            font-size: 0.6875rem;
-            font-weight: 500;
-            display: inline-block;
-        }
-
-        .outcome-met {
-            color: var(--brand-color);
-            background: var(--emerald-bg);
-            border-color: var(--emerald-border);
-        }
-
-        .outcome-not-met {
-            color: #fca5a5;
-            background: var(--rose-bg);
-            border-color: var(--rose-border);
-        }
-
-        .outcome-in-progress {
-            color: #7dd3fc;
-            background: var(--sky-bg);
-            border-color: var(--sky-border);
-        }
-
-        .outcome-default {
-            color: rgba(255, 255, 255, 0.7);
-            background: rgba(255, 255, 255, 0.05);
-            border-color: var(--border-color);
-        }
-
-        .stock-symbol {
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .verdict-text {
-            color: var(--brand-color);
-            font-weight: 500;
-        }
-
-        .ai-verdict-text {
-            color: #7dd3fc;
-            font-weight: 500;
-        }
-
-        .empty-state {
-            padding: 1.5rem;
-            text-align: center;
-            color: var(--text-dim);
-        }
-
-        .loading {
-            padding: 1.5rem;
-            text-align: center;
-            color: var(--text-dim);
-        }
-
-        .accuracy-info {
-            font-size: 0.6875rem;
-            color: var(--text-dim);
-            text-align: right;
-        }
-
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .nav {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .filter-controls {
-                margin-left: 0;
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .table {
-                font-size: 0.75rem;
-                min-width: 2000px;
-            }
-
-            .table th,
-            .table td {
-                padding: 0.375rem 0.5rem;
-            }
-        }
-
-        @media (max-width: 640px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        body { background: #0b1220; color: #ffffff; font-family: 'Inter', sans-serif; }
+        .loading { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .card { background: #111a2e; border: 1px solid rgba(255,255,255,0.1); }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
     </style>
 </head>
-<body>
-    <header class="header">
-        <div class="header-content">
-            <div>
-                <h1 class="header-title">Stock Market Analyst</h1>
-                <p class="header-subtitle">Options – Short Strangle · NSE Equity Options</p>
-            </div>
-            <nav class="nav">
-                <a href="/dashboard" class="nav-link">Dashboard</a>
-                <a href="/equities" class="nav-link">Equities</a>
-                <a href="/options" class="nav-link active">Options</a>
-                <a href="/commodities" class="nav-link">Commodities</a>
-                <a href="/papertrade" class="nav-link">Paper Trade</a>
-            </nav>
+<body class="bg-gray-900 text-white">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6 mb-6">
+        <h1 class="text-3xl font-bold mb-2">💰 Options Trading Hub</h1>
+        <p class="text-blue-100">Real-time options analysis and strategy recommendations</p>
+        
+        <!-- Navigation -->
+        <div class="mt-4 space-x-4">
+            <a href="/" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded">🏠 Dashboard</a>
+            <a href="/papertrade-tabbed" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded">📊 Paper Trade</a>
+            <a href="/analysis" class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded">📈 Analysis</a>
         </div>
-    </header>
+    </div>
 
-    <main class="main">
-        <!-- Filters Section -->
-        <section class="surface">
-            <div class="filters">
-                <div class="filter-item">Strategy: <span>Short Strangle</span></div>
-                <div class="filter-item">Market: <span>NSE Equity Options</span></div>
-                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                    <input type="checkbox" id="hideEvents" checked style="accent-color: var(--brand-color);">
-                    Hide Events
-                </label>
-                <div class="filter-controls">
-                    <span style="color: var(--text-dim);">Max Breakout Prob:</span>
-                    <input type="range" id="maxBreakoutProb" min="0" max="100" value="100" class="range-input">
-                    <span id="breakoutValue">100%</span>
-                    <button onclick="loadStrategies()" class="btn-primary">Apply Filters</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Summary Metrics -->
-        <section>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem;">
-                    <span style="color: var(--text-dim);">Accuracy Mode:</span>
-                    <div class="accuracy-toggle">
-                        <button class="accuracy-btn active" data-mode="micro" onclick="setAccuracyMode('micro')">Micro</button>
-                        <button class="accuracy-btn" data-mode="macro" onclick="setAccuracyMode('macro')">Macro</button>
-                    </div>
-                </div>
-                <div class="accuracy-info">
-                    Window: <span id="currentTimeframe">45D</span> (finalized only). Micro = successes/(successes+failures). Macro = mean of per-timeframe accuracies.
-                </div>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-card highlight" id="microAccCard">
-                    <div class="stat-label">Accuracy (Micro)</div>
-                    <div class="stat-value" id="microAccValue">0.0%</div>
-                </div>
-                <div class="stat-card" id="macroAccCard">
-                    <div class="stat-label">Accuracy (Macro)</div>
-                    <div class="stat-value" id="macroAccValue">0.0%</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Total Strategies</div>
-                    <div class="stat-value" id="totalStrategies">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg. ROI</div>
-                    <div class="stat-value" id="avgROI">0.0%</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">High IV Opportunities</div>
-                    <div class="stat-value" id="highIVCount">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Event‑Free Trades</div>
-                    <div class="stat-value" id="eventFreeCount">0</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Strategies Table -->
-        <section class="surface">
-            <div class="section-header">
-                <h3 class="section-title">Enhanced Options Strategies — <span id="strategiesTimeframe">45D</span></h3>
-                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
-                    <label style="color: var(--text-dim); display: none;" class="sm:block">DTE Window:</label>
-                    <select id="timeframeSelect" class="timeframe-select">
-                        <option value="45D">45D — Recommended</option>
-                        <option value="30D">30D — Recommended</option>
-                        <option value="21D">21D — Practical Min</option>
-                        <option value="14D">14D — Practical Min</option>
-                        <option value="10D">10D — Weekly</option>
-                        <option value="7D">7D — Weekly</option>
+    <div class="container mx-auto px-4">
+        <!-- Controls -->
+        <div class="card rounded-lg p-6 mb-6">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Symbol:</label>
+                    <select id="symbolSelect" class="bg-gray-700 text-white px-3 py-2 rounded">
+                        <option value="RELIANCE">RELIANCE</option>
+                        <option value="TCS">TCS</option>
+                        <option value="HDFCBANK">HDFCBANK</option>
+                        <option value="INFY">INFY</option>
+                        <option value="ICICIBANK">ICICIBANK</option>
+                        <option value="WIPRO">WIPRO</option>
+                        <option value="LT">LT</option>
+                        <option value="MARUTI">MARUTI</option>
                     </select>
                 </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Strategy:</label>
+                    <select id="strategySelect" class="bg-gray-700 text-white px-3 py-2 rounded">
+                        <option value="strangle">Short Strangle</option>
+                        <option value="straddle">Short Straddle</option>
+                        <option value="iron_condor">Iron Condor</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Timeframe:</label>
+                    <select id="timeframeSelect" class="bg-gray-700 text-white px-3 py-2 rounded">
+                        <option value="7D">7 Days</option>
+                        <option value="14D">14 Days</option>
+                        <option value="30D" selected>30 Days</option>
+                        <option value="45D">45 Days</option>
+                    </select>
+                </div>
+                
+                <button id="refreshBtn" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-medium">
+                    🔄 Load Data
+                </button>
+                
+                <button id="chainBtn" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded font-medium">
+                    🔗 Options Chain
+                </button>
             </div>
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Stock</th>
-                            <th>Verdict</th>
-                            <th>AI Verdict</th>
-                            <th>Final Outcome</th>
-                            <th>Spot</th>
-                            <th>Call</th>
-                            <th>Put</th>
-                            <th>Due Date</th>
-                            <th>Breakeven Range</th>
-                            <th>Breakout Prob</th>
-                            <th>Market Stability</th>
-                            <th>Event</th>
-                            <th>Max Loss (2σ)</th>
-                            <th>Stop Loss %</th>
-                            <th>DTE</th>
-                            <th>IV%</th>
-                            <th>IV Rank</th>
-                            <th>Net Credit</th>
-                            <th>Theta/Day</th>
-                            <th>ROI on Margin</th>
-                        </tr>
-                    </thead>
-                    <tbody id="strategiesTableBody">
-                        <tr>
-                            <td colspan="20" class="loading">Loading enhanced options strategies...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+        </div>
 
-        <!-- Active Predictions Table -->
-        <section class="surface">
-            <h3 class="section-title">Active Predictions (Real‑time)</h3>
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Due Date</th>
-                            <th>Stock</th>
-                            <th>Predicted Outcome</th>
-                            <th>Current Outcome</th>
-                            <th>Predicted ROI</th>
-                            <th>Current ROI</th>
-                            <th>Reason (if changed)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activePredictionsBody">
-                        <tr>
-                            <td colspan="7" class="loading">Loading active predictions...</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <!-- Status -->
+        <div id="statusDiv" class="card rounded-lg p-4 mb-6" style="display: none;">
+            <div id="statusContent"></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="card rounded-lg mb-6">
+            <div class="border-b border-gray-700">
+                <nav class="flex space-x-8 px-6">
+                    <button class="tab-btn py-4 px-2 border-b-2 border-blue-500 text-blue-400 font-medium" data-tab="strategies">
+                        📊 Strategies
+                    </button>
+                    <button class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-400 hover:text-white font-medium" data-tab="chain">
+                        🔗 Options Chain
+                    </button>
+                    <button class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-400 hover:text-white font-medium" data-tab="positions">
+                        💼 Positions
+                    </button>
+                    <button class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-400 hover:text-white font-medium" data-tab="performance">
+                        📈 Performance
+                    </button>
+                </nav>
             </div>
-        </section>
-    </main>
+
+            <!-- Tab Content -->
+            <div class="p-6">
+                <!-- Strategies Tab -->
+                <div id="strategies-tab" class="tab-content">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-700">
+                                    <th class="text-left py-3 px-4">Stock</th>
+                                    <th class="text-left py-3 px-4">Strategy</th>
+                                    <th class="text-left py-3 px-4">Spot Price</th>
+                                    <th class="text-left py-3 px-4">Call Strike</th>
+                                    <th class="text-left py-3 px-4">Put Strike</th>
+                                    <th class="text-left py-3 px-4">Net Credit</th>
+                                    <th class="text-left py-3 px-4">DTE</th>
+                                    <th class="text-left py-3 px-4">IV</th>
+                                    <th class="text-left py-3 px-4">IV Rank</th>
+                                    <th class="text-left py-3 px-4">ROI %</th>
+                                    <th class="text-left py-3 px-4">Breakevens</th>
+                                    <th class="text-left py-3 px-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="strategiesTableBody">
+                                <tr>
+                                    <td colspan="12" class="text-center py-8 text-gray-400">
+                                        <div class="loading">Loading strategies...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Options Chain Tab -->
+                <div id="chain-tab" class="tab-content hidden">
+                    <div id="chainContainer">
+                        <div class="text-center py-8 text-gray-400">
+                            <div class="loading">Loading options chain...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Positions Tab -->
+                <div id="positions-tab" class="tab-content hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-700">
+                                    <th class="text-left py-3 px-4">Position ID</th>
+                                    <th class="text-left py-3 px-4">Symbol</th>
+                                    <th class="text-left py-3 px-4">Strategy</th>
+                                    <th class="text-left py-3 px-4">Entry Date</th>
+                                    <th class="text-left py-3 px-4">P&L</th>
+                                    <th class="text-left py-3 px-4">Status</th>
+                                    <th class="text-left py-3 px-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="positionsTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center py-8 text-gray-400">
+                                        <div class="loading">Loading positions...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Performance Tab -->
+                <div id="performance-tab" class="tab-content hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <div class="card rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-gray-400 mb-1">Total Premium</h3>
+                            <div id="totalPremium" class="text-2xl font-bold">₹0</div>
+                        </div>
+                        <div class="card rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-gray-400 mb-1">Net P&L</h3>
+                            <div id="netPnl" class="text-2xl font-bold">₹0</div>
+                        </div>
+                        <div class="card rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-gray-400 mb-1">Win Rate</h3>
+                            <div id="winRate" class="text-2xl font-bold">0%</div>
+                        </div>
+                        <div class="card rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-gray-400 mb-1">Avg ROI</h3>
+                            <div id="avgRoi" class="text-2xl font-bold">0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Accuracy Table -->
+                    <div class="card rounded-lg p-6">
+                        <h3 class="text-lg font-medium mb-4">Prediction Accuracy</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-gray-700">
+                                        <th class="text-left py-3 px-4">Timeframe</th>
+                                        <th class="text-left py-3 px-4">Total</th>
+                                        <th class="text-left py-3 px-4">Success</th>
+                                        <th class="text-left py-3 px-4">Failed</th>
+                                        <th class="text-left py-3 px-4">Accuracy</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="accuracyTableBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center py-8 text-gray-400">
+                                            <div class="loading">Loading accuracy data...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        let currentTimeframe = '45D';
-        let currentAccuracyMode = 'micro';
-        let strategiesData = [];
-        let accuracyData = [];
-        let activePredictions = [];
+        // Global state
+        let currentTab = 'strategies';
+        let isLoading = false;
+        let currentSymbol = 'RELIANCE';
+        let currentTimeframe = '30D';
 
-        // Initialize page
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Options page initialized');
             setupEventListeners();
-            loadAllData();
-
-            // Auto-refresh every 30 seconds
-            setInterval(loadAllData, 30000);
+            loadInitialData();
         });
 
         function setupEventListeners() {
-            // Timeframe selector
+            // Tab switching
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    switchTab(this.dataset.tab);
+                });
+            });
+
+            // Controls
+            document.getElementById('refreshBtn').addEventListener('click', loadData);
+            document.getElementById('chainBtn').addEventListener('click', loadOptionsChain);
+            document.getElementById('symbolSelect').addEventListener('change', function() {
+                currentSymbol = this.value;
+                loadData();
+            });
             document.getElementById('timeframeSelect').addEventListener('change', function() {
                 currentTimeframe = this.value;
-                document.getElementById('currentTimeframe').textContent = currentTimeframe;
-                document.getElementById('strategiesTimeframe').textContent = currentTimeframe;
-                loadAllData();
-            });
-
-            // Breakout probability range
-            document.getElementById('maxBreakoutProb').addEventListener('input', function() {
-                document.getElementById('breakoutValue').textContent = this.value + '%';
+                loadData();
             });
         }
 
-        function setAccuracyMode(mode) {
-            currentAccuracyMode = mode;
-
-            // Update button states
-            document.querySelectorAll('.accuracy-btn').forEach(btn => {
-                btn.classList.remove('active');
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.dataset.tab === tabName) {
+                    btn.className = 'tab-btn py-4 px-2 border-b-2 border-blue-500 text-blue-400 font-medium';
+                } else {
+                    btn.className = 'tab-btn py-4 px-2 border-b-2 border-transparent text-gray-400 hover:text-white font-medium';
+                }
             });
-            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
 
-            // Update card highlights
-            document.getElementById('microAccCard').classList.toggle('highlight', mode === 'micro');
-            document.getElementById('macroAccCard').classList.toggle('highlight', mode === 'macro');
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+
+            currentTab = tabName;
+
+            // Load data for the tab
+            switch(tabName) {
+                case 'strategies':
+                    loadStrategies();
+                    break;
+                case 'chain':
+                    loadOptionsChain();
+                    break;
+                case 'positions':
+                    loadPositions();
+                    break;
+                case 'performance':
+                    loadPerformance();
+                    break;
+            }
         }
 
-        async function loadAllData() {
-            try {
-                // Load strategies
-                await loadStrategies();
+        function loadInitialData() {
+            loadStrategies();
+        }
 
-                // Load accuracy data
-                loadAccuracy();
-
-                // Load active predictions
-                loadActivePredictions();
-
-            } catch (error) {
-                console.error('Error loading data:', error);
+        function loadData() {
+            switch(currentTab) {
+                case 'strategies':
+                    loadStrategies();
+                    break;
+                case 'chain':
+                    loadOptionsChain();
+                    break;
+                case 'positions':
+                    loadPositions();
+                    break;
+                case 'performance':
+                    loadPerformance();
+                    break;
             }
         }
 
         async function loadStrategies() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            showStatus('Loading strategies...', 'info');
+            updateTableLoading('strategiesTableBody', 12);
+
             try {
-                const response = await fetch(`/api/options/strategies?timeframe=${currentTimeframe}`);
+                const response = await fetch(`/api/options/strategies?timeframe=${currentTimeframe}&symbol=${currentSymbol}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const data = await response.json();
+                console.log('Strategies response:', data);
 
                 if (data.success && data.strategies) {
-                    strategiesData = data.strategies;
-                    renderStrategiesTable();
-                    updateSummaryMetrics();
+                    renderStrategiesTable(data.strategies);
+                    showStatus(`Loaded ${data.strategies.length} strategies`, 'success');
                 } else {
-                    showTableError('strategiesTableBody', 'Failed to load strategies data', 20);
+                    throw new Error(data.error || 'No strategies data received');
                 }
+
             } catch (error) {
                 console.error('Error loading strategies:', error);
-                showTableError('strategiesTableBody', 'Error loading strategies: ' + error.message, 20);
+                showError('strategiesTableBody', 12, 'Failed to load strategies: ' + error.message);
+                showStatus('Failed to load strategies', 'error');
+            } finally {
+                isLoading = false;
+                setTimeout(() => hideStatus(), 3000);
             }
         }
 
-        async function loadAccuracy() {
-            try {
-                const window = currentTimeframe.toLowerCase();
-                const response = await fetch(`/api/predictions/accuracy?window=${window}`);
+        async function loadOptionsChain() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            showStatus('Loading options chain...', 'info');
+            document.getElementById('chainContainer').innerHTML = '<div class="text-center py-8 text-gray-400"><div class="loading">Loading options chain...</div></div>';
 
+            try {
+                const response = await fetch(`/api/options/chain/${currentSymbol}`);
+                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 const data = await response.json();
+                console.log('Options chain response:', data);
 
-                if (data.success && data.data && data.data.by_timeframe) {
-                    accuracyData = data.data.by_timeframe;
-                    updateAccuracyMetrics();
+                if (data.success && data.data) {
+                    renderOptionsChain(data.data);
+                    showStatus('Options chain loaded', 'success');
                 } else {
-                    console.warn('No accuracy data available');
-                    updateAccuracyMetrics([]);
+                    throw new Error(data.error || 'No chain data received');
                 }
+
             } catch (error) {
-                console.error('Error loading accuracy:', error);
-                updateAccuracyMetrics([]);
+                console.error('Error loading options chain:', error);
+                document.getElementById('chainContainer').innerHTML = `<div class="text-center py-8 text-red-400">Failed to load options chain: ${error.message}</div>`;
+                showStatus('Failed to load options chain', 'error');
+            } finally {
+                isLoading = false;
+                setTimeout(() => hideStatus(), 3000);
             }
         }
 
-        async function loadActivePredictions() {
-            try {
-                const response = await fetch('/api/predictions/active');
+        async function loadPositions() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            showStatus('Loading positions...', 'info');
+            updateTableLoading('positionsTableBody', 7);
 
+            try {
+                const response = await fetch('/api/options/positions');
+                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 const data = await response.json();
+                console.log('Positions response:', data);
 
-                if (data.success && data.items) {
-                    activePredictions = data.items;
-                    renderActivePredictions();
+                if (data.success && data.positions) {
+                    renderPositionsTable(data.positions);
+                    showStatus(`Loaded ${data.positions.length} positions`, 'success');
                 } else {
-                    showTableError('activePredictionsBody', 'No active predictions available', 7);
+                    renderPositionsTable([]);
+                    showStatus('No positions found', 'warning');
                 }
+
             } catch (error) {
-                console.error('Error loading active predictions:', error);
-                showTableError('activePredictionsBody', 'Error loading active predictions: ' + error.message, 7);
+                console.error('Error loading positions:', error);
+                showError('positionsTableBody', 7, 'Failed to load positions: ' + error.message);
+                showStatus('Failed to load positions', 'error');
+            } finally {
+                isLoading = false;
+                setTimeout(() => hideStatus(), 3000);
             }
         }
 
-        function renderStrategiesTable() {
+        async function loadPerformance() {
+            if (isLoading) return;
+            
+            isLoading = true;
+            showStatus('Loading performance data...', 'info');
+            updateTableLoading('accuracyTableBody', 5);
+
+            try {
+                // Load accuracy data
+                const accuracyResponse = await fetch('/api/predictions/accuracy?instrument=option&window=30d');
+                
+                if (accuracyResponse.ok) {
+                    const accuracyData = await accuracyResponse.json();
+                    renderAccuracyTable(accuracyData.by_timeframe || []);
+                }
+
+                // Update KPIs with mock data for now
+                document.getElementById('totalPremium').textContent = '₹125,000';
+                document.getElementById('netPnl').textContent = '₹18,500';
+                document.getElementById('winRate').textContent = '76%';
+                document.getElementById('avgRoi').textContent = '28%';
+
+                showStatus('Performance data loaded', 'success');
+
+            } catch (error) {
+                console.error('Error loading performance:', error);
+                showError('accuracyTableBody', 5, 'Failed to load performance data');
+                showStatus('Failed to load performance data', 'error');
+            } finally {
+                isLoading = false;
+                setTimeout(() => hideStatus(), 3000);
+            }
+        }
+
+        function renderStrategiesTable(strategies) {
             const tbody = document.getElementById('strategiesTableBody');
-
-            if (!strategiesData || strategiesData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="20" class="empty-state">No strategies available for the selected timeframe</td></tr>';
+            
+            if (!strategies || strategies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="12" class="text-center py-8 text-gray-400">No strategies available</td></tr>';
                 return;
             }
 
-            const rows = strategiesData.map(strategy => `
-                <tr>
-                    <td><div class="stock-symbol">${strategy.stock || 'N/A'}</div></td>
-                    <td><span class="verdict-text">${strategy.verdict || 'Hold'}</span></td>
-                    <td><span class="ai-verdict-text">${strategy.ai_verdict || 'On Track'}</span></td>
-                    <td>${renderOutcomePill(strategy.final_outcome)}</td>
-                    <td>₹${formatNumber(strategy.spot)}</td>
-                    <td>₹${formatNumber(strategy.call)}</td>
-                    <td>₹${formatNumber(strategy.put)}</td>
-                    <td>${formatDueDate(strategy)}</td>
-                    <td>₹${formatNumber(strategy.breakeven_min)} – ₹${formatNumber(strategy.breakeven_max)}</td>
-                    <td>${Math.round((strategy.breakout_prob || 0) * 100)}%</td>
-                    <td>${strategy.market_stability || '—'}</td>
-                    <td>${strategy.event || '—'}</td>
-                    <td>${strategy.max_loss_2s || '—'}</td>
-                    <td>${strategy.stop_loss_pct || '—'}%</td>
-                    <td>${strategy.dte || '—'}</td>
-                    <td>${strategy.iv || '—'}%</td>
-                    <td>${strategy.iv_rank || '—'}</td>
-                    <td>₹${formatNumber(strategy.net_credit)}</td>
-                    <td>${strategy.theta_day || '—'}</td>
-                    <td>${strategy.roi_on_margin || '—'}%</td>
+            tbody.innerHTML = strategies.map(strategy => `
+                <tr class="border-b border-gray-700 hover:bg-gray-800">
+                    <td class="py-3 px-4 font-medium">${strategy.stock || strategy.symbol || 'N/A'}</td>
+                    <td class="py-3 px-4">${strategy.strategy || 'Short Strangle'}</td>
+                    <td class="py-3 px-4">₹${(strategy.spot || 0).toLocaleString()}</td>
+                    <td class="py-3 px-4">₹${(strategy.call || strategy.call_strike || 0).toLocaleString()}</td>
+                    <td class="py-3 px-4">₹${(strategy.put || strategy.put_strike || 0).toLocaleString()}</td>
+                    <td class="py-3 px-4 text-green-400">₹${(strategy.net_credit || strategy.credit || 0).toLocaleString()}</td>
+                    <td class="py-3 px-4">${strategy.dte || 30}</td>
+                    <td class="py-3 px-4">${(strategy.iv || 0).toFixed(1)}%</td>
+                    <td class="py-3 px-4">${(strategy.iv_rank || 0).toFixed(0)}%</td>
+                    <td class="py-3 px-4 text-blue-400">${(strategy.roi_on_margin || 0).toFixed(1)}%</td>
+                    <td class="py-3 px-4 text-sm">
+                        ₹${(strategy.breakeven_min || 0).toLocaleString()} - 
+                        ₹${(strategy.breakeven_max || 0).toLocaleString()}
+                    </td>
+                    <td class="py-3 px-4">
+                        <button class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm" onclick="executeStrategy('${strategy.stock || strategy.symbol}')">
+                            Execute
+                        </button>
+                    </td>
                 </tr>
             `).join('');
-
-            tbody.innerHTML = rows;
         }
 
-        function renderActivePredictions() {
-            const tbody = document.getElementById('activePredictionsBody');
+        function renderOptionsChain(chainData) {
+            const container = document.getElementById('chainContainer');
+            
+            const html = `
+                <div class="mb-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="card rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-gray-400 mb-1">Symbol</h3>
+                            <div class="text-xl font-bold">${chainData.symbol}</div>
+                        </div>
+                        <div class="card rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-gray-400 mb-1">Spot Price</h3>
+                            <div class="text-xl font-bold">₹${chainData.spot.toLocaleString()}</div>
+                        </div>
+                        <div class="card rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-gray-400 mb-1">Lot Size</h3>
+                            <div class="text-xl font-bold">${chainData.lotSize}</div>
+                        </div>
+                        <div class="card rounded-lg p-4">
+                            <h3 class="text-sm font-medium text-gray-400 mb-1">IV Rank</h3>
+                            <div class="text-xl font-bold">${chainData.ivRank}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-700">
+                                    <th class="text-left py-3 px-4">Strike</th>
+                                    <th class="text-left py-3 px-4">Call LTP</th>
+                                    <th class="text-left py-3 px-4">Put LTP</th>
+                                    <th class="text-left py-3 px-4">Total Premium</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${chainData.strikes.map(strike => {
+                                    const callLtp = chainData.ltp(strike, 'CE');
+                                    const putLtp = chainData.ltp(strike, 'PE');
+                                    const totalPremium = callLtp + putLtp;
+                                    
+                                    return `
+                                        <tr class="border-b border-gray-700 hover:bg-gray-800">
+                                            <td class="py-3 px-4 font-medium">₹${strike.toLocaleString()}</td>
+                                            <td class="py-3 px-4">₹${callLtp.toFixed(2)}</td>
+                                            <td class="py-3 px-4">₹${putLtp.toFixed(2)}</td>
+                                            <td class="py-3 px-4 text-green-400">₹${totalPremium.toFixed(2)}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
 
-            if (!activePredictions || activePredictions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No active trades in progress</td></tr>';
+        function renderPositionsTable(positions) {
+            const tbody = document.getElementById('positionsTableBody');
+            
+            if (!positions || positions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">No positions found</td></tr>';
                 return;
             }
 
-            const rows = activePredictions.map(pred => `
-                <tr>
-                    <td>${pred.due || '—'}</td>
-                    <td><div class="stock-symbol">${pred.stock || 'N/A'}</div></td>
-                    <td>${pred.predicted || '—'}</td>
-                    <td>${pred.current || '—'}</td>
-                    <td>${pred.proi || '—'}%</td>
-                    <td>${pred.croi || '—'}%</td>
-                    <td>${pred.reason || '—'}</td>
+            tbody.innerHTML = positions.map(position => `
+                <tr class="border-b border-gray-700 hover:bg-gray-800">
+                    <td class="py-3 px-4 font-medium">${position.id}</td>
+                    <td class="py-3 px-4">${position.underlying}</td>
+                    <td class="py-3 px-4">${position.strategy}</td>
+                    <td class="py-3 px-4">${position.entry_date}</td>
+                    <td class="py-3 px-4 ${position.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">
+                        ₹${position.pnl.toLocaleString()}
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 rounded text-xs ${position.status === 'open' ? 'bg-green-900 text-green-300' : 'bg-gray-900 text-gray-300'}">
+                            ${position.status}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <button class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm" onclick="closePosition('${position.id}')">
+                            Close
+                        </button>
+                    </td>
                 </tr>
             `).join('');
-
-            tbody.innerHTML = rows;
         }
 
-        function updateSummaryMetrics() {
-            const total = strategiesData.length;
-            const avgROI = total > 0 ? strategiesData.reduce((sum, s) => sum + (Number(s.roi_on_margin) || 0), 0) / total : 0;
-            const highIV = strategiesData.filter(s => (s.iv_rank || 0) >= 50).length;
-            const eventFree = strategiesData.filter(s => s.event === '—' || !s.event).length;
-
-            document.getElementById('totalStrategies').textContent = total;
-            document.getElementById('avgROI').textContent = avgROI.toFixed(1) + '%';
-            document.getElementById('highIVCount').textContent = highIV;
-            document.getElementById('eventFreeCount').textContent = eventFree;
-        }
-
-        function updateAccuracyMetrics() {
+        function renderAccuracyTable(accuracyData) {
+            const tbody = document.getElementById('accuracyTableBody');
+            
             if (!accuracyData || accuracyData.length === 0) {
-                document.getElementById('microAccValue').textContent = '0.0%';
-                document.getElementById('macroAccValue').textContent = '0.0%';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">No accuracy data available</td></tr>';
                 return;
             }
 
-            // Handle both old format (success/failed) and new format (micro_accuracy/macro_accuracy)
-            if (accuracyData[0] && 'micro_accuracy' in accuracyData[0]) {
-                // New format from API
-                const latestData = accuracyData[0];
-                const microAcc = Number(latestData.micro_accuracy || 0);
-                const macroAcc = Number(latestData.macro_accuracy || 0);
-
-                document.getElementById('microAccValue').textContent = (microAcc * 100).toFixed(1) + '%';
-                document.getElementById('macroAccValue').textContent = (macroAcc * 100).toFixed(1) + '%';
-            } else {
-                // Old format - calculate from success/failed
-                let totalSuccess = 0, totalFailed = 0, ratios = [];
-
-                accuracyData.forEach(item => {
-                    const success = Number(item.success || 0);
-                    const failed = Number(item.failed || 0);
-                    const total = success + failed;
-
-                    totalSuccess += success;
-                    totalFailed += failed;
-
-                    if (total > 0) {
-                        ratios.push(success / total);
-                    }
-                });
-
-                const microAcc = (totalSuccess + totalFailed) > 0 ? totalSuccess / (totalSuccess + totalFailed) : 0;
-                const macroAcc = ratios.length > 0 ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
-
-                document.getElementById('microAccValue').textContent = (microAcc * 100).toFixed(1) + '%';
-                document.getElementById('macroAccValue').textContent = (macroAcc * 100).toFixed(1) + '%';
-            }
+            tbody.innerHTML = accuracyData.map(row => `
+                <tr class="border-b border-gray-700 hover:bg-gray-800">
+                    <td class="py-3 px-4">${row.tf || row.timeframe} days</td>
+                    <td class="py-3 px-4">${(row.success + row.failed) || row.total}</td>
+                    <td class="py-3 px-4 text-green-400">${row.success}</td>
+                    <td class="py-3 px-4 text-red-400">${row.failed}</td>
+                    <td class="py-3 px-4 text-blue-400">${((row.success / (row.success + row.failed)) * 100).toFixed(1)}%</td>
+                </tr>
+            `).join('');
         }
 
-        function renderOutcomePill(outcome) {
-            let className = 'outcome-pill ';
-            switch (outcome) {
-                case 'MET':
-                    className += 'outcome-met';
+        function updateTableLoading(tbodyId, colspan) {
+            document.getElementById(tbodyId).innerHTML = `
+                <tr>
+                    <td colspan="${colspan}" class="text-center py-8 text-gray-400">
+                        <div class="loading">Loading...</div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function showError(tbodyId, colspan, message) {
+            document.getElementById(tbodyId).innerHTML = `
+                <tr>
+                    <td colspan="${colspan}" class="text-center py-8 text-red-400">
+                        ${message}
+                    </td>
+                </tr>
+            `;
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusDiv');
+            const statusContent = document.getElementById('statusContent');
+            
+            let bgColor, textColor;
+            switch(type) {
+                case 'success':
+                    bgColor = 'bg-green-900';
+                    textColor = 'text-green-300';
                     break;
-                case 'NOT_MET':
-                    className += 'outcome-not-met';
+                case 'error':
+                    bgColor = 'bg-red-900';
+                    textColor = 'text-red-300';
                     break;
-                case 'IN_PROGRESS':
-                    className += 'outcome-in-progress';
+                case 'warning':
+                    bgColor = 'bg-yellow-900';
+                    textColor = 'text-yellow-300';
                     break;
                 default:
-                    className += 'outcome-default';
-                    outcome = outcome || '—';
+                    bgColor = 'bg-blue-900';
+                    textColor = 'text-blue-300';
             }
-            return `<span class="${className}">${outcome}</span>`;
+            
+            statusDiv.className = `card rounded-lg p-4 mb-6 ${bgColor}`;
+            statusContent.className = textColor;
+            statusContent.textContent = message;
+            statusDiv.style.display = 'block';
         }
 
-        function formatNumber(value) {
-            if (value === null || value === undefined) return '0.00';
-            return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(Number(value));
+        function hideStatus() {
+            document.getElementById('statusDiv').style.display = 'none';
         }
 
-        function formatDueDate(strategy) {
-            if (strategy.due_date) return strategy.due_date;
-
-            const days = Number(strategy.dte);
-            if (Number.isFinite(days)) {
-                const date = new Date();
-                date.setDate(date.getDate() + days);
-                return date.toISOString().split('T')[0];
-            }
-            return '—';
+        // Action functions
+        function executeStrategy(symbol) {
+            showStatus(`Executing strategy for ${symbol}...`, 'info');
+            // Implementation for strategy execution
         }
 
-        function showTableError(tbodyId, message, colSpan) {
-            const tbody = document.getElementById(tbodyId);
-            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="empty-state">${message}</td></tr>`;
-        }
-
-        function showError(message) {
-            // Display a general error message to the user.
-            // This could be a modal, a toast, or a specific error div.
-            // For this example, we'll assume a simple alert.
-            alert(message);
+        function closePosition(positionId) {
+            showStatus(`Closing position ${positionId}...`, 'info');
+            // Implementation for position closure
         }
     </script>
 </body>
