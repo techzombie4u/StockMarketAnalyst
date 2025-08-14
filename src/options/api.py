@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Create the main options blueprint
-options_bp = Blueprint('options_bp', __name__)
+options_bp = Blueprint('options', __name__)
 
 # Import the strangle engine with proper error handling
 try:
@@ -21,86 +21,67 @@ except ImportError as e:
     StrangleEngine = None
 
 def generate_mock_strategy_data(symbol: str, timeframe: str) -> dict:
-    """Generate comprehensive mock strategy data"""
+    """Generate consistent mock data for strategies table"""
     try:
-        # Generate realistic base price
-        base_prices = {
-            'RELIANCE': 2800, 'TCS': 4200, 'HDFCBANK': 1650, 'INFY': 1800,
-            'ICICIBANK': 1200, 'WIPRO': 650, 'LT': 3500, 'MARUTI': 11000
-        }
-        spot_price = base_prices.get(symbol, 1000 + (hash(symbol) % 3000))
+        # Simulate realistic data based on symbol hash for consistency
+        symbol_hash = hash(symbol) % 1000
 
-        # Calculate strikes
-        call_strike = round(spot_price * 1.05, 0)
-        put_strike = round(spot_price * 0.95, 0)
+        base_spot = 1500 + (symbol_hash % 500)  # 1500-2000 range
+        call_strike = base_spot + 100
+        put_strike = base_spot - 100
 
-        # Days to expiry
-        dte_map = {'5D': 21, '10D': 28, '15D': 35, '30D': 42, '45D': 49}
+        # DTE based on timeframe
+        dte_map = {'45D': 45, '30D': 30, '21D': 21, '14D': 14, '10D': 10, '7D': 7}
         dte = dte_map.get(timeframe, 30)
 
-        # Calculate option pricing
-        iv = 0.25 + (hash(symbol) % 15) / 100  # 25-40% IV
-        time_factor = max(0.01, dte / 365.0)
+        # Generate due date
+        due_date = (datetime.datetime.now() + datetime.timedelta(days=dte)).strftime('%Y-%m-%d')
 
-        call_price = spot_price * 0.02 * math.sqrt(time_factor)
-        put_price = spot_price * 0.018 * math.sqrt(time_factor)
-        net_credit = round(call_price + put_price, 2)
+        # Calculate realistic option premiums
+        call_premium = max(10, 50 - (symbol_hash % 30))
+        put_premium = max(10, 45 - (symbol_hash % 25))
+        net_credit = call_premium + put_premium
 
-        # Risk metrics
-        breakeven_low = round(put_strike - net_credit, 2)
-        breakeven_high = round(call_strike + net_credit, 2)
-        breakout_prob = round(random.uniform(0.15, 0.45), 3)
+        # Breakeven calculations
+        breakeven_min = put_strike - net_credit
+        breakeven_max = call_strike + net_credit
 
-        # ROI calculation
-        margin = net_credit * 4
-        roi_percent = round((net_credit / margin) * 100, 1)
+        # Other metrics
+        iv = 20 + (symbol_hash % 20)  # 20-40%
+        iv_rank = 30 + (symbol_hash % 40)  # 30-70%
+        roi_on_margin = (net_credit / (base_spot * 0.2)) * 100  # Assuming 20% margin
+        theta_day = -(net_credit * 0.05)  # Rough theta estimate
 
-        # Market stability
-        stability_scores = ['High', 'Med', 'Low']
-        stability = random.choice(stability_scores)
-
-        # Event risk
-        has_earnings = random.choice([True, False])
-        event_flag = 'EARNINGS' if has_earnings else 'CLEAR'
-
-        # Verdict scoring
-        score = 0
-        if iv > 0.30: score += 20
-        if roi_percent > 15: score += 20
-        if breakout_prob < 0.30: score += 15
-        if not has_earnings: score += 15
-        if dte >= 20: score += 10
-
-        verdict_map = {80: 'Strong Buy', 60: 'Buy', 40: 'Hold', 20: 'Cautious', 0: 'Avoid'}
-        verdict = next((v for threshold, v in sorted(verdict_map.items(), reverse=True) if score >= threshold), 'Avoid')
+        # Market metrics
+        breakout_prob = min(0.4, (symbol_hash % 40) / 100)
+        market_stability = ['Low', 'Medium', 'High'][symbol_hash % 3]
 
         return {
             'stock': symbol,
-            'spot': float(spot_price),
-            'call': float(call_strike),
-            'put': float(put_strike),
-            'dte': int(dte),
-            'iv': round(iv * 100, 1),
-            'iv_rank': round(random.uniform(20, 80), 1),
-            'net_credit': float(net_credit),
-            'theta_day': round(net_credit * 0.03, 2),
-            'roi_on_margin': float(roi_percent),
-            'roi_on_margin_percent': float(roi_percent),
-            'breakeven_min': float(breakeven_low),
-            'breakeven_max': float(breakeven_high),
-            'breakout_prob': float(breakout_prob),
-            'market_stability': stability,
-            'event': 'EARNINGS' if has_earnings else '—',
-            'event_flag': event_flag,
-            'max_loss_2s': round(random.uniform(1000, 5000), 2),
-            'stop_loss_pct': 180.0,
-            'verdict': verdict,
-            'ai_verdict': verdict,
+            'verdict': 'Hold' if symbol_hash % 2 == 0 else 'Bullish',
+            'ai_verdict': 'On Track',
             'final_outcome': 'IN_PROGRESS',
-            'due_date': (datetime.now() + timedelta(days=dte)).strftime('%Y-%m-%d')
+            'spot': base_spot,
+            'call': call_strike,
+            'put': put_strike,
+            'due_date': due_date,
+            'breakeven_min': breakeven_min,
+            'breakeven_max': breakeven_max,
+            'breakout_prob': breakout_prob,
+            'market_stability': market_stability,
+            'event': 'None' if symbol_hash % 3 == 0 else 'Earnings',
+            'max_loss_2s': 'Moderate',
+            'stop_loss_pct': 50,
+            'dte': dte,
+            'iv': iv,
+            'iv_rank': iv_rank,
+            'net_credit': net_credit,
+            'theta_day': theta_day,
+            'roi_on_margin': roi_on_margin
         }
+
     except Exception as e:
-        logger.error(f"Error generating mock data for {symbol}: {e}")
+        logger.error(f"Error generating strategy data for {symbol}: {e}")
         return None
 
 @options_bp.route('/strategies', methods=['GET'])
@@ -135,21 +116,105 @@ def get_options_strategies():
 
         return jsonify({
             'success': True,
-            'timeframe': timeframe,
             'strategies': strategies,
-            'total_strategies': len(strategies),
-            'generated_at': datetime.now().isoformat(),
-            'status': 'live_data'
+            'count': len(strategies),
+            'timeframe': timeframe,
+            'timestamp': datetime.datetime.now().isoformat()
         })
 
     except Exception as e:
-        logger.error(f"❌ Error in get_options_strategies: {e}")
+        logger.error(f"❌ Error getting options strategies: {e}")
         return jsonify({
             'success': False,
             'error': str(e),
             'strategies': [],
-            'timeframe': timeframe
+            'count': 0
         }), 500
+
+@options_bp.route('/chain/<symbol>', methods=['GET'])
+def get_options_chain(symbol):
+    """Get options chain data for a symbol"""
+    try:
+        logger.info(f"🔗 Getting options chain for {symbol}")
+
+        # Generate mock options chain data
+        symbol_hash = hash(symbol) % 1000
+        base_spot = 1500 + (symbol_hash % 500)  # 1500-2000 range
+
+        # Get lot size
+        lot_sizes = {
+            'RELIANCE': 505, 'TCS': 300, 'HDFCBANK': 550, 'INFY': 300,
+            'ICICIBANK': 1375, 'WIPRO': 3000, 'LT': 225, 'MARUTI': 100
+        }
+        lot_size = lot_sizes.get(symbol, 1000)
+        
+        # Generate expiry dates (next 3 weekly expiries)
+        expiries = []
+        base_date = datetime.datetime.now()
+        for i in range(3):
+            # Find next Thursday
+            days_ahead = (3 - base_date.weekday()) % 7
+            if days_ahead == 0:
+                days_ahead = 7
+            next_thursday = base_date + datetime.timedelta(days=days_ahead + (i * 7))
+            expiries.append(next_thursday.strftime('%Y-%m-%d'))
+
+        # Generate strikes around spot
+        strikes = []
+        base_strike = round(base_spot / 50) * 50
+        for i in range(-10, 11):
+            strikes.append(base_strike + (i * 50))
+
+        # Generate CE and PE prices
+        ce_data = {}
+        pe_data = {}
+
+        for expiry in expiries:
+            ce_data[expiry] = {}
+            pe_data[expiry] = {}
+
+            for strike in strikes:
+                # Simple option pricing simulation
+                if strike > base_spot:  # OTM calls
+                    ce_price = max(1, 50 - (strike - base_spot) / 10)
+                else:  # ITM calls
+                    ce_price = (base_spot - strike) + max(5, 30 - (base_spot - strike) / 20)
+
+                if strike < base_spot:  # OTM puts
+                    pe_price = max(1, 50 - (base_spot - strike) / 10)
+                else:  # ITM puts
+                    pe_price = (strike - base_spot) + max(5, 30 - (strike - base_spot) / 20)
+
+                ce_data[expiry][str(strike)] = round(ce_price, 2)
+                pe_data[expiry][str(strike)] = round(pe_price, 2)
+
+        # Calculate IV and IV Rank
+        iv = 18 + (hash(symbol) % 20)
+        iv_rank = 30 + (hash(symbol) % 40)
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'symbol': symbol,
+                'spot': float(base_spot),
+                'lotSize': lot_size,
+                'expiries': expiries,
+                'strikes': strikes,
+                'ce': ce_data,
+                'pe': pe_data,
+                'iv': float(iv),
+                'ivRank': float(iv_rank)
+            },
+            'timestamp': datetime.datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Error getting options chain for {symbol}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @options_bp.route('/strangle/candidates', methods=['GET'])
 def get_strangle_candidates():
@@ -402,19 +467,6 @@ def debug_sample_data():
             'error': str(e),
             'debug': True
         }), 500
-
-# Create a separate predictions blueprint to avoid conflicts
-# predictions_bp = Blueprint('predictions_bp', __name__) # This line is now redundant as predictions_bp is already defined above.
-
-# @predictions_bp.route('/accuracy', methods=['GET']) # These routes are now redundant as they are already defined above with the correct paths.
-# def predictions_accuracy():
-#     """Global predictions accuracy endpoint"""
-#     return get_predictions_accuracy()
-
-# @predictions_bp.route('/active', methods=['GET'])
-# def predictions_active():
-#     """Global active predictions endpoint"""
-#     return get_active_predictions()
 
 # Updated imports to include NSEProvider
 from src.services.options_engine import OptionsEngine
